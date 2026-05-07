@@ -1,0 +1,837 @@
+// Buzomed v1 — Prisma Schema
+// Database: PostgreSQL (Supabase, Frankfurt)
+// 
+// Conventions:
+// - All IDs are UUIDs (gen_random_uuid)
+// - All timestamps are timestamptz
+// - Soft delete via deletedAt nullable column
+// - Multi-tenant: every entity carries tenantId for RLS enforcement
+// - JSONB used for structured-but-evolving data (risk profiles, vital signs)
+// - Enums defined inline with comments for legal/operational reference
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"] // for Vercel deployment
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // for migrations, bypassing Supabase pooler
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  super_admin
+  practice_admin
+  practitioner
+  assistant
+}
+
+enum SubscriptionTier {
+  trial
+  solo
+  practice
+  enterprise
+}
+
+enum SubscriptionStatus {
+  active
+  past_due
+  cancelled
+  suspended
+}
+
+enum IdDocumentType {
+  cnp
+  passport
+  eu_id_card
+  other
+}
+
+enum EmployeeArchivedReason {
+  left_employment
+  retired
+  deceased
+  transferred
+  other
+}
+
+enum WorkAssignmentReason {
+  hired
+  promoted
+  transferred
+  role_change
+  department_change
+  other
+}
+
+enum ExaminationStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+  no_show
+}
+
+enum ExaminationRequestSource {
+  employer_request
+  periodic_due
+  employee_request
+  legal_obligation
+  other
+}
+
+enum ExaminationVerdict {
+  apt
+  apt_conditionat
+  inapt_temporar
+  inapt
+}
+
+enum DocumentEntityType {
+  examination
+  employee
+  workplace
+  company
+  vaccination
+  medical_event
+}
+
+enum DocumentType {
+  fisa_aptitudine
+  fisa_factori_risc
+  dosarul_medical
+  raport_medical
+  adeverinta_medicala
+  vaccination_certificate
+  lab_result
+  referral
+  external_document
+  other
+}
+
+enum SignatureMethod {
+  digital_image
+  qualified_electronic_signature
+  physical_print_sign
+}
+
+enum TemplateFormat {
+  html_handlebars
+  docx_template
+}
+
+enum AdministrationRoute {
+  intramuscular
+  subcutaneous
+  oral
+  intranasal
+  other
+}
+
+enum MedicalEventType {
+  workplace_accident
+  sudden_illness
+  first_aid
+  evacuation
+  other
+}
+
+enum MedicalEventOutcome {
+  returned_to_work
+  sent_home
+  referred_to_hospital
+  ambulance_called
+  other
+}
+
+enum RecallStatus {
+  pending
+  scheduled
+  completed
+  overdue
+  cancelled
+}
+
+enum AuditAction {
+  create
+  read
+  update
+  delete
+  download
+  print
+  sign
+  login
+  logout
+  export
+  import
+}
+
+// ============================================================================
+// CORE TENANCY
+// ============================================================================
+
+model Tenant {
+  id                  String              @id @default(uuid()) @db.Uuid
+  name                String
+  slug                String              @unique
+  legalName           String?             @map("legal_name")
+  cui                 String?
+  registrationNumber  String?             @map("registration_number")
+  
+  addressLine1        String?             @map("address_line1")
+  addressLine2        String?             @map("address_line2")
+  city                String?
+  county              String?
+  postalCode          String?             @map("postal_code")
+  country             String              @default("RO")
+  
+  phone               String?
+  email               String?
+  website             String?
+  
+  subscriptionTier    SubscriptionTier    @default(trial) @map("subscription_tier")
+  subscriptionStatus  SubscriptionStatus  @default(active) @map("subscription_status")
+  trialEndsAt         DateTime?           @map("trial_ends_at") @db.Timestamptz
+  
+  featureFlags        Json                @default("{}") @map("feature_flags")
+  settings            Json                @default("{}")
+  
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt           DateTime?           @map("deleted_at") @db.Timestamptz
+  
+  users               User[]
+  locations           Location[]
+  companies           Company[]
+  workplaces          Workplace[]
+  employees           Employee[]
+  examinations        Examination[]
+  documents           Document[]
+  documentTemplates   DocumentTemplate[]
+  vaccinations        Vaccination[]
+  medicalEvents       MedicalEvent[]
+  recalls             Recall[]
+  auditLogEntries     AuditLogEntry[]
+  employeeWorkplaceAssignments EmployeeWorkplaceAssignment[]
+  
+  @@map("tenants")
+  @@index([slug])
+  @@index([deletedAt])
+}
+
+model Location {
+  id              String          @id @default(uuid()) @db.Uuid
+  tenantId        String          @map("tenant_id") @db.Uuid
+  name            String
+  
+  addressLine1    String?         @map("address_line1")
+  addressLine2    String?         @map("address_line2")
+  city            String?
+  county          String?
+  postalCode      String?         @map("postal_code")
+  
+  phone           String?
+  email           String?
+  
+  isPrimary       Boolean         @default(false) @map("is_primary")
+  isActive        Boolean         @default(true) @map("is_active")
+  
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt       DateTime?       @map("deleted_at") @db.Timestamptz
+  
+  tenant                  Tenant                    @relation(fields: [tenantId], references: [id])
+  examinations            Examination[]
+  userLocationAssignments UserLocationAssignment[]
+  
+  @@map("locations")
+  @@index([tenantId])
+  @@index([tenantId, isPrimary])
+}
+
+// ============================================================================
+// USERS & AUTH
+// ============================================================================
+
+model User {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  tenantId            String?                  @map("tenant_id") @db.Uuid // null for super_admin
+  email               String                   @unique
+  authUserId          String?                  @unique @map("auth_user_id") @db.Uuid // links to supabase auth.users
+  
+  firstName           String                   @map("first_name")
+  lastName            String                   @map("last_name")
+  phone               String?
+  
+  roles               UserRole[]               // multi-role support per question 1
+  
+  professionalTitle   String?                  @map("professional_title")
+  professionalCode    String?                  @map("professional_code") // parafa code
+  cnpEncrypted        String?                  @map("cnp_encrypted") // for practitioners; encrypted via pgcrypto
+  cnpHash             String?                  @map("cnp_hash") // for lookup
+  
+  signatureImageUrl   String?                  @map("signature_image_url")
+  stampImageUrl       String?                  @map("stamp_image_url")
+  
+  isActive            Boolean                  @default(true) @map("is_active")
+  lastLoginAt         DateTime?                @map("last_login_at") @db.Timestamptz
+  
+  createdAt           DateTime                 @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime                 @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt           DateTime?                @map("deleted_at") @db.Timestamptz
+  
+  tenant                          Tenant?                       @relation(fields: [tenantId], references: [id])
+  userLocationAssignments         UserLocationAssignment[]
+  
+  examinationsAsPractitioner      Examination[]                 @relation("ExaminationPractitioner")
+  examinationsSigned              Examination[]                 @relation("ExaminationSigner")
+  vaccinationsAdministered        Vaccination[]
+  medicalEventsHandled            MedicalEvent[]
+  workplacesCreated               Workplace[]
+  employeesCreated                Employee[]
+  documentsUploaded               Document[]                    @relation("DocumentUploader")
+  documentsSigned                 Document[]                    @relation("DocumentSigner")
+  auditLogEntries                 AuditLogEntry[]
+  
+  @@map("users")
+  @@index([tenantId])
+  @@index([email])
+  @@index([authUserId])
+}
+
+model UserLocationAssignment {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  locationId  String   @map("location_id") @db.Uuid
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  
+  user        User      @relation(fields: [userId], references: [id])
+  location    Location  @relation(fields: [locationId], references: [id])
+  
+  @@map("user_location_assignments")
+  @@unique([userId, locationId])
+  @@index([userId])
+  @@index([locationId])
+}
+
+// ============================================================================
+// COMPANIES & WORKPLACES
+// ============================================================================
+
+model Company {
+  id                  String      @id @default(uuid()) @db.Uuid
+  tenantId            String      @map("tenant_id") @db.Uuid
+  
+  name                String
+  cui                 String?
+  registrationNumber  String?     @map("registration_number")
+  caenCode            String?     @map("caen_code")
+  
+  addressLine1        String?     @map("address_line1")
+  addressLine2        String?     @map("address_line2")
+  city                String?
+  county              String?
+  postalCode          String?     @map("postal_code")
+  
+  phone               String?
+  email               String?
+  website             String?
+  
+  contactPersonName   String?     @map("contact_person_name")
+  contactPersonRole   String?     @map("contact_person_role")
+  contactPersonPhone  String?     @map("contact_person_phone")
+  contactPersonEmail  String?     @map("contact_person_email")
+  
+  contractStartDate   DateTime?   @map("contract_start_date") @db.Date
+  contractEndDate     DateTime?   @map("contract_end_date") @db.Date
+  
+  notes               String?
+  isActive            Boolean     @default(true) @map("is_active")
+  
+  createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt           DateTime?   @map("deleted_at") @db.Timestamptz
+  
+  tenant              Tenant          @relation(fields: [tenantId], references: [id])
+  workplaces          Workplace[]
+  medicalEvents       MedicalEvent[]
+  
+  @@map("companies")
+  @@index([tenantId])
+  @@index([tenantId, name])
+  @@index([cui])
+}
+
+model Workplace {
+  id                          String      @id @default(uuid()) @db.Uuid
+  tenantId                    String      @map("tenant_id") @db.Uuid
+  companyId                   String      @map("company_id") @db.Uuid
+  
+  name                        String
+  department                  String?
+  description                 String?
+  
+  // Risk profile mirrors fișa de identificare a factorilor de risc
+  // Stored as JSONB for schema flexibility — legal form may evolve
+  riskProfile                 Json        @default("{}") @map("risk_profile")
+  
+  // Examination requirements driven by hazard profile
+  requiredExaminationTypeIds  String[]    @map("required_examination_type_ids") @db.Uuid
+  examinationIntervalMonths   Int         @default(12) @map("examination_interval_months")
+  
+  riskAssessmentSignedByCompany Boolean   @default(false) @map("risk_assessment_signed_by_company")
+  riskAssessmentSignedAt        DateTime? @map("risk_assessment_signed_at") @db.Date
+  
+  isActive                    Boolean     @default(true) @map("is_active")
+  
+  createdByUserId             String?     @map("created_by_user_id") @db.Uuid
+  createdAt                   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt                   DateTime?   @map("deleted_at") @db.Timestamptz
+  
+  tenant                      Tenant                          @relation(fields: [tenantId], references: [id])
+  company                     Company                         @relation(fields: [companyId], references: [id])
+  createdBy                   User?                           @relation(fields: [createdByUserId], references: [id])
+  employeeAssignments         EmployeeWorkplaceAssignment[]
+  examinations                Examination[]
+  recalls                     Recall[]
+  
+  @@map("workplaces")
+  @@index([tenantId])
+  @@index([companyId])
+}
+
+// ============================================================================
+// EMPLOYEES
+// ============================================================================
+
+model Employee {
+  id                          String                @id @default(uuid()) @db.Uuid
+  tenantId                    String                @map("tenant_id") @db.Uuid
+  
+  // Legal identification
+  cnpEncrypted                String?               @map("cnp_encrypted") // pgcrypto-encrypted
+  cnpHash                     String?               @map("cnp_hash") // tenant-salted hash for lookup
+  idDocumentType              IdDocumentType        @default(cnp) @map("id_document_type")
+  idDocumentNumber            String?               @map("id_document_number") // for non-CNP cases
+  
+  // Operational identification (per question 4 — Interpretation A)
+  companyEmployeeId           String?               @map("company_employee_id") // badge / matricola
+  
+  // Personal data
+  lastName                    String                @map("last_name")
+  firstName                   String                @map("first_name")
+  birthDate                   DateTime?             @map("birth_date") @db.Date
+  gender                      String?               // 'M' | 'F' | other
+  nationality                 String                @default("RO")
+  
+  addressLine1                String?               @map("address_line1")
+  addressLine2                String?               @map("address_line2")
+  city                        String?
+  county                      String?
+  postalCode                  String?               @map("postal_code")
+  
+  phone                       String?
+  email                       String?
+  
+  emergencyContactName         String?              @map("emergency_contact_name")
+  emergencyContactPhone        String?              @map("emergency_contact_phone")
+  emergencyContactRelationship String?              @map("emergency_contact_relationship")
+  
+  // Medical summary (the "always visible" stuff)
+  medicalHistorySummary       String?               @map("medical_history_summary")
+  chronicConditions           Json                  @default("[]") @map("chronic_conditions")
+  chronicMedications          Json                  @default("[]") @map("chronic_medications")
+  allergies                   Json                  @default("[]") // the "Cave" field — flagged in UI
+  vaccinationsSummary         String?               @map("vaccinations_summary")
+  bloodType                   String?               @map("blood_type")
+  
+  notes                       String?
+  
+  isActive                    Boolean               @default(true) @map("is_active")
+  archivedAt                  DateTime?             @map("archived_at") @db.Timestamptz
+  archivedReason              EmployeeArchivedReason? @map("archived_reason")
+  
+  createdByUserId             String?               @map("created_by_user_id") @db.Uuid
+  createdAt                   DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt                   DateTime?             @map("deleted_at") @db.Timestamptz
+  
+  tenant                      Tenant                          @relation(fields: [tenantId], references: [id])
+  createdBy                   User?                           @relation(fields: [createdByUserId], references: [id])
+  workplaceAssignments        EmployeeWorkplaceAssignment[]
+  examinations                Examination[]
+  vaccinations                Vaccination[]
+  medicalEvents               MedicalEvent[]
+  recalls                     Recall[]
+  
+  @@map("employees")
+  @@index([tenantId])
+  @@index([tenantId, cnpHash])
+  @@index([tenantId, lastName, firstName])
+  @@index([tenantId, companyEmployeeId])
+  @@index([archivedAt])
+}
+
+model EmployeeWorkplaceAssignment {
+  id                  String                @id @default(uuid()) @db.Uuid
+  tenantId            String                @map("tenant_id") @db.Uuid
+  employeeId          String                @map("employee_id") @db.Uuid
+  workplaceId         String                @map("workplace_id") @db.Uuid
+  
+  startDate           DateTime              @map("start_date") @db.Date
+  endDate             DateTime?             @map("end_date") @db.Date
+  isCurrent           Boolean               @default(true) @map("is_current")
+  
+  reasonForChange     WorkAssignmentReason? @map("reason_for_change")
+  notes               String?
+  
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  
+  tenant              Tenant      @relation(fields: [tenantId], references: [id])
+  employee            Employee    @relation(fields: [employeeId], references: [id])
+  workplace           Workplace   @relation(fields: [workplaceId], references: [id])
+  
+  @@map("employee_workplace_assignments")
+  @@index([tenantId])
+  @@index([employeeId, isCurrent])
+  @@index([workplaceId])
+}
+
+// ============================================================================
+// EXAMINATIONS
+// ============================================================================
+
+model ExaminationType {
+  id                      String          @id @default(uuid()) @db.Uuid
+  code                    String          @unique // 'angajare', 'control_periodic', etc.
+  nameRo                  String          @map("name_ro")
+  nameDe                  String?         @map("name_de") // for future i18n
+  nameEn                  String?         @map("name_en")
+  description             String?
+  legalReference          String?         @map("legal_reference") // 'HG 355/2007 art. X'
+  defaultValidityMonths   Int             @default(12) @map("default_validity_months")
+  isActive                Boolean         @default(true) @map("is_active")
+  isSystem                Boolean         @default(true) @map("is_system")
+  
+  createdAt               DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  
+  examinations            Examination[]
+  recalls                 Recall[]
+  
+  @@map("examination_types")
+}
+
+model Examination {
+  id                          String                    @id @default(uuid()) @db.Uuid
+  tenantId                    String                    @map("tenant_id") @db.Uuid
+  
+  employeeId                  String                    @map("employee_id") @db.Uuid
+  workplaceId                 String                    @map("workplace_id") @db.Uuid // snapshot at exam time
+  examinationTypeId           String                    @map("examination_type_id") @db.Uuid
+  practitionerId              String                    @map("practitioner_id") @db.Uuid
+  locationId                  String                    @map("location_id") @db.Uuid
+  
+  // Per question 3: per tenant per year numbering
+  examinationNumber           String                    @map("examination_number") // '2025/0001'
+  examinationYear             Int                       @map("examination_year")
+  examinationSequence         Int                       @map("examination_sequence")
+  
+  scheduledAt                 DateTime?                 @map("scheduled_at") @db.Timestamptz
+  startedAt                   DateTime?                 @map("started_at") @db.Timestamptz
+  completedAt                 DateTime?                 @map("completed_at") @db.Timestamptz
+  
+  status                      ExaminationStatus         @default(scheduled)
+  requestSource               ExaminationRequestSource? @map("request_source")
+  referringDocumentNumber     String?                   @map("referring_document_number")
+  
+  // Clinical data
+  anamnesis                   Json                      @default("{}") // structured Q&A
+  vitalSigns                  Json                      @default("{}") @map("vital_signs")
+  visionTest                  Json                      @default("{}") @map("vision_test")
+  hearingTest                 Json                      @default("{}") @map("hearing_test")
+  lungFunction                Json                      @default("{}") @map("lung_function")
+  additionalTests             Json                      @default("{}") @map("additional_tests")
+  
+  clinicalFindings            String?                   @map("clinical_findings")
+  diagnoses                   Json                      @default("[]")
+  recommendations             String?
+  
+  // Verdict (matches fișa de aptitudine)
+  verdict                     ExaminationVerdict?
+  verdictConditions           String?                   @map("verdict_conditions")
+  inaptTemporarUntil          DateTime?                 @map("inapt_temporar_until") @db.Date
+  
+  // Recall calculation
+  nextExaminationDueDate      DateTime?                 @map("next_examination_due_date") @db.Date
+  
+  // Internal practitioner notes (not on official documents)
+  notes                       String?
+  
+  // Immutability after signing
+  signedAt                    DateTime?                 @map("signed_at") @db.Timestamptz
+  signedByUserId              String?                   @map("signed_by_user_id") @db.Uuid
+  
+  createdAt                   DateTime                  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime                  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt                   DateTime?                 @map("deleted_at") @db.Timestamptz
+  
+  tenant                      Tenant              @relation(fields: [tenantId], references: [id])
+  employee                    Employee            @relation(fields: [employeeId], references: [id])
+  workplace                   Workplace           @relation(fields: [workplaceId], references: [id])
+  examinationType             ExaminationType     @relation(fields: [examinationTypeId], references: [id])
+  practitioner                User                @relation("ExaminationPractitioner", fields: [practitionerId], references: [id])
+  location                    Location            @relation(fields: [locationId], references: [id])
+  signedBy                    User?               @relation("ExaminationSigner", fields: [signedByUserId], references: [id])
+  
+  vaccinations                Vaccination[]
+  recallsTriggered            Recall[]            @relation("RecallSourceExamination")
+  recallsCompleted            Recall[]            @relation("RecallCompletingExamination")
+  
+  @@map("examinations")
+  @@unique([tenantId, examinationYear, examinationSequence])
+  @@index([tenantId])
+  @@index([tenantId, completedAt])
+  @@index([employeeId, completedAt])
+  @@index([practitionerId, completedAt])
+  @@index([status])
+}
+
+// ============================================================================
+// DOCUMENTS
+// ============================================================================
+
+model Document {
+  id                          String              @id @default(uuid()) @db.Uuid
+  tenantId                    String              @map("tenant_id") @db.Uuid
+  
+  // Polymorphic ownership
+  entityType                  DocumentEntityType  @map("entity_type")
+  entityId                    String              @map("entity_id") @db.Uuid
+  
+  documentType                DocumentType        @map("document_type")
+  filename                    String
+  storagePath                 String              @map("storage_path") // Supabase Storage path
+  mimeType                    String              @map("mime_type")
+  fileSizeBytes               BigInt              @map("file_size_bytes")
+  
+  isGenerated                 Boolean             @default(false) @map("is_generated")
+  generatedFromTemplateId     String?             @map("generated_from_template_id") @db.Uuid
+  generatedDataSnapshot       Json?               @map("generated_data_snapshot")
+  
+  documentNumber              String?             @map("document_number")
+  documentYear                Int?                @map("document_year")
+  documentSequence            Int?                @map("document_sequence")
+  
+  issuedAt                    DateTime?           @map("issued_at") @db.Timestamptz
+  signedByUserId              String?             @map("signed_by_user_id") @db.Uuid
+  signatureMethod             SignatureMethod?    @map("signature_method")
+  
+  isOfficial                  Boolean             @default(false) @map("is_official")
+  version                     Int                 @default(1)
+  replacesDocumentId          String?             @map("replaces_document_id") @db.Uuid
+  
+  uploadedByUserId            String?             @map("uploaded_by_user_id") @db.Uuid
+  
+  createdAt                   DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt                   DateTime?           @map("deleted_at") @db.Timestamptz
+  
+  tenant                      Tenant              @relation(fields: [tenantId], references: [id])
+  template                    DocumentTemplate?   @relation(fields: [generatedFromTemplateId], references: [id])
+  signedBy                    User?               @relation("DocumentSigner", fields: [signedByUserId], references: [id])
+  uploadedBy                  User?               @relation("DocumentUploader", fields: [uploadedByUserId], references: [id])
+  replacesDocument            Document?           @relation("DocumentVersions", fields: [replacesDocumentId], references: [id])
+  replacedByDocuments         Document[]          @relation("DocumentVersions")
+  
+  @@map("documents")
+  @@index([tenantId])
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, documentType])
+  @@index([tenantId, documentYear, documentSequence])
+}
+
+model DocumentTemplate {
+  id                  String          @id @default(uuid()) @db.Uuid
+  tenantId            String?         @map("tenant_id") @db.Uuid // null = system template
+  
+  code                String
+  name                String
+  documentType        DocumentType    @map("document_type")
+  version             Int             @default(1)
+  templateFormat      TemplateFormat  @default(html_handlebars) @map("template_format")
+  templateContent     String          @map("template_content")
+  fieldMappings       Json            @default("{}") @map("field_mappings")
+  
+  isActive            Boolean         @default(true) @map("is_active")
+  isSystem            Boolean         @default(false) @map("is_system")
+  
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  
+  tenant              Tenant?         @relation(fields: [tenantId], references: [id])
+  documents           Document[]
+  
+  @@map("document_templates")
+  @@unique([tenantId, code, version])
+  @@index([tenantId])
+}
+
+// ============================================================================
+// VACCINATIONS
+// ============================================================================
+
+model Vaccination {
+  id                  String                @id @default(uuid()) @db.Uuid
+  tenantId            String                @map("tenant_id") @db.Uuid
+  employeeId          String                @map("employee_id") @db.Uuid
+  examinationId       String?               @map("examination_id") @db.Uuid
+  
+  vaccineName         String                @map("vaccine_name")
+  vaccineCode         String?               @map("vaccine_code")
+  manufacturer        String?
+  batchNumber         String?               @map("batch_number")
+  doseNumber          Int                   @map("dose_number")
+  
+  administrationDate  DateTime              @map("administration_date") @db.Date
+  nextDoseDueDate     DateTime?             @map("next_dose_due_date") @db.Date // manual per question 2
+  
+  administeredByUserId String               @map("administered_by_user_id") @db.Uuid
+  administrationRoute  AdministrationRoute? @map("administration_route")
+  injectionSite        String?              @map("injection_site")
+  reactionsObserved    String?              @map("reactions_observed")
+  notes                String?
+  
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt           DateTime?             @map("deleted_at") @db.Timestamptz
+  
+  tenant              Tenant                @relation(fields: [tenantId], references: [id])
+  employee            Employee              @relation(fields: [employeeId], references: [id])
+  examination         Examination?          @relation(fields: [examinationId], references: [id])
+  administeredBy      User                  @relation(fields: [administeredByUserId], references: [id])
+  
+  @@map("vaccinations")
+  @@index([tenantId])
+  @@index([employeeId, administrationDate])
+  @@index([nextDoseDueDate])
+}
+
+// ============================================================================
+// MEDICAL EVENTS (workplace accidents, emergencies)
+// ============================================================================
+
+model MedicalEvent {
+  id                      String                @id @default(uuid()) @db.Uuid
+  tenantId                String                @map("tenant_id") @db.Uuid
+  employeeId              String?               @map("employee_id") @db.Uuid // nullable for visitors
+  companyId               String?               @map("company_id") @db.Uuid
+  practitionerId          String                @map("practitioner_id") @db.Uuid
+  
+  eventType               MedicalEventType      @map("event_type")
+  occurredAt              DateTime              @map("occurred_at") @db.Timestamptz
+  locationDescription     String?               @map("location_description")
+  
+  description             String
+  actionsTaken            String?               @map("actions_taken")
+  outcome                 MedicalEventOutcome?
+  outcomeNotes            String?               @map("outcome_notes")
+  
+  requiresIthsReport      Boolean               @default(false) @map("requires_iths_report")
+  ithsReportFiled         Boolean               @default(false) @map("iths_report_filed")
+  
+  notes                   String?
+  
+  createdAt               DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt               DateTime?             @map("deleted_at") @db.Timestamptz
+  
+  tenant                  Tenant                @relation(fields: [tenantId], references: [id])
+  employee                Employee?             @relation(fields: [employeeId], references: [id])
+  company                 Company?              @relation(fields: [companyId], references: [id])
+  practitioner            User                  @relation(fields: [practitionerId], references: [id])
+  
+  @@map("medical_events")
+  @@index([tenantId])
+  @@index([tenantId, occurredAt])
+  @@index([employeeId])
+}
+
+// ============================================================================
+// RECALLS (Friste)
+// ============================================================================
+
+model Recall {
+  id                          String              @id @default(uuid()) @db.Uuid
+  tenantId                    String              @map("tenant_id") @db.Uuid
+  employeeId                  String              @map("employee_id") @db.Uuid
+  workplaceId                 String              @map("workplace_id") @db.Uuid
+  examinationTypeId           String              @map("examination_type_id") @db.Uuid
+  
+  dueDate                     DateTime            @map("due_date") @db.Date
+  
+  createdFromExaminationId    String?             @map("created_from_examination_id") @db.Uuid
+  completedExaminationId      String?             @map("completed_examination_id") @db.Uuid
+  
+  status                      RecallStatus        @default(pending)
+  
+  notificationSentAt          DateTime?           @map("notification_sent_at") @db.Timestamptz
+  notificationCount           Int                 @default(0) @map("notification_count")
+  
+  notes                       String?
+  
+  createdAt                   DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt                   DateTime?           @map("deleted_at") @db.Timestamptz
+  
+  tenant                      Tenant              @relation(fields: [tenantId], references: [id])
+  employee                    Employee            @relation(fields: [employeeId], references: [id])
+  workplace                   Workplace           @relation(fields: [workplaceId], references: [id])
+  examinationType             ExaminationType     @relation(fields: [examinationTypeId], references: [id])
+  createdFromExamination      Examination?        @relation("RecallSourceExamination", fields: [createdFromExaminationId], references: [id])
+  completedExamination        Examination?        @relation("RecallCompletingExamination", fields: [completedExaminationId], references: [id])
+  
+  @@map("recalls")
+  @@index([tenantId])
+  @@index([tenantId, dueDate, status])
+  @@index([employeeId])
+  @@index([status])
+}
+
+// ============================================================================
+// AUDIT LOG
+// ============================================================================
+
+model AuditLogEntry {
+  id              String          @id @default(uuid()) @db.Uuid
+  tenantId        String?         @map("tenant_id") @db.Uuid // nullable for super_admin actions
+  userId          String?         @map("user_id") @db.Uuid
+  
+  action          AuditAction
+  entityType      String          @map("entity_type")
+  entityId        String?         @map("entity_id") @db.Uuid
+  entitySummary   String?         @map("entity_summary")
+  changes         Json?
+  
+  ipAddress       String?         @map("ip_address") @db.Inet
+  userAgent       String?         @map("user_agent")
+  sessionId       String?         @map("session_id")
+  
+  occurredAt      DateTime        @default(now()) @map("occurred_at") @db.Timestamptz
+  
+  tenant          Tenant?         @relation(fields: [tenantId], references: [id])
+  user            User?           @relation(fields: [userId], references: [id])
+  
+  @@map("audit_log_entries")
+  @@index([tenantId, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([entityType, entityId, occurredAt])
+}
