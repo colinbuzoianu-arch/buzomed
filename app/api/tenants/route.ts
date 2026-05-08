@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createInvitation } from '@/lib/invitations/service'
+import { getLocale } from '@/lib/i18n'
 
 export async function POST(request: Request) {
   // Only super admins can create tenants
-  await requireRole('super_admin')
+  const actor = await requireRole('super_admin')
 
   let body
   try {
@@ -43,7 +45,11 @@ export async function POST(request: Request) {
     )
   }
 
-  // Check if a user with the admin email already exists
+  // Check if a user with the admin email already exists.
+  // Note: this checks the *global* User table, not just within a tenant.
+  // If someone is already a user in another tenant, we currently reject
+  // here — multi-tenant membership requires more thought (and probably a
+  // separate UserTenantMembership table later).
   const existingUser = await prisma.user.findUnique({
     where: { email: body.adminEmail },
   })
@@ -55,8 +61,9 @@ export async function POST(request: Request) {
   }
 
   // Create tenant + admin user in a transaction
+  let tenantResult
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    tenantResult = await prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
         data: {
           name: body.name,
@@ -102,10 +109,9 @@ export async function POST(request: Request) {
         },
       })
 
-      // Create the practice admin user
-      // Note: this user has no Supabase auth identity yet — they'll get one
-      // when they accept the invite (future Brevo integration). For now we
-      // just create the app-side User row so it exists in the system.
+      // Create the practice admin user as a placeholder (no Supabase auth
+      // identity yet). The invitation we send below is what attaches an
+      // auth identity to this row when accepted.
       const adminUser = await tx.user.create({
         data: {
           tenantId: tenant.id,
@@ -114,22 +120,11 @@ export async function POST(request: Request) {
           lastName: body.adminLastName,
           roles: ['practice_admin', 'practitioner'],
           isActive: true,
-          authUserId: null, // will be filled when they accept invite
+          authUserId: null,
         },
       })
 
       return { tenant, adminUser }
-    })
-
-    // TODO: Send invite email via Brevo
-    // For now, just log the invitation context to the console
-    console.log(
-      `\n📧 [INVITE EMAIL STUB]\nTenant created: ${result.tenant.name}\nAdmin user: ${result.adminUser.email}\nThey need to be added to Supabase Auth manually for now.\n`
-    )
-
-    return NextResponse.json({
-      tenant: { id: result.tenant.id, slug: result.tenant.slug, name: result.tenant.name },
-      adminUser: { id: result.adminUser.id, email: result.adminUser.email },
     })
   } catch (error) {
     console.error('Failed to create tenant:', error)
@@ -138,4 +133,70 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
+
+  // Send the invitation email. This happens OUTSIDE the transaction
+  // because:
+  //   1. Email sending is slow and unrelated to DB consistency.
+  //   2. Email failure shouldn't roll back tenant/user creation —
+  //      we'd rather have a successfully created tenant with a manual
+  //      resend option than fail the whole tenant creation because of
+  //      a temporary Brevo issue.
+  //
+  // The invitation record is created inside createInvitation(); if it
+  // fails to persist, that's logged but tenant creation still succeeded.
+  const locale = await getLocale()
+  const appUrl = getAppUrl(request)
+
+  const inviteResult = await createInvitation({
+    actor: {
+      userId: actor.id,
+      tenantId: actor.tenantId,
+      roles: actor.roles,
+      fullName: `${actor.firstName} ${actor.lastName}`,
+      locale,
+    },
+    email: body.adminEmail,
+    role: 'practice_admin',
+    tenantId: tenantResult.tenant.id,
+    recipientName: `${body.adminFirstName} ${body.adminLastName}`,
+    appUrl,
+  })
+
+  if (!inviteResult.ok) {
+    console.error('[tenants] Failed to send initial admin invite', {
+      tenantId: tenantResult.tenant.id,
+      email: body.adminEmail,
+      error: inviteResult.error,
+      message: inviteResult.message,
+    })
+    // We still return success — the tenant exists, the placeholder user
+    // exists, and the super-admin can manually resend the invite from
+    // the tenant detail page.
+  }
+
+  return NextResponse.json({
+    tenant: {
+      id: tenantResult.tenant.id,
+      slug: tenantResult.tenant.slug,
+      name: tenantResult.tenant.name,
+    },
+    adminUser: {
+      id: tenantResult.adminUser.id,
+      email: tenantResult.adminUser.email,
+    },
+    inviteSent: inviteResult.ok && inviteResult.emailSent,
+    inviteCreated: inviteResult.ok,
+  })
+}
+
+/**
+ * Determine the public-facing app URL for building accept links.
+ * Uses NEXT_PUBLIC_APP_URL if set, otherwise reconstructs from request.
+ */
+function getAppUrl(request: Request): string {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL
+  if (fromEnv) return fromEnv
+  const proto = request.headers.get('x-forwarded-proto') ?? 'http'
+  const host = request.headers.get('host') ?? 'localhost:3000'
+  return `${proto}://${host}`
 }

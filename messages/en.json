@@ -91,5 +91,45 @@
     "submitting": "Creating...",
     "successMessage": "Practice created successfully",
     "errorMessage": "Error creating practice"
+  },
+  "tenantDetail": {
+    "infoSectionTitle": "Practice details",
+    "membersSectionTitle": "Members",
+    "noMembers": "No members yet. Send an invitation to add the first administrator.",
+    "membersTable": {
+      "roles": "Roles",
+      "accountStatus": "Account status",
+      "activated": "Activated",
+      "pending": "Awaiting activation"
+    },
+    "invitations": {
+      "sectionTitle": "Pending invitations",
+      "inviteButton": "Invite administrator",
+      "noPending": "No pending invitations.",
+      "columnRole": "Role",
+      "columnInvitedBy": "Invited by",
+      "columnExpiresAt": "Expires",
+      "revoke": "Revoke",
+      "revokeConfirm": "Are you sure you want to revoke the invitation for {email}?",
+      "dialogTitle": "Invite practice administrator",
+      "dialogDescription": "Send an email invitation to add an administrator to {tenant}. They will receive a link to set up their account.",
+      "fieldEmail": "Email",
+      "fieldEmailPlaceholder": "name@example.com",
+      "fieldName": "Full name",
+      "fieldNameOptional": "optional",
+      "fieldNamePlaceholder": "Dr. Maria Ionescu",
+      "fieldRole": "Role",
+      "sendInvite": "Send invitation",
+      "sending": "Sending...",
+      "successMessage": "Invitation sent to {email}",
+      "errorMessage": "Could not send invitation. Please try again.",
+      "errorAlreadyActive": "An active user with this email already exists in this practice.",
+      "errorInvalidEmail": "The email address is not valid.",
+      "rolePracticeAdmin": "Practice administrator",
+      "role_super_admin": "Super administrator",
+      "role_practice_admin": "Administrator",
+      "role_practitioner": "Practitioner",
+      "role_assistant": "Assistant"
+    }
   }
 }

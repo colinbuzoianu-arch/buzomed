@@ -52,36 +52,66 @@ export default async function SuperAdminPage() {
             </TableHeader>
             <TableBody>
               {tenants.map((tenant) => (
-                <TableRow key={tenant.id}>
-                  <TableCell className="font-medium">{tenant.name}</TableCell>
-                  <TableCell>{tenant.city || '—'}</TableCell>
-                  <TableCell>
-                    <span className="text-sm">
-                      {t(`superAdmin.subscription.${tenant.subscriptionTier}`)}
-                    </span>
+                <TableRow
+                  key={tenant.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                >
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/super-admin/tenants/${tenant.id}`}
+                      className="block w-full hover:underline"
+                    >
+                      {tenant.name}
+                    </Link>
                   </TableCell>
                   <TableCell>
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-sm ${
-                        tenant.subscriptionStatus === 'active'
-                          ? 'text-green-700'
-                          : 'text-muted-foreground'
-                      }`}
+                    <Link
+                      href={`/super-admin/tenants/${tenant.id}`}
+                      className="block w-full"
+                    >
+                      {tenant.city || '—'}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/super-admin/tenants/${tenant.id}`}
+                      className="block w-full text-sm"
+                    >
+                      {t(`superAdmin.subscription.${tenant.subscriptionTier}`)}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/super-admin/tenants/${tenant.id}`}
+                      className="block w-full"
                     >
                       <span
-                        className={`w-1.5 h-1.5 rounded-full ${
+                        className={`inline-flex items-center gap-1.5 text-sm ${
                           tenant.subscriptionStatus === 'active'
-                            ? 'bg-green-600'
-                            : 'bg-gray-400'
+                            ? 'text-green-700'
+                            : 'text-muted-foreground'
                         }`}
-                      />
-                      {tenant.subscriptionStatus}
-                    </span>
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            tenant.subscriptionStatus === 'active'
+                              ? 'bg-green-600'
+                              : 'bg-gray-400'
+                          }`}
+                        />
+                        {tenant.subscriptionStatus}
+                      </span>
+                    </Link>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {new Intl.DateTimeFormat(locale === 'ro' ? 'ro-RO' : 'en-US', {
-                      dateStyle: 'medium',
-                    }).format(tenant.createdAt)}
+                    <Link
+                      href={`/super-admin/tenants/${tenant.id}`}
+                      className="block w-full"
+                    >
+                      {new Intl.DateTimeFormat(locale === 'ro' ? 'ro-RO' : 'en-US', {
+                        dateStyle: 'medium',
+                      }).format(tenant.createdAt)}
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))}
