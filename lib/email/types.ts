@@ -5,6 +5,8 @@
  * SES later requires changes only in client.ts and send.ts.
  */
 
+import type { UserRole } from '@prisma/client'
+
 export type Locale = 'ro' | 'en'
 
 export interface EmailRecipient {
@@ -50,13 +52,18 @@ export interface SendEmailResult {
 
 /**
  * Props for the invite email template.
+ *
+ * `role` reuses the canonical UserRole enum from Prisma so there's
+ * no risk of drift between what we invite and what we grant.
+ * Note: `super_admin` is technically allowed by the type but the
+ * service layer rejects it (super_admins are bootstrapped, not invited).
  */
 export interface InviteEmailProps {
   recipientEmail: string
   recipientName?: string
   inviterName: string
   tenantName: string
-  role: 'TENANT_ADMIN' | 'DOCTOR' | 'ASSISTANT'
+  role: UserRole
   acceptUrl: string
   expiresAt: Date
   locale: Locale

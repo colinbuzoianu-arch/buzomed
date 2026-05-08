@@ -1,5 +1,6 @@
 import type { EmailContent, InviteEmailProps, Locale } from '../types'
 import { escapeHtml, renderButton, renderEmailLayout } from './layout'
+import type { UserRole } from '@prisma/client'
 
 /**
  * Invite email template. Renders both HTML and plain text versions
@@ -120,7 +121,7 @@ interface InviteCopy {
   linkFallbackIntro: string
   ignoreNotice: string
   footer: string
-  roles: Record<InviteEmailProps['role'], string>
+  roles: Record<UserRole, string>
 }
 
 const translations: Record<Locale, InviteCopy> = {
@@ -145,9 +146,10 @@ const translations: Record<Locale, InviteCopy> = {
     footer:
       'Buzomed — platformă pentru medicina muncii. Acest email a fost trimis automat.',
     roles: {
-      TENANT_ADMIN: 'Administrator',
-      DOCTOR: 'Medic',
-      ASSISTANT: 'Asistent',
+      super_admin: 'Super-administrator',
+      practice_admin: 'Administrator cabinet',
+      practitioner: 'Medic',
+      assistant: 'Asistent',
     },
   },
   en: {
@@ -159,7 +161,8 @@ const translations: Record<Locale, InviteCopy> = {
     greetingAnonymous: 'Hi,',
     bodyIntro: ({ inviterName, tenantName, roleLabel }) =>
       `${inviterName} has invited you to join <strong>${tenantName}</strong> on Buzomed as a <strong>${roleLabel}</strong>.`,
-    bodyCallToAction: 'To accept the invitation and create your account, click the link below:',
+    bodyCallToAction:
+      'To accept the invitation and create your account, click the link below:',
     buttonLabel: 'Accept invitation',
     expiryNotice: (formattedDate) =>
       `This invitation expires on ${formattedDate}.`,
@@ -170,9 +173,10 @@ const translations: Record<Locale, InviteCopy> = {
     footer:
       'Buzomed — occupational medicine platform. This email was sent automatically.',
     roles: {
-      TENANT_ADMIN: 'Administrator',
-      DOCTOR: 'Doctor',
-      ASSISTANT: 'Assistant',
+      super_admin: 'Super Administrator',
+      practice_admin: 'Practice Administrator',
+      practitioner: 'Practitioner',
+      assistant: 'Assistant',
     },
   },
 }

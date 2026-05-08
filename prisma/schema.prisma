@@ -206,6 +206,7 @@ model Tenant {
   deletedAt           DateTime?           @map("deleted_at") @db.Timestamptz
   
   users               User[]
+  invitations         Invitation[]
   locations           Location[]
   companies           Company[]
   workplaces          Workplace[]
@@ -297,6 +298,9 @@ model User {
   documentsUploaded               Document[]                    @relation("DocumentUploader")
   documentsSigned                 Document[]                    @relation("DocumentSigner")
   auditLogEntries                 AuditLogEntry[]
+  invitationsCreated      Invitation[]                  @relation("InvitationInviter")
+  invitationsAccepted     Invitation[]                  @relation("InvitationAcceptor")
+  invitationsRevoked      Invitation[]                  @relation("InvitationRevoker")
   
   @@map("users")
   @@index([tenantId])
@@ -834,4 +838,45 @@ model AuditLogEntry {
   @@index([tenantId, occurredAt])
   @@index([userId, occurredAt])
   @@index([entityType, entityId, occurredAt])
+}
+
+// ============================================================================
+// INVITATIONS
+// ============================================================================
+
+model Invitation {
+  id                  String          @id @default(uuid()) @db.Uuid
+  tenantId            String          @map("tenant_id") @db.Uuid
+
+  email               String
+  role                UserRole        // role being granted on accept
+  locale              String          @default("ro") // language used in invite email
+
+  // Cryptographic token: store SHA-256 hash, never plaintext.
+  // The plaintext token is sent in the email URL exactly once.
+  tokenHash           String          @unique @map("token_hash")
+
+  expiresAt           DateTime        @map("expires_at") @db.Timestamptz
+
+  invitedByUserId     String          @map("invited_by_user_id") @db.Uuid
+
+  acceptedAt          DateTime?       @map("accepted_at") @db.Timestamptz
+  acceptedByUserId    String?         @map("accepted_by_user_id") @db.Uuid
+
+  revokedAt           DateTime?       @map("revoked_at") @db.Timestamptz
+  revokedByUserId     String?         @map("revoked_by_user_id") @db.Uuid
+
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant              Tenant          @relation(fields: [tenantId], references: [id])
+  invitedBy           User            @relation("InvitationInviter", fields: [invitedByUserId], references: [id])
+  acceptedBy          User?           @relation("InvitationAcceptor", fields: [acceptedByUserId], references: [id])
+  revokedBy           User?           @relation("InvitationRevoker", fields: [revokedByUserId], references: [id])
+
+  @@map("invitations")
+  @@index([tenantId])
+  @@index([tenantId, email])
+  @@index([expiresAt])
+  @@index([acceptedAt])
 }

@@ -44,3 +44,47 @@ export async function requireRole(
   if (!hasRole) redirect('/')
   return user
 }
+
+/**
+ * API-route variant of getCurrentUser.
+ *
+ * Returns a tagged result instead of `User | null`, so API routes can
+ * distinguish "no session" from "session exists but no DB user" and
+ * return appropriate HTTP status codes.
+ *
+ * The latter case happens for users who:
+ * - Authenticated with Supabase but haven't accepted their invite yet
+ * - Had their DB row deleted while their Supabase session was still valid
+ * - Were soft-deleted (deletedAt set) or deactivated (isActive = false)
+ *
+ * Use this in `app/api/...` routes. Use `requireUser()` in server
+ * components / pages where redirecting on auth failure is appropriate.
+ */
+export type ApiAuthResult =
+  | { user: AppUser; supabaseUserId: string }
+  | { user: null; reason: 'no_session' | 'no_db_user' | 'inactive' }
+
+export async function getApiUser(): Promise<ApiAuthResult> {
+  const supabase = await createClient()
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser()
+
+  if (!authUser) {
+    return { user: null, reason: 'no_session' }
+  }
+
+  const appUser = await prisma.user.findUnique({
+    where: { authUserId: authUser.id },
+  })
+
+  if (!appUser) {
+    return { user: null, reason: 'no_db_user' }
+  }
+
+  if (appUser.deletedAt || !appUser.isActive) {
+    return { user: null, reason: 'inactive' }
+  }
+
+  return { user: appUser, supabaseUserId: authUser.id }
+}

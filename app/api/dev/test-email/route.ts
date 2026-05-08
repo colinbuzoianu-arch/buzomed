@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     recipientName: undefined,
     inviterName: 'Colin Buzoianu',
     tenantName: 'Cabinet Test SRL',
-    role: 'DOCTOR',
+    role: 'practitioner',
     acceptUrl:
       'http://localhost:3000/accept-invite/dev-test-token-not-real-12345',
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
