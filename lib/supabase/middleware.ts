@@ -32,9 +32,11 @@ export async function updateSession(request: NextRequest) {
 
   // Define route categories
   const pathname = request.nextUrl.pathname
-  const isPublicRoute =
+const isPublicRoute =
     pathname === '/login' ||
     pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/accept-invite') ||
+    pathname.startsWith('/api/invitations/accept') ||
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico'
 
