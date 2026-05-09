@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,15 +16,34 @@ type LoginFormProps = {
     submitting: string
     errorInvalid: string
     errorGeneric: string
+    /** Banner shown when arriving from accept-invite flow */
+    acceptedBanner?: string
   }
 }
 
 export function LoginForm({ labels }: LoginFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showAcceptedBanner, setShowAcceptedBanner] = useState(false)
+
+  // On mount: read email + accepted flag from query params (set by the
+  // accept-invite redirect). We only set initial state once — subsequent
+  // edits by the user shouldn't be overwritten.
+  useEffect(() => {
+    const emailParam = searchParams.get('email')
+    const acceptedParam = searchParams.get('accepted')
+    if (emailParam) setEmail(emailParam)
+    if (acceptedParam === '1' && labels.acceptedBanner) {
+      setShowAcceptedBanner(true)
+    }
+    // Intentionally only depend on labels, not searchParams — we want
+    // this to run once on mount, not whenever query params change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -59,6 +78,12 @@ export function LoginForm({ labels }: LoginFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {showAcceptedBanner && labels.acceptedBanner && (
+        <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-md p-3">
+          {labels.acceptedBanner}
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="email">{labels.emailLabel}</Label>
         <Input
@@ -83,6 +108,7 @@ export function LoginForm({ labels }: LoginFormProps) {
           required
           disabled={isSubmitting}
           autoComplete="current-password"
+          autoFocus={!!email}
         />
       </div>
 

@@ -1,26 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { acceptInvitation } from '@/lib/invitations/accept-service'
 import { validateInvitationToken } from '@/lib/invitations/service'
 
 /**
  * GET /api/invitations/accept/[token]
  *
- * Public endpoint. Returns invitation metadata for the accept page
- * (tenant name, role, expiry, inviter name) so the user can see what
- * they're accepting before they create their account.
- *
- * Returns the invitation's `locale` so the accept page renders in the
- * same language the user got the email in.
- *
- * Does NOT return the email address as plaintext to the client until
- * the user has signed in / proven they own the address. (Even though
- * the email IS in our DB and the user-side accept form will need it,
- * we'll let the client display it — but we don't echo it in this
- * preview to avoid leaking which addresses have outstanding invites.)
- *
- * Wait — actually we do need to return the email because the user
- * needs to know what address to set their password for. Tradeoff
- * accepted: anyone with the token already controls the invitation,
- * so revealing the email to them is fine.
+ * Public endpoint. Returns invitation metadata for the accept page.
+ * Unchanged from B.1.
  */
 export async function GET(
   _request: NextRequest,
@@ -29,10 +15,7 @@ export async function GET(
   const { token } = await context.params
 
   if (typeof token !== 'string' || token.trim() === '') {
-    return NextResponse.json(
-      { error: 'invalid_token' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'invalid_token' }, { status: 400 })
   }
 
   const result = await validateInvitationToken(token)
@@ -42,8 +25,8 @@ export async function GET(
       result.error === 'invalid'
         ? 404
         : result.error === 'expired'
-          ? 410 // Gone — semantically apt for expired resources
-          : 409 // Conflict for revoked / already_accepted
+          ? 410
+          : 409
     return NextResponse.json({ error: result.error }, { status })
   }
 
@@ -63,52 +46,81 @@ export async function GET(
 /**
  * POST /api/invitations/accept/[token]
  *
+ * Public endpoint. Accepts invitation by:
+ *   1. Creating (or reusing) a Supabase auth user
+ *   2. Linking it to the placeholder User row (or creating new User)
+ *   3. Marking invitation accepted
+ *
  * Body:
- * {
- *   "password": "...",     (required if creating a new account)
- *   "firstName": "...",    (required if creating a new account)
- *   "lastName": "..."      (required if creating a new account)
- * }
+ *   { "password": "...", "firstName": "...", "lastName": "..." }
  *
- * STAGE B.1 NOTE:
- * This endpoint is stubbed in B.1 — it validates the token and returns
- * a 501 Not Implemented for the actual user creation. Reason: full
- * accept flow needs to:
- * 1. Create Supabase auth user with email + password
- * 2. Create our DB User row linked to authUserId
- * 3. Mark invitation accepted
- * 4. Handle the case where a user with that email already exists in
- *    Supabase (existing user joining a new tenant)
- *
- * That's a large surface area. Stage B.4 will fill it in alongside
- * the public accept page UI. For now we just want the validation
- * path testable end-to-end (you can verify a token, see it expire,
- * verify revoke works) without yet wiring up Supabase user creation.
+ * On success, the user is NOT automatically signed in by this endpoint.
+ * The client redirects to /login with the email pre-filled. We chose this
+ * over auto-sign-in because:
+ *   - Keeps the auth flow consistent (you sign in via /login, always)
+ *   - Avoids edge cases with cookie setting in API routes during a
+ *     just-completed account creation
+ *   - Lets the user verify the password they chose works
  */
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ token: string }> }
 ) {
   const { token } = await context.params
 
-  // Validate first so we still return 404/410/409 for bad tokens
-  const result = await validateInvitationToken(token)
+  if (typeof token !== 'string' || token.trim() === '') {
+    return NextResponse.json({ error: 'invalid_token' }, { status: 400 })
+  }
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
+  }
+
+  if (typeof body !== 'object' || body === null) {
+    return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
+  }
+  const b = body as Record<string, unknown>
+
+  if (typeof b.password !== 'string') {
+    return NextResponse.json({ error: 'invalid_password' }, { status: 400 })
+  }
+  if (typeof b.firstName !== 'string' || typeof b.lastName !== 'string') {
+    return NextResponse.json({ error: 'invalid_name' }, { status: 400 })
+  }
+
+  const result = await acceptInvitation({
+    token,
+    password: b.password,
+    firstName: b.firstName,
+    lastName: b.lastName,
+  })
+
   if (!result.ok) {
     const status =
-      result.error === 'invalid'
+      result.error === 'invalid_token'
         ? 404
         : result.error === 'expired'
           ? 410
-          : 409
-    return NextResponse.json({ error: result.error }, { status })
+          : result.error === 'revoked' || result.error === 'already_accepted'
+            ? 409
+            : result.error === 'invalid_password' ||
+                result.error === 'invalid_name'
+              ? 400
+              : result.error === 'service_unavailable'
+                ? 503
+                : 500
+    return NextResponse.json(
+      { error: result.error, message: result.message },
+      { status }
+    )
   }
 
-  return NextResponse.json(
-    {
-      error: 'not_implemented',
-      message:
-        'Accept endpoint is stubbed in stage B.1. Full implementation lands in stage B.4.',
-    },
-    { status: 501 }
-  )
+  return NextResponse.json({
+    ok: true,
+    email: result.email,
+    userId: result.userId,
+  })
 }

@@ -12,20 +12,6 @@ const VALID_ROLES: UserRole[] = [
   'assistant',
 ]
 
-/**
- * POST /api/invitations
- *
- * Body:
- * {
- *   "email": "person@example.com",
- *   "role": "practitioner",
- *   "tenantId": "uuid",
- *   "recipientName": "Optional Name",
- *   "locale": "ro" | "en"  (optional, defaults to "ro")
- * }
- *
- * Permission checks happen in the service layer via canInvite().
- */
 export async function POST(request: NextRequest) {
   const auth = await getApiUser()
   if (!auth.user) {
@@ -39,10 +25,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json(
-      { error: 'invalid_json' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
   }
 
   const parsed = parseCreateBody(body)
@@ -77,7 +60,9 @@ export async function POST(request: NextRequest) {
           ? 404
           : result.error === 'database_error'
             ? 500
-            : result.error === 'user_already_active'
+            : result.error === 'user_already_active' ||
+                result.error === 'email_already_active_globally' ||
+                result.error === 'email_placeholder_in_other_tenant'
               ? 409
               : 400
     return NextResponse.json(
@@ -103,18 +88,6 @@ export async function POST(request: NextRequest) {
   )
 }
 
-/**
- * GET /api/invitations
- *
- * Returns invitations scoped to the caller's role:
- * - super_admin: all invitations across all tenants
- * - practice_admin / practitioner / assistant: only their own tenant
- *
- * Query params:
- *   ?tenantId=...  filter to a specific tenant (super_admin only;
- *                  others are auto-filtered to their tenant)
- *   ?status=pending|accepted|revoked|expired  default 'pending'
- */
 export async function GET(request: NextRequest) {
   const auth = await getApiUser()
   if (!auth.user) {
@@ -130,7 +103,6 @@ export async function GET(request: NextRequest) {
 
   const isSuperAdmin = auth.user.roles.includes('super_admin')
 
-  // Build the tenant scope filter
   let tenantIdFilter: string | undefined
   if (isSuperAdmin) {
     tenantIdFilter = requestedTenantId ?? undefined
@@ -213,10 +185,6 @@ export async function GET(request: NextRequest) {
   })
 }
 
-// ============================================================================
-// Helpers
-// ============================================================================
-
 interface ParsedCreateBody {
   ok: true
   email: string
@@ -272,16 +240,9 @@ function parseCreateBody(body: unknown): ParsedCreateBody | InvalidCreateBody {
   }
 }
 
-/**
- * Determine the public-facing app URL for building accept links.
- * Uses NEXT_PUBLIC_APP_URL if set, otherwise reconstructs from the
- * request headers.
- */
 function getAppUrl(request: NextRequest): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL
   if (fromEnv) return fromEnv
-
-  // Fallback: derive from request
   const proto = request.headers.get('x-forwarded-proto') ?? 'http'
   const host = request.headers.get('host') ?? 'localhost:3000'
   return `${proto}://${host}`

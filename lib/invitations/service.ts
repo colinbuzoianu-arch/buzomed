@@ -11,21 +11,31 @@ import {
 /**
  * Invitation service.
  *
- * Pure domain logic. No HTTP concerns. API routes call into this service
- * after authenticating the request. Easier to test, easier to reuse
- * (e.g., for admin scripts or future cron jobs).
+ * Pure domain logic. No HTTP concerns.
  *
  * Important integration with existing tenant-creation flow:
  *   `POST /api/tenants` (from session 2) creates a Tenant AND a placeholder
  *   User row for the practice_admin, with `authUserId: null`. The intent
  *   was always to invite that user later via Brevo. This service supports
- *   that pattern: if a User exists in the tenant but has no Supabase auth
- *   identity, an invitation can still be created — it's how that placeholder
- *   becomes activated.
+ *   that pattern: if a User exists in the *same* tenant but has no Supabase
+ *   auth identity, an invitation can still be created — it's how that
+ *   placeholder becomes activated.
  *
- *   Conversely, if a User exists AND has an authUserId, they're already
- *   active and re-inviting them would be a mistake (or worse, an
- *   authentication takeover attempt) — we reject.
+ * Email uniqueness rules (the schema enforces `users.email @unique` globally):
+ *   - If the email already exists as an ACTIVE user (authUserId set) in
+ *     ANY tenant → reject with `email_already_active_globally`. The user
+ *     should sign in with their existing account; if they need access to
+ *     a different tenant, that's a multi-tenant membership feature we
+ *     don't support yet.
+ *   - If the email exists as a placeholder (authUserId null) in ANOTHER
+ *     tenant → reject with `email_placeholder_in_other_tenant`. We can't
+ *     create a second User row for them due to the global unique
+ *     constraint. The fix is to revoke the placeholder in the other
+ *     tenant first, or use a different email.
+ *   - If the email exists as a placeholder in the SAME tenant → allowed.
+ *     The accept flow attaches authUserId to the existing placeholder.
+ *   - If the email doesn't exist anywhere → allowed. Accept creates a
+ *     fresh User row.
  */
 
 const DEFAULT_EXPIRY_DAYS = 7
@@ -35,7 +45,6 @@ const DEFAULT_EXPIRY_DAYS = 7
 // ============================================================================
 
 export interface CreateInvitationInput {
-  /** Authenticated user creating the invitation. */
   actor: {
     userId: string
     tenantId: string | null
@@ -43,17 +52,11 @@ export interface CreateInvitationInput {
     fullName: string
     locale: Locale
   }
-  /** Email address being invited. */
   email: string
-  /** Role being granted. */
   role: UserRole
-  /** Tenant the invitee will join. */
   tenantId: string
-  /** Optional override for the recipient's name (e.g., from a contact). */
   recipientName?: string
-  /** Override for invite expiry in days. Defaults to 7. */
   expiryDays?: number
-  /** Base URL of the app (e.g., https://app.buzomed.com). */
   appUrl: string
 }
 
@@ -66,6 +69,8 @@ export type CreateInvitationError =
   | 'invalid_email'
   | 'tenant_not_found'
   | 'user_already_active'
+  | 'email_already_active_globally'
+  | 'email_placeholder_in_other_tenant'
   | 'database_error'
 
 // ============================================================================
@@ -102,7 +107,7 @@ export async function createInvitation(
     }
   }
 
-  // 3. Verify tenant exists and isn't soft-deleted
+  // 3. Verify tenant exists
   const tenant = await prisma.tenant.findFirst({
     where: { id: input.tenantId, deletedAt: null },
     select: { id: true, name: true },
@@ -115,25 +120,59 @@ export async function createInvitation(
     }
   }
 
-  // 4. Check whether this email is already an ACTIVE user in this tenant.
-  // Active = has a Supabase auth identity (authUserId !== null). If they're
-  // a placeholder (authUserId === null), inviting them is the intended way
-  // to attach auth to the placeholder — that's fine.
-  const existingUser = await prisma.user.findFirst({
-    where: {
-      email,
-      tenantId: input.tenantId,
-      deletedAt: null,
+  // 4. GLOBAL email collision check.
+  // We must check across all tenants because users.email is globally unique.
+  // Any preexisting User row with this email blocks creating a new one
+  // for the invitee in this tenant. The error code distinguishes
+  // recoverable cases (placeholder in another tenant — admin can clean
+  // up) from non-recoverable (already active — they have an account).
+  const existingUserAnyTenant = await prisma.user.findFirst({
+    where: { email, deletedAt: null },
+    select: {
+      id: true,
+      tenantId: true,
+      authUserId: true,
     },
-    select: { id: true, authUserId: true },
   })
-  if (existingUser?.authUserId) {
-    return {
-      ok: false,
-      error: 'user_already_active',
-      message:
-        'A user with this email is already active in this tenant. They can sign in directly.',
+
+  if (existingUserAnyTenant) {
+    const sameTenant = existingUserAnyTenant.tenantId === input.tenantId
+    const isActive = existingUserAnyTenant.authUserId !== null
+
+    if (isActive && sameTenant) {
+      return {
+        ok: false,
+        error: 'user_already_active',
+        message:
+          'A user with this email is already active in this tenant. They can sign in directly.',
+      }
     }
+
+    if (isActive && !sameTenant) {
+      // The email already has a working account elsewhere (could be
+      // super_admin, could be another tenant's user). Multi-tenant
+      // membership is not supported yet.
+      return {
+        ok: false,
+        error: 'email_already_active_globally',
+        message:
+          'A user with this email already has an account on Buzomed. Multi-tenant access is not yet supported. Please use a different email address.',
+      }
+    }
+
+    if (!isActive && !sameTenant) {
+      // Placeholder in another tenant — global unique constraint blocks
+      // creating one in this tenant too. Admin needs to revoke the other
+      // placeholder first (or the user picks a different email).
+      return {
+        ok: false,
+        error: 'email_placeholder_in_other_tenant',
+        message:
+          'A pending invitation for this email exists in another tenant. Resolve that one first or use a different email.',
+      }
+    }
+
+    // Else: placeholder in SAME tenant → allowed, fall through.
   }
 
   // 5. Generate token
@@ -142,8 +181,7 @@ export async function createInvitation(
   const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000)
 
   // 6. Create invitation atomically: revoke any existing pending invite
-  // for the same (email, tenantId), then insert fresh one. Implements
-  // the "fresh invite supersedes the old one" rule.
+  // for the same (email, tenantId), then insert fresh one.
   let invitation: Invitation
   try {
     invitation = await prisma.$transaction(async (tx) => {
@@ -181,10 +219,7 @@ export async function createInvitation(
     }
   }
 
-  // 7. Send email. We don't roll back the invitation if email fails —
-  // the admin can resend, and we'd rather have the record exist than
-  // lose state. A persisted invitation with no email is recoverable;
-  // a sent email with no DB record is not.
+  // 7. Send email. Don't roll back the invitation if email fails.
   const acceptUrl = buildAcceptUrl(input.appUrl, tokenPlain)
   const emailContent = renderInviteEmail({
     recipientEmail: email,
@@ -251,8 +286,6 @@ export async function revokeInvitation(
     return { ok: false, error: 'already_finalized' }
   }
 
-  // Permission: must be allowed to invite this role into this tenant.
-  // If you can invite, you can revoke.
   const permission = canInvite(
     {
       roles: input.actor.roles,
@@ -340,8 +373,6 @@ export async function validateInvitationToken(
 // ============================================================================
 
 function isValidEmail(value: string): boolean {
-  // Pragmatic regex — not RFC-perfect, but rejects obvious garbage.
-  // Brevo will validate fully on send anyway.
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
