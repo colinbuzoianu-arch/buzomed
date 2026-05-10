@@ -1,0 +1,42 @@
+-- =============================================================================
+-- Phase C.2b helper: allow the project `postgres` role to SET ROLE buzomed_app
+--
+-- WHY THIS MIGRATION EXISTS
+--   The C.1 migration created `buzomed_app` as a non-superuser, RLS-respecting
+--   role. On PostgreSQL 16+, the role created via `CREATE ROLE` is granted
+--   to the creator (here: `postgres`) with `admin_option = TRUE` but
+--   `inherit_option = FALSE` and `set_option = FALSE`. The missing
+--   `set_option` is what blocks `SET ROLE buzomed_app;` for the postgres
+--   user — which we discovered while running the Phase C.2b RLS policy
+--   tests via the session pooler.
+--
+--   The session pooler (Supabase) accepts only the project's `postgres.<ref>`
+--   username, so any psql-based testing or operational tooling must connect
+--   as `postgres` and then voluntarily downgrade itself to `buzomed_app` to
+--   exercise RLS. This migration enables that.
+--
+-- WHY THIS IS SAFE
+--   1. `postgres` already has `rolbypassrls = TRUE` on Supabase, so it can
+--      already read every row in every table. Granting it the ability to
+--      SET ROLE to a less-privileged role does NOT escalate any privilege —
+--      it only allows postgres to voluntarily restrict itself for testing
+--      or for ad-hoc tooling that wants RLS to apply.
+--
+--   2. `INHERIT FALSE` is intentional. Without an explicit `SET ROLE`, the
+--      postgres session does NOT pick up buzomed_app's privileges. Rights
+--      activate only inside an explicit `SET ROLE buzomed_app;` window
+--      (and revert on `RESET ROLE` or end-of-session).
+--
+--   3. The application runtime never goes through `SET ROLE`. The web app
+--      connects as `buzomed_app` directly via `DATABASE_URL_APP`. This
+--      grant therefore has zero effect on production request paths — it
+--      only matters for psql sessions and any tooling that connects as
+--      postgres.
+--
+-- IDEMPOTENCY
+--   `GRANT ... WITH SET TRUE` is idempotent at the row level: re-running
+--   adjusts the existing pg_auth_members row in place rather than failing.
+--   So this migration is safe to apply multiple times.
+-- =============================================================================
+
+GRANT buzomed_app TO postgres WITH SET TRUE, INHERIT FALSE;
