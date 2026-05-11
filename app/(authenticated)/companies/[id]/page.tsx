@@ -25,6 +25,29 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const { id } = await params
   const company = await prisma.company.findFirst({
     where: { id, tenantId: user.tenantId, deletedAt: null },
+    include: {
+      // Inline workplaces — keep this small. For companies with many
+      // workplaces, the per-workplace pages are the right place for
+      // detail.
+      workplaces: {
+        where: { deletedAt: null },
+        orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          department: true,
+          isActive: true,
+          examinationIntervalMonths: true,
+          _count: {
+            select: {
+              employeeAssignments: {
+                where: { isCurrent: true },
+              },
+            },
+          },
+        },
+      },
+    },
   })
 
   if (!company) {
@@ -36,9 +59,6 @@ export default async function CompanyDetailPage({ params }: PageProps) {
     { dateStyle: 'medium' }
   )
 
-  // Detail rows. We render every field so an assistant has full visibility
-  // even though they can't edit. Empty fields show as "—" for consistency
-  // with the list view.
   const sections = [
     {
       title: t('companies.form.sectionInfo'),
@@ -65,14 +85,8 @@ export default async function CompanyDetailPage({ params }: PageProps) {
     {
       title: t('companies.form.sectionContact'),
       rows: [
-        [
-          t('companies.form.fieldContactPersonName'),
-          company.contactPersonName,
-        ],
-        [
-          t('companies.form.fieldContactPersonRole'),
-          company.contactPersonRole,
-        ],
+        [t('companies.form.fieldContactPersonName'), company.contactPersonName],
+        [t('companies.form.fieldContactPersonRole'), company.contactPersonRole],
         [
           t('companies.form.fieldContactPersonPhone'),
           company.contactPersonPhone,
@@ -170,6 +184,79 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           </div>
         </section>
       ))}
+
+      {/* Workplaces — inline section. New in session 5. */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            {t('workplaces.sectionTitle')}{' '}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({company.workplaces.length})
+            </span>
+          </h2>
+          {caps.canWrite && (
+            <Button asChild size="sm">
+              <Link href={`/companies/${company.id}/workplaces/new`}>
+                + {t('workplaces.newButton')}
+              </Link>
+            </Button>
+          )}
+        </div>
+        {company.workplaces.length === 0 ? (
+          <div className="border border-dashed rounded-lg p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('workplaces.empty')}
+            </p>
+            {caps.canWrite && (
+              <Button asChild size="sm" className="mt-3">
+                <Link href={`/companies/${company.id}/workplaces/new`}>
+                  + {t('workplaces.newButton')}
+                </Link>
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="border rounded-lg divide-y">
+            {company.workplaces.map((w) => (
+              <Link
+                key={w.id}
+                href={`/companies/${company.id}/workplaces/${w.id}`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors"
+              >
+                <div>
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    {w.name}
+                    {!w.isActive && (
+                      <span className="text-xs text-muted-foreground font-normal">
+                        ({t('common.inactive')})
+                      </span>
+                    )}
+                  </div>
+                  {w.department && (
+                    <div className="text-xs text-muted-foreground">
+                      {w.department}
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground text-right">
+                  <div>
+                    {t('workplaces.assignedCount').replace(
+                      '{count}',
+                      String(w._count.employeeAssignments)
+                    )}
+                  </div>
+                  <div>
+                    {t('workplaces.intervalShort').replace(
+                      '{months}',
+                      String(w.examinationIntervalMonths)
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

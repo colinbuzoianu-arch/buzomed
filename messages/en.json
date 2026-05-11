@@ -1,5 +1,7 @@
 {
   "common": {
+    "yes": "Yes",
+    "no": "No",
     "appName": "Buzomed",
     "tagline": "Occupational Health. Healthy Workplaces.",
     "logout": "Log out",
@@ -300,6 +302,37 @@
       "submitUpdate": "Save changes",
       "submitting": "Saving...",
       "errorMessage": "The operation could not complete. Please try again."
+    },
+    "assignments": {
+      "sectionTitle": "Workplace assignments",
+      "current": "Current workplace",
+      "noCurrent": "This employee is not currently assigned to any workplace.",
+      "currentlyAt": "Currently at",
+      "since": "since",
+      "historyTitle": "Assignment history",
+      "assignButton": "Assign",
+      "reassignButton": "Reassign",
+      "endButton": "End assignment",
+      "ending": "Ending...",
+      "endConfirm": "End the current assignment without replacement?",
+      "dialogAssignTitle": "Assign to a workplace",
+      "dialogReassignTitle": "Reassign to another workplace",
+      "dialogAssignDescription": "Select the workplace where this employee works.",
+      "dialogReassignDescription": "The current assignment will be closed automatically when you select a new one.",
+      "workplaceLabel": "Workplace",
+      "workplacePlaceholder": "Select a workplace...",
+      "reasonLabel": "Reason",
+      "notesLabel": "Notes",
+      "submitting": "Saving...",
+      "noWorkplacesAvailable": "No active workplaces yet. Add one from a company first.",
+      "reason": {
+        "hired": "Hired",
+        "promoted": "Promoted",
+        "transferred": "Transferred",
+        "role_change": "Role change",
+        "department_change": "Department change",
+        "other": "Other"
+      }
     }
   },
   "acceptInvite": {
@@ -336,6 +369,46 @@
     "error_already_accepted": {
       "title": "Account already activated",
       "body": "This account has already been activated. Sign in to continue."
+    }
+  },
+  "workplaces": {
+    "sectionTitle": "Workplaces",
+    "newButton": "New workplace",
+    "empty": "No workplaces yet for this company.",
+    "assignedCount": "{count} employees",
+    "intervalShort": "Interval: {months} months",
+    "intervalDisplay": "Every {months} months",
+    "currentlyAssignedTitle": "Currently assigned employees",
+    "noEmployeesAssigned": "No employees currently assigned.",
+    "assignedSince": "since {date}",
+    "deleteConfirm": "Are you sure you want to delete the workplace {name}?",
+    "deleteConfirmWithAssignments": "Workplace {name} has assigned employees. Deleting it will automatically end their assignments. Continue?",
+    "deleting": "Deleting...",
+    "newPage": {
+      "title": "New workplace",
+      "subtitle": "Add a workplace for this company"
+    },
+    "editPage": {
+      "title": "Edit workplace"
+    },
+    "form": {
+      "sectionInfo": "Information",
+      "sectionRiskAssessment": "Risk assessment",
+      "sectionStatus": "Status",
+      "fieldName": "Name",
+      "fieldNamePlaceholder": "Welder, Production operator, Office...",
+      "fieldDepartment": "Department",
+      "fieldDescription": "Description",
+      "fieldExaminationInterval": "Examination interval (months)",
+      "fieldExaminationIntervalHelp": "How often periodic exams are required. Default 12 months; adjust based on risk.",
+      "fieldRiskSigned": "Risk assessment is signed by the employer",
+      "fieldRiskSignedAt": "Date signed",
+      "fieldIsActive": "Workplace is active",
+      "required": "required",
+      "submitCreate": "Create workplace",
+      "submitUpdate": "Save changes",
+      "submitting": "Saving...",
+      "errorMessage": "The operation could not complete. Please try again."
     }
   }
 }

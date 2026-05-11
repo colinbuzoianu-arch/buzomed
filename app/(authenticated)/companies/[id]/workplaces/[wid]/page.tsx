@@ -1,0 +1,233 @@
+import { redirect, notFound } from 'next/navigation'
+import Link from 'next/link'
+import { requireUser } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { getLocale, getTranslator } from '@/lib/i18n'
+import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
+import { Button } from '@/components/ui/button'
+import { WorkplaceDeleteButton } from './workplace-delete-button'
+
+interface PageProps {
+  params: Promise<{ id: string; wid: string }>
+}
+
+export default async function WorkplaceDetailPage({ params }: PageProps) {
+  const user = await requireUser()
+  const locale = await getLocale()
+  const t = getTranslator(locale)
+
+  if (user.roles.includes('super_admin')) redirect('/super-admin')
+  if (!user.tenantId) redirect('/')
+
+  const caps = tenantDataCapabilities(user, user.tenantId)
+  if (!caps.canRead) redirect('/')
+
+  const { id, wid } = await params
+
+  const workplace = await prisma.workplace.findFirst({
+    where: {
+      id: wid,
+      companyId: id,
+      tenantId: user.tenantId,
+      deletedAt: null,
+    },
+    include: {
+      company: { select: { id: true, name: true } },
+      employeeAssignments: {
+        where: { isCurrent: true },
+        include: {
+          employee: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              companyEmployeeId: true,
+              archivedAt: true,
+            },
+          },
+        },
+        orderBy: { startDate: 'desc' },
+      },
+    },
+  })
+
+  if (!workplace) notFound()
+
+  const dateFormatter = new Intl.DateTimeFormat(
+    locale === 'ro' ? 'ro-RO' : 'en-US',
+    { dateStyle: 'medium' }
+  )
+
+  // Filter out assignments whose employee is archived (shouldn't happen
+  // given the auto-end logic, but defensive). Also drop deleted employees.
+  const activeAssignments = workplace.employeeAssignments.filter(
+    (a) => a.employee && !a.employee.archivedAt
+  )
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Link
+          href={`/companies/${workplace.company.id}`}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← {workplace.company.name}
+        </Link>
+        <div className="flex items-start justify-between mt-2 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">{workplace.name}</h1>
+            {workplace.department && (
+              <p className="text-muted-foreground mt-1">
+                {workplace.department}
+              </p>
+            )}
+            <span
+              className={`mt-2 inline-flex items-center gap-1.5 text-sm ${
+                workplace.isActive ? 'text-green-700' : 'text-muted-foreground'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  workplace.isActive ? 'bg-green-600' : 'bg-muted-foreground'
+                }`}
+              />
+              {workplace.isActive ? t('common.active') : t('common.inactive')}
+            </span>
+          </div>
+          {caps.canWrite && (
+            <div className="flex items-center gap-2">
+              <Button asChild variant="outline">
+                <Link
+                  href={`/companies/${workplace.company.id}/workplaces/${workplace.id}/edit`}
+                >
+                  {t('common.edit')}
+                </Link>
+              </Button>
+              <WorkplaceDeleteButton
+                companyId={workplace.company.id}
+                workplaceId={workplace.id}
+                workplaceName={workplace.name}
+                hasAssignments={activeAssignments.length > 0}
+                labels={{
+                  delete: t('common.delete'),
+                  deleteConfirm: t('workplaces.deleteConfirm'),
+                  deleteConfirmWithAssignments: t(
+                    'workplaces.deleteConfirmWithAssignments'
+                  ),
+                  deleting: t('workplaces.deleting'),
+                  errorMessage: t('workplaces.form.errorMessage'),
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">
+          {t('workplaces.form.sectionInfo')}
+        </h2>
+        <div className="border rounded-lg divide-y">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4 py-3">
+            <div className="text-sm font-medium text-muted-foreground">
+              {t('workplaces.form.fieldDepartment')}
+            </div>
+            <div className="md:col-span-2 text-sm">
+              {workplace.department ?? '—'}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4 py-3">
+            <div className="text-sm font-medium text-muted-foreground">
+              {t('workplaces.form.fieldExaminationInterval')}
+            </div>
+            <div className="md:col-span-2 text-sm">
+              {t('workplaces.intervalDisplay').replace(
+                '{months}',
+                String(workplace.examinationIntervalMonths)
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4 py-3">
+            <div className="text-sm font-medium text-muted-foreground">
+              {t('workplaces.form.fieldDescription')}
+            </div>
+            <div className="md:col-span-2 text-sm whitespace-pre-wrap">
+              {workplace.description ?? '—'}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">
+          {t('workplaces.form.sectionRiskAssessment')}
+        </h2>
+        <div className="border rounded-lg divide-y">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4 py-3">
+            <div className="text-sm font-medium text-muted-foreground">
+              {t('workplaces.form.fieldRiskSigned')}
+            </div>
+            <div className="md:col-span-2 text-sm">
+              {workplace.riskAssessmentSignedByCompany
+                ? t('common.yes')
+                : t('common.no')}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4 py-3">
+            <div className="text-sm font-medium text-muted-foreground">
+              {t('workplaces.form.fieldRiskSignedAt')}
+            </div>
+            <div className="md:col-span-2 text-sm">
+              {workplace.riskAssessmentSignedAt
+                ? dateFormatter.format(workplace.riskAssessmentSignedAt)
+                : '—'}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">
+          {t('workplaces.currentlyAssignedTitle')}{' '}
+          <span className="text-sm font-normal text-muted-foreground">
+            ({activeAssignments.length})
+          </span>
+        </h2>
+        {activeAssignments.length === 0 ? (
+          <div className="border border-dashed rounded-lg p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('workplaces.noEmployeesAssigned')}
+            </p>
+          </div>
+        ) : (
+          <div className="border rounded-lg divide-y">
+            {activeAssignments.map((a) => (
+              <Link
+                key={a.id}
+                href={`/employees/${a.employee.id}`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors"
+              >
+                <div>
+                  <div className="text-sm font-medium">
+                    {a.employee.lastName} {a.employee.firstName}
+                  </div>
+                  {a.employee.companyEmployeeId && (
+                    <div className="text-xs text-muted-foreground">
+                      {a.employee.companyEmployeeId}
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {t('workplaces.assignedSince').replace(
+                    '{date}',
+                    dateFormatter.format(a.startDate)
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}

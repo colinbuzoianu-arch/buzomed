@@ -1,5 +1,7 @@
 {
   "common": {
+    "yes": "Da",
+    "no": "Nu",
     "appName": "Buzomed",
     "tagline": "Medicina muncii. Locuri de muncă sănătoase.",
     "logout": "Deconectare",
@@ -300,6 +302,37 @@
       "submitUpdate": "Salvează modificările",
       "submitting": "Se salvează...",
       "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
+    },
+    "assignments": {
+      "sectionTitle": "Alocări la locul de muncă",
+      "current": "Loc de muncă curent",
+      "noCurrent": "Acest angajat nu este alocat la niciun loc de muncă în prezent.",
+      "currentlyAt": "În prezent la",
+      "since": "de la",
+      "historyTitle": "Istoric alocări",
+      "assignButton": "Alocă",
+      "reassignButton": "Realocă",
+      "endButton": "Încheie alocarea",
+      "ending": "Se încheie...",
+      "endConfirm": "Sigur doriți să încheiați alocarea curentă fără înlocuire?",
+      "dialogAssignTitle": "Alocare la un loc de muncă",
+      "dialogReassignTitle": "Realocare la alt loc de muncă",
+      "dialogAssignDescription": "Selectați locul de muncă unde angajatul va lucra.",
+      "dialogReassignDescription": "Alocarea curentă va fi închisă automat când selectați o nouă destinație.",
+      "workplaceLabel": "Loc de muncă",
+      "workplacePlaceholder": "Selectați un loc de muncă...",
+      "reasonLabel": "Motiv",
+      "notesLabel": "Note",
+      "submitting": "Se salvează...",
+      "noWorkplacesAvailable": "Nu există locuri de muncă active. Adăugați un loc de muncă în secțiunea companiei mai întâi.",
+      "reason": {
+        "hired": "Angajare",
+        "promoted": "Promovare",
+        "transferred": "Transfer",
+        "role_change": "Schimbare de funcție",
+        "department_change": "Schimbare de departament",
+        "other": "Alt motiv"
+      }
     }
   },
   "acceptInvite": {
@@ -336,6 +369,46 @@
     "error_already_accepted": {
       "title": "Cont deja activat",
       "body": "Acest cont a fost deja activat. Conectați-vă pentru a continua."
+    }
+  },
+  "workplaces": {
+    "sectionTitle": "Locuri de muncă",
+    "newButton": "Loc de muncă nou",
+    "empty": "Nu există locuri de muncă pentru această companie încă.",
+    "assignedCount": "{count} angajați",
+    "intervalShort": "Interval: {months} luni",
+    "intervalDisplay": "La fiecare {months} luni",
+    "currentlyAssignedTitle": "Angajați alocați în prezent",
+    "noEmployeesAssigned": "Niciun angajat alocat în prezent.",
+    "assignedSince": "de la {date}",
+    "deleteConfirm": "Sigur doriți să ștergeți locul de muncă {name}?",
+    "deleteConfirmWithAssignments": "Locul de muncă {name} are angajați alocați. Ștergerea va încheia automat alocările lor. Continuați?",
+    "deleting": "Se șterge...",
+    "newPage": {
+      "title": "Loc de muncă nou",
+      "subtitle": "Adăugați un loc de muncă pentru această companie"
+    },
+    "editPage": {
+      "title": "Editare loc de muncă"
+    },
+    "form": {
+      "sectionInfo": "Informații",
+      "sectionRiskAssessment": "Evaluare a riscurilor",
+      "sectionStatus": "Stare",
+      "fieldName": "Denumire",
+      "fieldNamePlaceholder": "Sudor, Operator producție, Birou...",
+      "fieldDepartment": "Departament / secție",
+      "fieldDescription": "Descriere",
+      "fieldExaminationInterval": "Interval examinare (luni)",
+      "fieldExaminationIntervalHelp": "Frecvența examinărilor periodice. Implicit 12 luni; ajustați conform riscurilor.",
+      "fieldRiskSigned": "Fișa de identificare a factorilor de risc este semnată de angajator",
+      "fieldRiskSignedAt": "Data semnării",
+      "fieldIsActive": "Loc de muncă activ",
+      "required": "obligatoriu",
+      "submitCreate": "Creează locul de muncă",
+      "submitUpdate": "Salvează modificările",
+      "submitting": "Se salvează...",
+      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
     }
   }
 }

@@ -89,10 +89,6 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     )
   }
 
-  // Build the update object explicitly so we never write a column the
-  // client didn't ask us to. The clearable string set mirrors what's
-  // editable on the form; missing keys leave existing values intact,
-  // null/empty keys clear the column.
   const clearableStringFields = [
     'idDocumentNumber',
     'companyEmployeeId',
@@ -134,10 +130,6 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     }
   }
 
-  // Archive / unarchive are explicit transitions, not generic field writes.
-  // We separate them from the field loop because they touch two columns
-  // (archivedAt + archivedReason) atomically and have business semantics
-  // beyond a simple value set.
   if (data.archive) {
     updateData.archivedAt = new Date()
     updateData.archivedReason = data.archivedReason
@@ -152,10 +144,34 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     return NextResponse.json({ employee: existing })
   }
 
-  const employee = await prisma.employee.update({
-    where: { id },
-    data: updateData,
-  })
+  // Archive transitions also auto-end any open workplace assignment.
+  // Unarchive does NOT auto-restore the assignment — once ended, only an
+  // explicit re-assignment can re-open the link. This is intentional:
+  // re-employing someone may put them in a different workplace.
+  const operations = []
+  operations.push(
+    prisma.employee.update({
+      where: { id },
+      data: updateData,
+    })
+  )
+  if (data.archive) {
+    operations.push(
+      prisma.employeeWorkplaceAssignment.updateMany({
+        where: {
+          employeeId: id,
+          tenantId: auth.user.tenantId,
+          isCurrent: true,
+        },
+        data: {
+          isCurrent: false,
+          endDate: new Date(),
+        },
+      })
+    )
+  }
+
+  const [employee] = await prisma.$transaction(operations)
 
   return NextResponse.json({ employee })
 }
@@ -178,19 +194,29 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 })
   }
 
-  // Soft delete. For employees this is distinct from archiving:
-  //   - archive = "no longer at this employer" — keeps medical history
-  //     queryable, the row is intentionally still there for examinations.
-  //   - delete  = "this row was a mistake / GDPR erasure request" — the
-  //     row is hidden from all reads via deletedAt = not null.
-  // The audit trail for deletes is not yet wired up (TODO in handoff).
-  await prisma.employee.update({
-    where: { id },
-    data: {
-      deletedAt: new Date(),
-      isActive: false,
-    },
-  })
+  // Soft delete also closes any open workplace assignments — leaving
+  // open assignments pointing at a deleted employee would lie in
+  // workplace headcount queries.
+  await prisma.$transaction([
+    prisma.employeeWorkplaceAssignment.updateMany({
+      where: {
+        employeeId: id,
+        tenantId: auth.user.tenantId,
+        isCurrent: true,
+      },
+      data: {
+        isCurrent: false,
+        endDate: new Date(),
+      },
+    }),
+    prisma.employee.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+      },
+    }),
+  ])
 
   return NextResponse.json({ ok: true })
 }

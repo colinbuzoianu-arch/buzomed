@@ -6,6 +6,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { EmployeeActions } from './employee-actions'
+import { EmployeeAssignmentManager } from './assignment-manager'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -23,9 +24,47 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
   if (!caps.canRead) redirect('/')
 
   const { id } = await params
-  const employee = await prisma.employee.findFirst({
-    where: { id, tenantId: user.tenantId, deletedAt: null },
-  })
+
+  const [employee, assignmentRows, workplaceOptions] = await Promise.all([
+    prisma.employee.findFirst({
+      where: { id, tenantId: user.tenantId, deletedAt: null },
+    }),
+    prisma.employeeWorkplaceAssignment.findMany({
+      where: { employeeId: id, tenantId: user.tenantId },
+      orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }],
+      include: {
+        workplace: {
+          select: {
+            id: true,
+            name: true,
+            department: true,
+            companyId: true,
+            company: { select: { id: true, name: true } },
+          },
+        },
+      },
+    }),
+    // Active workplaces in this tenant — the assignment dialog needs them.
+    // We do this read up front (server-side) so the client component just
+    // gets a static list.
+    prisma.workplace.findMany({
+      where: {
+        tenantId: user.tenantId,
+        deletedAt: null,
+        isActive: true,
+      },
+      orderBy: [
+        { company: { name: 'asc' } },
+        { name: 'asc' },
+      ],
+      select: {
+        id: true,
+        name: true,
+        department: true,
+        company: { select: { name: true } },
+      },
+    }),
+  ])
 
   if (!employee) notFound()
 
@@ -35,6 +74,8 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
   )
 
   const isArchived = employee.archivedAt !== null
+  const currentAssignment = assignmentRows.find((a) => a.isCurrent) ?? null
+  const historyAssignments = assignmentRows.filter((a) => !a.isCurrent)
 
   const sections = [
     {
@@ -42,18 +83,9 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
       rows: [
         [t('employees.form.fieldLastName'), employee.lastName],
         [t('employees.form.fieldFirstName'), employee.firstName],
-        [
-          t('employees.form.fieldIdDocumentType'),
-          employee.idDocumentType,
-        ],
-        [
-          t('employees.form.fieldIdDocumentNumber'),
-          employee.idDocumentNumber,
-        ],
-        [
-          t('employees.form.fieldCompanyEmployeeId'),
-          employee.companyEmployeeId,
-        ],
+        [t('employees.form.fieldIdDocumentType'), employee.idDocumentType],
+        [t('employees.form.fieldIdDocumentNumber'), employee.idDocumentNumber],
+        [t('employees.form.fieldCompanyEmployeeId'), employee.companyEmployeeId],
         [
           t('employees.form.fieldBirthDate'),
           employee.birthDate ? dateFormatter.format(employee.birthDate) : null,
@@ -77,14 +109,8 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
     {
       title: t('employees.form.sectionEmergency'),
       rows: [
-        [
-          t('employees.form.fieldEmergencyName'),
-          employee.emergencyContactName,
-        ],
-        [
-          t('employees.form.fieldEmergencyPhone'),
-          employee.emergencyContactPhone,
-        ],
+        [t('employees.form.fieldEmergencyName'), employee.emergencyContactName],
+        [t('employees.form.fieldEmergencyPhone'), employee.emergencyContactPhone],
         [
           t('employees.form.fieldEmergencyRelationship'),
           employee.emergencyContactRelationship,
@@ -114,7 +140,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
             <h1 className="text-3xl font-bold">
               {employee.lastName} {employee.firstName}
             </h1>
-            <div className="mt-2 flex items-center gap-3">
+            <div className="mt-2 flex items-center gap-3 flex-wrap">
               <span
                 className={`inline-flex items-center gap-1.5 text-sm ${
                   isArchived
@@ -147,6 +173,18 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
               {isArchived && employee.archivedAt && (
                 <span className="text-xs text-muted-foreground">
                   {dateFormatter.format(employee.archivedAt)}
+                </span>
+              )}
+              {currentAssignment && (
+                <span className="text-xs text-muted-foreground">
+                  • {t('employees.assignments.currentlyAt')}{' '}
+                  <Link
+                    href={`/companies/${currentAssignment.workplace.companyId}/workplaces/${currentAssignment.workplace.id}`}
+                    className="underline hover:no-underline"
+                  >
+                    {currentAssignment.workplace.name}
+                  </Link>{' '}
+                  ({currentAssignment.workplace.company.name})
                 </span>
               )}
             </div>
@@ -212,6 +250,162 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
           </div>
         </section>
       ))}
+
+      {/* Workplace assignments — new in session 5. */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            {t('employees.assignments.sectionTitle')}
+          </h2>
+          {caps.canWrite && !isArchived && (
+            <EmployeeAssignmentManager
+              employeeId={employee.id}
+              currentAssignmentId={currentAssignment?.id ?? null}
+              workplaces={workplaceOptions.map((w) => ({
+                id: w.id,
+                name: w.name,
+                department: w.department,
+                companyName: w.company.name,
+              }))}
+              labels={{
+                assignButton: t('employees.assignments.assignButton'),
+                reassignButton: t('employees.assignments.reassignButton'),
+                endButton: t('employees.assignments.endButton'),
+                ending: t('employees.assignments.ending'),
+                dialogAssignTitle: t('employees.assignments.dialogAssignTitle'),
+                dialogReassignTitle: t(
+                  'employees.assignments.dialogReassignTitle'
+                ),
+                dialogAssignDescription: t(
+                  'employees.assignments.dialogAssignDescription'
+                ),
+                dialogReassignDescription: t(
+                  'employees.assignments.dialogReassignDescription'
+                ),
+                workplaceLabel: t('employees.assignments.workplaceLabel'),
+                workplacePlaceholder: t(
+                  'employees.assignments.workplacePlaceholder'
+                ),
+                reasonLabel: t('employees.assignments.reasonLabel'),
+                notesLabel: t('employees.assignments.notesLabel'),
+                submitting: t('employees.assignments.submitting'),
+                submit: t('common.save'),
+                cancel: t('common.cancel'),
+                endConfirm: t('employees.assignments.endConfirm'),
+                reasonHired: t('employees.assignments.reason.hired'),
+                reasonPromoted: t('employees.assignments.reason.promoted'),
+                reasonTransferred: t(
+                  'employees.assignments.reason.transferred'
+                ),
+                reasonRoleChange: t('employees.assignments.reason.role_change'),
+                reasonDepartmentChange: t(
+                  'employees.assignments.reason.department_change'
+                ),
+                reasonOther: t('employees.assignments.reason.other'),
+                errorMessage: t('employees.form.errorMessage'),
+                noWorkplaces: t('employees.assignments.noWorkplacesAvailable'),
+              }}
+            />
+          )}
+        </div>
+
+        {/* Current */}
+        {currentAssignment ? (
+          <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-950/20">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-sm text-muted-foreground">
+                  {t('employees.assignments.current')}
+                </div>
+                <div className="font-medium mt-1">
+                  <Link
+                    href={`/companies/${currentAssignment.workplace.companyId}/workplaces/${currentAssignment.workplace.id}`}
+                    className="hover:underline"
+                  >
+                    {currentAssignment.workplace.name}
+                  </Link>
+                  {currentAssignment.workplace.department && (
+                    <span className="text-muted-foreground font-normal">
+                      {' '}
+                      — {currentAssignment.workplace.department}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {currentAssignment.workplace.company.name} •{' '}
+                  {t('employees.assignments.since')}{' '}
+                  {dateFormatter.format(currentAssignment.startDate)}
+                </div>
+                {currentAssignment.notes && (
+                  <div className="text-xs text-muted-foreground mt-2 italic whitespace-pre-wrap">
+                    {currentAssignment.notes}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="border border-dashed rounded-lg p-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('employees.assignments.noCurrent')}
+            </p>
+          </div>
+        )}
+
+        {/* History */}
+        {historyAssignments.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              {t('employees.assignments.historyTitle')}
+            </h3>
+            <div className="border rounded-lg divide-y">
+              {historyAssignments.map((a) => (
+                <div key={a.id} className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-medium">
+                        <Link
+                          href={`/companies/${a.workplace.companyId}/workplaces/${a.workplace.id}`}
+                          className="hover:underline"
+                        >
+                          {a.workplace.name}
+                        </Link>
+                        {a.workplace.department && (
+                          <span className="text-muted-foreground font-normal">
+                            {' '}— {a.workplace.department}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {a.workplace.company.name}
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground text-right">
+                      <div>
+                        {dateFormatter.format(a.startDate)}
+                        {' → '}
+                        {a.endDate ? dateFormatter.format(a.endDate) : '—'}
+                      </div>
+                      {a.reasonForChange && (
+                        <div className="mt-0.5">
+                          {t(
+                            `employees.assignments.reason.${a.reasonForChange}`
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {a.notes && (
+                    <div className="text-xs text-muted-foreground mt-2 italic whitespace-pre-wrap">
+                      {a.notes}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   )
 }
