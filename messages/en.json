@@ -172,5 +172,134 @@
       "role_practitioner": "Practitioner",
       "role_assistant": "Assistant"
     }
+  },
+  "companies": {
+    "title": "Companies",
+    "subtitle": "Companies served by this practice",
+    "newButton": "New company",
+    "backToList": "Companies",
+    "empty": "No companies yet. Add the first one to get started.",
+    "deleteConfirm": "Are you sure you want to delete {name}? This hides it from lists, but existing examinations remain available.",
+    "deleting": "Deleting...",
+    "table": {
+      "name": "Name",
+      "cui": "Tax ID",
+      "contact": "Contact person"
+    },
+    "newPage": {
+      "title": "New company",
+      "subtitle": "Add a partner company"
+    },
+    "editPage": {
+      "title": "Edit company"
+    },
+    "form": {
+      "sectionInfo": "Company information",
+      "sectionAddress": "Address & contact",
+      "sectionContact": "Contact person",
+      "sectionContract": "Contract & notes",
+      "sectionStatus": "Status",
+      "fieldName": "Name",
+      "fieldNamePlaceholder": "Example Corp Ltd.",
+      "fieldCui": "Tax ID",
+      "fieldRegistration": "Registration number",
+      "fieldCaenCode": "Industry code (CAEN)",
+      "fieldAddress1": "Address line 1",
+      "fieldAddress2": "Address line 2",
+      "fieldWebsite": "Website",
+      "fieldContactPersonName": "Contact person name",
+      "fieldContactPersonRole": "Role",
+      "fieldContactPersonPhone": "Contact phone",
+      "fieldContactPersonEmail": "Contact email",
+      "fieldContractStart": "Contract start",
+      "fieldContractEnd": "Contract end",
+      "fieldNotes": "Notes",
+      "fieldIsActive": "Company is active",
+      "required": "required",
+      "submitCreate": "Create company",
+      "submitUpdate": "Save changes",
+      "submitting": "Saving...",
+      "successCreate": "Company created",
+      "successUpdate": "Changes saved",
+      "errorMessage": "The operation could not complete. Please try again."
+    }
+  },
+  "employees": {
+    "title": "Employees",
+    "subtitle": "People examined by this practice",
+    "newButton": "New employee",
+    "backToList": "Employees",
+    "empty": "No employees yet.",
+    "emptyArchived": "No archived employees.",
+    "archived": "Archived",
+    "archive": "Archive",
+    "archiving": "Archiving...",
+    "archiveConfirm": "Archive {name}? Their medical history stays available for record keeping.",
+    "archiveDialogTitle": "Archive employee",
+    "archiveReasonLabel": "Reason for archiving",
+    "unarchive": "Reactivate",
+    "unarchiveConfirm": "Reactivate {name}?",
+    "deleteConfirm": "Permanently delete {name}? This hides the record from all lists.",
+    "deleting": "Deleting...",
+    "tabs": {
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "table": {
+      "idDocument": "ID document",
+      "companyEmployeeId": "Badge / matricola",
+      "archivedAt": "Archived at"
+    },
+    "archivedReason": {
+      "left_employment": "Left the company",
+      "retired": "Retired",
+      "deceased": "Deceased",
+      "transferred": "Transferred",
+      "other": "Other"
+    },
+    "newPage": {
+      "title": "New employee",
+      "subtitle": "Add an employee record"
+    },
+    "editPage": {
+      "title": "Edit employee"
+    },
+    "form": {
+      "sectionIdentity": "Identity",
+      "sectionContact": "Address & contact",
+      "sectionEmergency": "Emergency contact",
+      "sectionMedical": "General medical info",
+      "sectionStatus": "Status",
+      "fieldFirstName": "First name",
+      "fieldLastName": "Last name",
+      "fieldIdDocumentType": "ID document type",
+      "fieldIdDocumentTypePassport": "Passport",
+      "fieldIdDocumentTypeEuId": "EU ID card",
+      "fieldIdDocumentTypeOther": "Other",
+      "fieldIdDocumentTypeCnpDeferred": "CNP support is coming in a later session (encryption).",
+      "fieldIdDocumentNumber": "Document number",
+      "fieldCompanyEmployeeId": "Badge / matricola",
+      "fieldBirthDate": "Date of birth",
+      "fieldGender": "Gender",
+      "fieldGenderM": "Male",
+      "fieldGenderF": "Female",
+      "fieldGenderOther": "Other",
+      "fieldGenderUnspecified": "Unspecified",
+      "fieldNationality": "Nationality",
+      "fieldAddress1": "Address line 1",
+      "fieldAddress2": "Address line 2",
+      "fieldEmergencyName": "Name",
+      "fieldEmergencyPhone": "Phone",
+      "fieldEmergencyRelationship": "Relationship",
+      "fieldBloodType": "Blood type",
+      "fieldNotes": "Notes",
+      "fieldIsActive": "Employee is active",
+      "required": "required",
+      "cnpNotice": "CNP capture is not available yet. Use passport, EU ID card, or another document.",
+      "submitCreate": "Create employee",
+      "submitUpdate": "Save changes",
+      "submitting": "Saving...",
+      "errorMessage": "The operation could not complete. Please try again."
+    }
   }
 }

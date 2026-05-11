@@ -172,5 +172,134 @@
       "role_practitioner": "Medic",
       "role_assistant": "Asistent"
     }
+  },
+  "companies": {
+    "title": "Companii",
+    "subtitle": "Companii partenere ale cabinetului",
+    "newButton": "Companie nouă",
+    "backToList": "Companii",
+    "empty": "Nicio companie înregistrată încă. Adăugați prima companie pentru a începe.",
+    "deleteConfirm": "Sigur doriți să ștergeți compania {name}? Această acțiune o ascunde din liste, dar examinările existente rămân disponibile.",
+    "deleting": "Se șterge...",
+    "table": {
+      "name": "Denumire",
+      "cui": "CUI",
+      "contact": "Persoană de contact"
+    },
+    "newPage": {
+      "title": "Companie nouă",
+      "subtitle": "Adăugați o companie parteneră"
+    },
+    "editPage": {
+      "title": "Editare companie"
+    },
+    "form": {
+      "sectionInfo": "Informații companie",
+      "sectionAddress": "Adresă și contact",
+      "sectionContact": "Persoană de contact",
+      "sectionContract": "Contract și note",
+      "sectionStatus": "Stare",
+      "fieldName": "Denumire",
+      "fieldNamePlaceholder": "SC Exemplu SRL",
+      "fieldCui": "CUI",
+      "fieldRegistration": "Nr. înregistrare",
+      "fieldCaenCode": "Cod CAEN",
+      "fieldAddress1": "Adresă (rândul 1)",
+      "fieldAddress2": "Adresă (rândul 2)",
+      "fieldWebsite": "Website",
+      "fieldContactPersonName": "Nume persoană de contact",
+      "fieldContactPersonRole": "Funcție",
+      "fieldContactPersonPhone": "Telefon contact",
+      "fieldContactPersonEmail": "Email contact",
+      "fieldContractStart": "Început contract",
+      "fieldContractEnd": "Sfârșit contract",
+      "fieldNotes": "Note",
+      "fieldIsActive": "Companie activă",
+      "required": "obligatoriu",
+      "submitCreate": "Creează compania",
+      "submitUpdate": "Salvează modificările",
+      "submitting": "Se salvează...",
+      "successCreate": "Compania a fost creată",
+      "successUpdate": "Modificările au fost salvate",
+      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
+    }
+  },
+  "employees": {
+    "title": "Angajați",
+    "subtitle": "Persoane evaluate de cabinet",
+    "newButton": "Angajat nou",
+    "backToList": "Angajați",
+    "empty": "Niciun angajat înregistrat încă.",
+    "emptyArchived": "Niciun angajat arhivat.",
+    "archived": "Arhivat",
+    "archive": "Arhivează",
+    "archiving": "Se arhivează...",
+    "archiveConfirm": "Arhivați angajatul {name}? Datele medicale rămân disponibile pentru istoric.",
+    "archiveDialogTitle": "Arhivare angajat",
+    "archiveReasonLabel": "Motiv arhivare",
+    "unarchive": "Reactivează",
+    "unarchiveConfirm": "Reactivați angajatul {name}?",
+    "deleteConfirm": "Ștergeți definitiv angajatul {name}? Această acțiune ascunde înregistrarea din toate listele.",
+    "deleting": "Se șterge...",
+    "tabs": {
+      "active": "Activi",
+      "archived": "Arhivați"
+    },
+    "table": {
+      "idDocument": "Document de identitate",
+      "companyEmployeeId": "Marca",
+      "archivedAt": "Arhivat la"
+    },
+    "archivedReason": {
+      "left_employment": "Plecat din companie",
+      "retired": "Pensionat",
+      "deceased": "Decedat",
+      "transferred": "Transferat",
+      "other": "Alt motiv"
+    },
+    "newPage": {
+      "title": "Angajat nou",
+      "subtitle": "Adăugați un angajat în baza de date"
+    },
+    "editPage": {
+      "title": "Editare angajat"
+    },
+    "form": {
+      "sectionIdentity": "Identitate",
+      "sectionContact": "Adresă și contact",
+      "sectionEmergency": "Persoană de contact în caz de urgență",
+      "sectionMedical": "Date medicale generale",
+      "sectionStatus": "Stare",
+      "fieldFirstName": "Prenume",
+      "fieldLastName": "Nume",
+      "fieldIdDocumentType": "Tip document de identitate",
+      "fieldIdDocumentTypePassport": "Pașaport",
+      "fieldIdDocumentTypeEuId": "Carte de identitate UE",
+      "fieldIdDocumentTypeOther": "Altul",
+      "fieldIdDocumentTypeCnpDeferred": "Suportul pentru CNP va fi adăugat într-o sesiune ulterioară (criptare).",
+      "fieldIdDocumentNumber": "Număr document",
+      "fieldCompanyEmployeeId": "Marca / număr de legitimație",
+      "fieldBirthDate": "Data nașterii",
+      "fieldGender": "Sex",
+      "fieldGenderM": "Masculin",
+      "fieldGenderF": "Feminin",
+      "fieldGenderOther": "Altul",
+      "fieldGenderUnspecified": "Nespecificat",
+      "fieldNationality": "Naționalitate",
+      "fieldAddress1": "Adresă (rândul 1)",
+      "fieldAddress2": "Adresă (rândul 2)",
+      "fieldEmergencyName": "Nume",
+      "fieldEmergencyPhone": "Telefon",
+      "fieldEmergencyRelationship": "Relație",
+      "fieldBloodType": "Grupă sanguină",
+      "fieldNotes": "Note",
+      "fieldIsActive": "Angajat activ",
+      "required": "obligatoriu",
+      "cnpNotice": "CNP-ul nu este capturat în această fază. Folosiți pașaportul, cartea de identitate UE sau alt document.",
+      "submitCreate": "Creează angajatul",
+      "submitUpdate": "Salvează modificările",
+      "submitting": "Se salvează...",
+      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
+    }
   }
 }

@@ -35,12 +35,26 @@ export default async function AuthenticatedLayout({
                 </Link>
               )}
               {!isSuperAdmin && hasTenant && (
-                <Link
-                  href="/team"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {t('nav.team')}
-                </Link>
+                <>
+                  <Link
+                    href="/companies"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t('nav.companies')}
+                  </Link>
+                  <Link
+                    href="/employees"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t('nav.employees')}
+                  </Link>
+                  <Link
+                    href="/team"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t('nav.team')}
+                  </Link>
+                </>
               )}
             </nav>
           </div>
