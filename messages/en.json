@@ -301,5 +301,41 @@
       "submitting": "Saving...",
       "errorMessage": "The operation could not complete. Please try again."
     }
+  },
+  "acceptInvite": {
+    "title": "Welcome to Buzomed",
+    "intro": "{inviter} has invited you to join {tenant} as {role}. Fill in the details below to activate your account.",
+    "emailLabel": "Email",
+    "emailHelp": "This email was used for the invitation and cannot be changed.",
+    "firstNameLabel": "First name",
+    "lastNameLabel": "Last name",
+    "passwordLabel": "Password",
+    "passwordHelp": "Minimum 8 characters.",
+    "submitButton": "Activate account",
+    "submitting": "Activating...",
+    "successMessage": "Your account has been activated. You will be redirected to the sign-in page.",
+    "errorMessage": "Something went wrong. Please try again.",
+    "errorInvalidPassword": "Password must be at least 8 characters.",
+    "errorInvalidName": "Please fill in your first and last name.",
+    "errorAlreadyFinalized": "This account has already been activated. Please sign in.",
+    "errorServiceUnavailable": "The service is temporarily unavailable. Please try again in a few minutes.",
+    "signInCta": "Go to sign in",
+    "homeCta": "Back to home",
+    "role_super_admin": "super administrator",
+    "role_practice_admin": "practice administrator",
+    "role_practitioner": "practitioner",
+    "role_assistant": "assistant",
+    "error_expired": {
+      "title": "Invitation expired",
+      "body": "This invitation has expired. Please contact the person who invited you to get a new one."
+    },
+    "error_revoked": {
+      "title": "Invitation revoked",
+      "body": "This invitation has been revoked. Please contact the person who invited you if this is a mistake."
+    },
+    "error_already_accepted": {
+      "title": "Account already activated",
+      "body": "This account has already been activated. Sign in to continue."
+    }
   }
 }

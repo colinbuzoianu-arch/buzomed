@@ -301,5 +301,41 @@
       "submitting": "Se salvează...",
       "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
     }
+  },
+  "acceptInvite": {
+    "title": "Bine ați venit la Buzomed",
+    "intro": "{inviter} v-a invitat să vă alăturați cabinetului {tenant} ca {role}. Completați datele de mai jos pentru a vă activa contul.",
+    "emailLabel": "Email",
+    "emailHelp": "Acest email a fost folosit pentru invitație și nu poate fi modificat.",
+    "firstNameLabel": "Prenume",
+    "lastNameLabel": "Nume",
+    "passwordLabel": "Parolă",
+    "passwordHelp": "Minim 8 caractere.",
+    "submitButton": "Activează contul",
+    "submitting": "Se activează...",
+    "successMessage": "Contul a fost activat. Veți fi redirecționat către pagina de autentificare.",
+    "errorMessage": "A apărut o eroare. Vă rugăm să încercați din nou.",
+    "errorInvalidPassword": "Parola trebuie să aibă minim 8 caractere.",
+    "errorInvalidName": "Vă rugăm să completați prenumele și numele.",
+    "errorAlreadyFinalized": "Acest cont a fost deja activat. Vă rugăm să vă autentificați.",
+    "errorServiceUnavailable": "Serviciul nu este disponibil momentan. Încercați din nou în câteva minute.",
+    "signInCta": "Mergi la autentificare",
+    "homeCta": "Înapoi la pagina principală",
+    "role_super_admin": "super-administrator",
+    "role_practice_admin": "administrator de cabinet",
+    "role_practitioner": "medic",
+    "role_assistant": "asistent",
+    "error_expired": {
+      "title": "Invitație expirată",
+      "body": "Această invitație a expirat. Vă rugăm să contactați persoana care v-a invitat pentru a primi una nouă."
+    },
+    "error_revoked": {
+      "title": "Invitație revocată",
+      "body": "Această invitație a fost revocată. Vă rugăm să contactați persoana care v-a invitat dacă a fost o eroare."
+    },
+    "error_already_accepted": {
+      "title": "Cont deja activat",
+      "body": "Acest cont a fost deja activat. Conectați-vă pentru a continua."
+    }
   }
 }
