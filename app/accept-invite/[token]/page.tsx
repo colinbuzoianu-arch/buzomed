@@ -36,6 +36,12 @@ export default async function AcceptInvitePage({ params }: PageProps) {
     notFound()
   }
 
+  // Narrow once for ErrorState's prop type. The notFound() guard above
+  // eliminates 'invalid' at runtime, but TS loses that narrowing across
+  // the closures below, so we capture the narrowed value explicitly here.
+  const errorCode: 'expired' | 'revoked' | 'already_accepted' | null =
+    !result.ok ? (result.error as 'expired' | 'revoked' | 'already_accepted') : null
+
   // For all other states (expired, revoked, accepted, valid), we render
   // a status-aware page. Look up the invitation's locale if we can.
   let locale: Locale = 'ro'
@@ -57,17 +63,17 @@ export default async function AcceptInvitePage({ params }: PageProps) {
 
       <main className="flex-1 container mx-auto px-4 py-12">
         <div className="max-w-md mx-auto">
-          {!result.ok ? (
+          {errorCode ? (
             <ErrorState
-              error={result.error}
+              error={errorCode}
               labels={{
-                title: t(`acceptInvite.error_${result.error}.title`),
-                body: t(`acceptInvite.error_${result.error}.body`),
+                title: t(`acceptInvite.error_${errorCode}.title`),
+                body: t(`acceptInvite.error_${errorCode}.body`),
                 signInCta: t('acceptInvite.signInCta'),
                 homeCta: t('acceptInvite.homeCta'),
               }}
             />
-          ) : (
+          ) : result.ok ? (
             <AcceptInviteForm
               token={token}
               invitation={{
@@ -101,7 +107,7 @@ export default async function AcceptInvitePage({ params }: PageProps) {
                 signInCta: t('acceptInvite.signInCta'),
               }}
             />
-          )}
+          ) : null}
         </div>
       </main>
     </div>
