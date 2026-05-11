@@ -1,0 +1,208 @@
+/* Fișa de aptitudine — print-ready styles.
+   The screen view is minimal; @media print rules hide controls and
+   constrain to A4. */
+
+.fisa-wrapper {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 16px;
+  background: white;
+  color: #111;
+}
+
+.fisa-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.fisa-draft-banner {
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  color: #92400e;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.fisa-page {
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 24mm 20mm;
+  font-family: 'Times New Roman', serif;
+  font-size: 11pt;
+  line-height: 1.4;
+  color: #000;
+}
+
+.fisa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #000;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.fisa-cabinet {
+  font-size: 11pt;
+}
+
+.fisa-cabinet-address {
+  font-size: 9pt;
+  color: #555;
+  margin-top: 2px;
+}
+
+.fisa-meta {
+  text-align: right;
+  font-size: 10pt;
+}
+
+.fisa-title {
+  text-align: center;
+  font-size: 16pt;
+  font-weight: bold;
+  margin: 16px 0 4px;
+  text-transform: uppercase;
+}
+
+.fisa-subtitle {
+  text-align: center;
+  font-size: 10pt;
+  color: #444;
+  margin-bottom: 16px;
+}
+
+.fisa-section {
+  margin-bottom: 12px;
+}
+
+.fisa-row {
+  display: flex;
+  margin-bottom: 4px;
+  gap: 8px;
+}
+
+.fisa-label {
+  flex: 0 0 200px;
+  font-weight: bold;
+}
+
+.fisa-value {
+  flex: 1;
+}
+
+.fisa-subhead {
+  font-size: 12pt;
+  font-weight: bold;
+  margin: 16px 0 8px;
+}
+
+.fisa-prose {
+  white-space: pre-wrap;
+  border: 1px solid #ccc;
+  padding: 8px;
+  border-radius: 2px;
+  background: #fafafa;
+}
+
+.fisa-verdict-section {
+  border: 1px solid #000;
+  padding: 12px;
+  margin: 16px 0;
+  background: #f9fafb;
+}
+
+.fisa-verdict-section h2 {
+  margin: 0 0 8px;
+  font-size: 12pt;
+  text-align: center;
+}
+
+.fisa-verdict-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 16px;
+}
+
+.fisa-verdict-option {
+  display: flex;
+  gap: 6px;
+  font-size: 11pt;
+}
+
+.fisa-verdict-selected {
+  font-weight: bold;
+}
+
+.fisa-checkbox {
+  font-size: 14pt;
+  line-height: 1;
+}
+
+.fisa-conditions,
+.fisa-next-due {
+  margin-top: 8px;
+  font-size: 10pt;
+}
+
+.fisa-footer {
+  margin-top: 32px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fisa-signature-block {
+  min-width: 280px;
+  text-align: center;
+}
+
+.fisa-signature-line {
+  margin-bottom: 4px;
+}
+
+.fisa-signature-name {
+  font-weight: bold;
+}
+
+.fisa-signature-meta {
+  font-size: 9pt;
+  color: #444;
+  margin-top: 2px;
+}
+
+@media print {
+  body {
+    background: white !important;
+  }
+
+  /* Hide everything outside our fișa: the global layout, nav, etc. */
+  header,
+  nav,
+  footer:not(.fisa-footer),
+  aside,
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  .fisa-wrapper {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .fisa-page {
+    border: none;
+    padding: 16mm;
+    page-break-inside: avoid;
+  }
+
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+}

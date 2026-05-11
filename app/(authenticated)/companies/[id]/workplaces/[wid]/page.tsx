@@ -24,32 +24,58 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
 
   const { id, wid } = await params
 
-  const workplace = await prisma.workplace.findFirst({
-    where: {
-      id: wid,
-      companyId: id,
-      tenantId: user.tenantId,
-      deletedAt: null,
-    },
-    include: {
-      company: { select: { id: true, name: true } },
-      employeeAssignments: {
-        where: { isCurrent: true },
-        include: {
-          employee: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              companyEmployeeId: true,
-              archivedAt: true,
+  // Fetch workplace + assignments + recent examinations in parallel.
+  const [workplace, recentExaminations] = await Promise.all([
+    prisma.workplace.findFirst({
+      where: {
+        id: wid,
+        companyId: id,
+        tenantId: user.tenantId,
+        deletedAt: null,
+      },
+      include: {
+        company: { select: { id: true, name: true } },
+        employeeAssignments: {
+          where: { isCurrent: true },
+          include: {
+            employee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                companyEmployeeId: true,
+                archivedAt: true,
+              },
             },
           },
+          orderBy: { startDate: 'desc' },
         },
-        orderBy: { startDate: 'desc' },
       },
-    },
-  })
+    }),
+    // Recent examinations at this workplace — new in session 6.
+    prisma.examination.findMany({
+      where: {
+        workplaceId: wid,
+        tenantId: user.tenantId,
+        deletedAt: null,
+      },
+      orderBy: [
+        { signedAt: 'desc' },
+        { completedAt: 'desc' },
+        { scheduledAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      take: 10,
+      include: {
+        employee: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        examinationType: {
+          select: { nameRo: true, nameEn: true },
+        },
+      },
+    }),
+  ])
 
   if (!workplace) notFound()
 
@@ -58,8 +84,6 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
     { dateStyle: 'medium' }
   )
 
-  // Filter out assignments whose employee is archived (shouldn't happen
-  // given the auto-end logic, but defensive). Also drop deleted employees.
   const activeAssignments = workplace.employeeAssignments.filter(
     (a) => a.employee && !a.employee.archivedAt
   )
@@ -221,6 +245,64 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
                   {t('workplaces.assignedSince').replace(
                     '{date}',
                     dateFormatter.format(a.startDate)
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Recent examinations at this workplace — new in session 6. */}
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">
+          {t('workplaces.recentExaminationsTitle')}
+        </h2>
+        {recentExaminations.length === 0 ? (
+          <div className="border border-dashed rounded-lg p-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('workplaces.noExaminations')}
+            </p>
+          </div>
+        ) : (
+          <div className="border rounded-lg divide-y">
+            {recentExaminations.map((e) => (
+              <Link
+                key={e.id}
+                href={`/examinations/${e.id}`}
+                className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted transition-colors"
+              >
+                <div>
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {e.examinationNumber}
+                    </span>
+                    <span>
+                      {e.employee.lastName} {e.employee.firstName}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {locale === 'en'
+                      ? e.examinationType.nameEn ?? e.examinationType.nameRo
+                      : e.examinationType.nameRo}
+                    {' • '}
+                    {e.signedAt
+                      ? `${t('examinations.signedOn')}: ${dateFormatter.format(e.signedAt)}`
+                      : e.scheduledAt
+                        ? `${t('examinations.scheduledFor')}: ${dateFormatter.format(e.scheduledAt)}`
+                        : dateFormatter.format(e.createdAt)}
+                  </div>
+                </div>
+                <div className="text-xs text-right space-y-1">
+                  <div>
+                    <span className="inline-block px-2 py-0.5 rounded text-xs border">
+                      {t(`examinations.status.${e.status}`)}
+                    </span>
+                  </div>
+                  {e.verdict && (
+                    <div className="text-muted-foreground">
+                      {t(`examinations.form.verdict.${e.verdict}`)}
+                    </div>
                   )}
                 </div>
               </Link>

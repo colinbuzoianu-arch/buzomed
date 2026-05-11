@@ -25,46 +25,57 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
 
   const { id } = await params
 
-  const [employee, assignmentRows, workplaceOptions] = await Promise.all([
-    prisma.employee.findFirst({
-      where: { id, tenantId: user.tenantId, deletedAt: null },
-    }),
-    prisma.employeeWorkplaceAssignment.findMany({
-      where: { employeeId: id, tenantId: user.tenantId },
-      orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }],
-      include: {
-        workplace: {
-          select: {
-            id: true,
-            name: true,
-            department: true,
-            companyId: true,
-            company: { select: { id: true, name: true } },
+  const [employee, assignmentRows, workplaceOptions, recentExaminations] =
+    await Promise.all([
+      prisma.employee.findFirst({
+        where: { id, tenantId: user.tenantId, deletedAt: null },
+      }),
+      prisma.employeeWorkplaceAssignment.findMany({
+        where: { employeeId: id, tenantId: user.tenantId },
+        orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }],
+        include: {
+          workplace: {
+            select: {
+              id: true,
+              name: true,
+              department: true,
+              companyId: true,
+              company: { select: { id: true, name: true } },
+            },
           },
         },
-      },
-    }),
-    // Active workplaces in this tenant — the assignment dialog needs them.
-    // We do this read up front (server-side) so the client component just
-    // gets a static list.
-    prisma.workplace.findMany({
-      where: {
-        tenantId: user.tenantId,
-        deletedAt: null,
-        isActive: true,
-      },
-      orderBy: [
-        { company: { name: 'asc' } },
-        { name: 'asc' },
-      ],
-      select: {
-        id: true,
-        name: true,
-        department: true,
-        company: { select: { name: true } },
-      },
-    }),
-  ])
+      }),
+      prisma.workplace.findMany({
+        where: {
+          tenantId: user.tenantId,
+          deletedAt: null,
+          isActive: true,
+        },
+        orderBy: [{ company: { name: 'asc' } }, { name: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          department: true,
+          company: { select: { name: true } },
+        },
+      }),
+      // New in session 6: recent examinations for this employee.
+      prisma.examination.findMany({
+        where: { employeeId: id, tenantId: user.tenantId, deletedAt: null },
+        orderBy: [
+          { signedAt: 'desc' },
+          { completedAt: 'desc' },
+          { scheduledAt: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: 10,
+        include: {
+          examinationType: {
+            select: { nameRo: true, nameEn: true },
+          },
+        },
+      }),
+    ])
 
   if (!employee) notFound()
 
@@ -125,6 +136,9 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
       ],
     },
   ] as const
+
+  // Latest signed examination, used in header line.
+  const lastSigned = recentExaminations.find((e) => e.signedAt !== null) ?? null
 
   return (
     <div className="space-y-6">
@@ -187,10 +201,36 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
                   ({currentAssignment.workplace.company.name})
                 </span>
               )}
+              {lastSigned && lastSigned.signedAt && (
+                <span className="text-xs text-muted-foreground">
+                  • {t('employees.lastExamination')}:{' '}
+                  <Link
+                    href={`/examinations/${lastSigned.id}`}
+                    className="underline hover:no-underline"
+                  >
+                    {dateFormatter.format(lastSigned.signedAt)}
+                  </Link>
+                  {lastSigned.verdict && (
+                    <>
+                      {' • '}
+                      {t(`examinations.form.verdict.${lastSigned.verdict}`)}
+                    </>
+                  )}
+                </span>
+              )}
             </div>
           </div>
           {caps.canWrite && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {!isArchived && currentAssignment && (
+                <Button asChild>
+                  <Link
+                    href={`/examinations/new?employeeId=${employee.id}`}
+                  >
+                    + {t('employees.newExaminationButton')}
+                  </Link>
+                </Button>
+              )}
               <Button asChild variant="outline">
                 <Link href={`/employees/${employee.id}/edit`}>
                   {t('common.edit')}
@@ -251,7 +291,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
         </section>
       ))}
 
-      {/* Workplace assignments — new in session 5. */}
+      {/* Workplace assignments — from session 5 */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">
@@ -309,7 +349,6 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
           )}
         </div>
 
-        {/* Current */}
         {currentAssignment ? (
           <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-950/20">
             <div className="flex items-start justify-between gap-4">
@@ -326,8 +365,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
                   </Link>
                   {currentAssignment.workplace.department && (
                     <span className="text-muted-foreground font-normal">
-                      {' '}
-                      — {currentAssignment.workplace.department}
+                      {' '}— {currentAssignment.workplace.department}
                     </span>
                   )}
                 </div>
@@ -352,7 +390,6 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* History */}
         {historyAssignments.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground">
@@ -403,6 +440,64 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+      </section>
+
+      {/* Examinations — new in session 6. */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            {t('employees.examinationsSectionTitle')}
+          </h2>
+        </div>
+        {recentExaminations.length === 0 ? (
+          <div className="border border-dashed rounded-lg p-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('employees.noExaminations')}
+            </p>
+          </div>
+        ) : (
+          <div className="border rounded-lg divide-y">
+            {recentExaminations.map((e) => (
+              <Link
+                key={e.id}
+                href={`/examinations/${e.id}`}
+                className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted transition-colors"
+              >
+                <div>
+                  <div className="text-sm font-medium flex items-center gap-2">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {e.examinationNumber}
+                    </span>
+                    <span>
+                      {locale === 'en'
+                        ? e.examinationType.nameEn ?? e.examinationType.nameRo
+                        : e.examinationType.nameRo}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {e.signedAt
+                      ? `${t('examinations.signedOn')}: ${dateFormatter.format(e.signedAt)}`
+                      : e.scheduledAt
+                        ? `${t('examinations.scheduledFor')}: ${dateFormatter.format(e.scheduledAt)}`
+                        : dateFormatter.format(e.createdAt)}
+                  </div>
+                </div>
+                <div className="text-xs text-right space-y-1">
+                  <div>
+                    <span className="inline-block px-2 py-0.5 rounded text-xs border">
+                      {t(`examinations.status.${e.status}`)}
+                    </span>
+                  </div>
+                  {e.verdict && (
+                    <div className="text-muted-foreground">
+                      {t(`examinations.form.verdict.${e.verdict}`)}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </section>

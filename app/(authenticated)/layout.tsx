@@ -49,6 +49,12 @@ export default async function AuthenticatedLayout({
                     {t('nav.employees')}
                   </Link>
                   <Link
+                    href="/examinations"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t('nav.examinations')}
+                  </Link>
+                  <Link
                     href="/team"
                     className="text-muted-foreground hover:text-foreground transition-colors"
                   >
