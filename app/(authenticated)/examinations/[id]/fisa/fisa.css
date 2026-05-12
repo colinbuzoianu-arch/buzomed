@@ -185,7 +185,7 @@
   nav,
   footer:not(.fisa-footer),
   aside,
-  .print\\:hidden {
+  .print\:hidden {
     display: none !important;
   }
 
