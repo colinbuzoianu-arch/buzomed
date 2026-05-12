@@ -237,8 +237,11 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     } catch (err) {
       console.error('[employees.PATCH] tenant salt resolution failed', err)
       return NextResponse.json(
-        { error: 'encryption_not_configured' },
-        { status: 503 }
+        {
+          error: 'salt_resolution_failed',
+          message: err instanceof Error ? err.message : String(err),
+        },
+        { status: 500 }
       )
     }
     const newHash = hashCnp(cnp, salt)

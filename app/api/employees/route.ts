@@ -215,8 +215,11 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error('[employees] tenant salt resolution failed', err)
       return NextResponse.json(
-        { error: 'encryption_not_configured' },
-        { status: 503 }
+        {
+          error: 'salt_resolution_failed',
+          message: err instanceof Error ? err.message : String(err),
+        },
+        { status: 500 }
       )
     }
     cnpHash = hashCnp(data.idDocumentNumber, salt)

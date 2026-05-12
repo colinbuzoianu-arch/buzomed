@@ -200,7 +200,9 @@ model Tenant {
   
   featureFlags        Json                @default("{}") @map("feature_flags")
   settings            Json                @default("{}")
-  
+
+  cnpHashSalt         String?             @map("cnp_hash_salt")
+
   createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt           DateTime?           @map("deleted_at") @db.Timestamptz
