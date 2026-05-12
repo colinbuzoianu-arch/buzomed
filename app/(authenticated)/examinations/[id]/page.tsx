@@ -7,6 +7,7 @@ import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { ExaminationForm } from './examination-form'
 import { ExaminationActions } from './examination-actions'
+import { DocumentsSection } from '@/app/(authenticated)/_components/documents-section'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -291,6 +292,15 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           signedNotice: t('examinations.form.signedNotice'),
           errorMessage: t('examinations.form.errorMessage'),
         }}
+      />
+
+      {/* Documents — new in session 7. Pre-loaded on the server. */}
+      <DocumentsSection
+        entityType="examination"
+        entityId={examination.id}
+        tenantId={user.tenantId}
+        canWrite={caps.canWrite}
+        locale={locale}
       />
     </div>
   )

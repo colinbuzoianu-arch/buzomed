@@ -7,6 +7,7 @@ import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { EmployeeActions } from './employee-actions'
 import { EmployeeAssignmentManager } from './assignment-manager'
+import { DocumentsSection } from '@/app/(authenticated)/_components/documents-section'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -501,6 +502,15 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
           </div>
         )}
       </section>
+
+      {/* Documents — new in session 7. */}
+      <DocumentsSection
+        entityType="employee"
+        entityId={employee.id}
+        tenantId={user.tenantId}
+        canWrite={caps.canWrite}
+        locale={locale}
+      />
     </div>
   )
 }

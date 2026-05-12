@@ -563,5 +563,38 @@
       "printButton": "Tipărește",
       "draftBanner": "Aceasta este o previzualizare. Fișa este validă doar după semnare."
     }
+  },
+  "documents": {
+    "sectionTitle": "Documente",
+    "empty": "Niciun document atașat.",
+    "emptyHint": "Folosește butonul de mai sus pentru a încărca un document.",
+    "uploadButton": "Încarcă document",
+    "uploading": "Se încarcă…",
+    "delete": "Șterge",
+    "deleteConfirm": "Sigur dorești să ștergi acest document? Acțiunea nu poate fi anulată.",
+    "deleting": "Se șterge…",
+    "download": "Descarcă",
+    "opening": "Se deschide…",
+    "uploadedBy": "Încărcat de",
+    "uploadedOn": "Încărcat",
+    "official": "Oficial",
+    "generated": "Generat",
+    "chooseFile": "Selectează fișier",
+    "documentTypeLabel": "Tip document",
+    "submit": "Încarcă",
+    "errorTitle": "Eroare",
+    "allowedHint": "Tipuri acceptate: PDF, JPEG, PNG, DOCX. Maxim 15 MB.",
+    "types": {
+      "fisa_aptitudine": "Fișă de aptitudine",
+      "fisa_factori_risc": "Fișă factori de risc",
+      "dosarul_medical": "Dosar medical",
+      "raport_medical": "Raport medical",
+      "adeverinta_medicala": "Adeverință medicală",
+      "vaccination_certificate": "Certificat vaccinare",
+      "lab_result": "Buletin analize",
+      "referral": "Trimitere medicală",
+      "external_document": "Document extern",
+      "other": "Alt document"
+    }
   }
 }

@@ -563,5 +563,38 @@
       "printButton": "Print",
       "draftBanner": "This is a preview. The certificate is only valid once signed."
     }
+  },
+  "documents": {
+    "sectionTitle": "Documents",
+    "empty": "No documents attached yet.",
+    "emptyHint": "Use the button above to upload a document.",
+    "uploadButton": "Upload document",
+    "uploading": "Uploading…",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this document? This cannot be undone.",
+    "deleting": "Deleting…",
+    "download": "Download",
+    "opening": "Opening…",
+    "uploadedBy": "Uploaded by",
+    "uploadedOn": "Uploaded",
+    "official": "Official",
+    "generated": "Generated",
+    "chooseFile": "Choose file",
+    "documentTypeLabel": "Document type",
+    "submit": "Upload",
+    "errorTitle": "Error",
+    "allowedHint": "Allowed: PDF, JPEG, PNG, DOCX. Max 15 MB.",
+    "types": {
+      "fisa_aptitudine": "Fitness certificate",
+      "fisa_factori_risc": "Risk-factor sheet",
+      "dosarul_medical": "Medical record",
+      "raport_medical": "Medical report",
+      "adeverinta_medicala": "Medical statement",
+      "vaccination_certificate": "Vaccination certificate",
+      "lab_result": "Lab result",
+      "referral": "Referral",
+      "external_document": "External document",
+      "other": "Other document"
+    }
   }
 }
