@@ -3,6 +3,11 @@ import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createInvitation } from '@/lib/invitations/service'
 import { getLocale } from '@/lib/i18n'
+import {
+  generateCnpHashSalt,
+  encryptCnpHashSalt,
+} from '@/lib/crypto/cnp-hash'
+import { isCnpEncryptionConfigured } from '@/lib/crypto/cnp-cipher'
 
 export async function POST(request: Request) {
   // Only super admins can create tenants
@@ -60,6 +65,30 @@ export async function POST(request: Request) {
     )
   }
 
+  // Generate the per-tenant CNP hash salt at create time. The salt is
+  // random + encrypted at rest with the project CNP_ENCRYPTION_KEY (same
+  // cipher we use for the CNPs themselves). If the key isn't configured,
+  // we fall back to leaving the salt NULL — the employee CRUD path will
+  // refuse to accept CNPs in that case, surfacing a clear error to the
+  // admin. We don't fail tenant creation over it: the cabinet might never
+  // want to record CNPs (German practice, etc.).
+  let cnpHashSalt: string | null = null
+  if (isCnpEncryptionConfigured()) {
+    try {
+      const plaintextSalt = generateCnpHashSalt()
+      cnpHashSalt = encryptCnpHashSalt(plaintextSalt)
+    } catch (err) {
+      console.error(
+        '[tenants] CNP hash salt generation failed; tenant will be created without one',
+        err
+      )
+    }
+  } else {
+    console.warn(
+      '[tenants] CNP_ENCRYPTION_KEY is not configured. Tenant will be created without a hash salt; CNP capture will be blocked until the key is set and the salt is lazily generated.'
+    )
+  }
+
   // Create tenant + admin user in a transaction
   let tenantResult
   try {
@@ -90,6 +119,7 @@ export async function POST(request: Request) {
             device_integration_enabled: false,
           },
           settings: {},
+          cnpHashSalt,
         },
       })
 

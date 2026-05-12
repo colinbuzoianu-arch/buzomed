@@ -10,15 +10,18 @@ import { Label } from '@/components/ui/label'
 /**
  * Shared form for create + edit of an Employee.
  *
- * Scope notes (session 4):
- *   - No CNP capture. The schema's cnpEncrypted/cnpHash require pgcrypto
- *     helpers that aren't built yet. The form offers passport / EU id
- *     card / other only.
- *   - No Workplace assignment. That's the next session — once Workplaces
- *     exist, employees gain a "Current workplace" picker here.
+ * Scope notes:
+ *   - CNP capture is live (session 8). When idDocumentType=cnp, the
+ *     idDocumentNumber field is treated as the CNP itself: validated
+ *     client-side for length/format, validated server-side for checksum,
+ *     then encrypted and hashed before storage. A real-time hint warns
+ *     if the CNP's embedded birth date disagrees with the explicit
+ *     birthDate field (warning only — not a hard block).
+ *   - No Workplace assignment in this form. Assignments live on the
+ *     employee detail page (session 5).
  */
 
-const ID_DOCUMENT_TYPES = ['passport', 'eu_id_card', 'other'] as const
+const ID_DOCUMENT_TYPES = ['cnp', 'passport', 'eu_id_card', 'other'] as const
 type IdDocumentType = (typeof ID_DOCUMENT_TYPES)[number]
 
 export interface EmployeeFormValues {
@@ -78,11 +81,14 @@ export interface EmployeeFormLabels {
   fieldFirstName: string
   fieldLastName: string
   fieldIdDocumentType: string
+  fieldIdDocumentTypeCnp: string
   fieldIdDocumentTypePassport: string
   fieldIdDocumentTypeEuId: string
   fieldIdDocumentTypeOther: string
-  fieldIdDocumentTypeCnpDeferred: string
+  fieldIdDocumentTypeCnpHint: string
   fieldIdDocumentNumber: string
+  fieldCnp: string
+  cnpBirthDateMismatch: string
   fieldCompanyEmployeeId: string
   fieldBirthDate: string
   fieldGender: string
@@ -105,7 +111,6 @@ export interface EmployeeFormLabels {
   fieldNotes: string
   fieldIsActive: string
   required: string
-  cnpNotice: string
   submitCreate: string
   submitUpdate: string
   submitting: string
@@ -265,6 +270,9 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
               }
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
+              <option value="cnp">
+                {labels.fieldIdDocumentTypeCnp}
+              </option>
               <option value="passport">
                 {labels.fieldIdDocumentTypePassport}
               </option>
@@ -273,19 +281,36 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
               </option>
               <option value="other">{labels.fieldIdDocumentTypeOther}</option>
             </select>
-            <p className="text-xs text-muted-foreground">
-              {labels.fieldIdDocumentTypeCnpDeferred}
-            </p>
+            {form.idDocumentType === 'cnp' && (
+              <p className="text-xs text-muted-foreground">
+                {labels.fieldIdDocumentTypeCnpHint}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="idDocumentNumber">
-              {labels.fieldIdDocumentNumber}
+              {form.idDocumentType === 'cnp'
+                ? labels.fieldCnp
+                : labels.fieldIdDocumentNumber}
             </Label>
             <Input
               id="idDocumentNumber"
               value={form.idDocumentNumber}
               onChange={(e) => update('idDocumentNumber', e.target.value)}
+              maxLength={form.idDocumentType === 'cnp' ? 13 : undefined}
+              inputMode={form.idDocumentType === 'cnp' ? 'numeric' : undefined}
+              pattern={form.idDocumentType === 'cnp' ? '\\d{13}' : undefined}
+              placeholder={
+                form.idDocumentType === 'cnp' ? '1234567890123' : undefined
+              }
             />
+            {form.idDocumentType === 'cnp' && form.idDocumentNumber && (
+              <CnpBirthDateMismatchHint
+                cnp={form.idDocumentNumber}
+                birthDate={form.birthDate}
+                label={labels.cnpBirthDateMismatch}
+              />
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="companyEmployeeId">
@@ -331,9 +356,6 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
             />
           </div>
         </div>
-        <p className="text-xs text-muted-foreground italic">
-          {labels.cnpNotice}
-        </p>
       </section>
 
       <section className="space-y-4">
@@ -496,5 +518,48 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
         </Button>
       </div>
     </form>
+  )
+}
+
+/**
+ * Small helper component: when CNP and birthDate are both present, check
+ * whether the CNP's embedded birth date matches and surface a warning if
+ * not. Warning only — the user may legitimately have an off-by-day mismatch
+ * (immigrant CNPs, historical data quirks). Hard validation lives on the
+ * server.
+ *
+ * We do the parse inline rather than importing from lib/crypto so the
+ * client bundle stays tiny — the cipher and hash modules are server-side
+ * only.
+ */
+function CnpBirthDateMismatchHint({
+  cnp,
+  birthDate,
+  label,
+}: {
+  cnp: string
+  birthDate: string
+  label: string
+}) {
+  if (!cnp || cnp.length !== 13 || !/^\d{13}$/.test(cnp) || !birthDate) {
+    return null
+  }
+  const s = parseInt(cnp[0], 10)
+  let centuryBase: number | null = null
+  if (s === 1 || s === 2 || s === 7 || s === 8 || s === 9) centuryBase = 1900
+  else if (s === 3 || s === 4) centuryBase = 1800
+  else if (s === 5 || s === 6) centuryBase = 2000
+  if (centuryBase === null) return null
+  const yy = parseInt(cnp.slice(1, 3), 10)
+  const mm = parseInt(cnp.slice(3, 5), 10)
+  const dd = parseInt(cnp.slice(5, 7), 10)
+  const year = centuryBase + yy
+  // Compose ISO date string YYYY-MM-DD for comparison with form value.
+  const cnpDateStr = `${String(year).padStart(4, '0')}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
+  if (cnpDateStr === birthDate) return null
+  return (
+    <p className="text-xs text-amber-700 dark:text-amber-400">
+      {label.replace('{cnpDate}', cnpDateStr)}
+    </p>
   )
 }

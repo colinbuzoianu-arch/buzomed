@@ -14,26 +14,42 @@ import {
   optionalString,
   requireString,
 } from '@/lib/validation'
+import {
+  encryptCnp,
+  isCnpEncryptionConfigured,
+} from '@/lib/crypto/cnp-cipher'
+import { hashCnp } from '@/lib/crypto/cnp-hash'
+import {
+  validateCnp,
+  cnpReasonToIssue,
+} from '@/lib/crypto/cnp-validation'
+import { getOrCreateTenantCnpSalt } from '@/lib/crypto/tenant-salt'
 
 /**
- * Employee CRUD — session 4 scope.
+ * Employee CRUD.
  *
  * Important schema constraints honored here:
  *
  *   - Employees are tenant-scoped; no direct companyId column. The link
- *     to Company comes via Workplace assignments, which arrive in
- *     session 5. Until then, employees are unaffiliated within a tenant.
+ *     to Company comes via Workplace assignments (session 5).
  *
- *   - CNP encryption is deferred. The schema has cnpEncrypted + cnpHash
- *     for pgcrypto-based storage, but no helpers exist yet. We accept
- *     idDocumentType + idDocumentNumber for non-CNP cases and refuse
- *     idDocumentType=cnp until the encryption subsystem lands.
+ *   - CNP is encrypted (AES-256-GCM, project-wide key in CNP_ENCRYPTION_KEY)
+ *     and indexed via a per-tenant HMAC hash. See lib/crypto/cnp-*.ts.
+ *     CNP capture became active in session 8. When idDocumentType='cnp',
+ *     `idDocumentNumber` is treated as the CNP itself, validated, then
+ *     persisted as (cnpEncrypted, cnpHash) — the plaintext idDocumentNumber
+ *     column is set to null.
  */
 
 const ID_DOCUMENT_TYPES_WITHOUT_CNP: IdDocumentType[] = [
   'passport',
   'eu_id_card',
   'other',
+]
+
+const ALL_ID_DOCUMENT_TYPES: IdDocumentType[] = [
+  'cnp',
+  ...ID_DOCUMENT_TYPES_WITHOUT_CNP,
 ]
 
 const ARCHIVED_REASONS = [
@@ -154,6 +170,86 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // CNP handling. If the document type is 'cnp', the value in
+  // idDocumentNumber is the CNP itself. We validate it, look up
+  // duplicates within the tenant, then encrypt + hash before storing.
+  let cnpEncrypted: string | null = null
+  let cnpHash: string | null = null
+  let storedIdDocumentNumber = data.idDocumentNumber ?? null
+
+  if (data.idDocumentType === 'cnp') {
+    if (!data.idDocumentNumber) {
+      return NextResponse.json(
+        {
+          error: 'validation_failed',
+          issues: ['idDocumentNumber is required when idDocumentType=cnp'],
+        },
+        { status: 400 }
+      )
+    }
+    if (!isCnpEncryptionConfigured()) {
+      return NextResponse.json(
+        {
+          error: 'encryption_not_configured',
+          message:
+            'CNP encryption is not configured on this server. Contact the administrator.',
+        },
+        { status: 503 }
+      )
+    }
+    const validation = validateCnp(data.idDocumentNumber)
+    if (!validation.valid) {
+      return NextResponse.json(
+        {
+          error: 'validation_failed',
+          issues: [cnpReasonToIssue(validation.reason!)],
+        },
+        { status: 400 }
+      )
+    }
+
+    // Tenant salt → hash → duplicate check.
+    let salt: string
+    try {
+      salt = await getOrCreateTenantCnpSalt(auth.user.tenantId)
+    } catch (err) {
+      console.error('[employees] tenant salt resolution failed', err)
+      return NextResponse.json(
+        { error: 'encryption_not_configured' },
+        { status: 503 }
+      )
+    }
+    cnpHash = hashCnp(data.idDocumentNumber, salt)
+    cnpEncrypted = encryptCnp(data.idDocumentNumber)
+
+    const duplicate = await prisma.employee.findFirst({
+      where: {
+        tenantId: auth.user.tenantId,
+        cnpHash,
+        deletedAt: null,
+      },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    if (duplicate) {
+      return NextResponse.json(
+        {
+          error: 'duplicate_cnp',
+          message: 'An employee with this CNP already exists in this cabinet.',
+          duplicateEmployee: {
+            id: duplicate.id,
+            firstName: duplicate.firstName,
+            lastName: duplicate.lastName,
+          },
+        },
+        { status: 409 }
+      )
+    }
+
+    // Clear the plaintext idDocumentNumber — it now lives only in
+    // cnpEncrypted. The schema lets idDocumentNumber be null in this case.
+    storedIdDocumentNumber = null
+  }
+
   const employee = await prisma.employee.create({
     data: {
       tenantId: auth.user.tenantId,
@@ -161,7 +257,9 @@ export async function POST(request: NextRequest) {
       firstName: data.firstName!,
       lastName: data.lastName!,
       idDocumentType: data.idDocumentType ?? 'other',
-      idDocumentNumber: data.idDocumentNumber,
+      idDocumentNumber: storedIdDocumentNumber,
+      cnpEncrypted,
+      cnpHash,
       companyEmployeeId: data.companyEmployeeId,
       birthDate: data.birthDate,
       gender: data.gender,
@@ -237,21 +335,15 @@ export function parseEmployeeInput(
     ? requireString('lastName', body.lastName, issues, { maxLength: 100 })
     : optionalString('lastName', body.lastName, issues, { maxLength: 100 })
 
-  // ID document type — restricted set while CNP encryption is unbuilt.
+  // ID document type — full set, including CNP.
   if (body.idDocumentType !== undefined && body.idDocumentType !== null) {
     if (typeof body.idDocumentType !== 'string') {
       issues.push('idDocumentType must be a string')
-    } else if (body.idDocumentType === 'cnp') {
-      issues.push(
-        'idDocumentType=cnp is not yet supported (encryption pending). Use passport, eu_id_card, or other.'
-      )
     } else if (
-      !ID_DOCUMENT_TYPES_WITHOUT_CNP.includes(
-        body.idDocumentType as IdDocumentType
-      )
+      !ALL_ID_DOCUMENT_TYPES.includes(body.idDocumentType as IdDocumentType)
     ) {
       issues.push(
-        `idDocumentType must be one of: ${ID_DOCUMENT_TYPES_WITHOUT_CNP.join(', ')}`
+        `idDocumentType must be one of: ${ALL_ID_DOCUMENT_TYPES.join(', ')}`
       )
     } else {
       result.idDocumentType = body.idDocumentType as IdDocumentType

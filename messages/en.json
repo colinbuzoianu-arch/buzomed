@@ -278,7 +278,6 @@
       "fieldIdDocumentTypePassport": "Passport",
       "fieldIdDocumentTypeEuId": "EU ID card",
       "fieldIdDocumentTypeOther": "Other",
-      "fieldIdDocumentTypeCnpDeferred": "CNP support is coming in a later session (encryption).",
       "fieldIdDocumentNumber": "Document number",
       "fieldCompanyEmployeeId": "Badge / matricola",
       "fieldBirthDate": "Date of birth",
@@ -297,11 +296,14 @@
       "fieldNotes": "Notes",
       "fieldIsActive": "Employee is active",
       "required": "required",
-      "cnpNotice": "CNP capture is not available yet. Use passport, EU ID card, or another document.",
       "submitCreate": "Create employee",
       "submitUpdate": "Save changes",
       "submitting": "Saving...",
-      "errorMessage": "The operation could not complete. Please try again."
+      "errorMessage": "The operation could not complete. Please try again.",
+      "fieldIdDocumentTypeCnp": "CNP (Romanian ID number)",
+      "fieldIdDocumentTypeCnpHint": "The CNP is encrypted at rest and visible only to practitioners.",
+      "fieldCnp": "CNP",
+      "cnpBirthDateMismatch": "Warning: the CNP's embedded birth date ({cnpDate}) doesn't match the date entered below."
     },
     "assignments": {
       "sectionTitle": "Workplace assignments",
@@ -337,7 +339,23 @@
     "lastExamination": "Last examination",
     "newExaminationButton": "New examination",
     "examinationsSectionTitle": "Recent examinations",
-    "noExaminations": "No examinations recorded for this employee yet."
+    "noExaminations": "No examinations recorded for this employee yet.",
+    "cnp": {
+      "revealButton": "Show",
+      "hideButton": "Hide",
+      "noPermission": "(requires practitioner role)",
+      "errorDuplicate": "Another employee with the same CNP already exists in this cabinet."
+    },
+    "cnpError": {
+      "wrong_length": "CNP must be exactly 13 digits",
+      "non_numeric": "CNP must contain only digits",
+      "invalid_gender_century_code": "CNP's first digit (gender/century) is not valid",
+      "invalid_month": "CNP's birth month is out of range",
+      "invalid_day": "CNP's birth day does not exist",
+      "invalid_county_code": "CNP's county code is not valid",
+      "invalid_sequence": "CNP's sequence number is not valid",
+      "invalid_checksum": "CNP checksum doesn't match — please re-verify the number"
+    }
   },
   "acceptInvite": {
     "title": "Welcome to Buzomed",

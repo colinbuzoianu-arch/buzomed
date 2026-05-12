@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button'
 import { EmployeeActions } from './employee-actions'
 import { EmployeeAssignmentManager } from './assignment-manager'
 import { DocumentsSection } from '@/app/(authenticated)/_components/documents-section'
+import { decryptCnp } from '@/lib/crypto/cnp-cipher'
+import { maskCnp } from '@/lib/crypto/cnp-validation'
+import { CnpReveal } from './cnp-reveal'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -89,14 +92,52 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
   const currentAssignment = assignmentRows.find((a) => a.isCurrent) ?? null
   const historyAssignments = assignmentRows.filter((a) => !a.isCurrent)
 
+  // CNP display. If the employee's ID is a CNP and the actor can view
+  // sensitive PII, decrypt it so the reveal toggle has something to show.
+  // Otherwise we only ever surface the masked placeholder.
+  let cnpPlaintext: string | null = null
+  let cnpMaskedDisplay: string | null = null
+  if (employee.idDocumentType === 'cnp' && employee.cnpEncrypted) {
+    if (caps.canViewSensitivePii) {
+      try {
+        cnpPlaintext = decryptCnp(employee.cnpEncrypted)
+        cnpMaskedDisplay = maskCnp(cnpPlaintext)
+      } catch (err) {
+        console.error('[employees.detail] CNP decrypt failed', err)
+        cnpMaskedDisplay = '*************'
+      }
+    } else {
+      cnpMaskedDisplay = '*************'
+    }
+  }
+
+  // Translate idDocumentType for display (it's stored as an enum value
+  // like 'cnp' / 'passport' / 'eu_id_card' / 'other').
+  const idDocumentTypeLabel: Record<string, string> = {
+    cnp: t('employees.form.fieldIdDocumentTypeCnp'),
+    passport: t('employees.form.fieldIdDocumentTypePassport'),
+    eu_id_card: t('employees.form.fieldIdDocumentTypeEuId'),
+    other: t('employees.form.fieldIdDocumentTypeOther'),
+  }
+
   const sections = [
     {
       title: t('employees.form.sectionIdentity'),
       rows: [
         [t('employees.form.fieldLastName'), employee.lastName],
         [t('employees.form.fieldFirstName'), employee.firstName],
-        [t('employees.form.fieldIdDocumentType'), employee.idDocumentType],
-        [t('employees.form.fieldIdDocumentNumber'), employee.idDocumentNumber],
+        [
+          t('employees.form.fieldIdDocumentType'),
+          idDocumentTypeLabel[employee.idDocumentType] ?? employee.idDocumentType,
+        ],
+        // ID document row is special: for CNP-typed employees, render
+        // the reveal toggle. For all others, render the plaintext number.
+        [
+          employee.idDocumentType === 'cnp'
+            ? t('employees.form.fieldCnp')
+            : t('employees.form.fieldIdDocumentNumber'),
+          null, // value rendered separately below
+        ],
         [t('employees.form.fieldCompanyEmployeeId'), employee.companyEmployeeId],
         [
           t('employees.form.fieldBirthDate'),
@@ -275,19 +316,51 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
         <section key={section.title} className="space-y-3">
           <h2 className="text-lg font-semibold">{section.title}</h2>
           <div className="border rounded-lg divide-y">
-            {section.rows.map(([label, value]) => (
-              <div
-                key={label}
-                className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4 py-3"
-              >
-                <div className="text-sm font-medium text-muted-foreground">
-                  {label}
+            {section.rows.map(([label, value]) => {
+              // Special-case: the CNP row renders the reveal toggle
+              // instead of plain text. We detect it by label equality
+              // against the localized "CNP" label.
+              const isCnpRow =
+                employee.idDocumentType === 'cnp' &&
+                label === t('employees.form.fieldCnp')
+
+              // Special-case: for non-CNP types, render the plaintext
+              // idDocumentNumber on the row whose label matches.
+              const isPlainIdNumberRow =
+                employee.idDocumentType !== 'cnp' &&
+                label === t('employees.form.fieldIdDocumentNumber')
+
+              const displayValue: React.ReactNode =
+                isCnpRow ? (
+                  <CnpReveal
+                    masked={cnpMaskedDisplay ?? '*************'}
+                    plaintext={cnpPlaintext}
+                    revealLabel={t('employees.cnp.revealButton')}
+                    hideLabel={t('employees.cnp.hideButton')}
+                    noPermissionLabel={t('employees.cnp.noPermission')}
+                  />
+                ) : isPlainIdNumberRow ? (
+                  employee.idDocumentNumber || '—'
+                ) : value && value !== '' ? (
+                  value
+                ) : (
+                  '—'
+                )
+
+              return (
+                <div
+                  key={label}
+                  className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4 py-3"
+                >
+                  <div className="text-sm font-medium text-muted-foreground">
+                    {label}
+                  </div>
+                  <div className="md:col-span-2 text-sm whitespace-pre-wrap">
+                    {displayValue}
+                  </div>
                 </div>
-                <div className="md:col-span-2 text-sm whitespace-pre-wrap">
-                  {value && value !== '' ? value : '—'}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </section>
       ))}

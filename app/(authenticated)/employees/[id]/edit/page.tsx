@@ -3,7 +3,11 @@ import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
-import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
+import {
+  canViewSensitivePii,
+  tenantDataCapabilities,
+} from '@/lib/permissions/tenant-data'
+import { decryptCnp } from '@/lib/crypto/cnp-cipher'
 import { EmployeeForm, type EmployeeFormValues } from '../../employee-form'
 import { buildEmployeeFormLabels } from '../../form-labels'
 
@@ -33,24 +37,39 @@ export default async function EditEmployeePage({ params }: PageProps) {
   })
   if (!employee) notFound()
 
-  // CNP-typed records pre-existed this UI; we still allow viewing them
-  // (the schema enforces no idDocumentType change here), but the form
-  // dropdown only offers passport / eu_id_card / other. If we hit a CNP
-  // record in edit, show 'other' in the dropdown — saving will not write
-  // back the type unless the user changes it (PATCH parser skips
-  // undefined). The CNP value remains in cnpEncrypted untouched.
-  const formIdDocType: 'passport' | 'eu_id_card' | 'other' =
-    employee.idDocumentType === 'passport' ||
-    employee.idDocumentType === 'eu_id_card' ||
-    employee.idDocumentType === 'other'
-      ? employee.idDocumentType
-      : 'other'
+  // CNP visibility for the edit form.
+  //
+  // - The dropdown now offers cnp + passport + eu_id_card + other.
+  // - For CNP-typed records, we decrypt the CNP and pre-fill the input,
+  //   BUT only if the actor can view sensitive PII. An assistant with
+  //   write access (theoretical: assistants have read-only today) would
+  //   see an empty field; saving without changing the value would not
+  //   wipe the encrypted CNP because the PATCH handler treats absent
+  //   idDocumentNumber as "leave alone".
+  let prefilledIdDocumentNumber = employee.idDocumentNumber ?? ''
+  if (employee.idDocumentType === 'cnp' && employee.cnpEncrypted) {
+    if (canViewSensitivePii(user, user.tenantId)) {
+      try {
+        prefilledIdDocumentNumber = decryptCnp(employee.cnpEncrypted)
+      } catch (err) {
+        console.error('[employees.edit] CNP decrypt failed', {
+          employeeId: id,
+          error: (err as Error).message,
+        })
+        // Leave field empty; user will need to re-enter to update.
+        prefilledIdDocumentNumber = ''
+      }
+    } else {
+      // Don't expose even the encrypted blob length via the input value.
+      prefilledIdDocumentNumber = ''
+    }
+  }
 
   const initialValues: EmployeeFormValues = {
     firstName: employee.firstName,
     lastName: employee.lastName,
-    idDocumentType: formIdDocType,
-    idDocumentNumber: employee.idDocumentNumber ?? '',
+    idDocumentType: employee.idDocumentType,
+    idDocumentNumber: prefilledIdDocumentNumber,
     companyEmployeeId: employee.companyEmployeeId ?? '',
     birthDate: toDateInput(employee.birthDate),
     gender:

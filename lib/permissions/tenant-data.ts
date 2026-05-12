@@ -14,11 +14,9 @@
  *                    super_admin as having no tenant-data rights here so
  *                    accidental calls don't leak across tenants.
  *
- *   practice_admin → full read/write within their tenant
- *   practitioner   → full read/write within their tenant (they're the
- *                    medical operators; assistants prepare for them, but
- *                    practitioners create the records themselves too)
- *   assistant      → read-only within their tenant
+ *   practice_admin → full read/write within their tenant; can view PII
+ *   practitioner   → full read/write within their tenant; can view PII
+ *   assistant      → read-only within their tenant; CANNOT view PII
  *
  * Keep this in one place. Drift between the API check and the UI check
  * creates either confusing UX (button shown but action rejected) or actual
@@ -67,11 +65,38 @@ export function canWriteTenantData(
 }
 
 /**
+ * Can the actor see decrypted sensitive PII (CNP today, additional fields
+ * later) within `tenantId`? Restricted to practice_admin and practitioner.
+ *
+ * Why this is separate from canWriteTenantData even though both currently
+ * return the same set: when audit logging lands (session 10) we want to
+ * record PII-view events even for users who can write everything else.
+ * Splitting the check now means the audit log can hook into a single
+ * function and we don't have to refactor every CNP-read call site later.
+ *
+ * Assistants legitimately need to do CRUD (schedule exams, manage
+ * workplaces) but they don't need raw CNPs in their daily work — they
+ * get the masked display. If a specific assistant needs PII access,
+ * promote them to practitioner.
+ */
+export function canViewSensitivePii(
+  actor: TenantActor,
+  tenantId: string
+): boolean {
+  if (!canReadTenantData(actor, tenantId)) return false
+  return (
+    actor.roles.includes('practice_admin') ||
+    actor.roles.includes('practitioner')
+  )
+}
+
+/**
  * Convenience: derive a flat capability flag for the UI.
  */
 export interface TenantDataCapabilities {
   canRead: boolean
   canWrite: boolean
+  canViewSensitivePii: boolean
 }
 
 export function tenantDataCapabilities(
@@ -81,5 +106,6 @@ export function tenantDataCapabilities(
   return {
     canRead: canReadTenantData(actor, tenantId),
     canWrite: canWriteTenantData(actor, tenantId),
+    canViewSensitivePii: canViewSensitivePii(actor, tenantId),
   }
 }

@@ -278,7 +278,6 @@
       "fieldIdDocumentTypePassport": "Pașaport",
       "fieldIdDocumentTypeEuId": "Carte de identitate UE",
       "fieldIdDocumentTypeOther": "Altul",
-      "fieldIdDocumentTypeCnpDeferred": "Suportul pentru CNP va fi adăugat într-o sesiune ulterioară (criptare).",
       "fieldIdDocumentNumber": "Număr document",
       "fieldCompanyEmployeeId": "Marca / număr de legitimație",
       "fieldBirthDate": "Data nașterii",
@@ -297,11 +296,14 @@
       "fieldNotes": "Note",
       "fieldIsActive": "Angajat activ",
       "required": "obligatoriu",
-      "cnpNotice": "CNP-ul nu este capturat în această fază. Folosiți pașaportul, cartea de identitate UE sau alt document.",
       "submitCreate": "Creează angajatul",
       "submitUpdate": "Salvează modificările",
       "submitting": "Se salvează...",
-      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
+      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou.",
+      "fieldIdDocumentTypeCnp": "CNP",
+      "fieldIdDocumentTypeCnpHint": "CNP-ul este criptat în baza de date și vizibil doar medicilor.",
+      "fieldCnp": "CNP",
+      "cnpBirthDateMismatch": "Atenție: data nașterii din CNP ({cnpDate}) nu corespunde cu cea introdusă mai jos."
     },
     "assignments": {
       "sectionTitle": "Alocări la locul de muncă",
@@ -337,7 +339,23 @@
     "lastExamination": "Ultima examinare",
     "newExaminationButton": "Examinare nouă",
     "examinationsSectionTitle": "Examinări recente",
-    "noExaminations": "Niciun examen înregistrat pentru acest angajat."
+    "noExaminations": "Niciun examen înregistrat pentru acest angajat.",
+    "cnp": {
+      "revealButton": "Afișează",
+      "hideButton": "Ascunde",
+      "noPermission": "(necesită rol de medic)",
+      "errorDuplicate": "Un alt angajat cu același CNP există deja în cabinet."
+    },
+    "cnpError": {
+      "wrong_length": "CNP-ul trebuie să aibă exact 13 cifre",
+      "non_numeric": "CNP-ul trebuie să conțină doar cifre",
+      "invalid_gender_century_code": "Prima cifră a CNP-ului (sex/secol) este invalidă",
+      "invalid_month": "Luna nașterii din CNP este invalidă",
+      "invalid_day": "Ziua nașterii din CNP nu există",
+      "invalid_county_code": "Codul județului din CNP este invalid",
+      "invalid_sequence": "Numărul de secvență din CNP este invalid",
+      "invalid_checksum": "Cifra de control a CNP-ului nu corespunde — verifică numărul"
+    }
   },
   "acceptInvite": {
     "title": "Bine ați venit la Buzomed",

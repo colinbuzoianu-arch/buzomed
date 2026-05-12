@@ -11,15 +11,18 @@ export function buildEmployeeFormLabels(t: Translator): EmployeeFormLabels {
     fieldFirstName: t('employees.form.fieldFirstName'),
     fieldLastName: t('employees.form.fieldLastName'),
     fieldIdDocumentType: t('employees.form.fieldIdDocumentType'),
+    fieldIdDocumentTypeCnp: t('employees.form.fieldIdDocumentTypeCnp'),
     fieldIdDocumentTypePassport: t(
       'employees.form.fieldIdDocumentTypePassport'
     ),
     fieldIdDocumentTypeEuId: t('employees.form.fieldIdDocumentTypeEuId'),
     fieldIdDocumentTypeOther: t('employees.form.fieldIdDocumentTypeOther'),
-    fieldIdDocumentTypeCnpDeferred: t(
-      'employees.form.fieldIdDocumentTypeCnpDeferred'
+    fieldIdDocumentTypeCnpHint: t(
+      'employees.form.fieldIdDocumentTypeCnpHint'
     ),
     fieldIdDocumentNumber: t('employees.form.fieldIdDocumentNumber'),
+    fieldCnp: t('employees.form.fieldCnp'),
+    cnpBirthDateMismatch: t('employees.form.cnpBirthDateMismatch'),
     fieldCompanyEmployeeId: t('employees.form.fieldCompanyEmployeeId'),
     fieldBirthDate: t('employees.form.fieldBirthDate'),
     fieldGender: t('employees.form.fieldGender'),
@@ -44,7 +47,6 @@ export function buildEmployeeFormLabels(t: Translator): EmployeeFormLabels {
     fieldNotes: t('employees.form.fieldNotes'),
     fieldIsActive: t('employees.form.fieldIsActive'),
     required: t('employees.form.required'),
-    cnpNotice: t('employees.form.cnpNotice'),
     submitCreate: t('employees.form.submitCreate'),
     submitUpdate: t('employees.form.submitUpdate'),
     submitting: t('employees.form.submitting'),
