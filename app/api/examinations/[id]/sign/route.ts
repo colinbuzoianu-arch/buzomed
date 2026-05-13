@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canWriteTenantData } from '@/lib/permissions/tenant-data'
 import { computeNextExaminationDueDate } from '@/lib/examinations/recall'
+import { upsertRecallFromExamination } from '@/lib/recalls/upsert-from-examination'
 
 /**
  * Sign an examination. This is the legal commitment point — fișa de
@@ -102,19 +103,38 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
     })
   }
 
-  const updated = await prisma.examination.update({
-    where: { id },
-    data: {
-      signedAt: now,
-      signedByUserId: auth.user.id,
-      status: 'completed',
-      completedAt: existing.completedAt ?? now,
-      nextExaminationDueDate: nextDue,
-    },
-    include: {
-      employee: { select: { id: true, firstName: true, lastName: true } },
-      examinationType: { select: { id: true, nameRo: true } },
-    },
+  // Sign + create recall in a single transaction so the Recall row is
+  // guaranteed to exist alongside any signed examination that warrants
+  // one. Failures in either roll back together.
+  const updated = await prisma.$transaction(async (tx) => {
+    const exam = await tx.examination.update({
+      where: { id },
+      data: {
+        signedAt: now,
+        signedByUserId: auth.user!.id,
+        status: 'completed',
+        completedAt: existing.completedAt ?? now,
+        nextExaminationDueDate: nextDue,
+      },
+      include: {
+        employee: { select: { id: true, firstName: true, lastName: true } },
+        examinationType: { select: { id: true, nameRo: true } },
+      },
+    })
+
+    // Recall side-effect. Idempotent — safe to re-run on duplicate signs
+    // (though signedAt being set above prevents that anyway).
+    await upsertRecallFromExamination(tx, {
+      examinationId: exam.id,
+      tenantId: exam.tenantId,
+      employeeId: exam.employeeId,
+      workplaceId: exam.workplaceId,
+      examinationTypeId: exam.examinationTypeId,
+      verdict: exam.verdict,
+      nextExaminationDueDate: exam.nextExaminationDueDate,
+    })
+
+    return exam
   })
 
   return NextResponse.json({ examination: updated })

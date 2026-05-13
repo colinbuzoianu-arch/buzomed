@@ -1,181 +1,167 @@
-# Buzomed — session 8: CNP encryption
+# Buzomed — session 9: Recall dashboard
 
-Romanian CNP (national ID) capture goes live. Stored encrypted with
-AES-256-GCM, indexed by per-tenant HMAC hash for dup-checking and
-lookup, validated with full structural + checksum rules, displayed
-masked-by-default with a reveal toggle for practitioners.
+Cabinets stop tracking recalls in Excel. The dashboard surfaces every
+upcoming and overdue periodic examination, with one-click scheduling
+and per-row cancellation. A red counter on the nav makes overdue
+impossible to miss.
 
-## What's in this bundle (16 files + README)
+## What's in this bundle (10 files + README)
 
 ### New
-- `lib/crypto/cnp-cipher.ts` — AES-256-GCM encrypt/decrypt
-- `lib/crypto/cnp-hash.ts` — per-tenant HMAC-SHA-256 + salt management
-- `lib/crypto/cnp-validation.ts` — structural + checksum validation, masking
-- `lib/crypto/tenant-salt.ts` — lazy get-or-create-tenant-salt
-- `prisma/SCHEMA_PATCH.md` — instructions for the one schema change
-- `prisma/migrations/20260512_session_8_cnp_encryption/migration.sql` — adds `tenants.cnp_hash_salt`
-- `app/(authenticated)/employees/[id]/cnp-reveal.tsx` — mask/reveal client component
-- `scripts/merge-i18n-session-8.mjs` — adds CNP i18n keys, removes obsolete deferral keys
+- `lib/recalls/upsert-from-examination.ts` — idempotent helper that creates/updates a Recall row when an examination is signed
+- `app/api/recalls/route.ts` — GET list with horizon + company filters, lazy `pending → overdue` promotion
+- `app/api/recalls/[id]/route.ts` — GET single, PATCH `action=cancel`
+- `app/api/recalls/[id]/schedule/route.ts` — POST: creates a scheduled examination from a recall, marks the recall completed, all atomic
+- `app/(authenticated)/recalls/page.tsx` — main dashboard
+- `app/(authenticated)/recalls/recall-actions.tsx` — per-row schedule/cancel dialogs
+- `prisma/backfill-recalls.sql` — one-time backfill for examinations signed before session 9
+- `scripts/merge-i18n-session-9.mjs` — ~40 keys per locale
 
 ### Modified
-- `lib/permissions/tenant-data.ts` — adds `canViewSensitivePii`
-- `app/api/tenants/route.ts` — generates `cnpHashSalt` at tenant create time
-- `app/api/employees/route.ts` — POST now accepts + validates + encrypts CNP
-- `app/api/employees/[id]/route.ts` — GET returns decrypted CNP for authorized callers; PATCH handles all four CNP-change cases
-- `app/(authenticated)/employees/employee-form.tsx` — CNP option in dropdown, special input handling, real-time birth-date warning
-- `app/(authenticated)/employees/form-labels.ts` — wired new label keys, removed obsolete
-- `app/(authenticated)/employees/[id]/edit/page.tsx` — decrypts + prefills CNP on edit
-- `app/(authenticated)/employees/[id]/page.tsx` — CNP row with reveal toggle, idDocumentType label translation
+- `app/api/examinations/[id]/sign/route.ts` — wraps sign in a transaction and calls `upsertRecallFromExamination`
+- `app/(authenticated)/layout.tsx` — adds Recalls nav link with red overdue counter badge
 
-## Prerequisites (do these FIRST)
+## Pre-flight checks (NEW for session 9)
 
-### 1. Generate and set CNP_ENCRYPTION_KEY
-
-Once. Pick a key, set it everywhere (Vercel + your local `.env.local`), and **never lose it**. Losing this key means every encrypted CNP becomes permanently unreadable.
+Before unzipping, verify these are in place from earlier sessions:
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# 1. The build script must include prisma generate (from session 8 fix)
+grep '"build"' package.json
+# Expected: "build": "prisma generate && next build",
+# If missing, your Vercel deploy will fail on the regenerated Prisma client.
+
+# 2. CNP encryption key must be in both .env.local AND Vercel
+grep CNP_ENCRYPTION_KEY .env.local | head -1
+# Expected: a base64 string. Restart dev server if you just added it.
 ```
 
-Copy the output. Then:
-
-**In Vercel** (production + preview environments):
-```bash
-vercel env add CNP_ENCRYPTION_KEY production
-# paste the key when prompted
-vercel env add CNP_ENCRYPTION_KEY preview
-# paste the same key
-```
-Or via the Vercel dashboard → Project → Settings → Environment Variables.
-
-**In your local `.env.local`**:
-```
-CNP_ENCRYPTION_KEY="<the-base64-key>"
-```
-
-### 2. Verify SUPABASE_SERVICE_ROLE_KEY is set
-
-Already set from session 5/7. `vercel env ls` to confirm.
+Neither prerequisite is new in session 9 — but if you skipped them in session 8, recall scheduling will fail in weird ways.
 
 ## Integration steps
 
 ```bash
 cd C:/Projects/Buzomed
-unzip -o ~/Downloads/buzomed-session-8.zip
+unzip -o ~/Downloads/buzomed-session-9.zip
 
-# 1. Apply the schema change. Open prisma/schema.prisma and follow
-#    prisma/SCHEMA_PATCH.md — add ONE line to the Tenant model:
-#      cnpHashSalt   String?   @map("cnp_hash_salt")
-
-# 2. Regenerate the Prisma client
+# 1. No schema changes this session. The Recall model already existed
+#    in your schema.prisma from session 1. Just regenerate to be safe.
 PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 npx prisma generate
 
-# 3. Apply the migration. Pick ONE:
-#    Option A — via Prisma:
-npx prisma migrate deploy
-#    Option B — Supabase Dashboard → SQL Editor → paste the migration.sql → Run
-#    (this is what you did for sessions 7 storage bucket)
+# 2. Run the backfill SQL. Pick ONE:
+#    Option A — Supabase Dashboard → SQL Editor → paste prisma/backfill-recalls.sql → Run
+#    Option B — psql command:
+psql "$DIRECT_URL" -f prisma/backfill-recalls.sql
 
-# 4. Merge i18n keys (adds 32 keys, removes 4 obsolete)
-node scripts/merge-i18n-session-8.mjs
+# 3. Merge i18n
+node scripts/merge-i18n-session-9.mjs
 
-# 5. Type check + dev
+# 4. Clean restart (Turbopack quirk — see "what I learned" below)
 rm -rf .next
 npx tsc --noEmit
 npm run dev
 
+# 5. Smoke test (see Test plan below)
+
 # 6. Commit + push
 git add .
-git commit -m "Session 8: CNP encryption (AES-256-GCM + per-tenant HMAC hash)"
+git commit -m "Session 9: Recall dashboard with horizon filters + scheduling"
 git push
 ```
 
 ## Design decisions baked in
 
-- **Q1 = (a)** — Single project-wide `CNP_ENCRYPTION_KEY` env var. Clean upgrade path to wrapped per-tenant keys later (the on-disk format leaves room).
-- **Q2 = (b)** — AES-256-GCM in Node.js. The cipher's auth tag detects tampering; corrupted blobs throw rather than silently return wrong data.
-- **Q3 = (b)** — HMAC-SHA-256 with per-tenant SECRET salt. The salt is generated at tenant create time, encrypted at rest with the same project key, and stored in `tenants.cnp_hash_salt`.
-- **Q4 = (a)** — practice_admin + practitioner can decrypt; assistant cannot. The split happens in `canViewSensitivePii` — separate from `canWriteTenantData` so the audit log (session 10) can hook in cleanly later.
-- **Q5 = (b)** — Masked by default (`185031*******`), Show/Hide toggle for authorized users. Toggle is UI-only — the plaintext is already in the client bundle when the server decided to send it.
-- **Q6 = (a)** — No backfill. Test data uses `idDocumentType=passport`; no CNPs to migrate.
-- **Q7 = (c)** — Full structural validation: 13 digits, gender/century code, valid month/day, county code in {1-46, 51, 52}, sequence ≥ 1, **checksum**. Birth date cross-check between CNP and explicit `birthDate` field is a UI warning, not a hard block.
-
-## Threat model
-
-**Protected against:**
-- Database snapshot leak or read-only Postgres access: the `cnp_encrypted` column is opaque bytes, `cnp_hash` is non-reversible without the per-tenant secret salt
-- Tampering with stored ciphertext: GCM auth tag fails the decrypt
-- Rainbow-table attacks on CNP hashes: per-tenant secret salt makes them tenant-specific and expensive even with full knowledge of the algorithm
-
-**NOT protected against:**
-- Full application-host compromise (env vars + DB): the attacker has the key and can decrypt everything. This is the same model as every server-side-encrypted SaaS. Mitigation comes later via per-tenant wrapped keys (`CNP_ENCRYPTION_KEY` becomes a KEK, never used to encrypt records directly).
-- Authorized insider abuse: a practice admin or practitioner can already see every CNP. Mitigation = session 10's audit log of PII-view events.
+- **Q1 = (b)** — Materialized `Recall` table, not a computed view. Sign action now creates a Recall row inside the same transaction. Idempotent helper means the backfill and the sign action share logic.
+- **Q2 = (d)** — Five horizon tabs: Overdue / This week / This month / Next 3 months / All. "This month" is the default.
+- **Q3 = (a)** — Table view, sorted by status (overdue first) then due date ascending.
+- **Q4 = (c)** — Overdue rows highlighted red AND a counter badge on the nav link.
+- **Q5 = (d)** — Per-row Schedule (creates exam, marks recall completed) + Cancel (with optional reason).
+- **Q6 = (a)** — No notifications wired in session 9. The `notificationSentAt` schema field stays unused until session 10+ when we know what cabinets actually want.
 
 ## Test plan
 
-### Crypto setup
-1. Set `CNP_ENCRYPTION_KEY` in Vercel + local `.env.local`
-2. Restart `npm run dev` so the new env var loads
+### Setup
+1. Restart `npm run dev`
+2. Run the backfill SQL (option A or B above)
+3. In Supabase: `SELECT count(*) FROM recalls WHERE status IN ('pending','overdue');` — should be >0 if you signed any examinations in earlier sessions
 
-### New employee with CNP
-3. Go to `/employees/new`, fill required fields
-4. In "Tip document", select "CNP"
-5. Enter a valid test CNP like `1800101010015` (M, born 1980-01-01)
-6. Set birth date to anything OTHER than 1980-01-01 → see the amber warning
-7. Set birth date to 1980-01-01 → warning disappears
-8. Save → redirected to employee detail page
+### Dashboard basics
+4. Navigate to `/recalls` (or click "Rechemări" in the nav)
+5. Verify the page renders with "Luna aceasta" (This month) tab active
+6. If you have overdue recalls, the **Overdue** nav badge should be red with a count
+7. Click the "Întârziate" tab → should show only overdue rows, highlighted red
 
-### CNP display
-9. On the employee detail page, the ID document row shows "185031*******" (masked)
-10. Click **Afișează** → full CNP appears, button switches to **Ascunde**
-11. Click **Ascunde** → goes back to masked
+### Filters
+8. Click "Luna aceasta" → should show recalls due within 30 days
+9. Click "Următoarele 3 luni" → wider range, more rows
+10. If you have multiple companies, click a company name to filter → only that company's workers
+11. Click "Toate" to clear the company filter
 
-### Validation
-12. Try saving an invalid CNP (e.g., `1234567890123` — bad checksum) → form rejects with "CNP checksum doesn't match"
-13. Try a 12-digit number → "CNP must be exactly 13 digits"
+### Schedule a recall
+12. Pick a pending recall row → click **Programează**
+13. Inline form appears: practitioner dropdown + optional datetime
+14. Pick a practitioner (defaults to you if you're a practitioner)
+15. Leave datetime empty (creates "open slot")
+16. Click **Creează examinarea**
+17. Should redirect to the new examination detail page
+18. Examination should show status=scheduled, the right employee/workplace/type, and a note saying it was created from a recall
+19. Go back to `/recalls` — the source recall should be gone (status=completed, hidden)
 
-### Duplicate detection
-14. Create employee A with CNP `1800101010015`
-15. Try to create employee B with the same CNP → 409 with "Another employee with the same CNP already exists in this cabinet"
+### Cancel a recall
+20. Pick another pending recall → click **Anulează**
+21. Type a reason like "lucrătorul a părăsit compania"
+22. Click **Confirmă anularea**
+23. Recall disappears from the dashboard
+24. In Supabase: `SELECT id, status, notes FROM recalls WHERE id = '<that recall id>';` — should be cancelled with the reason appended to notes
 
-### Edit existing CNP employee
-16. Click edit on the CNP-bearing employee
-17. The CNP value is pre-filled in the input (because you're a practitioner)
-18. Change to a different valid CNP → save → detail page now shows the new CNP
+### Sign creates a recall (regression check)
+25. Create a new examination, fill in apt verdict, sign it
+26. Within seconds, a new pending recall should appear in `/recalls?horizon=next3Months`
+27. The dueDate should match the examination's nextExaminationDueDate
 
-### Switch ID document type
-19. Edit a CNP-bearing employee, change "Tip document" from CNP to "Pașaport"
-20. Replace the CNP value with a passport number → save
-21. Detail page now shows passport number as plain text; CNP is gone (encrypted column nulled)
+### Inapt verdict creates NO recall (regression check)
+28. Create another examination, set verdict=inapt (not inapt_temporar), sign it
+29. Verify no recall was created — `SELECT * FROM recalls WHERE created_from_examination_id = '<that exam id>';` should return 0 rows
+30. This is intentional — inapt workers don't get scheduled returns
 
-### Permission check (assistant role)
-22. Sign in as an assistant (if you have one set up, otherwise skip)
-23. View a CNP-bearing employee → masked-only, no Show button, "(requires practitioner role)" hint
+### Overdue lazy promotion
+31. In Supabase, manually set one recall's due_date to yesterday:
+    ```sql
+    UPDATE recalls SET due_date = CURRENT_DATE - 1 WHERE id = '<some pending recall>';
+    ```
+32. Refresh `/recalls` — that recall should now appear in the Overdue tab (the page auto-promoted it on read)
+33. Verify with `SELECT status FROM recalls WHERE id = '<that recall>';` — should be `overdue`
 
-### Cross-tenant isolation
-24. Create employee with CNP `1800101010015` in tenant A
-25. In tenant B, try creating an employee with the same CNP → should succeed (different per-tenant hash)
-26. Verify the per-tenant salt isolation by checking that the same CNP in tenant A vs tenant B produces different `cnp_hash` rows in the DB
-
-### Database inspection (optional sanity check)
-27. In Supabase Studio, open the `employees` table
-28. The `cnp_encrypted` column shows base64 strings, not plaintext
-29. The `cnp_hash` column shows base64 strings (44 chars each)
-30. The `id_document_number` column is null for CNP-typed rows
+### Empty states
+34. Click "Luna aceasta" with company filter set to a company that has no upcoming recalls → empty state message
+35. If you have no overdue recalls, the Overdue tab should show "Bine făcut — cabinetul e la zi"
 
 ## What's NOT in this session
 
-- **Audit log of PII views** — `canViewSensitivePii` exists as a separate hook so session 10's audit log can plug in without refactoring call sites
-- **Per-tenant wrapped keys** — single project-wide key for now; migration path documented
-- **CNP search** — we have `cnp_hash` indexed, so "find an employee by CNP" is a future query. UI doesn't expose it yet
-- **Recall dashboard** — uses the `nextExaminationDueDate` data populated in session 6 but UI is not built
-- **Practitioner-level encryption** — User.cnpEncrypted/cnpHash also exist in schema (for tracking practitioners' own CNPs). Not surfaced in this session
+- **Notifications** (email/SMS to workers about upcoming exams). Deferred to a later session once we know whether cabinets want it.
+- **Bulk operations** (select multiple recalls, schedule all). Single-click suffices for MVP. Add later if cabinet feedback asks for it.
+- **Calendar view**. Table won the design decision.
+- **Recalls without a source examination** (e.g., "first exam due in 60 days based on new hire date"). Schema supports it (`createdFromExaminationId` is nullable) but no UI exists to create one.
+- **Audit log of recall actions**. Cancellation reasons append to the recall's `notes` field as a textual stamp; proper audit log is session 10+.
 
-## What changes if a Vercel deploy fails on this session
+## What I learned during integration (for future sessions)
 
-Most likely culprits:
+Three patterns I'll keep applying:
 
-1. **`CNP_ENCRYPTION_KEY` not set in Vercel** — uploads of new tenants will create with `cnpHashSalt=null`; employee CNP capture will 503 with `encryption_not_configured`. The app still functions for non-CNP document types.
-2. **Schema not updated** — `prisma generate` errors about missing `cnpHashSalt` field. Apply `SCHEMA_PATCH.md` before regenerating.
-3. **Migration not run** — runtime errors about column `cnp_hash_salt` not existing. Run migration via any of the three options.
-4. **Key shape wrong** — if your base64 doesn't decode to exactly 32 bytes, the cipher throws at startup. Regenerate with the one-liner.
+1. **Schema patches as runnable scripts, not Markdown.** Session 8 had a `SCHEMA_PATCH.md` you had to read and apply manually. Easy to skip — and you did. Session 9 has no schema change, but the next session that needs one will ship the patch as a `scripts/apply-schema-patch-N.mjs` that edits `prisma/schema.prisma` programmatically.
+
+2. **Build script verification belongs in pre-flight.** Adding `prisma generate` to the build script was a session-8 fix done under fire. The pre-flight checks above will now exist on every session that changes the Prisma client.
+
+3. **Env var changes always require explicit restart.** Adding to the README isn't enough — for any session that adds env vars, the restart step lives in the integration checklist as its own line, not as a comment.
+
+## Where this leaves Buzomed
+
+After session 9, Buzomed has the full minimum-viable workflow:
+
+- Companies + workplaces + risk profiles
+- Employees with encrypted CNPs
+- Examinations with clinical forms and signed fișa de aptitudine
+- Documents (uploaded to Supabase Storage)
+- Recall dashboard that closes the loop
+
+Session 10 candidates: reporting/CSV export, vaccinations, or audit log. My recommendation when you come back: **session 10 = reporting, then PAUSE for cabinet outreach before session 11.** You're at the point where one real practitioner's feedback would reshape what we build next better than I can guess at.

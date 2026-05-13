@@ -49,7 +49,9 @@
     "companies": "Companies",
     "employees": "Employees",
     "examinations": "Examinations",
-    "settings": "Settings"
+    "settings": "Settings",
+    "recalls": "Recalls",
+    "recallsOverdueTooltip": "{count} overdue recall(s)"
   },
   "superAdmin": {
     "title": "Buzomed Administration",
@@ -614,5 +616,47 @@
       "external_document": "External document",
       "other": "Other document"
     }
+  },
+  "recalls": {
+    "title": "Examination recalls",
+    "subtitle": "Workers due for their next periodic examination.",
+    "tabs": {
+      "overdue": "Overdue",
+      "thisWeek": "This week",
+      "thisMonth": "This month",
+      "next3Months": "Next 3 months",
+      "all": "All"
+    },
+    "empty": "No recalls in this range.",
+    "emptyOverdue": "No overdue recalls. Nicely done — the cabinet is on top of things.",
+    "emptyButOverdueHint": "There are {count} overdue recalls in other ranges.",
+    "viewOverdue": "View overdue",
+    "filterCompany": "Filter by company",
+    "allCompanies": "All",
+    "colWorker": "Worker",
+    "colCompany": "Company",
+    "colWorkplace": "Workplace",
+    "colExamType": "Exam type",
+    "colDueDate": "Due date",
+    "colDaysUntil": "Days",
+    "colActions": "Actions",
+    "statusOverdue": "Overdue",
+    "daysOverdue": "{days} days late",
+    "daysUntilDue": "in {days} days",
+    "dueToday": "today",
+    "scheduleButton": "Schedule",
+    "cancelButton": "Cancel",
+    "scheduling": "Scheduling…",
+    "cancelling": "Cancelling…",
+    "scheduleDialogTitle": "Schedule examination for",
+    "schedulePractitioner": "Practitioner",
+    "scheduleAt": "Date and time",
+    "scheduleAtHelp": "Optional. Leave empty to create an open slot.",
+    "submitSchedule": "Create examination",
+    "cancelDialogTitle": "Cancel recall for",
+    "cancelReasonLabel": "Reason (optional)",
+    "cancelReasonPlaceholder": "e.g. worker left the company",
+    "submitCancel": "Confirm cancellation",
+    "errorMessage": "Something went wrong. Please try again."
   }
 }
