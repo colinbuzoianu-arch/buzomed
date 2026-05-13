@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { Prisma } from '@prisma/client'
+import type { Prisma, RecallStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
   // AND overdue (overdue items always bubble to the top — see ordering).
   const statusFilter =
     horizon === 'overdue' ? { status: 'overdue' as const } : {
-      status: { in: ['pending', 'overdue'] as const },
+      status: { in: ['pending', 'overdue'] as RecallStatus[] },
     }
 
   const where: Prisma.RecallWhereInput = {
