@@ -96,6 +96,33 @@ export function optionalDate(
 }
 
 /**
+ * Parses an ISO-8601 datetime field into a Date, or undefined for
+ * missing/empty input. Accepts both full ISO datetimes
+ * (`2026-05-15T14:07:00.000Z`) and the `datetime-local` browser input
+ * shape (`2026-05-15T14:07`). Pushes an issue for malformed input.
+ *
+ * Use this — not optionalDate — for fields backed by @db.Timestamptz
+ * where the time-of-day matters (scheduling, signing timestamps).
+ */
+export function optionalDateTime(
+  field: string,
+  value: unknown,
+  issues: string[]
+): Date | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string') {
+    issues.push(`${field} must be an ISO datetime string`)
+    return undefined
+  }
+  const parsed = new Date(value)
+  if (isNaN(parsed.getTime())) {
+    issues.push(`${field} is not a valid ISO datetime`)
+    return undefined
+  }
+  return parsed
+}
+
+/**
  * Validates an email if present. Returns the trimmed lowercase email
  * (or undefined if absent). Uses the same loose check as the rest of
  * the codebase — full RFC 5321 validation is the SMTP server's job.

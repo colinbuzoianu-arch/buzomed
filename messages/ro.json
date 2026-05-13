@@ -50,8 +50,8 @@
     "employees": "Angajați",
     "examinations": "Examinări",
     "settings": "Setări",
-    "recalls": "Rechemări",
-    "recallsOverdueTooltip": "{count} rechemări întârziate"
+    "recalls": "Programări",
+    "recallsOverdueTooltip": "{count} programări întârziate"
   },
   "superAdmin": {
     "title": "Administrare Buzomed",
@@ -618,7 +618,7 @@
     }
   },
   "recalls": {
-    "title": "Rechemări la control",
+    "title": "Programări",
     "subtitle": "Lucrătorii care urmează să fie chemați la un examen periodic.",
     "tabs": {
       "overdue": "Întârziate",
@@ -627,9 +627,9 @@
       "next3Months": "Următoarele 3 luni",
       "all": "Toate"
     },
-    "empty": "Nicio rechemare în acest interval.",
-    "emptyOverdue": "Nicio rechemare întârziată. Bine făcut — cabinetul e la zi.",
-    "emptyButOverdueHint": "Există {count} rechemări întârziate în alte intervale.",
+    "empty": "Nicio programare în acest interval.",
+    "emptyOverdue": "Nicio programare întârziată. Bine făcut — cabinetul e la zi.",
+    "emptyButOverdueHint": "Există {count} programări întârziate în alte intervale.",
     "viewOverdue": "Vezi întârziatele",
     "filterCompany": "Filtrează după companie",
     "allCompanies": "Toate",
@@ -653,7 +653,7 @@
     "scheduleAt": "Data și ora",
     "scheduleAtHelp": "Opțional. Lasă gol pentru a crea un slot deschis.",
     "submitSchedule": "Creează examinarea",
-    "cancelDialogTitle": "Anulează rechemarea pentru",
+    "cancelDialogTitle": "Anulează programarea pentru",
     "cancelReasonLabel": "Motiv (opțional)",
     "cancelReasonPlaceholder": "ex: lucrătorul a părăsit compania",
     "submitCancel": "Confirmă anularea",

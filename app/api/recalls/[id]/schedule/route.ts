@@ -5,7 +5,7 @@ import { getApiUser } from '@/lib/auth'
 import { canWriteTenantData } from '@/lib/permissions/tenant-data'
 import { ensurePrimaryLocation } from '@/lib/examinations/auto-location'
 import { createExaminationWithNumber } from '@/lib/examinations/numbering'
-import { asObject, optionalDate } from '@/lib/validation'
+import { asObject, optionalDateTime } from '@/lib/validation'
 
 /**
  * Create a scheduled examination from a pending/overdue recall.
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
 
   let scheduledAt: Date | null = null
   if (body.scheduledAt !== undefined && body.scheduledAt !== null && body.scheduledAt !== '') {
-    const parsed = optionalDate('scheduledAt', body.scheduledAt, issues)
+    const parsed = optionalDateTime('scheduledAt', body.scheduledAt, issues)
     if (parsed) scheduledAt = parsed
   }
 
