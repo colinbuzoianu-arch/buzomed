@@ -81,7 +81,7 @@ export async function GET(request: NextRequest, ctx: RouteContext) {
       signedAt: true,
       status: true,
       verdict: true,
-      verdictReason: true,
+      verdictConditions: true,
       nextExaminationDueDate: true,
       employee: {
         select: { id: true, firstName: true, lastName: true },
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest, ctx: RouteContext) {
       signedAt: e.signedAt?.toISOString() ?? null,
       status: e.status,
       verdict: e.verdict,
-      verdictReason: e.verdictReason,
+      verdictConditions: e.verdictConditions,
       nextDueDate: e.nextExaminationDueDate?.toISOString() ?? null,
       employeeName: `${e.employee.lastName} ${e.employee.firstName}`,
       workplaceName: e.workplace.name,
