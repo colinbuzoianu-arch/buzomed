@@ -1,5 +1,4 @@
 import { requireUser } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { LogoutButton } from '@/components/logout-button'
@@ -19,25 +18,6 @@ export default async function AuthenticatedLayout({
   const hasReportingRole = user.roles.some(
     (r) => r === 'practitioner' || r === 'practice_admin'
   )
-
-  // Overdue badge for the Recalls nav. Counted here on every authenticated
-  // page render — cheap because the @@index([tenantId, dueDate, status])
-  // index covers exactly this query. If this ever becomes a hot path we
-  // can move it to a request-cached helper.
-  let overdueCount = 0
-  if (!isSuperAdmin && hasTenant) {
-    overdueCount = await prisma.recall.count({
-      where: {
-        tenantId: user.tenantId!,
-        status: 'overdue',
-        deletedAt: null,
-        OR: [
-          { createdFromExaminationId: null },
-          { createdFromExamination: { deletedAt: null } },
-        ],
-      },
-    })
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -76,23 +56,6 @@ export default async function AuthenticatedLayout({
                     className="text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {t('nav.examinations')}
-                  </Link>
-                  <Link
-                    href="/recalls"
-                    className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5"
-                  >
-                    {t('nav.recalls')}
-                    {overdueCount > 0 && (
-                      <span
-                        className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-xs font-medium"
-                        title={t('nav.recallsOverdueTooltip').replace(
-                          '{count}',
-                          String(overdueCount)
-                        )}
-                      >
-                        {overdueCount}
-                      </span>
-                    )}
                   </Link>
                   {hasReportingRole && (
                     <Link

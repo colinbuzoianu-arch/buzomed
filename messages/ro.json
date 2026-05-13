@@ -449,7 +449,8 @@
       "all": "Toate",
       "scheduled": "Programate",
       "in_progress": "În curs",
-      "completed": "Finalizate"
+      "completed": "Finalizate",
+      "scadente": "Scadențe"
     },
     "status": {
       "scheduled": "Programată",

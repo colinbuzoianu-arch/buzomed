@@ -449,7 +449,8 @@
       "all": "All",
       "scheduled": "Scheduled",
       "in_progress": "In progress",
-      "completed": "Completed"
+      "completed": "Completed",
+      "scadente": "Due"
     },
     "status": {
       "scheduled": "Scheduled",
