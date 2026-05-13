@@ -294,7 +294,7 @@ export async function POST(request: NextRequest) {
               workplaceId: workplace.id,
               startDate: new Date(),
               isCurrent: true,
-              reason: 'hired',
+              reasonForChange: 'hired',
             },
           })
         }
