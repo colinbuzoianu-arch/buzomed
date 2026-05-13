@@ -16,6 +16,9 @@ export default async function AuthenticatedLayout({
 
   const isSuperAdmin = user.roles.includes('super_admin')
   const hasTenant = user.tenantId !== null
+  const hasReportingRole = user.roles.some(
+    (r) => r === 'practitioner' || r === 'practice_admin'
+  )
 
   // Overdue badge for the Recalls nav. Counted here on every authenticated
   // page render — cheap because the @@index([tenantId, dueDate, status])
@@ -91,6 +94,14 @@ export default async function AuthenticatedLayout({
                       </span>
                     )}
                   </Link>
+                  {hasReportingRole && (
+                    <Link
+                      href="/reports"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {t('nav.reports')}
+                    </Link>
+                  )}
                   <Link
                     href="/team"
                     className="text-muted-foreground hover:text-foreground transition-colors"

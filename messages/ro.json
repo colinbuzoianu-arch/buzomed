@@ -51,7 +51,8 @@
     "examinations": "Examinări",
     "settings": "Setări",
     "recalls": "Programări",
-    "recallsOverdueTooltip": "{count} programări întârziate"
+    "recallsOverdueTooltip": "{count} programări întârziate",
+    "reports": "Rapoarte"
   },
   "superAdmin": {
     "title": "Administrare Buzomed",
@@ -226,7 +227,8 @@
       "successCreate": "Compania a fost creată",
       "successUpdate": "Modificările au fost salvate",
       "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
-    }
+    },
+    "viewReport": "Vezi raportul"
   },
   "employees": {
     "title": "Angajați",
@@ -582,7 +584,8 @@
       "backToExamination": "Înapoi la examinare",
       "printButton": "Tipărește",
       "draftBanner": "Aceasta este o previzualizare. Fișa este validă doar după semnare."
-    }
+    },
+    "exportCsv": "Exportă CSV"
   },
   "documents": {
     "sectionTitle": "Documente",
@@ -658,5 +661,60 @@
     "cancelReasonPlaceholder": "ex: lucrătorul a părăsit compania",
     "submitCancel": "Confirmă anularea",
     "errorMessage": "A apărut o eroare. Încearcă din nou."
+  },
+  "reports": {
+    "title": "Rapoarte",
+    "subtitle": "Activitatea cabinetului pe intervalul selectat.",
+    "empty": "Nicio examinare în acest interval.",
+    "range": {
+      "label": "Interval",
+      "thisMonth": "Luna aceasta",
+      "lastMonth": "Luna trecută",
+      "thisQuarter": "Trimestrul curent",
+      "lastQuarter": "Trimestrul trecut",
+      "thisYear": "Anul curent",
+      "last12Months": "Ultimele 12 luni"
+    },
+    "headline": {
+      "title": "Sumar",
+      "total": "Total examinări",
+      "signed": "Semnate",
+      "apt": "Apt",
+      "aptConditionat": "Apt condiționat",
+      "inapt_temporar": "Inapt temporar",
+      "inapt": "Inapt",
+      "overdueRecalls": "Programări întârziate"
+    },
+    "monthly": {
+      "title": "Evoluție lunară",
+      "month": "Lună"
+    },
+    "perCompany": {
+      "title": "Pe companie",
+      "company": "Companie",
+      "report": "Raport",
+      "viewDetail": "Detalii"
+    }
+  },
+  "companyReport": {
+    "title": "Raport companie",
+    "dateRange": "Interval",
+    "exportCsv": "Exportă CSV",
+    "print": "Tipărește",
+    "tabWorkers": "Lucrători",
+    "tabExaminations": "Examinări",
+    "empty": "Nicio examinare la această companie în intervalul selectat.",
+    "colWorker": "Lucrător",
+    "colWorkplace": "Loc de muncă",
+    "colLastExam": "Ultimul examen",
+    "colVerdict": "Verdict",
+    "colNextDue": "Următoarea scadență",
+    "colStatus": "Status",
+    "colNumber": "Număr",
+    "colDate": "Data",
+    "colExamType": "Tip examen",
+    "colPractitioner": "Medic",
+    "statusSigned": "Semnat",
+    "statusUnsigned": "Nesemnat"
   }
 }

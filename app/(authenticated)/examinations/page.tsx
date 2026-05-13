@@ -108,11 +108,25 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
             {t('examinations.subtitle')}
           </p>
         </div>
-        {caps.canWrite && (
-          <Button asChild>
-            <Link href="/examinations/new">+ {t('examinations.newButton')}</Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <a
+            href={
+              validStatus
+                ? `/api/examinations/export?status=${validStatus}`
+                : '/api/examinations/export'
+            }
+            className="text-sm border rounded-md px-3 py-2 hover:bg-muted"
+          >
+            {t('examinations.exportCsv')}
+          </a>
+          {caps.canWrite && (
+            <Button asChild>
+              <Link href="/examinations/new">
+                + {t('examinations.newButton')}
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-2 text-sm flex-wrap">

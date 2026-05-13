@@ -51,7 +51,8 @@
     "examinations": "Examinations",
     "settings": "Settings",
     "recalls": "Recalls",
-    "recallsOverdueTooltip": "{count} overdue recall(s)"
+    "recallsOverdueTooltip": "{count} overdue recall(s)",
+    "reports": "Reports"
   },
   "superAdmin": {
     "title": "Buzomed Administration",
@@ -226,7 +227,8 @@
       "successCreate": "Company created",
       "successUpdate": "Changes saved",
       "errorMessage": "The operation could not complete. Please try again."
-    }
+    },
+    "viewReport": "View report"
   },
   "employees": {
     "title": "Employees",
@@ -582,7 +584,8 @@
       "backToExamination": "Back to examination",
       "printButton": "Print",
       "draftBanner": "This is a preview. The certificate is only valid once signed."
-    }
+    },
+    "exportCsv": "Export CSV"
   },
   "documents": {
     "sectionTitle": "Documents",
@@ -658,5 +661,60 @@
     "cancelReasonPlaceholder": "e.g. worker left the company",
     "submitCancel": "Confirm cancellation",
     "errorMessage": "Something went wrong. Please try again."
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Cabinet activity for the selected range.",
+    "empty": "No examinations in this range.",
+    "range": {
+      "label": "Range",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisQuarter": "This quarter",
+      "lastQuarter": "Last quarter",
+      "thisYear": "This year",
+      "last12Months": "Last 12 months"
+    },
+    "headline": {
+      "title": "Summary",
+      "total": "Total exams",
+      "signed": "Signed",
+      "apt": "Fit",
+      "aptConditionat": "Fit with conditions",
+      "inapt_temporar": "Temporarily unfit",
+      "inapt": "Unfit",
+      "overdueRecalls": "Overdue recalls"
+    },
+    "monthly": {
+      "title": "Monthly trend",
+      "month": "Month"
+    },
+    "perCompany": {
+      "title": "By company",
+      "company": "Company",
+      "report": "Report",
+      "viewDetail": "Details"
+    }
+  },
+  "companyReport": {
+    "title": "Company report",
+    "dateRange": "Range",
+    "exportCsv": "Export CSV",
+    "print": "Print",
+    "tabWorkers": "Workers",
+    "tabExaminations": "Examinations",
+    "empty": "No examinations for this company in the selected range.",
+    "colWorker": "Worker",
+    "colWorkplace": "Workplace",
+    "colLastExam": "Last exam",
+    "colVerdict": "Verdict",
+    "colNextDue": "Next due",
+    "colStatus": "Status",
+    "colNumber": "Number",
+    "colDate": "Date",
+    "colExamType": "Exam type",
+    "colPractitioner": "Practitioner",
+    "statusSigned": "Signed",
+    "statusUnsigned": "Unsigned"
   }
 }

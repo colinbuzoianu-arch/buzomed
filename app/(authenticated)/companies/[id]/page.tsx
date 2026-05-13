@@ -22,6 +22,13 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const caps = tenantDataCapabilities(user, user.tenantId)
   if (!caps.canRead) redirect('/')
 
+  // The "View report" button is only useful for users who can see
+  // reports — practitioners + practice_admins. Assistants are read-only
+  // and can see the company itself, but reports redirect them away.
+  const hasReportingRole = user.roles.some(
+    (r) => r === 'practitioner' || r === 'practice_admin'
+  )
+
   const { id } = await params
   const company = await prisma.company.findFirst({
     where: { id, tenantId: user.tenantId, deletedAt: null },
@@ -142,23 +149,34 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               {company.isActive ? t('common.active') : t('common.inactive')}
             </span>
           </div>
-          {caps.canWrite && (
+          {(hasReportingRole || caps.canWrite) && (
             <div className="flex items-center gap-2">
-              <Button asChild variant="outline">
-                <Link href={`/companies/${company.id}/edit`}>
-                  {t('common.edit')}
-                </Link>
-              </Button>
-              <CompanyDeleteButton
-                companyId={company.id}
-                companyName={company.name}
-                labels={{
-                  delete: t('common.delete'),
-                  deleteConfirm: t('companies.deleteConfirm'),
-                  deleting: t('companies.deleting'),
-                  errorMessage: t('companies.form.errorMessage'),
-                }}
-              />
+              {hasReportingRole && (
+                <Button asChild variant="outline">
+                  <Link href={`/companies/${company.id}/report`}>
+                    {t('companies.viewReport')}
+                  </Link>
+                </Button>
+              )}
+              {caps.canWrite && (
+                <>
+                  <Button asChild variant="outline">
+                    <Link href={`/companies/${company.id}/edit`}>
+                      {t('common.edit')}
+                    </Link>
+                  </Button>
+                  <CompanyDeleteButton
+                    companyId={company.id}
+                    companyName={company.name}
+                    labels={{
+                      delete: t('common.delete'),
+                      deleteConfirm: t('companies.deleteConfirm'),
+                      deleting: t('companies.deleting'),
+                      errorMessage: t('companies.form.errorMessage'),
+                    }}
+                  />
+                </>
+              )}
             </div>
           )}
         </div>
