@@ -242,14 +242,16 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">{t('examinations.title')}</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            {t('examinations.title')}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             {t('examinations.subtitle')}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {tab !== 'scadente' && (
             <a
               href={exportUrl}
@@ -539,8 +541,8 @@ async function ScadenteView(props: {
           </p>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="border rounded-lg overflow-x-auto -mx-4 sm:mx-0">
+          <table className="w-full text-sm min-w-[720px]">
             <thead className="bg-muted/30 text-xs uppercase tracking-wide">
               <tr>
                 <th className="text-left px-4 py-2">{t('recalls.colWorker')}</th>

@@ -1,6 +1,7 @@
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { LoginForm } from './login-form'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { BuzomedLogo } from '@/components/buzomed-logo'
 
 export default async function LoginPage() {
   const locale = await getLocale()
@@ -12,17 +13,20 @@ export default async function LoginPage() {
         <LanguageSwitcher currentLocale={locale} />
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-md space-y-8">
+      <main className="flex-1 flex items-center justify-center px-4 pb-8">
+        <div className="w-full max-w-md space-y-6">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-primary">Buzomed</h1>
-            <p className="mt-2 text-sm text-muted-foreground">{t('common.tagline')}</p>
+            <div className="inline-block">
+              <BuzomedLogo variant="wordmark" size="lg" as="plain" />
+            </div>
           </div>
 
-          <div className="bg-card border rounded-lg p-8 shadow-sm">
+          <div className="bg-card border rounded-lg p-6 sm:p-8 shadow-sm">
             <div className="mb-6">
               <h2 className="text-2xl font-semibold">{t('login.title')}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{t('login.subtitle')}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t('login.subtitle')}
+              </p>
             </div>
 
             <LoginForm

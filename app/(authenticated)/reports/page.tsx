@@ -145,7 +145,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">{t('reports.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">{t('reports.title')}</h1>
         <p className="text-muted-foreground mt-1">{t('reports.subtitle')}</p>
       </div>
 
@@ -217,7 +217,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           </p>
         ) : (
           <div className="border rounded-lg overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-muted/30 text-xs uppercase tracking-wide">
                 <tr>
                   <th className="text-left px-4 py-2">
@@ -277,7 +277,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           </p>
         ) : (
           <div className="border rounded-lg overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-muted/30 text-xs uppercase tracking-wide">
                 <tr>
                   <th className="text-left px-4 py-2">
