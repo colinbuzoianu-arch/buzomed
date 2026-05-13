@@ -1,4 +1,4 @@
-# Buzomed — session 11: Branding + mobile + bulk import
+# Buzomed — session 11: Branding + mobile + bulk import 
 
 Three concerns shipped as one bundle. Designed to be applied in one
 unzip but committed in three separate commits so any failure can be
