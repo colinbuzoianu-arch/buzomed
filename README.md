@@ -1,208 +1,261 @@
-# Buzomed — session 11: Branding + mobile + bulk import 
+# Buzomed — session 12: Password recovery + admin user management + assistant permissions
 
-Three concerns shipped as one bundle. Designed to be applied in one
-unzip but committed in three separate commits so any failure can be
-reverted cleanly without losing the others.
+Three concerns shipped as one bundle. Designed to be applied in one unzip but committed in **three separate commits** so any failure can be reverted cleanly.
 
-## What's in this bundle (21 files + README)
+## What's in this bundle (29 files + README)
 
-### Branding (8 files)
-- `public/buzomed-icon.png` — icon-only, transparent background, 512×512
-- `public/buzomed-wordmark.png` — icon + wordmark + tagline
-- `public/favicon.ico` — multi-size ICO (16/32/48)
-- `public/icon-192.png`, `public/icon-512.png` — PWA icons
-- `public/apple-touch-icon.png` — iOS home-screen pin (180×180)
-- `components/buzomed-logo.tsx` — shared component with icon/wordmark variants
-- `app/layout.tsx` (modified) — favicon metadata, viewport config, themeColor
-- `app/login/page.tsx` (modified) — wordmark on login screen
+### Password recovery (5 files)
+- `app/forgot-password/page.tsx` — server page with branding
+- `app/forgot-password/forgot-password-form.tsx` — client form using Supabase `resetPasswordForEmail`
+- `app/reset-password/page.tsx` — server page with branding
+- `app/reset-password/reset-password-form.tsx` — token-aware client form using Supabase `updateUser({ password })`
+- `app/login/login-form.tsx` — adds the "Forgot password?" link below the submit button
+- `app/login/page.tsx` — passes the new `forgotPasswordLink` label
 
-### Mobile (5 files)
-- `components/mobile-nav.tsx` — hamburger drawer with body-scroll-lock and close-on-route-change
-- `app/(authenticated)/layout.tsx` (modified) — icon logo + responsive nav + hamburger trigger
-- `app/(authenticated)/companies/page.tsx` (modified) — table on desktop, cards on mobile
-- `app/(authenticated)/employees/page.tsx` (modified) — same pattern + Import button
-- `app/(authenticated)/examinations/page.tsx` (modified) — responsive header, table with explicit min-width
-- `app/(authenticated)/reports/page.tsx` (modified) — responsive h1 + tables
+### Admin user management (3 files)
+- `app/api/users/[id]/route.ts` — GET single user, PATCH (roles + isActive + professionalTitle), DELETE (archive)
+- `app/(authenticated)/team/page.tsx` — adds Actions column visible to practice_admins
+- `app/(authenticated)/team/user-admin-actions.tsx` — edit dialog client component
 
-### Bulk import (5 files)
-- `package.json` (modified) — adds `papaparse` (CSV) and `xlsx` (Excel) + types
-- `lib/employees/import-parser.ts` — CSV + Excel parser with fuzzy Romanian/English header detection
-- `app/api/employees/import/commit/route.ts` — server commit endpoint with per-row outcome reporting
-- `app/(authenticated)/employees/import/page.tsx` — server page with company picker
-- `app/(authenticated)/employees/import/import-client.tsx` — full client UI (upload → mapping → preview → commit)
+### Permission infrastructure (3 files)
+- `lib/permissions/tenant-data.ts` — refactored with separate `canWriteAdministrative` and `canWriteClinical`; kept `canWriteTenantData` as a deprecated alias for safety
+- `lib/permissions/user-admin.ts` — who can manage user accounts
+- `lib/permissions/last-admin.ts` — prevents demoting/archiving the last practice_admin
+
+### Assistant permission overhaul (15 API routes)
+13 routes swapped from `canWriteTenantData` → `canWriteAdministrative`:
+- `app/api/companies/*` — companies + workplaces CRUD
+- `app/api/employees/*` — employee CRUD, assignments, bulk import
+- `app/api/documents/*` — document upload/delete
+- `app/api/examinations/route.ts` — creating examinations (scheduling)
+- `app/api/examinations/[id]/cancel/route.ts` — cancelling/no-show
+- `app/api/recalls/[id]/*` — schedule/cancel recalls
+
+Special cases (2 routes with mixed access patterns):
+- `app/api/examinations/[id]/route.ts` — PATCH uses `canWriteClinical` (clinical fields), DELETE uses `canWriteAdministrative` (delete an unstarted exam)
+- `app/api/employees/route.ts` + `[id]/route.ts` — additional `canWriteSensitivePii` guard blocks assistants from CNP operations specifically
 
 ### i18n
-- `scripts/merge-i18n-session-11.mjs` — adds 56 keys per locale + renames `Marca`→`ID angajat` everywhere
+- `scripts/merge-i18n-session-12.mjs` — adds 37 keys per locale (forgot/reset password, team.userAdmin namespace)
 
 ## Pre-flight check
 
 ```bash
 git log --oneline -3
-# Top commit should be 45b5e91 or later (the verdictReason fix from session 10)
+# Top commit should be 81de856 or later
 ```
 
 ## Integration — applied in ONE step
 
 ```bash
 cd C:/Projects/Buzomed
-unzip -o ~/Downloads/buzomed-session-11.zip
+unzip -o ~/Downloads/buzomed-session-12.zip
 
-# 1. New dependencies: papaparse + xlsx
-npm install
-
-# 2. Regenerate Prisma (no schema change, but verify clean state)
+# No new dependencies, no schema changes, no env vars
 PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 npx prisma generate
 
-# 3. Merge + rename i18n
-node scripts/merge-i18n-session-11.mjs
+# i18n merge
+node scripts/merge-i18n-session-12.mjs
 
-# 4. Clean restart
+# Clean restart
 rm -rf .next
 npx tsc --noEmit
 npm run dev
 ```
 
-## Committed in THREE commits (this is the important part)
+## Committed in THREE commits
 
-Once everything is unzipped and tested locally, commit in this order so each can be reverted in isolation if something breaks in production:
+Once everything is unzipped and tested locally, commit in this order so each can be reverted independently if Vercel blows up on production:
 
 ```bash
-# Commit 1 — Branding
-git add public/ \
-        components/buzomed-logo.tsx \
-        app/layout.tsx \
+# Commit 1 — Password recovery (low risk, isolated)
+git add app/forgot-password/ \
+        app/reset-password/ \
+        app/login/login-form.tsx \
         app/login/page.tsx
-git commit -m "feat(branding): add logo, favicon, viewport meta"
+git commit -m "feat(auth): password recovery via Supabase resetPasswordForEmail"
 
-# Commit 2 — Mobile responsive
-git add components/mobile-nav.tsx \
-        "app/(authenticated)/layout.tsx" \
-        "app/(authenticated)/companies/page.tsx" \
-        "app/(authenticated)/employees/page.tsx" \
-        "app/(authenticated)/examinations/page.tsx" \
-        "app/(authenticated)/reports/page.tsx"
-git commit -m "feat(mobile): hamburger nav, responsive cards on list pages"
+# Commit 2 — Admin user management (medium risk)
+git add app/api/users/ \
+        "app/(authenticated)/team/page.tsx" \
+        "app/(authenticated)/team/user-admin-actions.tsx" \
+        lib/permissions/user-admin.ts \
+        lib/permissions/last-admin.ts
+git commit -m "feat(team): admin can edit roles, deactivate, and archive users"
 
-# Commit 3 — Bulk employee import
-git add package.json package-lock.json \
-        lib/employees/ \
-        "app/api/employees/import/" \
-        "app/(authenticated)/employees/import/"
-git commit -m "feat(employees): bulk import from CSV/Excel"
+# Commit 3 — Assistant permission overhaul (highest risk — touches every write route)
+git add lib/permissions/tenant-data.ts \
+        "app/api/companies/" \
+        "app/api/documents/" \
+        "app/api/employees/" \
+        "app/api/examinations/" \
+        "app/api/recalls/"
+git commit -m "feat(permissions): assistants can write administrative data, blocked from clinical writes and CNP"
 
-# Commit 4 — i18n (covers all three above)
-git add scripts/merge-i18n-session-11.mjs \
+# Commit 4 — i18n (covers all three)
+git add scripts/merge-i18n-session-12.mjs \
         messages/ro.json \
         messages/en.json
-git commit -m "i18n: session 11 keys (branding + mobile + bulk import); rename Marca→ID angajat"
+git commit -m "i18n: session 12 keys (password recovery + team admin)"
 
 git push
 ```
 
-If any single commit blows up Vercel, `git revert <hash> && git push` and the others remain intact.
+If commit 3 breaks anything in production (the permission overhaul is the riskiest), `git revert <commit-3-hash> && git push` preserves the other features.
+
+## What changes for each role
+
+### practice_admin (no change in their capabilities)
+- Can still do everything they could before
+- NEW: Edit/archive buttons appear next to team members on `/team`
+
+### practitioner (no change in their capabilities)
+- Can still do everything they could before
+- No new UI changes; team page is unchanged for them
+
+### assistant (significant expansion)
+**Now CAN**:
+- Create / edit / archive companies, workplaces
+- Create / edit / archive employees (WITHOUT setting CNP)
+- Manage workplace assignments
+- Bulk-import employees
+- Create scheduled examinations (the actual scheduling action)
+- Cancel or no-show an examination
+- Upload / delete documents
+- Schedule recalls (Programează button on Scadențe tab)
+- Cancel recalls
+- Delete misclicked examination records (before they're started)
+
+**Still CANNOT**:
+- Fill clinical findings in an examination (the form's clinical sections)
+- Set a verdict (apt/inapt/etc)
+- Sign a fișa de aptitudine
+- Start an examination (clinical workflow)
+- Set or change a CNP (server-side guard)
+- See decrypted CNP (still masked display only)
+- Invite other users
+- Edit other users' roles
+
+This is the "hybrid mode" you asked for: assistants do all the receptionist + data entry + scheduling work, doctors do the clinical work.
 
 ## Design decisions baked in
 
-### Logo placement
-- **Header (every authenticated page)**: icon-only at 36px tall. Wordmark would dominate the nav.
-- **Login page**: wordmark, centered, 320×100.
-- **Favicon**: icon-only, 32×32 multi-size ICO + PNG variants for retina.
-- **Apple touch icon**: 180×180, used when iOS users add to home screen.
-- **Tagline**: stays English ("Occupational Health. Healthy Workplaces.") on the wordmark asset. If you decide to commission a Romanian-language wordmark variant later, swap `public/buzomed-wordmark.png` — no code changes.
+### Backwards-compat preserved
+`canWriteTenantData` is kept as a deprecated alias mapping to `canWriteClinical`. Any code I missed continues to work conservatively — the stricter check is safer than the looser one. No silent privilege escalation can occur.
 
-### Mobile nav
-- **Pattern**: hamburger that slides a drawer down from the top, full-width, with backdrop. Body scroll locks while open. Closes automatically on route change.
-- **Why not bottom tabs**: cabinets will use desktop most of the time. Bottom tabs assume a mobile-first product; we have a desktop-first product that should also work on phones.
-- **Breakpoint**: hamburger appears below `md` (768px). User name and logout move into the drawer on mobile.
+### CNP guard at the server, not just UI
+Even if the UI shows the CNP field to an assistant (it doesn't, but defensively), the server-side `canWriteSensitivePii` check rejects any CNP operation by an assistant with a 403 + explanatory message. Defense in depth.
 
-### Mobile table strategy (hybrid)
-- **Cards for browsing** (Companies, Employees lists): each row becomes a tappable card with truncated metadata.
-- **Tables stay for analysis** (Examinări, Reports): horizontal scroll with explicit `min-w-[600-720px]` to keep columns from squishing weirdly. Negative left/right margin on small screens so the scroll feels edge-to-edge.
+### Last-admin guard at write time
+Three operations require the guard:
+1. Demoting a user (removing `practice_admin` from roles)
+2. Deactivating a user (`isActive: false`)
+3. Archiving a user (`deletedAt` set)
 
-### Bulk import
-- **No CNP in import**: cabinets get the employee list from HR before the worker shows up for their first exam. CNP gets captured in person at the exam. The bulk-imported employee starts with `idDocumentType='other'`, `idDocumentNumber=null`.
-- **Scoped to one company per import**: you pick the destination company first. All rows go to that company. The "department" column maps to a `Workplace` at that company.
-- **No auto-creation of workplaces**: if a row's department doesn't match an existing workplace name OR department field (case-insensitive), the row is REJECTED. Workplaces drive risk profile + exam intervals + required exam types — silent creation hides important config.
-- **Format detection**: accepts CSV (auto-detects comma/semicolon/tab delimiter) and Excel (.xlsx, .xls). UTF-8 with optional BOM. SheetJS is loaded lazily — only when the user actually selects an Excel file.
-- **Fuzzy header detection**: Romanian and English aliases. `prenume`/`nume`/`first name`/`last name`/`marca`/`matricola`/`id angajat`/`employee id`/`departament`/`workplace`/etc all map correctly. Diacritics ignored for matching.
-- **Duplicate handling**:
-  - **Within file** (same name or email appears twice): warning, both rows allowed through.
-  - **Against database** (an existing employee in the cabinet has the same name OR email): skipped by default with a checkbox to "Import anyway".
-- **Per-row outcomes**: the server returns a report with `created`/`skipped`/`failed` per row. Mid-batch failures don't abort the rest.
-- **Max 500 rows per import**. Larger batches should be split.
+For each, the API counts other active non-archived practice_admins in the tenant. If zero, returns 409 `last_admin_protected` with a friendly explanation.
 
-### Naming change: Marca → ID angajat
-The Romanian translation "Marca" (or "Marcă") was barely understandable in context. Renamed to "ID angajat" everywhere it appears — the employees list table header AND the employee form field. Forced rename (overwrites existing values).
+The user themself cannot self-demote — `canManageUser` rejects with `cannot_modify_self`. Prevents accidental self-lockout regardless of admin count.
+
+### Soft-delete for users
+`DELETE /api/users/[id]` sets `deletedAt`. Never removes the row. Historical references (signed fișas reference the practitioner by name, audit logs, exam authorship) keep working forever. Reactivation is theoretically possible by manually clearing `deletedAt` — no UI for this yet, but the row is preserved.
+
+### Password recovery — anti-enumeration
+Supabase's `resetPasswordForEmail` returns success even when the email isn't registered. This is deliberate — leaking which email addresses exist in your system is a security anti-pattern. The UI mirrors this: it always shows "if this email exists, you'll receive a link." Confused users will check their spam folder; attackers learn nothing.
+
+### Password length check
+Client-side validation requires minimum 8 characters. Supabase has its own server-side minimum (also 6+ by default). The 8-character UI requirement is stricter than Supabase's default — not a security claim, just a sane lower bound.
 
 ## Test plan
 
-### Branding
-1. Open `/` in a fresh browser tab — the favicon tab icon should show the Buzomed shield
-2. Sign out → on the login page, verify the full wordmark logo + tagline appears centered
-3. Sign in → the header shows the icon logo (36px) on the left of the nav
-4. Click the icon → routes back to `/`
-5. On iOS Safari, "Add to Home Screen" → the home icon should be the Buzomed shield, not a screenshot
-6. View page source `<head>` → should include `<meta name="theme-color" content="#1e3a8a">` and the icon link tags
+### Password recovery
+1. Sign out → click "Ai uitat parola?" below the login button → routes to `/forgot-password`
+2. Enter your own email address → click "Trimite link-ul"
+3. Verify the green "if an account exists, you'll receive an email" message appears
+4. Check your inbox — Supabase default email should arrive within ~1 minute
+5. Click the link in the email → routes to `/reset-password` with a recovery session active
+6. Enter a new password (8+ chars) twice → click "Salvează parola"
+7. Success message appears → click "Continuă către aplicație" → routed to home, logged in
+8. Sign out and sign in with the NEW password → works
 
-### Mobile responsive (use phone or DevTools device mode ≤ 640px width)
-7. Open `/companies` on mobile — header stacks vertically, "+ Companie nouă" button below the title
-8. The hamburger icon appears in the top right; tap it → drawer slides down with user name, all nav items, logout button at bottom
-9. Tap a nav item → drawer closes automatically, route changes
-10. Tap outside the drawer (the dark overlay) → drawer closes
-11. Open `/employees` on mobile — list renders as cards instead of a table. Each card shows name, ID doc, employee ID, status badge in the corner
-12. Open `/examinations` on mobile — the tabs row scrolls horizontally if too wide; the Scadențe table scrolls horizontally with predictable width
-13. Open `/reports` on mobile — stat cards in 2 columns, tables scroll horizontally with min-width preserved
-14. Long names (try "Vasilescu-Marinescu Alexandra-Mihaela") should truncate with `...` not break the layout
+### Edge cases
+9. Visit `/reset-password` directly (without coming from an email) → shows "this link is invalid or expired"
+10. Enter mismatched passwords → "Parolele nu se potrivesc" error
+11. Enter a password shorter than 8 chars → "Parola trebuie să aibă cel puțin 8 caractere"
+12. Request a reset for an email that doesn't exist → same success message (anti-enumeration)
 
-### Bulk import — happy path
-15. Sign in as practice_admin
-16. Go to `/employees` → click **Importă**
-17. Pick a company from the dropdown (must have at least one workplace already)
-18. Click **Descarcă șablon CSV** in the help section → save the template file
-19. Open the template, fill in 2-3 rows with names + departments that match existing workplaces at the chosen company. Save.
-20. Upload the filled template
-21. Verify the preview table appears, mapping summary shows detected columns, all rows show "✓ OK"
-22. Click **Importă (N)** → result screen shows "N created, 0 skipped, 0 failed"
-23. Go back to `/employees` — the new employees appear in the list
+### Admin user management
+13. Sign in as a practice_admin
+14. Go to `/team` → Actions column appears with "Editează" button for each member except yourself
+15. Click "Editează" on a teammate → dialog opens with their current roles, active status, professional title
+16. Uncheck "practitioner" and check "assistant" → click "Salvează modificările"
+17. Refresh — the user's role badges in the table reflect the change
+18. Sign in as that user → they now have assistant permissions (test below)
+19. Back as practice_admin, on the same teammate, click "Editează" → click "Arhivează" → confirm
+20. Refresh — that user disappears from the team list
+21. Database check: `SELECT id, email, deleted_at FROM users WHERE id = '<that user id>'` — deletedAt is set
 
-### Bulk import — fuzzy header detection
-24. Create a new CSV with headers `Prenume,Nume,Marca,Email,Departament` (Romanian)
-25. Upload — verify the mapping detects all five columns correctly
-26. Create another with `First Name,Last Name,Employee ID,Email,Department` (English)
-27. Upload — mapping should still detect all five
+### Last-admin guard
+22. Make sure you're the ONLY practice_admin in your tenant (check team page)
+23. Try to edit yourself → no Edit button appears (self-edit blocked)
+24. Create or invite a second user with NO admin role, accept the invite, sign in as them
+25. Sign back in as practice_admin
+26. Try to edit YOUR OWN role by manually crafting a request — UI doesn't allow it
+27. Promote the second user to practice_admin → save → succeeds
+28. Now try to demote yourself or the other admin → succeeds (because there are now 2 admins, can drop to 1)
+29. Try to archive whichever is now the last admin → "last_admin_protected" error message
 
-### Bulk import — error paths
-28. Upload a file with a row missing first name → preview shows it as red with "Prenumele lipsește" issue
-29. Upload a file with a department that doesn't exist at the chosen company → row is red with "Departamentul nu corespunde" issue
-30. Try to import the file as-is → only the valid rows commit, errored rows are excluded from the count
-31. Upload a file with a duplicate of an existing employee → preview shows it as amber warning
-32. Default ("Skip duplicates") leaves it out of the import → server reports it as skipped
-33. Toggle to "Import duplicates anyway" → the second copy gets created (with the same name)
+### Assistant permission overhaul
 
-### Bulk import — Excel
-34. Save the same template as `.xlsx` in Excel → upload → should parse correctly
-35. Check the browser network tab while uploading — the xlsx library only loads when an Excel file is selected (lazy import working)
+#### Setup
+30. Have a practice_admin promote someone to `assistant` role (clear any other roles)
+31. Sign in as that assistant
 
-### Marca rename
-36. Go to `/employees` — column header now says "ID angajat" (not "Marca")
-37. Open any employee detail → "ID angajat" appears in the metadata
-38. Click edit on an employee → the form field is labeled "ID angajat" (not "Marca / număr de legitimație")
+#### What they CAN now do (previously couldn't)
+32. Navigate to `/companies` → "+ Companie nouă" button is visible. Click it. Fill in the form. Submit. Company created.
+33. Click into the company → "Edit" buttons appear on workplaces. Click one. Modify the name. Save. Works.
+34. Navigate to `/employees` → "+ Angajat nou" and "Importă" buttons are visible. Create a new employee WITHOUT CNP (idDocumentType=other or none). Works.
+35. Try to set idDocumentType=CNP and submit → 403 with "Assistants cannot set CNP. A practitioner must add the CNP at the in-person examination."
+36. Use the bulk import flow → uploads, previews, commits. Works.
+37. Navigate to `/examinations` → "+ Examinare nouă" is visible. Pick a worker + workplace + exam type, set status=scheduled. Submit. Works.
+38. From the Scadențe tab, click "Programează" on any pending recall → the schedule dialog appears. Pick a practitioner. Submit. Works — a new examination is created in `scheduled` state.
+
+#### What they STILL CAN'T do
+39. Open any scheduled examination → "Start examination" button: tap it. Should fail (403) — clinical-write required.
+40. If a practitioner has already started an exam, the assistant CAN view it but can't edit the clinical form fields (verdict, vitals, etc).
+41. Open `/team` → no Edit buttons (assistants can't modify users).
+42. Try to send a team invitation → no invite button visible (assistants can't invite).
+
+#### CNP edge case
+43. Sign in as practitioner. Create employee with CNP. Confirm CNP saves correctly (the existing workflow still works).
+44. Sign back in as assistant. View that same employee → CNP is masked (`185031*******`), no reveal button.
+45. Edit the employee's name only → save. Works.
+46. Try to change `idDocumentType` away from CNP via the form → blocked with 403.
+
+### Old URL backwards compat
+47. Any code paths that still call the deprecated `canWriteTenantData` — should continue to work, restricting access to practitioners only (same as before).
 
 ## What's NOT in this session
 
-- **Bottom tab bar mobile nav** — chose hamburger because Buzomed is desktop-first. Reconsider if a cabinet specifically asks for a more mobile-native feel.
-- **Bulk import with CNP** — deliberately excluded because CNP comes from the in-person exam, not from HR.
-- **Workplace auto-creation during import** — too dangerous; risk profile etc. should be set deliberately.
-- **PWA / installable app manifest** — the icons and theme-color are in place but no `manifest.json` yet. One-line addition if you ever want this.
-- **Print stylesheets re-audited for mobile** — they still target A4 paper; mobile browsers handle their own scaling.
+- **Custom email templates for password recovery** — using Supabase defaults. Functional, looks generic. Re-evaluate after 10 cabinets.
+- **Self-service "Resend invitation" for the practice_admin** — out of scope for this session.
+- **Reactivate-archived-user UI** — soft-delete row exists, but no button to bring them back. Add later if needed.
+- **Audit log of permission-relevant actions** — schema field exists (`auditLogEntries` relation), no writer yet. Future session.
+- **Bulk role changes** — one user at a time only.
 
-## Strategic reminder (last time, I promise)
+## What was specifically NOT changed
 
-You now have:
-- Real branding integrated into the product
-- A mobile experience that works on a phone in a cabinet hallway
-- A way to onboard 50 workers from HR in 2 minutes instead of typing them one by one
+- **`/api/examinations/[id]/sign/route.ts`** — still clinical-write. Signing fișa is a licensed-medic action.
+- **`/api/examinations/[id]/start/route.ts`** — still clinical-write. Starting clinical workflow is practitioner-only.
+- **`/api/examinations/[id]/route.ts` PATCH** — clinical-write. Editing clinical findings is practitioner-only.
+- **`/api/tenants/*`** — super_admin only, no changes.
 
-The bulk import is the feature most likely to make a real cabinet say "okay, I'll try this for a month." It removes the largest single objection to switching from ISIS Med.
+## Strategic note (last time)
 
-This is a genuinely demoable product. Send the LinkedIn message this week.
+This session is the third in a row that polished the product without a single cabinet conversation. The features you've shipped are increasingly difficult to test in isolation — "does the assistant role match real workflow?" cannot be answered by you alone.
+
+Two specific things one cabinet would clarify in 5 minutes each:
+
+1. **Does the assistant/practitioner split match how cabinets actually divide work?** Maybe the assistant DOES set verdicts in their cabinet (the practitioner reviews + signs). Maybe they don't touch examinations at all and only do reception. You're designing in the dark.
+2. **Do they want password recovery in Romanian email copy with their cabinet name?** The default Supabase email is in English from `noreply@mail.supabase.io`. Acceptable for now, but a practitioner might say "my workers will think this is a phishing email."
+
+Send the LinkedIn message this week. The product won't get more demoable than it is now. The next session should be informed by feedback, not guesses.

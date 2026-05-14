@@ -18,6 +18,8 @@ type LoginFormProps = {
     errorGeneric: string
     /** Banner shown when arriving from accept-invite flow */
     acceptedBanner?: string
+    /** Link text for "forgot password". Optional — if absent, link is hidden. */
+    forgotPasswordLink?: string
   }
 }
 
@@ -121,6 +123,17 @@ export function LoginForm({ labels }: LoginFormProps) {
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? labels.submitting : labels.submitButton}
       </Button>
+
+      {labels.forgotPasswordLink && (
+        <div className="text-center text-sm">
+          <a
+            href="/forgot-password"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {labels.forgotPasswordLink}
+          </a>
+        </div>
+      )}
     </form>
   )
 }

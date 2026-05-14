@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { invitableRoles } from '@/lib/permissions/invites'
+import { canManageUser, ASSIGNABLE_ROLES } from '@/lib/permissions/user-admin'
 import {
   Table,
   TableBody,
@@ -12,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { TeamInviteSection } from './team-invite-section'
+import { UserAdminActions } from './user-admin-actions'
 
 /**
  * Team page for practice_admin / practitioner / assistant.
@@ -80,6 +82,33 @@ export default async function TeamPage() {
     { dateStyle: 'medium' }
   )
 
+  const isPracticeAdmin = user.roles.includes('practice_admin')
+
+  // Pre-translate strings for the user-admin client component
+  const userAdminLabels = {
+    editAction: t('team.userAdmin.edit'),
+    archiveAction: t('team.userAdmin.archive'),
+    archiveConfirm: t('team.userAdmin.archiveConfirm'),
+    dialogTitle: t('team.userAdmin.dialogTitle'),
+    dialogDescription: t('team.userAdmin.dialogDescription'),
+    fieldRoles: t('team.userAdmin.fieldRoles'),
+    fieldRolesHelp: t('team.userAdmin.fieldRolesHelp'),
+    fieldIsActive: t('team.userAdmin.fieldIsActive'),
+    fieldIsActiveHelp: t('team.userAdmin.fieldIsActiveHelp'),
+    fieldProfessionalTitle: t('team.userAdmin.fieldProfessionalTitle'),
+    submit: t('team.userAdmin.submit'),
+    saving: t('team.userAdmin.saving'),
+    archiving: t('team.userAdmin.archiving'),
+    cancel: t('common.cancel'),
+    successUpdated: t('team.userAdmin.successUpdated'),
+    successArchived: t('team.userAdmin.successArchived'),
+    errorMessage: t('team.userAdmin.errorMessage'),
+    errorLastAdmin: t('team.userAdmin.errorLastAdmin'),
+    rolePracticeAdmin: t('team.invitations.role_practice_admin'),
+    rolePractitioner: t('team.invitations.role_practitioner'),
+    roleAssistant: t('team.invitations.role_assistant'),
+  }
+
   // Pre-translate strings for the client component
   const inviteLabels = {
     sectionTitle: t('team.invitations.sectionTitle'),
@@ -147,6 +176,11 @@ export default async function TeamPage() {
                   <TableHead>{t('common.email')}</TableHead>
                   <TableHead>{t('team.membersTable.roles')}</TableHead>
                   <TableHead>{t('team.membersTable.accountStatus')}</TableHead>
+                  {isPracticeAdmin && (
+                    <TableHead className="text-right">
+                      {t('common.actions')}
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -193,6 +227,44 @@ export default async function TeamPage() {
                             : t('team.membersTable.pending')}
                         </span>
                       </TableCell>
+                      {isPracticeAdmin && (
+                        <TableCell className="text-right">
+                          {(() => {
+                            const check = canManageUser(
+                              {
+                                id: user.id,
+                                roles: user.roles,
+                                tenantId: user.tenantId,
+                              },
+                              {
+                                id: member.id,
+                                roles: member.roles,
+                                tenantId: member.tenantId,
+                              }
+                            )
+                            if (!check.allowed) {
+                              return (
+                                <span className="text-xs text-muted-foreground">
+                                  —
+                                </span>
+                              )
+                            }
+                            return (
+                              <UserAdminActions
+                                userId={member.id}
+                                userDisplayName={`${member.firstName} ${member.lastName}`}
+                                currentRoles={member.roles}
+                                currentIsActive={member.isActive}
+                                currentProfessionalTitle={
+                                  member.professionalTitle ?? ''
+                                }
+                                assignableRoles={ASSIGNABLE_ROLES}
+                                labels={userAdminLabels}
+                              />
+                            )
+                          })()}
+                        </TableCell>
+                      )}
                     </TableRow>
                   )
                 })}

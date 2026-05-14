@@ -1,9 +1,10 @@
+import Link from 'next/link'
 import { getLocale, getTranslator } from '@/lib/i18n'
-import { LoginForm } from './login-form'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { BuzomedLogo } from '@/components/buzomed-logo'
+import { ForgotPasswordForm } from './forgot-password-form'
 
-export default async function LoginPage() {
+export default async function ForgotPasswordPage() {
   const locale = await getLocale()
   const t = getTranslator(locale)
 
@@ -23,25 +24,33 @@ export default async function LoginPage() {
 
           <div className="bg-card border rounded-lg p-6 sm:p-8 shadow-sm">
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold">{t('login.title')}</h2>
+              <h2 className="text-2xl font-semibold">
+                {t('forgotPassword.title')}
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {t('login.subtitle')}
+                {t('forgotPassword.subtitle')}
               </p>
             </div>
 
-            <LoginForm
+            <ForgotPasswordForm
               labels={{
                 emailLabel: t('login.emailLabel'),
                 emailPlaceholder: t('login.emailPlaceholder'),
-                passwordLabel: t('login.passwordLabel'),
-                submitButton: t('login.submitButton'),
-                submitting: t('login.submitting'),
-                errorInvalid: t('login.errorInvalid'),
-                errorGeneric: t('login.errorGeneric'),
-                acceptedBanner: t('login.acceptedBanner'),
-                forgotPasswordLink: t('login.forgotPasswordLink'),
+                submitButton: t('forgotPassword.submitButton'),
+                submitting: t('forgotPassword.submitting'),
+                successMessage: t('forgotPassword.successMessage'),
+                errorMessage: t('forgotPassword.errorMessage'),
               }}
             />
+
+            <div className="mt-6 text-center text-sm">
+              <Link
+                href="/login"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                ← {t('forgotPassword.backToLogin')}
+              </Link>
+            </div>
           </div>
         </div>
       </main>

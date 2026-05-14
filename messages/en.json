@@ -41,7 +41,8 @@
     "submitButton": "Sign in",
     "submitting": "Signing in...",
     "errorInvalid": "Invalid email or password",
-    "errorGeneric": "Something went wrong. Please try again."
+    "errorGeneric": "Something went wrong. Please try again.",
+    "forgotPasswordLink": "Forgot your password?"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -177,6 +178,25 @@
       "role_practice_admin": "Administrator",
       "role_practitioner": "Practitioner",
       "role_assistant": "Assistant"
+    },
+    "userAdmin": {
+      "edit": "Edit",
+      "archive": "Archive",
+      "archiveConfirm": "Archive {name}'s account? Historical data (fișa signatures, examinations) remains intact, but the account will be deactivated.",
+      "dialogTitle": "Edit user account",
+      "dialogDescription": "Modify {name}'s roles and account status.",
+      "fieldRoles": "Roles",
+      "fieldRolesHelp": "At least one role is required. Assistants can do reception and data entry; practitioners and admins can sign fișa.",
+      "fieldIsActive": "Account active",
+      "fieldIsActiveHelp": "Inactive accounts can't sign in. Useful for staff temporarily on leave.",
+      "fieldProfessionalTitle": "Professional title (optional)",
+      "submit": "Save changes",
+      "saving": "Saving…",
+      "archiving": "Archiving…",
+      "successUpdated": "Account updated.",
+      "successArchived": "Account archived.",
+      "errorMessage": "Something went wrong. Please try again.",
+      "errorLastAdmin": "This would leave the cabinet without an active administrator. Promote another user to admin first."
     }
   },
   "companies": {
@@ -775,5 +795,28 @@
     "colPractitioner": "Practitioner",
     "statusSigned": "Signed",
     "statusUnsigned": "Unsigned"
+  },
+  "forgotPassword": {
+    "title": "Password recovery",
+    "subtitle": "Enter your email address and we will send you a link to reset your password.",
+    "submitButton": "Send link",
+    "submitting": "Sending…",
+    "successMessage": "If an account exists for this address, you'll receive an email with instructions in a few minutes. Check your spam folder too.",
+    "errorMessage": "Something went wrong. Please try again.",
+    "backToLogin": "Back to login"
+  },
+  "resetPassword": {
+    "title": "Set a new password",
+    "subtitle": "Enter a new password for your account.",
+    "passwordLabel": "New password",
+    "confirmLabel": "Confirm password",
+    "submitButton": "Save password",
+    "submitting": "Saving…",
+    "successMessage": "Your password has been updated. You can now sign in with the new password.",
+    "errorMessage": "Something went wrong. Please try again.",
+    "errorMismatch": "Passwords don't match.",
+    "errorTooShort": "Password must be at least {min} characters.",
+    "errorTokenInvalid": "This reset link is invalid or has expired. Please request a new one.",
+    "goToApp": "Continue to app"
   }
 }

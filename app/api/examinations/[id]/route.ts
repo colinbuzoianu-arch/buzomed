@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import {
   canReadTenantData,
-  canWriteTenantData,
+  canWriteAdministrative,
+  canWriteClinical,
 } from '@/lib/permissions/tenant-data'
 import { asObject, optionalDate, optionalString } from '@/lib/validation'
 
@@ -111,7 +112,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
       { status: 401 }
     )
   }
-  if (!auth.user.tenantId || !canWriteTenantData(auth.user, auth.user.tenantId)) {
+  // Clinical write — only practitioner/practice_admin can edit examination
+  // fields. Assistants are blocked.
+  if (!auth.user.tenantId || !canWriteClinical(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
@@ -261,7 +264,10 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext) {
       { status: 401 }
     )
   }
-  if (!auth.user.tenantId || !canWriteTenantData(auth.user, auth.user.tenantId)) {
+  // Administrative — assistants can delete misclicked examination records
+  // (only those not yet started). Clinical deletion of in-progress/signed
+  // exams is blocked downstream by the immutability check.
+  if (!auth.user.tenantId || !canWriteAdministrative(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 

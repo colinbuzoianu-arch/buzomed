@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
-import { canWriteTenantData } from '@/lib/permissions/tenant-data'
+import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { asObject, optionalString } from '@/lib/validation'
 
 /**
@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
       { status: 401 }
     )
   }
-  if (!auth.user.tenantId || !canWriteTenantData(auth.user, auth.user.tenantId)) {
+  if (!auth.user.tenantId || !canWriteAdministrative(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 

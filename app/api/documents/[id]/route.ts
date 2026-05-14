@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import {
   canReadTenantData,
-  canWriteTenantData,
+  canWriteAdministrative,
 } from '@/lib/permissions/tenant-data'
 import { createServiceClient } from '@/lib/supabase/admin'
 
@@ -73,7 +73,7 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext) {
       { status: 401 }
     )
   }
-  if (!auth.user.tenantId || !canWriteTenantData(auth.user, auth.user.tenantId)) {
+  if (!auth.user.tenantId || !canWriteAdministrative(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 

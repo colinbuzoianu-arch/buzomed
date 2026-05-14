@@ -4,7 +4,8 @@ import { getApiUser } from '@/lib/auth'
 import {
   canReadTenantData,
   canViewSensitivePii,
-  canWriteTenantData,
+  canWriteAdministrative,
+  canWriteSensitivePii,
 } from '@/lib/permissions/tenant-data'
 import { asObject } from '@/lib/validation'
 import { parseEmployeeInput } from '../route'
@@ -91,7 +92,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
       { status: 401 }
     )
   }
-  if (!auth.user.tenantId || !canWriteTenantData(auth.user, auth.user.tenantId)) {
+  if (!auth.user.tenantId || !canWriteAdministrative(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
@@ -196,6 +197,23 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     body.idDocumentNumber !== null &&
     body.idDocumentNumber !== '' &&
     typeof body.idDocumentNumber === 'string'
+
+  // PII write check: if this PATCH would touch the CNP in any way
+  // (set, clear, or update), the actor must have canWriteSensitivePii.
+  // This blocks assistants from CNP operations while letting them edit
+  // every other employee field freely.
+  const touchesCnp =
+    wasCnp || wantsCnp || (data.idDocumentType !== undefined && data.idDocumentType !== existing.idDocumentType)
+  if (touchesCnp && !canWriteSensitivePii(auth.user, auth.user.tenantId)) {
+    return NextResponse.json(
+      {
+        error: 'forbidden',
+        message:
+          'Assistants cannot modify CNP fields. A practitioner must perform this change.',
+      },
+      { status: 403 }
+    )
+  }
 
   if (wasCnp && !wantsCnp) {
     // Case 1: clear encrypted fields. The plaintext idDocumentNumber may
@@ -334,7 +352,7 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext) {
       { status: 401 }
     )
   }
-  if (!auth.user.tenantId || !canWriteTenantData(auth.user, auth.user.tenantId)) {
+  if (!auth.user.tenantId || !canWriteAdministrative(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 

@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import {
   canReadTenantData,
-  canWriteTenantData,
+  canWriteAdministrative,
 } from '@/lib/permissions/tenant-data'
 import { asObject, optionalString } from '@/lib/validation'
 import { ensurePrimaryLocation } from '@/lib/examinations/auto-location'
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
   if (!auth.user.tenantId) {
     return NextResponse.json({ error: 'no_tenant' }, { status: 403 })
   }
-  if (!canWriteTenantData(auth.user, auth.user.tenantId)) {
+  if (!canWriteAdministrative(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 

@@ -1,9 +1,9 @@
 import { getLocale, getTranslator } from '@/lib/i18n'
-import { LoginForm } from './login-form'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { BuzomedLogo } from '@/components/buzomed-logo'
+import { ResetPasswordForm } from './reset-password-form'
 
-export default async function LoginPage() {
+export default async function ResetPasswordPage() {
   const locale = await getLocale()
   const t = getTranslator(locale)
 
@@ -23,23 +23,26 @@ export default async function LoginPage() {
 
           <div className="bg-card border rounded-lg p-6 sm:p-8 shadow-sm">
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold">{t('login.title')}</h2>
+              <h2 className="text-2xl font-semibold">
+                {t('resetPassword.title')}
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {t('login.subtitle')}
+                {t('resetPassword.subtitle')}
               </p>
             </div>
 
-            <LoginForm
+            <ResetPasswordForm
               labels={{
-                emailLabel: t('login.emailLabel'),
-                emailPlaceholder: t('login.emailPlaceholder'),
-                passwordLabel: t('login.passwordLabel'),
-                submitButton: t('login.submitButton'),
-                submitting: t('login.submitting'),
-                errorInvalid: t('login.errorInvalid'),
-                errorGeneric: t('login.errorGeneric'),
-                acceptedBanner: t('login.acceptedBanner'),
-                forgotPasswordLink: t('login.forgotPasswordLink'),
+                passwordLabel: t('resetPassword.passwordLabel'),
+                confirmLabel: t('resetPassword.confirmLabel'),
+                submitButton: t('resetPassword.submitButton'),
+                submitting: t('resetPassword.submitting'),
+                successMessage: t('resetPassword.successMessage'),
+                errorMessage: t('resetPassword.errorMessage'),
+                errorMismatch: t('resetPassword.errorMismatch'),
+                errorTooShort: t('resetPassword.errorTooShort'),
+                errorTokenInvalid: t('resetPassword.errorTokenInvalid'),
+                goToApp: t('resetPassword.goToApp'),
               }}
             />
           </div>

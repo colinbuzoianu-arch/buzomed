@@ -41,7 +41,8 @@
     "submitButton": "Autentificare",
     "submitting": "Se autentifică...",
     "errorInvalid": "Email sau parolă incorectă",
-    "errorGeneric": "A apărut o eroare. Vă rugăm să încercați din nou."
+    "errorGeneric": "A apărut o eroare. Vă rugăm să încercați din nou.",
+    "forgotPasswordLink": "Ai uitat parola?"
   },
   "nav": {
     "dashboard": "Tablou de bord",
@@ -177,6 +178,25 @@
       "role_practice_admin": "Administrator",
       "role_practitioner": "Medic",
       "role_assistant": "Asistent"
+    },
+    "userAdmin": {
+      "edit": "Editează",
+      "archive": "Arhivează",
+      "archiveConfirm": "Sigur dorești să arhivezi contul lui {name}? Datele istorice (semnături pe fișe, examinări) rămân intacte, dar contul va fi dezactivat.",
+      "dialogTitle": "Editează cont utilizator",
+      "dialogDescription": "Modifică rolurile și statusul contului lui {name}.",
+      "fieldRoles": "Roluri",
+      "fieldRolesHelp": "Cel puțin un rol este obligatoriu. Asistenții pot face muncă de recepție și introducere date; medicii și administratorii pot semna fișe.",
+      "fieldIsActive": "Cont activ",
+      "fieldIsActiveHelp": "Conturile inactive nu se pot autentifica. Util pentru personal aflat temporar în concediu.",
+      "fieldProfessionalTitle": "Titlu profesional (opțional)",
+      "submit": "Salvează modificările",
+      "saving": "Se salvează…",
+      "archiving": "Se arhivează…",
+      "successUpdated": "Contul a fost actualizat.",
+      "successArchived": "Contul a fost arhivat.",
+      "errorMessage": "A apărut o eroare. Încearcă din nou.",
+      "errorLastAdmin": "Această acțiune ar lăsa cabinetul fără administrator activ. Promovează alt utilizator la rol de administrator înainte."
     }
   },
   "companies": {
@@ -775,5 +795,28 @@
     "colPractitioner": "Medic",
     "statusSigned": "Semnat",
     "statusUnsigned": "Nesemnat"
+  },
+  "forgotPassword": {
+    "title": "Recuperare parolă",
+    "subtitle": "Introdu adresa de email și îți trimitem un link pentru a-ți reseta parola.",
+    "submitButton": "Trimite link-ul",
+    "submitting": "Se trimite…",
+    "successMessage": "Dacă există un cont pentru această adresă, vei primi un email cu instrucțiuni în câteva minute. Verifică și folderul spam.",
+    "errorMessage": "A apărut o eroare. Încearcă din nou.",
+    "backToLogin": "Înapoi la autentificare"
+  },
+  "resetPassword": {
+    "title": "Setează o parolă nouă",
+    "subtitle": "Introdu o parolă nouă pentru contul tău.",
+    "passwordLabel": "Parolă nouă",
+    "confirmLabel": "Confirmă parola",
+    "submitButton": "Salvează parola",
+    "submitting": "Se salvează…",
+    "successMessage": "Parola a fost actualizată. Poți să te conectezi cu noua parolă.",
+    "errorMessage": "A apărut o eroare. Încearcă din nou.",
+    "errorMismatch": "Parolele nu se potrivesc.",
+    "errorTooShort": "Parola trebuie să aibă cel puțin {min} caractere.",
+    "errorTokenInvalid": "Acest link de resetare este invalid sau a expirat. Solicită un link nou.",
+    "goToApp": "Continuă către aplicație"
   }
 }

@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import {
   canReadTenantData,
-  canWriteTenantData,
+  canWriteAdministrative,
+  canWriteSensitivePii,
 } from '@/lib/permissions/tenant-data'
 import {
   asObject,
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
       { status: 403 }
     )
   }
-  if (!canWriteTenantData(auth.user, auth.user.tenantId)) {
+  if (!canWriteAdministrative(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
@@ -178,6 +179,19 @@ export async function POST(request: NextRequest) {
   let storedIdDocumentNumber = data.idDocumentNumber ?? null
 
   if (data.idDocumentType === 'cnp') {
+    // PII write check: only practitioners/practice_admins can create or
+    // update an employee with a CNP. Assistants are blocked from this
+    // path even though they have general administrative write rights.
+    if (!canWriteSensitivePii(auth.user, auth.user.tenantId)) {
+      return NextResponse.json(
+        {
+          error: 'forbidden',
+          message:
+            'Assistants cannot set CNP. A practitioner must add the CNP at the in-person examination.',
+        },
+        { status: 403 }
+      )
+    }
     if (!data.idDocumentNumber) {
       return NextResponse.json(
         {

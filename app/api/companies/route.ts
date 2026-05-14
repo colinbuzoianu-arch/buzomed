@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import {
   canReadTenantData,
-  canWriteTenantData,
+  canWriteAdministrative,
 } from '@/lib/permissions/tenant-data'
 import {
   asObject,
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       { status: 403 }
     )
   }
-  if (!canWriteTenantData(auth.user, auth.user.tenantId)) {
+  if (!canWriteAdministrative(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
