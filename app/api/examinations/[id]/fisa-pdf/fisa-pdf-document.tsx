@@ -231,7 +231,6 @@ export interface FisaPdfProps {
   companyCui: string
   workplaceName: string
   workplaceDepartment: string | null
-  jobTitle: string | null
   examinationTypeName: string
   verdict: string | null
   verdictConditions: string | null
@@ -374,9 +373,6 @@ export function FisaPdfDocument(props: FisaPdfProps) {
               label="Departament"
               value={props.workplaceDepartment}
             />
-          )}
-          {props.jobTitle && (
-            <Row label="Funcție" value={props.jobTitle} />
           )}
           <Row
             label="Tip examinare"

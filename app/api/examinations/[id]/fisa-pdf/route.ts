@@ -113,7 +113,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     companyCui: examination.workplace.company.cui ?? '—',
     workplaceName: examination.workplace.name,
     workplaceDepartment: examination.workplace.department ?? null,
-    jobTitle: examination.workplace.jobTitle ?? null,
 
     // Exam type
     examinationTypeName: examination.examinationType.nameRo,
