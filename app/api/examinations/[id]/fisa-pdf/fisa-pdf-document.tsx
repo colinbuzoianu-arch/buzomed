@@ -213,9 +213,9 @@ interface VitalSigns {
   height: number | null
   weight: number | null
   bmi: number | null
-  bloodPressureSystolic: number | null
-  bloodPressureDiastolic: number | null
-  heartRate: number | null
+  bpSystolic: number | null
+  bpDiastolic: number | null
+  pulse: number | null
 }
 
 export interface FisaPdfProps {
@@ -278,8 +278,8 @@ export function FisaPdfDocument(props: FisaPdfProps) {
   const hasVitals =
     props.vitalSigns.height ||
     props.vitalSigns.weight ||
-    props.vitalSigns.bloodPressureSystolic ||
-    props.vitalSigns.heartRate
+    props.vitalSigns.bpSystolic ||
+    props.vitalSigns.pulse
 
   return (
     <Document
@@ -406,17 +406,17 @@ export function FisaPdfDocument(props: FisaPdfProps) {
                   value={String(props.vitalSigns.bmi)}
                 />
               )}
-              {props.vitalSigns.bloodPressureSystolic &&
-                props.vitalSigns.bloodPressureDiastolic && (
+              {props.vitalSigns.bpSystolic &&
+                props.vitalSigns.bpDiastolic && (
                   <VitalCell
                     label="TA"
-                    value={`${props.vitalSigns.bloodPressureSystolic}/${props.vitalSigns.bloodPressureDiastolic} mmHg`}
+                    value={`${props.vitalSigns.bpSystolic}/${props.vitalSigns.bpDiastolic} mmHg`}
                   />
                 )}
-              {props.vitalSigns.heartRate && (
+              {props.vitalSigns.pulse && (
                 <VitalCell
                   label="AV"
-                  value={`${props.vitalSigns.heartRate} bpm`}
+                  value={`${props.vitalSigns.pulse} bpm`}
                 />
               )}
             </View>

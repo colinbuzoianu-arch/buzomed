@@ -127,14 +127,17 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       ? formatDateRo(examination.inaptTemporarUntil)
       : null,
     clinicalFindings: examination.clinicalFindings ?? null,
-    vitalSigns: {
-      height: examination.height ?? null,
-      weight: examination.weight ?? null,
-      bmi: examination.bmi ?? null,
-      bloodPressureSystolic: examination.bloodPressureSystolic ?? null,
-      bloodPressureDiastolic: examination.bloodPressureDiastolic ?? null,
-      heartRate: examination.heartRate ?? null,
-    },
+    vitalSigns: (() => {
+      const vs = (examination.vitalSigns ?? {}) as Record<string, unknown>
+      return {
+        height: (vs.height as number) ?? null,
+        weight: (vs.weight as number) ?? null,
+        bmi: (vs.bmi as number) ?? null,
+        bpSystolic: (vs.bpSystolic as number) ?? null,
+        bpDiastolic: (vs.bpDiastolic as number) ?? null,
+        pulse: (vs.pulse as number) ?? null,
+      }
+    })(),
 
     // Practitioner
     practitionerName: examination.practitioner
@@ -146,9 +149,10 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     isDraft: examination.signedAt === null,
   }
 
-  let buffer: Buffer
+  let buffer: Uint8Array
   try {
-    buffer = await renderToBuffer(createElement(FisaPdfDocument, data))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    buffer = await renderToBuffer(createElement(FisaPdfDocument, data) as any)
   } catch (err) {
     console.error('[fisa-pdf] render failed', err)
     return NextResponse.json(
@@ -159,7 +163,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
 
   const filename = `fisa_aptitudine_${examination.examinationNumber.replace('/', '-')}.pdf`
 
-  return new NextResponse(buffer, {
+  return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
