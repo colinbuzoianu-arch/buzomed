@@ -1,5 +1,7 @@
 'use client'
 
+import { TOAST } from '@/lib/toast'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { UserRole } from '@prisma/client'
@@ -96,6 +98,7 @@ export function UserAdminActions({
         setBusy(null)
         return
       }
+      TOAST.userUpdated(userDisplayName)
       setOpen(false)
       setBusy(null)
       router.refresh()
@@ -126,6 +129,7 @@ export function UserAdminActions({
         setBusy(null)
         return
       }
+      TOAST.userArchived(userDisplayName)
       setOpen(false)
       setBusy(null)
       router.refresh()

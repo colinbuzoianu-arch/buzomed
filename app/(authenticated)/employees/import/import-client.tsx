@@ -1,5 +1,7 @@
 'use client'
 
+import { TOAST } from '@/lib/toast'
+
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -197,6 +199,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
         return
       }
       setCommitResult(data)
+      TOAST.importSuccess(data.summary?.created ?? 0)
       setPhase('done')
     } catch (err) {
       console.error('Commit error', err)

@@ -16,7 +16,7 @@ export default async function RootPage() {
   // Tenant users (practice_admin, practitioner, assistant) land on team page
   // for now. Future: dedicated dashboards by role.
   if (user.tenantId) {
-    redirect('/team')
+    redirect('/dashboard')
   }
 
   // No tenant and not super_admin — anomalous state. Send to login.

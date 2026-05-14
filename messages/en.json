@@ -662,7 +662,8 @@
       "signatureLabel": "Practitioner signature and stamp",
       "backToExamination": "Back to examination",
       "printButton": "Print",
-      "draftBanner": "This is a preview. The certificate is only valid once signed."
+      "draftBanner": "This is a preview. The certificate is only valid once signed.",
+      "downloadPdf": "Download PDF"
     },
     "exportCsv": "Export CSV"
   },
@@ -818,5 +819,27 @@
     "errorTooShort": "Password must be at least {min} characters.",
     "errorTokenInvalid": "This reset link is invalid or has expired. Please request a new one.",
     "goToApp": "Continue to app"
+  },
+  "dashboard": {
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "needsAttention": "Needs attention",
+    "overdueRecalls": "Overdue recalls",
+    "overdueRecallsDesc": "Workers past their due date",
+    "inProgress": "In-progress exams",
+    "inProgressDesc": "Open examinations not yet completed",
+    "unsignedFise": "Unsigned fișe",
+    "unsignedFiseDesc": "Completed examinations without a signature",
+    "today": "Today",
+    "scheduledToday": "Scheduled today",
+    "dueThisWeek": "Due this week",
+    "thisMonthExams": "This month",
+    "activeWorkers": "Active workers",
+    "quickActions": "Quick actions",
+    "viewScadente": "View due dates",
+    "companies": "companies",
+    "employees": "employees",
+    "viewFullReport": "Full report"
   }
 }

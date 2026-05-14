@@ -1,5 +1,7 @@
 'use client'
 
+import { TOAST } from '@/lib/toast'
+
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ExaminationStatus } from '@prisma/client'
@@ -7,6 +9,7 @@ import { Button } from '@/components/ui/button'
 
 interface Props {
   examinationId: string
+  examinationNumber?: string
   currentStatus: ExaminationStatus
   verdictSet: boolean
   canWriteClinical: boolean
@@ -27,6 +30,7 @@ interface Props {
 
 export function ExaminationActions({
   examinationId,
+  examinationNumber,
   currentStatus,
   verdictSet,
   canWriteClinical,
@@ -56,6 +60,12 @@ export function ExaminationActions({
         setError(issues || data.message || data.error || labels.errorMessage)
         setBusy(null)
         return
+      }
+      // Show contextual success toast per action type
+      if (label === 'sign') {
+        TOAST.examinationSigned(examinationNumber ?? '')
+      } else if (label === 'cancel' || label === 'no_show') {
+        TOAST.examinationCancelled()
       }
       startTransition(() => router.refresh())
     } catch (err) {

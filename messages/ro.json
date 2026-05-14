@@ -662,7 +662,8 @@
       "signatureLabel": "Semnătura și parafa medicului",
       "backToExamination": "Înapoi la examinare",
       "printButton": "Tipărește",
-      "draftBanner": "Aceasta este o previzualizare. Fișa este validă doar după semnare."
+      "draftBanner": "Aceasta este o previzualizare. Fișa este validă doar după semnare.",
+      "downloadPdf": "Descarcă PDF"
     },
     "exportCsv": "Exportă CSV"
   },
@@ -818,5 +819,27 @@
     "errorTooShort": "Parola trebuie să aibă cel puțin {min} caractere.",
     "errorTokenInvalid": "Acest link de resetare este invalid sau a expirat. Solicită un link nou.",
     "goToApp": "Continuă către aplicație"
+  },
+  "dashboard": {
+    "goodMorning": "Bună dimineața",
+    "goodAfternoon": "Bună ziua",
+    "goodEvening": "Bună seara",
+    "needsAttention": "Necesită atenție",
+    "overdueRecalls": "Programări întârziate",
+    "overdueRecallsDesc": "Lucrători care depășit data scadenței",
+    "inProgress": "Examinări în curs",
+    "inProgressDesc": "Examinări deschise, nefinalizate",
+    "unsignedFise": "Fișe nesemnate",
+    "unsignedFiseDesc": "Examinări finalizate fără semnătură",
+    "today": "Astăzi",
+    "scheduledToday": "Programate azi",
+    "dueThisWeek": "Scadente săptămâna aceasta",
+    "thisMonthExams": "Luna aceasta",
+    "activeWorkers": "Angajați activi",
+    "quickActions": "Acțiuni rapide",
+    "viewScadente": "Vezi scadențe",
+    "companies": "companii",
+    "employees": "angajați",
+    "viewFullReport": "Raport complet"
   }
 }

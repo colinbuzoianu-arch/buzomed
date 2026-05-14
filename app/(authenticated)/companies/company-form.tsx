@@ -1,5 +1,7 @@
 'use client'
 
+import { TOAST } from '@/lib/toast'
+
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -188,6 +190,7 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
       }
 
       const companyId2: string | undefined = data.company?.id
+      TOAST.companySaved(data.company?.name ?? '')
       startTransition(() => {
         if (isEdit) {
           router.push(`/companies/${companyId}`)

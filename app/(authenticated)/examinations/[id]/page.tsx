@@ -152,6 +152,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
             {caps.canWriteAdministrative && !isLocked && (
               <ExaminationActions
                 examinationId={examination.id}
+                examinationNumber={examination.examinationNumber}
                 currentStatus={examination.status}
                 verdictSet={examination.verdict !== null}
                 canWriteClinical={caps.canWriteClinical}

@@ -1,5 +1,7 @@
 'use client'
 
+import { TOAST } from '@/lib/toast'
+
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -74,6 +76,7 @@ export function RecallActions({
       }
       // The API returns the created examination; route the user there.
       const examId: string | undefined = data.examination?.id
+      TOAST.recallScheduled(employeeName)
       startTransition(() => {
         if (examId) router.push(`/examinations/${examId}`)
         else router.refresh()
@@ -104,6 +107,7 @@ export function RecallActions({
         setBusy(false)
         return
       }
+      TOAST.recallCancelled()
       startTransition(() => {
         reset()
         router.refresh()

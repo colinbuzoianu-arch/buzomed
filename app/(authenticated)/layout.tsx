@@ -27,6 +27,7 @@ export default async function AuthenticatedLayout({
   if (isSuperAdmin) {
     navItems.push({ href: '/super-admin', label: t('nav.tenants') })
   } else if (hasTenant) {
+    navItems.push({ href: '/dashboard', label: t('nav.dashboard') })
     navItems.push({ href: '/companies', label: t('nav.companies') })
     navItems.push({ href: '/employees', label: t('nav.employees') })
     navItems.push({ href: '/examinations', label: t('nav.examinations') })

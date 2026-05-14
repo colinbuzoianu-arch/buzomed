@@ -1,5 +1,7 @@
 'use client'
 
+import { TOAST } from '@/lib/toast'
+
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -212,6 +214,10 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
       }
 
       const newId: string | undefined = data.employee?.id
+      const savedName = data.employee
+        ? `${data.employee.lastName} ${data.employee.firstName}`
+        : ''
+      TOAST.employeeSaved(savedName)
       startTransition(() => {
         if (isEdit) {
           router.push(`/employees/${employeeId}`)

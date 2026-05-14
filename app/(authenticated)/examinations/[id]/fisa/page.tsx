@@ -83,18 +83,25 @@ export default async function FisaPage({ params }: PageProps) {
         >
           ← {t('examinations.fisa.backToExamination')}
         </Link>
-        <button
-          type="button"
-          className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90"
-          // eslint-disable-next-line react/no-unknown-property
-          {...{
-            'data-print-button': 'true',
-          }}
-          // We can't use onClick (server component); a tiny inline script
-          // wires it up below. window.print() works in all browsers.
-        >
-          {t('examinations.fisa.printButton')}
-        </button>
+        <div className="flex items-center gap-2">
+          <a
+            href={`/api/examinations/${examination.id}/fisa-pdf`}
+            download
+            className="rounded-md border border-primary text-primary px-4 py-2 text-sm font-medium hover:bg-primary/5"
+          >
+            {t('examinations.fisa.downloadPdf')}
+          </a>
+          <button
+            type="button"
+            className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90"
+            // eslint-disable-next-line react/no-unknown-property
+            {...{
+              'data-print-button': 'true',
+            }}
+          >
+            {t('examinations.fisa.printButton')}
+          </button>
+        </div>
       </div>
 
       {!examination.signedAt && (

@@ -1,5 +1,7 @@
 'use client'
 
+import { TOAST } from '@/lib/toast'
+
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -35,6 +37,7 @@ export function CompanyDeleteButton({ companyId, companyName, labels }: Props) {
         setDeleting(false)
         return
       }
+      TOAST.companyDeleted(companyName)
       startTransition(() => {
         router.push('/companies')
         router.refresh()
