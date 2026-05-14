@@ -149,7 +149,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               {company.isActive ? t('common.active') : t('common.inactive')}
             </span>
           </div>
-          {(hasReportingRole || caps.canWrite) && (
+          {(hasReportingRole || caps.canWriteAdministrative) && (
             <div className="flex items-center gap-2">
               {hasReportingRole && (
                 <Button asChild variant="outline">
@@ -158,7 +158,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                   </Link>
                 </Button>
               )}
-              {caps.canWrite && (
+              {caps.canWriteAdministrative && (
                 <>
                   <Button asChild variant="outline">
                     <Link href={`/companies/${company.id}/edit`}>
@@ -212,7 +212,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               ({company.workplaces.length})
             </span>
           </h2>
-          {caps.canWrite && (
+          {caps.canWriteAdministrative && (
             <Button asChild size="sm">
               <Link href={`/companies/${company.id}/workplaces/new`}>
                 + {t('workplaces.newButton')}
@@ -225,7 +225,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
             <p className="text-sm text-muted-foreground">
               {t('workplaces.empty')}
             </p>
-            {caps.canWrite && (
+            {caps.canWriteAdministrative && (
               <Button asChild size="sm" className="mt-3">
                 <Link href={`/companies/${company.id}/workplaces/new`}>
                   + {t('workplaces.newButton')}

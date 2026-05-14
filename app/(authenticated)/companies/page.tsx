@@ -49,7 +49,7 @@ export default async function CompaniesPage() {
             {t('companies.subtitle')}
           </p>
         </div>
-        {caps.canWrite && (
+        {caps.canWriteAdministrative && (
           <Button asChild>
             <Link href="/companies/new">+ {t('companies.newButton')}</Link>
           </Button>
@@ -61,7 +61,7 @@ export default async function CompaniesPage() {
           <p className="text-muted-foreground text-sm">
             {t('companies.empty')}
           </p>
-          {caps.canWrite && (
+          {caps.canWriteAdministrative && (
             <Button asChild className="mt-4">
               <Link href="/companies/new">+ {t('companies.newButton')}</Link>
             </Button>

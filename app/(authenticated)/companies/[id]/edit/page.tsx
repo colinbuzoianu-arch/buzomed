@@ -29,7 +29,7 @@ export default async function EditCompanyPage({ params }: PageProps) {
   if (!user.tenantId) redirect('/')
 
   const caps = tenantDataCapabilities(user, user.tenantId)
-  if (!caps.canWrite) {
+  if (!caps.canWriteAdministrative) {
     redirect('/companies')
   }
 

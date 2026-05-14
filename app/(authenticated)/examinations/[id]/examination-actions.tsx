@@ -9,6 +9,7 @@ interface Props {
   examinationId: string
   currentStatus: ExaminationStatus
   verdictSet: boolean
+  canWriteClinical: boolean
   labels: {
     start: string
     starting: string
@@ -28,6 +29,7 @@ export function ExaminationActions({
   examinationId,
   currentStatus,
   verdictSet,
+  canWriteClinical,
   labels,
 }: Props) {
   const router = useRouter()
@@ -76,7 +78,7 @@ export function ExaminationActions({
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex items-center gap-2 flex-wrap">
-        {canStart && (
+        {canStart && canWriteClinical && (
           <Button
             variant="outline"
             size="sm"
@@ -114,21 +116,23 @@ export function ExaminationActions({
             </Button>
           </>
         )}
-        <Button
-          size="sm"
-          onClick={() => {
-            if (!verdictSet) {
-              setError(labels.signRequirementsNotMet)
-              return
-            }
-            if (confirm(labels.signConfirm)) {
-              doAction('sign', '/sign')
-            }
-          }}
-          disabled={busy !== null || !canSign}
-        >
-          {busy === 'sign' ? labels.signing : labels.sign}
-        </Button>
+        {canWriteClinical && (
+          <Button
+            size="sm"
+            onClick={() => {
+              if (!verdictSet) {
+                setError(labels.signRequirementsNotMet)
+                return
+              }
+              if (confirm(labels.signConfirm)) {
+                doAction('sign', '/sign')
+              }
+            }}
+            disabled={busy !== null || !canSign}
+          >
+            {busy === 'sign' ? labels.signing : labels.sign}
+          </Button>
+        )}
       </div>
       {error && <span className="text-xs text-destructive">{error}</span>}
     </div>

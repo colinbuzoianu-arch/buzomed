@@ -15,7 +15,7 @@ export default async function NewEmployeePage() {
   if (!user.tenantId) redirect('/')
 
   const caps = tenantDataCapabilities(user, user.tenantId)
-  if (!caps.canWrite) redirect('/employees')
+  if (!caps.canWriteAdministrative) redirect('/employees')
 
   const labels = buildEmployeeFormLabels(t)
 

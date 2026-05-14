@@ -118,7 +118,7 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
               {workplace.isActive ? t('common.active') : t('common.inactive')}
             </span>
           </div>
-          {caps.canWrite && (
+          {caps.canWriteAdministrative && (
             <div className="flex items-center gap-2">
               <Button asChild variant="outline">
                 <Link

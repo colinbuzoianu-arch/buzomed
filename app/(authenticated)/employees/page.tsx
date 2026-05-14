@@ -65,7 +65,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
             {t('employees.subtitle')}
           </p>
         </div>
-        {caps.canWrite && !showArchived && (
+        {caps.canWriteAdministrative && !showArchived && (
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline" size="sm">
               <Link href="/employees/import">
@@ -105,7 +105,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
               ? t('employees.emptyArchived')
               : t('employees.empty')}
           </p>
-          {caps.canWrite && !showArchived && (
+          {caps.canWriteAdministrative && !showArchived && (
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               <Button asChild variant="outline">
                 <Link href="/employees/import">

@@ -262,7 +262,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
               )}
             </div>
           </div>
-          {caps.canWrite && (
+          {caps.canWriteAdministrative && (
             <div className="flex items-center gap-2 flex-wrap">
               {!isArchived && currentAssignment && (
                 <Button asChild>
@@ -371,7 +371,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
           <h2 className="text-lg font-semibold">
             {t('employees.assignments.sectionTitle')}
           </h2>
-          {caps.canWrite && !isArchived && (
+          {caps.canWriteAdministrative && !isArchived && (
             <EmployeeAssignmentManager
               employeeId={employee.id}
               currentAssignmentId={currentAssignment?.id ?? null}
@@ -581,7 +581,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
         entityType="employee"
         entityId={employee.id}
         tenantId={user.tenantId}
-        canWrite={caps.canWrite}
+        canWrite={caps.canWriteAdministrative}
         locale={locale}
       />
     </div>

@@ -19,7 +19,7 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
   if (!user.tenantId) redirect('/')
 
   const caps = tenantDataCapabilities(user, user.tenantId)
-  if (!caps.canWrite) redirect('/examinations')
+  if (!caps.canWriteAdministrative) redirect('/examinations')
 
   const params = await searchParams
   const preselectedEmployeeId = params.employeeId

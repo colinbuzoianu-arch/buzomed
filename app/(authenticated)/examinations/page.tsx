@@ -260,7 +260,7 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
               {t('examinations.exportCsv')}
             </a>
           )}
-          {caps.canWrite && (
+          {caps.canWriteAdministrative && (
             <Button asChild>
               <Link href="/examinations/new">
                 + {t('examinations.newButton')}
@@ -308,7 +308,7 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
           locale={locale}
           horizon={horizon}
           companyIdFilter={companyIdFilter}
-          canWrite={caps.canWrite}
+          canWrite={caps.canWriteAdministrative}
           isPractitioner={user.roles.includes('practitioner')}
           userId={user.id}
           today={today}
@@ -320,7 +320,7 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
           status={tabToStatus(tab)}
           locale={locale}
           dateFormatter={dateFormatter}
-          canWrite={caps.canWrite}
+          canWrite={caps.canWriteAdministrative}
           t={t}
         />
       )}

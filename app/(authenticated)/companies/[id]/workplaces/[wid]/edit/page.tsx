@@ -25,7 +25,7 @@ export default async function EditWorkplacePage({ params }: PageProps) {
   if (!user.tenantId) redirect('/')
 
   const caps = tenantDataCapabilities(user, user.tenantId)
-  if (!caps.canWrite) redirect('/companies')
+  if (!caps.canWriteAdministrative) redirect('/companies')
 
   const { id, wid } = await params
   const workplace = await prisma.workplace.findFirst({

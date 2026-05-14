@@ -149,11 +149,12 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
                 </Link>
               </Button>
             )}
-            {caps.canWrite && !isLocked && (
+            {caps.canWriteAdministrative && !isLocked && (
               <ExaminationActions
                 examinationId={examination.id}
                 currentStatus={examination.status}
                 verdictSet={examination.verdict !== null}
+                canWriteClinical={caps.canWriteClinical}
                 labels={{
                   start: t('examinations.actions.start'),
                   starting: t('examinations.actions.starting'),
@@ -299,7 +300,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         entityType="examination"
         entityId={examination.id}
         tenantId={user.tenantId}
-        canWrite={caps.canWrite}
+        canWrite={caps.canWriteAdministrative}
         locale={locale}
       />
     </div>

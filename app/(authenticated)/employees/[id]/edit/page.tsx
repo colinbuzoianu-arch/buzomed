@@ -29,7 +29,7 @@ export default async function EditEmployeePage({ params }: PageProps) {
   if (!user.tenantId) redirect('/')
 
   const caps = tenantDataCapabilities(user, user.tenantId)
-  if (!caps.canWrite) redirect('/employees')
+  if (!caps.canWriteAdministrative) redirect('/employees')
 
   const { id } = await params
   const employee = await prisma.employee.findFirst({
