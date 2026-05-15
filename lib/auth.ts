@@ -20,6 +20,23 @@ export async function getCurrentUser(): Promise<AppUser | null> {
     where: { authUserId: authUser.id },
   })
 
+  if (!appUser) return null
+
+  // Update lastLoginAt lazily — at most once per 5 minutes to avoid
+  // hammering the DB on every page navigation. We check the existing
+  // value first so most requests skip the UPDATE entirely.
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+  if (!appUser.lastLoginAt || appUser.lastLoginAt < fiveMinutesAgo) {
+    // Fire and forget — don't await so it doesn't add latency to the
+    // page render. If it fails, the stale value is harmless.
+    prisma.user.update({
+      where: { id: appUser.id },
+      data: { lastLoginAt: new Date() },
+    }).catch((err) => {
+      console.warn('[auth] lastLoginAt update failed:', err)
+    })
+  }
+
   return appUser
 }
 

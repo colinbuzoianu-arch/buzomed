@@ -203,6 +203,8 @@ model Tenant {
 
   cnpHashSalt         String?             @map("cnp_hash_salt")
 
+  isDemo              Boolean             @default(false) @map("is_demo")
+
   createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt           DateTime?           @map("deleted_at") @db.Timestamptz

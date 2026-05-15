@@ -65,7 +65,12 @@
       "city": "Oraș",
       "subscription": "Abonament",
       "status": "Stare",
-      "actions": "Acțiuni"
+      "actions": "Acțiuni",
+      "users": "Utilizatori",
+      "examinations": "Examinări",
+      "employees": "Angajați",
+      "lastActive": "Ultima activitate",
+      "neverActive": "Niciodată"
     },
     "noTenants": "Nu există cabinete înregistrate. Creați primul cabinet pentru a începe.",
     "subscription": {
@@ -73,6 +78,27 @@
       "solo": "Solo",
       "practice": "Cabinet",
       "enterprise": "Corporativ"
+    },
+    "stats": {
+      "totalTenants": "Total cabinete",
+      "activeTenants": "Active",
+      "demoTenants": "Demo",
+      "totalExaminations": "Total examinări"
+    },
+    "demoInvite": {
+      "button": "+ Demo",
+      "dialogTitle": "Trimite invitație demo",
+      "dialogDescription": "Creează un cabinet demo pre-populat și trimite o invitație practicianului. Vor primi un link pentru a se autentifica direct.",
+      "fieldFirstName": "Prenume",
+      "fieldLastName": "Nume",
+      "fieldCabinetName": "Nume cabinet (opțional)",
+      "fieldCabinetNameHelp": "Lasă gol pentru \"Cabinet Demo [Nume]\".",
+      "fieldLocale": "Limbă email",
+      "submit": "Creează și trimite invitația",
+      "submitting": "Se creează…",
+      "successMessage": "Cabinet demo creat și invitație trimisă!",
+      "errorMessage": "A apărut o eroare. Încearcă din nou.",
+      "errorEmailExists": "Există deja un utilizator cu această adresă de email."
     }
   },
   "createTenant": {
@@ -108,7 +134,8 @@
       "roles": "Roluri",
       "accountStatus": "Stare cont",
       "activated": "Activat",
-      "pending": "Așteaptă activare"
+      "pending": "Așteaptă activare",
+      "lastSeen": "Ultima prezență"
     },
     "invitations": {
       "sectionTitle": "Invitații în așteptare",
@@ -138,6 +165,18 @@
       "role_practice_admin": "Administrator",
       "role_practitioner": "Medic",
       "role_assistant": "Asistent"
+    },
+    "activityTitle": "Activitate",
+    "activity": {
+      "totalExams": "Total examinări",
+      "examsThisMonth": "Luna aceasta",
+      "thisWeek": "săptămâna aceasta",
+      "signedThisMonth": "Semnate luna aceasta",
+      "overdueRecalls": "Scadențe întârziate",
+      "pending": "în așteptare",
+      "employees": "Angajați activi",
+      "companies": "Companii",
+      "lastActive": "Ultima activitate"
     }
   },
   "team": {

@@ -3,122 +3,319 @@ import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { DemoInviteButton } from './demo-invite-button'
 
-export default async function SuperAdminPage() {
+/**
+ * Super-admin index — tenant list with activity metrics and sorting.
+ *
+ * Sort options via ?sort= query param:
+ *   name        — alphabetical A→Z
+ *   created     — newest first (default)
+ *   lastActive  — most recently active tenant first
+ *   examinations — highest exam count first
+ *   status      — active first, then trial, then others
+ *
+ * Each tenant row shows:
+ *   - Name + demo badge
+ *   - City
+ *   - Subscription tier/status
+ *   - User count
+ *   - Examination count (all time)
+ *   - Last active (latest lastLoginAt across all users in the tenant)
+ *   - Created at
+ */
+
+type SortKey = 'name' | 'created' | 'lastActive' | 'examinations' | 'status'
+
+const VALID_SORTS: SortKey[] = ['name', 'created', 'lastActive', 'examinations', 'status']
+
+interface PageProps {
+  searchParams: Promise<{ sort?: string }>
+}
+
+export default async function SuperAdminPage({ searchParams }: PageProps) {
   await requireRole('super_admin')
   const locale = await getLocale()
   const t = getTranslator(locale)
 
+  const params = await searchParams
+  const sort: SortKey =
+    params.sort && (VALID_SORTS as string[]).includes(params.sort)
+      ? (params.sort as SortKey)
+      : 'created'
+
+  // Pull tenants with aggregated activity counts
   const tenants = await prisma.tenant.findMany({
     where: { deletedAt: null },
-    orderBy: { createdAt: 'desc' },
+    include: {
+      users: {
+        where: { deletedAt: null },
+        select: { id: true, lastLoginAt: true, isActive: true },
+      },
+      _count: {
+        select: {
+          examinations: { where: { deletedAt: null } },
+          employees: { where: { deletedAt: null, archivedAt: null } },
+          companies: { where: { deletedAt: null } },
+        },
+      },
+    },
   })
+
+  // Compute derived values for sorting and display
+  const enriched = tenants.map((t) => {
+    const activeUsers = t.users.filter((u) => u.isActive && u.lastLoginAt !== null)
+    const lastActive = activeUsers.reduce<Date | null>((best, u) => {
+      if (!u.lastLoginAt) return best
+      return best === null || u.lastLoginAt > best ? u.lastLoginAt : best
+    }, null)
+    return {
+      ...t,
+      lastActive,
+      userCount: t.users.filter((u) => u.isActive).length,
+      examinationCount: t._count.examinations,
+      employeeCount: t._count.employees,
+      companyCount: t._count.companies,
+    }
+  })
+
+  // Sort
+  const sorted = [...enriched].sort((a, b) => {
+    switch (sort) {
+      case 'name':
+        return a.name.localeCompare(b.name, 'ro')
+      case 'created':
+        return b.createdAt.getTime() - a.createdAt.getTime()
+      case 'lastActive': {
+        const aTime = a.lastActive?.getTime() ?? 0
+        const bTime = b.lastActive?.getTime() ?? 0
+        return bTime - aTime
+      }
+      case 'examinations':
+        return b.examinationCount - a.examinationCount
+      case 'status': {
+        const rank = (s: string) =>
+          s === 'active' ? 0 : s === 'trial' ? 1 : 2
+        return rank(a.subscriptionStatus) - rank(b.subscriptionStatus)
+      }
+    }
+  })
+
+  // Global stats for header
+  const totalTenants = tenants.length
+  const activeTenants = tenants.filter(
+    (t) => t.subscriptionStatus === 'active'
+  ).length
+  const demoTenants = tenants.filter((t) => t.isDemo).length
+  const totalExaminations = enriched.reduce((s, t) => s + t.examinationCount, 0)
+
+  const dateFormatter = new Intl.DateTimeFormat(
+    locale === 'ro' ? 'ro-RO' : 'en-US',
+    { dateStyle: 'medium' }
+  )
+
+  function SortLink({
+    sortKey,
+    label,
+  }: {
+    sortKey: SortKey
+    label: string
+  }) {
+    const isActive = sort === sortKey
+    return (
+      <Link
+        href={`/super-admin?sort=${sortKey}`}
+        className={`flex items-center gap-1 hover:text-foreground transition-colors ${
+          isActive ? 'text-foreground font-semibold' : 'text-muted-foreground'
+        }`}
+      >
+        {label}
+        {isActive && <span className="text-xs">↓</span>}
+      </Link>
+    )
+  }
+
+  const demoInviteLabels = {
+    buttonLabel: t('superAdmin.demoInvite.button'),
+    dialogTitle: t('superAdmin.demoInvite.dialogTitle'),
+    dialogDescription: t('superAdmin.demoInvite.dialogDescription'),
+    fieldEmail: t('common.email'),
+    fieldFirstName: t('superAdmin.demoInvite.fieldFirstName'),
+    fieldLastName: t('superAdmin.demoInvite.fieldLastName'),
+    fieldCabinetName: t('superAdmin.demoInvite.fieldCabinetName'),
+    fieldCabinetNameHelp: t('superAdmin.demoInvite.fieldCabinetNameHelp'),
+    fieldLocale: t('superAdmin.demoInvite.fieldLocale'),
+    submit: t('superAdmin.demoInvite.submit'),
+    submitting: t('superAdmin.demoInvite.submitting'),
+    successMessage: t('superAdmin.demoInvite.successMessage'),
+    errorMessage: t('superAdmin.demoInvite.errorMessage'),
+    errorEmailExists: t('superAdmin.demoInvite.errorEmailExists'),
+    cancel: t('common.cancel'),
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">{t('superAdmin.title')}</h1>
           <p className="text-muted-foreground mt-1">{t('superAdmin.subtitle')}</p>
         </div>
-        <Button asChild>
-          <Link href="/super-admin/tenants/new">+ {t('superAdmin.createTenant')}</Link>
-        </Button>
+        <div className="flex gap-2">
+          <DemoInviteButton labels={demoInviteLabels} />
+          <Button asChild>
+            <Link href="/super-admin/tenants/new">
+              + {t('superAdmin.createTenant')}
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      {tenants.length === 0 ? (
+      {/* Global stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label={t('superAdmin.stats.totalTenants')} value={totalTenants} />
+        <StatCard label={t('superAdmin.stats.activeTenants')} value={activeTenants} tone="success" />
+        <StatCard label={t('superAdmin.stats.demoTenants')} value={demoTenants} />
+        <StatCard label={t('superAdmin.stats.totalExaminations')} value={totalExaminations} />
+      </div>
+
+      {sorted.length === 0 ? (
         <div className="border border-dashed rounded-lg p-12 text-center">
           <p className="text-muted-foreground">{t('superAdmin.noTenants')}</p>
         </div>
       ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('superAdmin.tenantsTable.name')}</TableHead>
-                <TableHead>{t('superAdmin.tenantsTable.city')}</TableHead>
-                <TableHead>{t('superAdmin.tenantsTable.subscription')}</TableHead>
-                <TableHead>{t('superAdmin.tenantsTable.status')}</TableHead>
-                <TableHead>{t('common.createdAt')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tenants.map((tenant) => (
-                <TableRow
+        <div className="border rounded-lg overflow-x-auto">
+          <table className="w-full text-sm min-w-[900px]">
+            <thead className="bg-muted/30 text-xs tracking-wide border-b">
+              <tr>
+                <th className="text-left px-4 py-3">
+                  <SortLink sortKey="name" label={t('superAdmin.tenantsTable.name')} />
+                </th>
+                <th className="text-left px-4 py-3 text-muted-foreground">
+                  {t('superAdmin.tenantsTable.city')}
+                </th>
+                <th className="text-left px-4 py-3">
+                  <SortLink sortKey="status" label={t('superAdmin.tenantsTable.subscription')} />
+                </th>
+                <th className="text-right px-4 py-3 text-muted-foreground">
+                  {t('superAdmin.tenantsTable.users')}
+                </th>
+                <th className="text-right px-4 py-3">
+                  <SortLink sortKey="examinations" label={t('superAdmin.tenantsTable.examinations')} />
+                </th>
+                <th className="text-right px-4 py-3 text-muted-foreground">
+                  {t('superAdmin.tenantsTable.employees')}
+                </th>
+                <th className="text-left px-4 py-3">
+                  <SortLink sortKey="lastActive" label={t('superAdmin.tenantsTable.lastActive')} />
+                </th>
+                <th className="text-left px-4 py-3">
+                  <SortLink sortKey="created" label={t('common.createdAt')} />
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {sorted.map((tenant) => (
+                <tr
                   key={tenant.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="hover:bg-muted/30 transition-colors"
                 >
-                  <TableCell className="font-medium">
+                  <td className="px-4 py-3">
                     <Link
                       href={`/super-admin/tenants/${tenant.id}`}
-                      className="block w-full hover:underline"
+                      className="font-medium hover:underline flex items-center gap-2"
                     >
                       {tenant.name}
+                      {tenant.isDemo && (
+                        <span className="inline-block px-1.5 py-0.5 text-xs rounded bg-violet-100 text-violet-700 border border-violet-200 dark:bg-violet-950 dark:text-violet-300">
+                          demo
+                        </span>
+                      )}
                     </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/super-admin/tenants/${tenant.id}`}
-                      className="block w-full"
-                    >
-                      {tenant.city || '—'}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/super-admin/tenants/${tenant.id}`}
-                      className="block w-full text-sm"
-                    >
-                      {t(`superAdmin.subscription.${tenant.subscriptionTier}`)}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/super-admin/tenants/${tenant.id}`}
-                      className="block w-full"
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {tenant.city || '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-sm ${
+                        tenant.subscriptionStatus === 'active'
+                          ? 'text-green-700'
+                          : 'text-muted-foreground'
+                      }`}
                     >
                       <span
-                        className={`inline-flex items-center gap-1.5 text-sm ${
+                        className={`w-1.5 h-1.5 rounded-full ${
                           tenant.subscriptionStatus === 'active'
+                            ? 'bg-green-600'
+                            : 'bg-gray-400'
+                        }`}
+                      />
+                      {t(`superAdmin.subscription.${tenant.subscriptionTier}`)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-muted-foreground">
+                    {tenant.userCount}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium">
+                    {tenant.examinationCount > 0 ? tenant.examinationCount : (
+                      <span className="text-muted-foreground">0</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right text-muted-foreground">
+                    {tenant.employeeCount}
+                  </td>
+                  <td className="px-4 py-3">
+                    {tenant.lastActive ? (
+                      <span
+                        className={`text-sm ${
+                          tenant.lastActive > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
                             ? 'text-green-700'
-                            : 'text-muted-foreground'
+                            : tenant.lastActive > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                              ? 'text-foreground'
+                              : 'text-muted-foreground'
                         }`}
                       >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            tenant.subscriptionStatus === 'active'
-                              ? 'bg-green-600'
-                              : 'bg-gray-400'
-                          }`}
-                        />
-                        {tenant.subscriptionStatus}
+                        {dateFormatter.format(tenant.lastActive)}
                       </span>
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    <Link
-                      href={`/super-admin/tenants/${tenant.id}`}
-                      className="block w-full"
-                    >
-                      {new Intl.DateTimeFormat(locale === 'ro' ? 'ro-RO' : 'en-US', {
-                        dateStyle: 'medium',
-                      }).format(tenant.createdAt)}
-                    </Link>
-                  </TableCell>
-                </TableRow>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">
+                        {t('superAdmin.tenantsTable.neverActive')}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground text-sm">
+                    {dateFormatter.format(tenant.createdAt)}
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       )}
+    </div>
+  )
+}
+
+function StatCard({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string
+  value: number
+  tone?: 'default' | 'success'
+}) {
+  return (
+    <div className="border rounded-lg p-4">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div
+        className={`text-2xl font-bold mt-1 ${
+          tone === 'success' ? 'text-green-700' : ''
+        }`}
+      >
+        {value}
+      </div>
     </div>
   )
 }

@@ -65,7 +65,12 @@
       "city": "City",
       "subscription": "Subscription",
       "status": "Status",
-      "actions": "Actions"
+      "actions": "Actions",
+      "users": "Users",
+      "examinations": "Examinations",
+      "employees": "Employees",
+      "lastActive": "Last active",
+      "neverActive": "Never"
     },
     "noTenants": "No practices registered yet. Create the first practice to get started.",
     "subscription": {
@@ -73,6 +78,27 @@
       "solo": "Solo",
       "practice": "Practice",
       "enterprise": "Enterprise"
+    },
+    "stats": {
+      "totalTenants": "Total tenants",
+      "activeTenants": "Active",
+      "demoTenants": "Demo",
+      "totalExaminations": "Total examinations"
+    },
+    "demoInvite": {
+      "button": "+ Demo",
+      "dialogTitle": "Send demo invitation",
+      "dialogDescription": "Creates a pre-populated demo cabinet and sends an invitation to the practitioner. They receive a link to sign in directly.",
+      "fieldFirstName": "First name",
+      "fieldLastName": "Last name",
+      "fieldCabinetName": "Cabinet name (optional)",
+      "fieldCabinetNameHelp": "Leave empty for \"Cabinet Demo [Last name]\".",
+      "fieldLocale": "Email language",
+      "submit": "Create and send invitation",
+      "submitting": "Creating…",
+      "successMessage": "Demo cabinet created and invitation sent!",
+      "errorMessage": "Something went wrong. Please try again.",
+      "errorEmailExists": "A user with this email already exists."
     }
   },
   "createTenant": {
@@ -108,7 +134,8 @@
       "roles": "Roles",
       "accountStatus": "Account status",
       "activated": "Activated",
-      "pending": "Awaiting activation"
+      "pending": "Awaiting activation",
+      "lastSeen": "Last seen"
     },
     "invitations": {
       "sectionTitle": "Pending invitations",
@@ -138,6 +165,18 @@
       "role_practice_admin": "Administrator",
       "role_practitioner": "Practitioner",
       "role_assistant": "Assistant"
+    },
+    "activityTitle": "Activity",
+    "activity": {
+      "totalExams": "Total examinations",
+      "examsThisMonth": "This month",
+      "thisWeek": "this week",
+      "signedThisMonth": "Signed this month",
+      "overdueRecalls": "Overdue recalls",
+      "pending": "pending",
+      "employees": "Active employees",
+      "companies": "Companies",
+      "lastActive": "Last active"
     }
   },
   "team": {
