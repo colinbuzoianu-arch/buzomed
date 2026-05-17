@@ -196,7 +196,7 @@ export async function seedDemoTenant(
         workplaceId: workplace.id,
         startDate: monthsAgo(8),
         isCurrent: true,
-        reason: 'hired',
+        reasonForChange: 'hired',
       },
     })
   }

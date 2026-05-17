@@ -53,22 +53,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'validation_failed', issues }, { status: 400 })
   }
 
+  // All requireString fields are defined after the issues guard above.
+  const safeEmail = email as string
+  const safeFirstName = firstName as string
+  const safeLastName = lastName as string
+
   const cabinetName =
     (typeof body.cabinetName === 'string' && body.cabinetName.trim())
       ? body.cabinetName.trim()
-      : `Cabinet Demo ${lastName}`
+      : `Cabinet Demo ${safeLastName}`
 
   // Check for existing user with this email
-  const existing = await prisma.user.findUnique({ where: { email } })
+  const existing = await prisma.user.findUnique({ where: { email: safeEmail } })
   if (existing) {
     return NextResponse.json(
-      { error: 'email_already_exists', message: `A user with email ${email} already exists.` },
+      { error: 'email_already_exists', message: `A user with email ${safeEmail} already exists.` },
       { status: 409 }
     )
   }
 
   // Generate a unique demo slug
-  const baseSlug = `demo-${lastName.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now().toString(36)}`
+  const baseSlug = `demo-${safeLastName.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now().toString(36)}`
   const slug = baseSlug.slice(0, 40)
 
   // Check slug uniqueness
@@ -104,9 +109,9 @@ export async function POST(request: NextRequest) {
   const practitioner = await prisma.user.create({
     data: {
       tenantId: tenant.id,
-      email,
-      firstName,
-      lastName,
+      email: safeEmail,
+      firstName: safeFirstName,
+      lastName: safeLastName,
       roles: ['practice_admin', 'practitioner'],
       isActive: true,
     },
@@ -132,10 +137,10 @@ export async function POST(request: NextRequest) {
       fullName: `${actor.firstName} ${actor.lastName}`,
       locale: inviteLocale,
     },
-    email,
+    email: safeEmail,
     role: 'practice_admin',
     tenantId: tenant.id,
-    recipientName: firstName,
+    recipientName: safeFirstName,
     expiryDays: 14,
     appUrl,
   })
