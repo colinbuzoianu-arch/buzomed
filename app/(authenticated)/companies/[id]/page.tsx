@@ -65,6 +65,19 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           priceMonthlyFlat: true,
         },
       },
+      invoices: {
+        where: { deletedAt: null },
+        orderBy: [{ invoiceYear: 'desc' }, { invoiceSequence: 'desc' }],
+        select: {
+          id: true,
+          invoiceNumber: true,
+          status: true,
+          issuedAt: true,
+          dueDate: true,
+          total: true,
+          currency: true,
+        },
+      },
     },
   })
 
@@ -283,6 +296,76 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+      </section>
+
+      {/* Invoices — inline section. */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            {t('invoices.sectionTitle')}{' '}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({company.invoices.length})
+            </span>
+          </h2>
+          {caps.canWriteAdministrative && (
+            <Button asChild size="sm">
+              <Link href={`/companies/${company.id}/invoices/new`}>
+                + {t('invoices.newButton')}
+              </Link>
+            </Button>
+          )}
+        </div>
+        {company.invoices.length === 0 ? (
+          <div className="border border-dashed rounded-lg p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('invoices.empty')}
+            </p>
+            {caps.canWriteAdministrative && (
+              <Button asChild size="sm" className="mt-3">
+                <Link href={`/companies/${company.id}/invoices/new`}>
+                  + {t('invoices.newButton')}
+                </Link>
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="border rounded-lg divide-y">
+            {company.invoices.map((inv) => {
+              const statusClass =
+                inv.status === 'paid'
+                  ? 'text-green-700'
+                  : inv.status === 'overdue'
+                    ? 'text-red-600'
+                    : inv.status === 'issued'
+                      ? 'text-blue-700'
+                      : inv.status === 'cancelled'
+                        ? 'text-muted-foreground'
+                        : 'text-muted-foreground'
+              return (
+                <Link
+                  key={inv.id}
+                  href={`/companies/${company.id}/invoices/${inv.id}`}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors"
+                >
+                  <div>
+                    <div className="text-sm font-medium font-mono">
+                      {inv.invoiceNumber}
+                    </div>
+                    <div className={`text-xs mt-0.5 ${statusClass}`}>
+                      {t(`invoices.status.${inv.status}`)}
+                      {inv.issuedAt && ` · ${dateFormatter.format(inv.issuedAt)}`}
+                      {inv.dueDate && inv.status !== 'paid' && ` · ${t('invoices.dueDate')} ${dateFormatter.format(inv.dueDate)}`}
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold tabular-nums text-right">
+                    {Number(inv.total).toFixed(2)}{' '}
+                    <span className="font-normal text-xs text-muted-foreground">{inv.currency}</span>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         )}
       </section>

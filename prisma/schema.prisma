@@ -164,6 +164,14 @@ enum ContractStatus {
   terminated
 }
 
+enum InvoiceStatus {
+  draft
+  issued
+  paid
+  overdue
+  cancelled
+}
+
 enum AuditAction {
   create
   read
@@ -221,6 +229,8 @@ model Tenant {
   locations           Location[]
   companies           Company[]
   contracts           Contract[]
+  invoices            Invoice[]
+  invoiceItems        InvoiceItem[]
   workplaces          Workplace[]
   employees           Employee[]
   examinations        Examination[]
@@ -377,6 +387,7 @@ model Company {
   tenant              Tenant          @relation(fields: [tenantId], references: [id])
   workplaces          Workplace[]
   contracts           Contract[]
+  invoices            Invoice[]
   medicalEvents       MedicalEvent[]
 
   @@map("companies")
@@ -412,6 +423,7 @@ model Contract {
 
   tenant              Tenant          @relation(fields: [tenantId], references: [id])
   company             Company         @relation(fields: [companyId], references: [id])
+  invoices            Invoice[]
 
   @@map("contracts")
   @@unique([tenantId, contractYear, contractSequence])
@@ -419,6 +431,67 @@ model Contract {
   @@index([companyId])
   @@index([tenantId, status])
   @@index([deletedAt])
+}
+
+model Invoice {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  companyId         String        @map("company_id") @db.Uuid
+  contractId        String?       @map("contract_id") @db.Uuid
+
+  invoiceNumber     String        @map("invoice_number")
+  invoiceYear       Int           @map("invoice_year")
+  invoiceSequence   Int           @map("invoice_sequence")
+
+  status            InvoiceStatus @default(draft)
+  issuedAt          DateTime?     @map("issued_at") @db.Timestamptz
+  dueDate           DateTime?     @map("due_date") @db.Date
+  paidAt            DateTime?     @map("paid_at") @db.Timestamptz
+
+  subtotal          Decimal       @db.Decimal(12, 2)
+  vatRate           Decimal       @default(0) @map("vat_rate") @db.Decimal(5, 4)
+  vatAmount         Decimal       @default(0) @map("vat_amount") @db.Decimal(12, 2)
+  total             Decimal       @db.Decimal(12, 2)
+  currency          String        @default("RON")
+
+  vatExemptReason   String?       @map("vat_exempt_reason")
+  notes             String?
+
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz
+
+  tenant            Tenant        @relation(fields: [tenantId], references: [id])
+  company           Company       @relation(fields: [companyId], references: [id])
+  contract          Contract?     @relation(fields: [contractId], references: [id])
+  items             InvoiceItem[]
+
+  @@map("invoices")
+  @@unique([tenantId, invoiceYear, invoiceSequence])
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([tenantId, status])
+  @@index([deletedAt])
+}
+
+model InvoiceItem {
+  id            String   @id @default(uuid()) @db.Uuid
+  invoiceId     String   @map("invoice_id") @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+
+  description   String
+  quantity      Decimal  @db.Decimal(10, 2)
+  unitPrice     Decimal  @map("unit_price") @db.Decimal(12, 2)
+  lineTotal     Decimal  @map("line_total") @db.Decimal(12, 2)
+
+  sortOrder     Int      @default(0) @map("sort_order")
+
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("invoice_items")
+  @@index([invoiceId])
+  @@index([tenantId])
 }
 
 model Workplace {

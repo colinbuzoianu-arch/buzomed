@@ -1022,5 +1022,56 @@
     "perExamination": "per examination",
     "monthly": "monthly flat",
     "noPriceSet": "—"
+  },
+  "invoices": {
+    "sectionTitle": "Invoices",
+    "newButton": "New invoice",
+    "newTitle": "New invoice",
+    "empty": "No invoices for this company yet.",
+    "currency": "RON",
+    "issuedAt": "Issued",
+    "dueDate": "Due",
+    "paidAt": "Paid",
+    "contract": "Contract",
+    "status": {
+      "draft": "Draft",
+      "issued": "Issued",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "cancelled": "Cancelled"
+    },
+    "actions": {
+      "issue": "Issue invoice",
+      "issuing": "Issuing...",
+      "issueConfirm": "Are you sure you want to issue this invoice? It cannot be edited after issuing.",
+      "pay": "Mark as paid",
+      "paying": "Processing...",
+      "payConfirm": "Mark this invoice as paid?",
+      "deleteConfirm": "Are you sure you want to delete this invoice? This action cannot be undone."
+    },
+    "form": {
+      "contractLabel": "Associated contract",
+      "contractNone": "No contract",
+      "itemsTitle": "Line items",
+      "colDescription": "Description",
+      "colQty": "Qty",
+      "colUnitPrice": "Unit price",
+      "colTotal": "Total",
+      "addItem": "Add item",
+      "removeItem": "Remove",
+      "dueDateLabel": "Due date",
+      "notesLabel": "Notes / remarks",
+      "vatExemptNotice": "VAT exempt (Art. 292)",
+      "subtotalLabel": "Subtotal",
+      "totalLabel": "Total due",
+      "createButton": "Create invoice",
+      "creating": "Creating...",
+      "saveButton": "Save changes",
+      "saving": "Saving...",
+      "errorMessage": "The operation could not complete. Please try again."
+    },
+    "editPage": {
+      "title": "Edit invoice"
+    }
   }
 }

@@ -1022,5 +1022,56 @@
     "perExamination": "per examinare",
     "monthly": "abonament lunar",
     "noPriceSet": "—"
+  },
+  "invoices": {
+    "sectionTitle": "Facturi",
+    "newButton": "Factură nouă",
+    "newTitle": "Factură nouă",
+    "empty": "Nu există facturi pentru această companie încă.",
+    "currency": "RON",
+    "issuedAt": "Data emiterii",
+    "dueDate": "Scadența",
+    "paidAt": "Data plății",
+    "contract": "Contract",
+    "status": {
+      "draft": "Ciornă",
+      "issued": "Emisă",
+      "paid": "Plătită",
+      "overdue": "Restantă",
+      "cancelled": "Anulată"
+    },
+    "actions": {
+      "issue": "Emite factura",
+      "issuing": "Se emite...",
+      "issueConfirm": "Ești sigur că vrei să emiți această factură? Nu mai poate fi editată după emitere.",
+      "pay": "Marchează ca plătită",
+      "paying": "Se procesează...",
+      "payConfirm": "Marchezi această factură ca plătită?",
+      "deleteConfirm": "Sigur vrei să ștergi această factură? Acțiunea este ireversibilă."
+    },
+    "form": {
+      "contractLabel": "Contract asociat",
+      "contractNone": "Fără contract",
+      "itemsTitle": "Poziții factură",
+      "colDescription": "Descriere",
+      "colQty": "Cant.",
+      "colUnitPrice": "Preț unitar",
+      "colTotal": "Total",
+      "addItem": "Adaugă poziție",
+      "removeItem": "Elimină",
+      "dueDateLabel": "Scadența",
+      "notesLabel": "Note / mențiuni",
+      "vatExemptNotice": "Scutit TVA (Art. 292)",
+      "subtotalLabel": "Subtotal",
+      "totalLabel": "Total de plată",
+      "createButton": "Creează factura",
+      "creating": "Se creează...",
+      "saveButton": "Salvează modificările",
+      "saving": "Se salvează...",
+      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
+    },
+    "editPage": {
+      "title": "Editare factură"
+    }
   }
 }
