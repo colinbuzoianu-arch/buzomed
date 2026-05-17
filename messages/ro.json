@@ -286,7 +286,10 @@
       "submitting": "Se salvează...",
       "successCreate": "Compania a fost creată",
       "successUpdate": "Modificările au fost salvate",
-      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
+      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou.",
+      "anafFound": "Firmă găsită în ANAF — câmpurile au fost completate automat.",
+      "anafInactive": "Firmă inactivă în ANAF — verificați înainte de a semna contractul.",
+      "anafPlatitorTva": "Plătitor TVA"
     },
     "viewReport": "Vezi raportul"
   },

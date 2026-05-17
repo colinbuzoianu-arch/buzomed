@@ -43,5 +43,8 @@ export function buildCompanyFormLabels(t: Translator): CompanyFormLabels {
     successCreate: t('companies.form.successCreate'),
     successUpdate: t('companies.form.successUpdate'),
     errorMessage: t('companies.form.errorMessage'),
+    anafFound: t('companies.form.anafFound'),
+    anafInactive: t('companies.form.anafInactive'),
+    anafPlatitorTva: t('companies.form.anafPlatitorTva'),
   }
 }

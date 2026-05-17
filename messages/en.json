@@ -286,7 +286,10 @@
       "submitting": "Saving...",
       "successCreate": "Company created",
       "successUpdate": "Changes saved",
-      "errorMessage": "The operation could not complete. Please try again."
+      "errorMessage": "The operation could not complete. Please try again.",
+      "anafFound": "Company found in ANAF — fields have been autofilled.",
+      "anafInactive": "This company is marked inactive in ANAF — verify before signing a contract.",
+      "anafPlatitorTva": "VAT payer"
     },
     "viewReport": "View report"
   },

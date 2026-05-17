@@ -2,12 +2,13 @@
 
 import { TOAST } from '@/lib/toast'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useAnafLookup, type AnafCompanyData } from '@/hooks/useAnafLookup'
 
 /**
  * Shared form for create + edit of a Company.
@@ -98,6 +99,9 @@ export interface CompanyFormLabels {
   successCreate: string
   successUpdate: string
   errorMessage: string
+  anafFound: string
+  anafInactive: string
+  anafPlatitorTva: string
 }
 
 interface Props {
@@ -116,6 +120,20 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   const isEdit = !!companyId
+
+  const handleAnafSuccess = useCallback((data: AnafCompanyData) => {
+    setForm((prev) => ({
+      ...prev,
+      name: data.denumire || prev.name,
+      registrationNumber: data.nrRegCom || prev.registrationNumber,
+      caenCode: data.codCaen || prev.caenCode,
+      addressLine1: data.adresa || prev.addressLine1,
+      postalCode: data.codPostal || prev.postalCode,
+      phone: data.telefon || prev.phone,
+    }))
+  }, [])
+
+  const { lookup, data: anafData, status: anafStatus, error: anafError } = useAnafLookup(handleAnafSuccess)
 
   function update<K extends keyof CompanyFormValues>(
     key: K,
@@ -228,11 +246,35 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="cui">{labels.fieldCui}</Label>
-            <Input
-              id="cui"
-              value={form.cui}
-              onChange={(e) => update('cui', e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                id="cui"
+                value={form.cui}
+                onChange={(e) => {
+                  update('cui', e.target.value)
+                  lookup(e.target.value)
+                }}
+                placeholder="ex. 12345678"
+                className="pr-8"
+              />
+              {anafStatus === 'loading' && (
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+              )}
+              {(anafStatus === 'found' || anafStatus === 'inactive') && (
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-base leading-none">
+                  {anafStatus === 'found' ? '✓' : '⚠'}
+                </span>
+              )}
+            </div>
+            {anafStatus === 'found' && (
+              <p className="text-xs text-green-700">{labels.anafFound}</p>
+            )}
+            {anafStatus === 'inactive' && (
+              <p className="text-xs text-amber-700 font-medium">{labels.anafInactive}</p>
+            )}
+            {anafStatus === 'error' && anafError && (
+              <p className="text-xs text-muted-foreground">{anafError}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="registrationNumber">
@@ -245,7 +287,14 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="caenCode">{labels.fieldCaenCode}</Label>
+            <Label htmlFor="caenCode" className="flex items-center gap-2">
+              {labels.fieldCaenCode}
+              {anafData?.platitorTva && (
+                <span className="inline-flex items-center rounded-full border border-green-300 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                  {labels.anafPlatitorTva}
+                </span>
+              )}
+            </Label>
             <Input
               id="caenCode"
               value={form.caenCode}
