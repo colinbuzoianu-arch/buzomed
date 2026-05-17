@@ -478,7 +478,20 @@
       "errorCommit": "Import failed. Try again.",
       "errorNoFile": "Select a file",
       "errorNoCompany": "Choose a company first",
-      "errorNoValidRows": "No valid rows to import"
+      "errorNoValidRows": "No valid rows to import",
+      "diffLoading": "Comparing with existing roster…",
+      "diffTitle": "Roster comparison",
+      "diffNew": "New",
+      "diffLeaving": "Not in file",
+      "diffMoved": "Moving",
+      "diffUnchanged": "Unchanged",
+      "diffLeavingNote": "Employees not in this file may have left or this may be a partial roster upload.",
+      "diffFirstImport": "First import —",
+      "diffFirstImportDesc": "all {count} employees will be added to this company.",
+      "diffShowLeaving": "Show not-in-file employees",
+      "diffShowMoved": "Show workplace changes",
+      "workplaceBreakdown": "By workplace",
+      "workplaceUnassigned": "Unassigned"
     }
   },
   "acceptInvite": {

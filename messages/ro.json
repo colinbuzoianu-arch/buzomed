@@ -478,7 +478,20 @@
       "errorCommit": "Importul a eșuat. Încearcă din nou.",
       "errorNoFile": "Selectează un fișier",
       "errorNoCompany": "Alege o companie mai întâi",
-      "errorNoValidRows": "Nu există rânduri valide de importat"
+      "errorNoValidRows": "Nu există rânduri valide de importat",
+      "diffLoading": "Se compară cu baza de date…",
+      "diffTitle": "Comparație cu roster-ul curent",
+      "diffNew": "Noi",
+      "diffLeaving": "Lipsă din fișier",
+      "diffMoved": "Mută loc de muncă",
+      "diffUnchanged": "Nemodificați",
+      "diffLeavingNote": "Angajații care nu apar în fișier pot fi plecați sau fișierul poate fi un roster parțial.",
+      "diffFirstImport": "Primul import —",
+      "diffFirstImportDesc": "toți cei {count} angajați vor fi adăugați la această companie.",
+      "diffShowLeaving": "Arată angajații lipsă din fișier",
+      "diffShowMoved": "Arată schimbările de loc de muncă",
+      "workplaceBreakdown": "Pe loc de muncă",
+      "workplaceUnassigned": "Fără atribuire"
     }
   },
   "acceptInvite": {

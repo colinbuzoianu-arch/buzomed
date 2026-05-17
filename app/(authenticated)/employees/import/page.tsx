@@ -135,6 +135,19 @@ export default async function ImportEmployeesPage() {
             errorNoFile: t('employees.import.errorNoFile'),
             errorNoCompany: t('employees.import.errorNoCompany'),
             errorNoValidRows: t('employees.import.errorNoValidRows'),
+            diffLoading: t('employees.import.diffLoading'),
+            diffTitle: t('employees.import.diffTitle'),
+            diffNew: t('employees.import.diffNew'),
+            diffLeaving: t('employees.import.diffLeaving'),
+            diffMoved: t('employees.import.diffMoved'),
+            diffUnchanged: t('employees.import.diffUnchanged'),
+            diffLeavingNote: t('employees.import.diffLeavingNote'),
+            diffFirstImport: t('employees.import.diffFirstImport'),
+            diffFirstImportDesc: t('employees.import.diffFirstImportDesc'),
+            diffShowLeaving: t('employees.import.diffShowLeaving'),
+            diffShowMoved: t('employees.import.diffShowMoved'),
+            workplaceBreakdown: t('employees.import.workplaceBreakdown'),
+            workplaceUnassigned: t('employees.import.workplaceUnassigned'),
           }}
         />
       )}

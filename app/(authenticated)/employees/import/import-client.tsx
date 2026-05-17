@@ -42,6 +42,14 @@ interface AnnotatedRow extends RawRow {
   workplaceId: string | null
 }
 
+interface DiffResult {
+  currentCount: number
+  new: Array<{ rowNumber: number; firstName: string; lastName: string; toWorkplace: string | null }>
+  leaving: Array<{ id: string; firstName: string; lastName: string; workplace: string }>
+  moved: Array<{ rowNumber: number; firstName: string; lastName: string; fromWorkplace: string; toWorkplace: string }>
+  unchanged: number
+}
+
 type Phase = 'idle' | 'previewing' | 'committing' | 'done'
 
 export function ImportClient({ companies, locale, labels }: Props) {
@@ -56,6 +64,8 @@ export function ImportClient({ companies, locale, labels }: Props) {
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [skipDuplicates, setSkipDuplicates] = useState(true)
+  const [diffResult, setDiffResult] = useState<DiffResult | null>(null)
+  const [diffLoading, setDiffLoading] = useState(false)
   const [commitResult, setCommitResult] = useState<{
     summary: {
       total: number
@@ -152,6 +162,36 @@ export function ImportClient({ companies, locale, labels }: Props) {
         }
       })
       setRows(annotated)
+
+      // Fetch roster diff in background — non-critical, panel just won't show on error
+      const validForDiff = annotated.filter(
+        (r) => r.issues.length === 0 && r.firstName && r.lastName
+      )
+      if (validForDiff.length > 0) {
+        setDiffLoading(true)
+        setDiffResult(null)
+        fetch('/api/employees/import/diff', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            companyId,
+            rows: validForDiff.map((r) => ({
+              rowNumber: r.rowNumber,
+              firstName: r.firstName,
+              lastName: r.lastName,
+              email: r.email,
+              companyEmployeeId: r.companyEmployeeId,
+              department: r.department,
+            })),
+          }),
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data: DiffResult | null) => {
+            if (data) setDiffResult(data)
+          })
+          .catch(() => {})
+          .finally(() => setDiffLoading(false))
+      }
     } catch (err) {
       console.error('Parse error', err)
       setError(labels.errorParse)
@@ -215,6 +255,8 @@ export function ImportClient({ companies, locale, labels }: Props) {
     setParseErrors([])
     setError(null)
     setCommitResult(null)
+    setDiffResult(null)
+    setDiffLoading(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -398,7 +440,20 @@ export function ImportClient({ companies, locale, labels }: Props) {
       {/* Preview */}
       {rows.length > 0 && (
         <>
-          <PreviewSummary rows={rows} labels={labels} />
+          <PreviewSummary
+            rows={rows}
+            workplaces={selectedCompany?.workplaces ?? []}
+            labels={labels}
+          />
+
+          {diffLoading && (
+            <div className="text-xs text-muted-foreground animate-pulse px-1">
+              {labels.diffLoading}
+            </div>
+          )}
+          {diffResult && (
+            <RosterDiffPanel result={diffResult} labels={labels} />
+          )}
 
           <div className="flex items-center gap-2 text-sm">
             <input
@@ -445,22 +500,61 @@ export function ImportClient({ companies, locale, labels }: Props) {
 
 function PreviewSummary({
   rows,
+  workplaces,
   labels,
 }: {
   rows: AnnotatedRow[]
+  workplaces: Array<{ id: string; name: string; department: string | null }>
   labels: Record<string, string>
 }) {
   const valid = rows.filter((r) => r.issues.length === 0).length
   const withIssues = rows.length - valid
+
+  // Workplace breakdown (valid rows only)
+  const byWorkplace = new Map<string, number>()
+  let unassigned = 0
+  for (const row of rows) {
+    if (row.issues.length > 0) continue
+    if (row.workplaceId) {
+      const wp = workplaces.find((w) => w.id === row.workplaceId)
+      const name = wp?.name ?? row.department ?? '?'
+      byWorkplace.set(name, (byWorkplace.get(name) ?? 0) + 1)
+    } else {
+      unassigned++
+    }
+  }
+  const hasBreakdown = byWorkplace.size > 0 || unassigned > 0
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      <StatBox label={labels.rowsTotal} value={rows.length} />
-      <StatBox label={labels.rowsValid} value={valid} tone="success" />
-      <StatBox
-        label={labels.rowsWithIssues}
-        value={withIssues}
-        tone={withIssues > 0 ? 'destructive' : 'default'}
-      />
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <StatBox label={labels.rowsTotal} value={rows.length} />
+        <StatBox label={labels.rowsValid} value={valid} tone="success" />
+        <StatBox
+          label={labels.rowsWithIssues}
+          value={withIssues}
+          tone={withIssues > 0 ? 'destructive' : 'default'}
+        />
+      </div>
+      {hasBreakdown && (
+        <div className="border rounded-lg p-3 text-xs space-y-1">
+          <div className="font-medium text-muted-foreground uppercase tracking-wide text-xs mb-2">
+            {labels.workplaceBreakdown}
+          </div>
+          {Array.from(byWorkplace.entries()).map(([name, count]) => (
+            <div key={name} className="flex justify-between">
+              <span className="text-foreground">{name}</span>
+              <span className="text-muted-foreground tabular-nums">{count}</span>
+            </div>
+          ))}
+          {unassigned > 0 && (
+            <div className="flex justify-between text-amber-700">
+              <span>{labels.workplaceUnassigned}</span>
+              <span className="tabular-nums">{unassigned}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -590,6 +684,81 @@ function PreviewTable({
           })}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+function RosterDiffPanel({
+  result,
+  labels,
+}: {
+  result: DiffResult
+  labels: Record<string, string>
+}) {
+  if (result.currentCount === 0) {
+    return (
+      <div className="border border-green-200 bg-green-50 rounded-lg p-4 text-sm text-green-800">
+        <strong>{labels.diffFirstImport}</strong>{' '}
+        {labels.diffFirstImportDesc.replace('{count}', String(result.new.length))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="border rounded-lg p-4 space-y-3">
+      <div className="text-sm font-medium">{labels.diffTitle}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatBox label={labels.diffNew} value={result.new.length} tone="success" />
+        <StatBox
+          label={labels.diffLeaving}
+          value={result.leaving.length}
+          tone={result.leaving.length > 0 ? 'destructive' : 'default'}
+        />
+        <StatBox label={labels.diffMoved} value={result.moved.length} />
+        <StatBox label={labels.diffUnchanged} value={result.unchanged} />
+      </div>
+      {result.leaving.length > 0 && (
+        <p className="text-xs text-muted-foreground">{labels.diffLeavingNote}</p>
+      )}
+      {result.leaving.length > 0 && (
+        <details>
+          <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">
+            {labels.diffShowLeaving} ({result.leaving.length})
+          </summary>
+          <ul className="mt-2 text-xs space-y-0.5 pl-2 border-l-2 border-muted">
+            {result.leaving.slice(0, 20).map((e) => (
+              <li key={e.id} className="text-muted-foreground">
+                {e.firstName} {e.lastName}
+                {e.workplace ? ` — ${e.workplace}` : ''}
+              </li>
+            ))}
+            {result.leaving.length > 20 && (
+              <li className="italic text-muted-foreground">
+                … +{result.leaving.length - 20}
+              </li>
+            )}
+          </ul>
+        </details>
+      )}
+      {result.moved.length > 0 && (
+        <details>
+          <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">
+            {labels.diffShowMoved} ({result.moved.length})
+          </summary>
+          <ul className="mt-2 text-xs space-y-0.5 pl-2 border-l-2 border-muted">
+            {result.moved.slice(0, 20).map((e, i) => (
+              <li key={i} className="text-muted-foreground">
+                {e.firstName} {e.lastName}: {e.fromWorkplace} → {e.toWorkplace}
+              </li>
+            ))}
+            {result.moved.length > 20 && (
+              <li className="italic text-muted-foreground">
+                … +{result.moved.length - 20}
+              </li>
+            )}
+          </ul>
+        </details>
+      )}
     </div>
   )
 }
