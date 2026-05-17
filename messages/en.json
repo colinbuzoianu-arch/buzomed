@@ -728,7 +728,10 @@
       "saveButton": "Save",
       "saving": "Saving…",
       "savedToast": "✓ Saved",
-      "signedNotice": "This examination is signed and locked. Cancel and create a new one for corrections."
+      "signedNotice": "This examination is signed and locked. Cancel and create a new one for corrections.",
+      "hazardHintHearing": "Hazard: noise exposure",
+      "hazardHintLung": "Hazard: dust / chemical exposure",
+      "hazardHintAdditional": "Hazard: chemical or biological exposure"
     },
     "actions": {
       "start": "Start examination",
@@ -766,7 +769,14 @@
       "draftBanner": "This is a preview. The certificate is only valid once signed.",
       "downloadPdf": "Download PDF"
     },
-    "exportCsv": "Export CSV"
+    "exportCsv": "Export CSV",
+    "priorExam": {
+      "title": "Prior Examination",
+      "signedLabel": "Signed on",
+      "typeLabel": "Examination type",
+      "verdictLabel": "Prior verdict",
+      "vitalSignsTitle": "Prior vital signs"
+    }
   },
   "documents": {
     "sectionTitle": "Documents",

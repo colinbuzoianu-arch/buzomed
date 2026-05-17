@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ExaminationForm } from './examination-form'
 import { ExaminationActions } from './examination-actions'
 import { DocumentsSection } from '@/app/(authenticated)/_components/documents-section'
+import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -49,6 +50,51 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
   })
 
   if (!examination) notFound()
+
+  // Most recent signed examination for the same employee (excluding this one)
+  const priorExam = await prisma.examination.findFirst({
+    where: {
+      tenantId: user.tenantId,
+      employeeId: examination.employeeId,
+      id: { not: examination.id },
+      status: 'completed',
+      signedAt: { not: null },
+      deletedAt: null,
+    },
+    orderBy: { signedAt: 'desc' },
+    select: {
+      id: true,
+      examinationNumber: true,
+      signedAt: true,
+      verdict: true,
+      verdictConditions: true,
+      vitalSigns: true,
+      clinicalFindings: true,
+      recommendations: true,
+      examinationType: { select: { nameRo: true, nameEn: true } },
+    },
+  })
+
+  // Derive which form sections are relevant given the workplace hazard profile
+  const rp = parseRiskProfile(examination.workplace.riskProfile)
+  const hazardHintLabels: Record<string, string> = {}
+  if (rp.physical.noise.present) {
+    hazardHintLabels['hearing'] = t('examinations.form.hazardHintHearing')
+  }
+  if (
+    rp.chemical.dust.present ||
+    rp.chemical.fumes.present ||
+    rp.chemical.vapors.present ||
+    rp.chemical.solvents.present
+  ) {
+    hazardHintLabels['lung'] = t('examinations.form.hazardHintLung')
+  }
+  if (
+    Object.values(rp.chemical).some((h) => h.present) ||
+    Object.values(rp.biological).some((h) => h.present)
+  ) {
+    hazardHintLabels['additional'] = t('examinations.form.hazardHintAdditional')
+  }
 
   const dateFormatter = new Intl.DateTimeFormat(
     locale === 'ro' ? 'ro-RO' : 'en-US',
@@ -204,6 +250,92 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         </div>
       </section>
 
+      {/* Prior examination panel — shown when a previous signed exam exists */}
+      {priorExam && (
+        <details className="border rounded-lg overflow-hidden group">
+          <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/30 select-none list-none">
+            <span className="text-sm font-medium">
+              {t('examinations.priorExam.title')}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              #{priorExam.examinationNumber}
+              {' — '}
+              {dateFormatter.format(priorExam.signedAt!)}
+            </span>
+          </summary>
+          <div className="px-4 pb-4 pt-3 border-t space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">
+                  {t('examinations.priorExam.typeLabel')}
+                </div>
+                <div>
+                  {locale === 'en'
+                    ? (priorExam.examinationType.nameEn ?? priorExam.examinationType.nameRo)
+                    : priorExam.examinationType.nameRo}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">
+                  {t('examinations.priorExam.signedLabel')}
+                </div>
+                <div>{dateFormatter.format(priorExam.signedAt!)}</div>
+              </div>
+              {priorExam.verdict && (
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    {t('examinations.priorExam.verdictLabel')}
+                  </div>
+                  <PriorVerdictBadge verdict={priorExam.verdict} t={t} />
+                  {priorExam.verdictConditions && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {priorExam.verdictConditions}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Prior vital signs */}
+            {priorExam.vitalSigns &&
+              typeof priorExam.vitalSigns === 'object' &&
+              !Array.isArray(priorExam.vitalSigns) && (
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground mb-2">
+                    {t('examinations.priorExam.vitalSignsTitle')}
+                  </div>
+                  <PriorVitalSigns
+                    vitalSigns={priorExam.vitalSigns as Record<string, unknown>}
+                    t={t}
+                  />
+                </div>
+              )}
+
+            {priorExam.clinicalFindings && (
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-1">
+                  {t('examinations.form.fieldClinicalFindings')}
+                </div>
+                <div className="text-sm whitespace-pre-wrap text-muted-foreground">
+                  {priorExam.clinicalFindings}
+                </div>
+              </div>
+            )}
+
+            {priorExam.recommendations && (
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-1">
+                  {t('examinations.form.fieldRecommendations')}
+                </div>
+                <div className="text-sm whitespace-pre-wrap text-muted-foreground">
+                  {priorExam.recommendations}
+                </div>
+              </div>
+            )}
+          </div>
+        </details>
+      )}
+
       <ExaminationForm
         examinationId={examination.id}
         locked={isLocked}
@@ -230,6 +362,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
             : '',
         }}
         defaultIntervalMonths={examination.workplace.examinationIntervalMonths}
+        hazardHintLabels={hazardHintLabels}
         labels={{
           sectionAnamnesis: t('examinations.form.sectionAnamnesis'),
           sectionVitalSigns: t('examinations.form.sectionVitalSigns'),
@@ -315,6 +448,67 @@ function Row({ label, value }: { label: string; value: string | null }) {
       <div className="md:col-span-2 text-sm">
         {value && value !== '' ? value : '—'}
       </div>
+    </div>
+  )
+}
+
+function PriorVerdictBadge({
+  verdict,
+  t,
+}: {
+  verdict: string
+  t: (k: string) => string
+}) {
+  const colors: Record<string, string> = {
+    apt: 'text-green-700 bg-green-50 border-green-200',
+    apt_conditionat: 'text-amber-700 bg-amber-50 border-amber-200',
+    inapt_temporar: 'text-orange-700 bg-orange-50 border-orange-200',
+    inapt: 'text-red-700 bg-red-50 border-red-200',
+  }
+  return (
+    <span
+      className={`inline-block px-2 py-0.5 rounded text-xs border ${
+        colors[verdict] ?? 'text-muted-foreground bg-muted border-muted'
+      }`}
+    >
+      {t(`examinations.form.verdict.${verdict}`)}
+    </span>
+  )
+}
+
+function PriorVitalSigns({
+  vitalSigns,
+  t,
+}: {
+  vitalSigns: Record<string, unknown>
+  t: (k: string) => string
+}) {
+  const num = (k: string) => {
+    const v = vitalSigns[k]
+    return v !== undefined && v !== null && v !== '' ? String(v) : null
+  }
+  const rows = [
+    [t('examinations.form.fieldHeight'), num('height'), 'cm'],
+    [t('examinations.form.fieldWeight'), num('weight'), 'kg'],
+    [t('examinations.form.fieldBmi'), num('bmi'), ''],
+    [t('examinations.form.fieldBpSystolic'), num('bpSystolic'), 'mmHg'],
+    [t('examinations.form.fieldBpDiastolic'), num('bpDiastolic'), 'mmHg'],
+    [t('examinations.form.fieldPulse'), num('pulse'), 'bpm'],
+  ].filter(([, v]) => v !== null) as [string, string, string][]
+
+  if (rows.length === 0) return null
+
+  return (
+    <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+      {rows.map(([label, value, unit]) => (
+        <div key={label} className="flex gap-1">
+          <span className="text-muted-foreground text-xs">{label}:</span>
+          <span className="tabular-nums text-xs">
+            {value}
+            {unit && <span className="text-muted-foreground"> {unit}</span>}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }

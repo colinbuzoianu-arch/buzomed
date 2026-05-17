@@ -102,6 +102,8 @@ interface Props {
   initialValues: ExaminationFormValues
   defaultIntervalMonths: number
   labels: Labels
+  /** Maps section key ('hearing' | 'lung' | 'additional') → translated hint label */
+  hazardHintLabels?: Record<string, string>
 }
 
 // Helpers for read/write of named keys in JSONB sub-objects without
@@ -123,6 +125,7 @@ export function ExaminationForm({
   initialValues,
   defaultIntervalMonths,
   labels,
+  hazardHintLabels,
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -416,7 +419,7 @@ export function ExaminationForm({
       </FormSection>
 
       {/* Hearing */}
-      <FormSection title={labels.sectionHearing}>
+      <FormSection title={labels.sectionHearing} hazardHint={hazardHintLabels?.['hearing']}>
         <Field
           label={labels.fieldHearingLeft}
           value={getStr(values.hearingTest, 'left')}
@@ -441,7 +444,7 @@ export function ExaminationForm({
       </FormSection>
 
       {/* Lung function */}
-      <FormSection title={labels.sectionLung}>
+      <FormSection title={labels.sectionLung} hazardHint={hazardHintLabels?.['lung']}>
         <Field
           label={labels.fieldLungFev1}
           value={getNum(values.lungFunction, 'fev1')}
@@ -478,7 +481,7 @@ export function ExaminationForm({
       </FormSection>
 
       {/* Additional tests */}
-      <FormSection title={labels.sectionAdditional}>
+      <FormSection title={labels.sectionAdditional} hazardHint={hazardHintLabels?.['additional']}>
         <FullWidth>
           <Field
             label={labels.fieldAdditionalLab}
@@ -654,14 +657,26 @@ export function ExaminationForm({
 
 function FormSection({
   title,
+  hazardHint,
   children,
 }: {
   title: string
+  hazardHint?: string
   children: React.ReactNode
 }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-semibold">{title}</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        {hazardHint && (
+          <span
+            title={hazardHint}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200"
+          >
+            ⚑ {hazardHint}
+          </span>
+        )}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>
     </section>
   )

@@ -728,7 +728,10 @@
       "saveButton": "Salvează",
       "saving": "Se salvează…",
       "savedToast": "✓ Salvat",
-      "signedNotice": "Această examinare a fost semnată și este blocată. Pentru corecții, anulează și creează una nouă."
+      "signedNotice": "Această examinare a fost semnată și este blocată. Pentru corecții, anulează și creează una nouă.",
+      "hazardHintHearing": "Risc: expunere la zgomot",
+      "hazardHintLung": "Risc: praf / noxe chimice",
+      "hazardHintAdditional": "Risc: noxe chimice sau biologice"
     },
     "actions": {
       "start": "Începe examinarea",
@@ -766,7 +769,14 @@
       "draftBanner": "Aceasta este o previzualizare. Fișa este validă doar după semnare.",
       "downloadPdf": "Descarcă PDF"
     },
-    "exportCsv": "Exportă CSV"
+    "exportCsv": "Exportă CSV",
+    "priorExam": {
+      "title": "Examinare anterioară",
+      "signedLabel": "Semnată la",
+      "typeLabel": "Tip examinare",
+      "verdictLabel": "Verdict anterior",
+      "vitalSignsTitle": "Semne vitale anterioare"
+    }
   },
   "documents": {
     "sectionTitle": "Documente",
