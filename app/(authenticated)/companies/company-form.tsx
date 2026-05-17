@@ -231,19 +231,6 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{labels.sectionInfo}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="name">
-              {labels.fieldName} <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="name"
-              value={form.name}
-              onChange={(e) => update('name', e.target.value)}
-              placeholder={labels.fieldNamePlaceholder}
-              required
-              autoFocus
-            />
-          </div>
           <div className="space-y-2">
             <Label htmlFor="cui">{labels.fieldCui}</Label>
             <div className="relative">
@@ -256,6 +243,7 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
                 }}
                 placeholder="ex. 12345678"
                 className="pr-8"
+                autoFocus
               />
               {anafStatus === 'loading' && (
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
@@ -266,6 +254,16 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
                 </span>
               )}
             </div>
+            {anafStatus === 'idle' && (
+              <p className="text-xs text-muted-foreground">
+                Introdu CUI-ul și datele firmei se vor completa automat din ANAF
+              </p>
+            )}
+            {anafStatus === 'loading' && (
+              <p className="text-xs text-muted-foreground">
+                Introdu CUI-ul și datele firmei se vor completa automat din ANAF
+              </p>
+            )}
             {anafStatus === 'found' && (
               <p className="text-xs text-green-700">{labels.anafFound}</p>
             )}
@@ -275,6 +273,18 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
             {anafStatus === 'error' && anafError && (
               <p className="text-xs text-muted-foreground">{anafError}</p>
             )}
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="name">
+              {labels.fieldName} <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="name"
+              value={form.name}
+              onChange={(e) => update('name', e.target.value)}
+              placeholder={labels.fieldNamePlaceholder}
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="registrationNumber">
