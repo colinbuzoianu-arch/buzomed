@@ -551,7 +551,49 @@
       "submitCreate": "Creează locul de muncă",
       "submitUpdate": "Salvează modificările",
       "submitting": "Se salvează...",
-      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
+      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou.",
+      "sectionHazardProfile": "Profil de risc (factori de nocivitate)",
+      "sectionHazardProfileHelp": "Bifați factorii prezenți la locul de muncă și specificați intensitatea.",
+      "sectionRequiredExamTypes": "Tipuri de examinare obligatorii",
+      "sectionRequiredExamTypesHelp": "Selectați examinările medicale obligatorii pentru acest loc de muncă.",
+      "hazardCategory": {
+        "physical": "Factori fizici",
+        "chemical": "Factori chimici",
+        "biological": "Factori biologici",
+        "ergonomic": "Factori ergonomici",
+        "psychosocial": "Factori psihosociali"
+      },
+      "hazardName": {
+        "noise": "Zgomot",
+        "vibrations": "Vibrații",
+        "ionizingRadiation": "Radiații ionizante",
+        "electromagneticFields": "Câmpuri electromagnetice",
+        "extremeTemperatures": "Temperaturi extreme",
+        "lightingDeficiency": "Iluminat deficitar",
+        "dust": "Pulberi",
+        "fumes": "Fum / noxe",
+        "vapors": "Vapori",
+        "solvents": "Solvenți",
+        "heavyMetals": "Metale grele",
+        "acidsOrBases": "Acizi / baze",
+        "bacteria": "Bacterii",
+        "viruses": "Virusuri",
+        "fungi": "Fungi",
+        "bloodbornePathogens": "Patogeni transmisi prin sânge",
+        "manualHandling": "Manipulare manuală de greutăți",
+        "repetitiveMovements": "Mișcări repetitive",
+        "awkwardPostures": "Posturi incomode",
+        "screenWork": "Lucru la ecran",
+        "nightShift": "Lucru în ture de noapte",
+        "workplaceStress": "Stres la locul de muncă",
+        "isolatedWork": "Lucru izolat",
+        "violenceRisk": "Risc de violență"
+      },
+      "severityLabel": "Intensitate",
+      "severityLow": "Redusă",
+      "severityMedium": "Medie",
+      "severityHigh": "Ridicată",
+      "notesPlaceholder": "Observații"
     },
     "recentExaminationsTitle": "Examinări recente la acest loc de muncă",
     "noExaminations": "Niciun examen efectuat la acest loc de muncă."
@@ -880,5 +922,53 @@
     "companies": "companii",
     "employees": "angajați",
     "viewFullReport": "Raport complet"
+  },
+  "contracts": {
+    "sectionTitle": "Contracte",
+    "newButton": "Contract nou",
+    "empty": "Nu există contracte pentru această companie încă.",
+    "deleteConfirm": "Sigur doriți să ștergeți contractul {number}?",
+    "deleting": "Se șterge...",
+    "newPage": {
+      "title": "Contract nou",
+      "subtitle": "Adăugați un contract pentru această companie"
+    },
+    "editPage": {
+      "title": "Editare contract"
+    },
+    "form": {
+      "sectionDates": "Perioadă",
+      "sectionPricing": "Tarife",
+      "sectionServices": "Servicii incluse",
+      "fieldStartDate": "Data de început",
+      "fieldEndDate": "Data de încheiere",
+      "fieldEndDateHelp": "Opțional — lasă gol pentru contract pe durată nedeterminată.",
+      "fieldStatus": "Stare",
+      "fieldCurrency": "Monedă",
+      "fieldPricePerExamination": "Preț per examinare",
+      "fieldPriceMonthlyFlat": "Abonament lunar",
+      "fieldServices": "Servicii",
+      "fieldServicesHelp": "Un serviciu per linie.",
+      "fieldNotes": "Note",
+      "submitCreate": "Creează contractul",
+      "submitUpdate": "Salvează modificările",
+      "submitting": "Se salvează...",
+      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou.",
+      "required": "obligatoriu"
+    },
+    "status": {
+      "draft": "Ciornă",
+      "active": "Activ",
+      "expired": "Expirat",
+      "terminated": "Reziliat"
+    },
+    "contractNumber": "Nr. contract",
+    "startDate": "De la",
+    "endDate": "Până la",
+    "openEnded": "Durată nedeterminată",
+    "price": "Tarif",
+    "perExamination": "per examinare",
+    "monthly": "abonament lunar",
+    "noPriceSet": "—"
   }
 }

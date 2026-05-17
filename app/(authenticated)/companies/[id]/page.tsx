@@ -33,9 +33,6 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const company = await prisma.company.findFirst({
     where: { id, tenantId: user.tenantId, deletedAt: null },
     include: {
-      // Inline workplaces — keep this small. For companies with many
-      // workplaces, the per-workplace pages are the right place for
-      // detail.
       workplaces: {
         where: { deletedAt: null },
         orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
@@ -52,6 +49,20 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               },
             },
           },
+        },
+      },
+      contracts: {
+        where: { deletedAt: null },
+        orderBy: [{ contractYear: 'desc' }, { contractSequence: 'desc' }],
+        select: {
+          id: true,
+          contractNumber: true,
+          startDate: true,
+          endDate: true,
+          status: true,
+          currency: true,
+          pricePerExamination: true,
+          priceMonthlyFlat: true,
         },
       },
     },
@@ -203,7 +214,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         </section>
       ))}
 
-      {/* Workplaces — inline section. New in session 5. */}
+      {/* Workplaces — inline section. */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">
@@ -272,6 +283,83 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+      </section>
+
+      {/* Contracts — inline section. */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            {t('contracts.sectionTitle')}{' '}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({company.contracts.length})
+            </span>
+          </h2>
+          {caps.canWriteAdministrative && (
+            <Button asChild size="sm">
+              <Link href={`/companies/${company.id}/contracts/new`}>
+                + {t('contracts.newButton')}
+              </Link>
+            </Button>
+          )}
+        </div>
+        {company.contracts.length === 0 ? (
+          <div className="border border-dashed rounded-lg p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('contracts.empty')}
+            </p>
+            {caps.canWriteAdministrative && (
+              <Button asChild size="sm" className="mt-3">
+                <Link href={`/companies/${company.id}/contracts/new`}>
+                  + {t('contracts.newButton')}
+                </Link>
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="border rounded-lg divide-y">
+            {company.contracts.map((c) => {
+              const statusClass =
+                c.status === 'active'
+                  ? 'text-green-700'
+                  : c.status === 'expired' || c.status === 'terminated'
+                    ? 'text-muted-foreground'
+                    : 'text-muted-foreground'
+              return (
+                <Link
+                  key={c.id}
+                  href={`/companies/${company.id}/contracts/${c.id}`}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors"
+                >
+                  <div>
+                    <div className="text-sm font-medium font-mono">
+                      {c.contractNumber}
+                    </div>
+                    <div className={`text-xs mt-0.5 ${statusClass}`}>
+                      {t(`contracts.status.${c.status}`)}
+                      {' · '}
+                      {dateFormatter.format(c.startDate)}
+                      {c.endDate ? ` → ${dateFormatter.format(c.endDate)}` : ''}
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground text-right">
+                    {c.pricePerExamination != null && (
+                      <div>
+                        {Number(c.pricePerExamination).toFixed(2)} {c.currency}{' '}
+                        / {t('contracts.perExamination')}
+                      </div>
+                    )}
+                    {c.priceMonthlyFlat != null && (
+                      <div>
+                        {Number(c.priceMonthlyFlat).toFixed(2)} {c.currency}{' '}
+                        {t('contracts.monthly')}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         )}
       </section>

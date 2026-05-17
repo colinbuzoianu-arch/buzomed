@@ -157,6 +157,13 @@ enum RecallStatus {
   cancelled
 }
 
+enum ContractStatus {
+  draft
+  active
+  expired
+  terminated
+}
+
 enum AuditAction {
   create
   read
@@ -213,6 +220,7 @@ model Tenant {
   invitations         Invitation[]
   locations           Location[]
   companies           Company[]
+  contracts           Contract[]
   workplaces          Workplace[]
   employees           Employee[]
   examinations        Examination[]
@@ -368,12 +376,49 @@ model Company {
   
   tenant              Tenant          @relation(fields: [tenantId], references: [id])
   workplaces          Workplace[]
+  contracts           Contract[]
   medicalEvents       MedicalEvent[]
-  
+
   @@map("companies")
   @@index([tenantId])
   @@index([tenantId, name])
   @@index([cui])
+}
+
+model Contract {
+  id                  String          @id @default(uuid()) @db.Uuid
+  tenantId            String          @map("tenant_id") @db.Uuid
+  companyId           String          @map("company_id") @db.Uuid
+
+  contractNumber      String          @map("contract_number")
+  contractYear        Int             @map("contract_year")
+  contractSequence    Int             @map("contract_sequence")
+
+  startDate           DateTime        @map("start_date") @db.Date
+  endDate             DateTime?       @map("end_date") @db.Date
+
+  services            Json            @default("[]")
+
+  pricePerExamination Decimal?        @map("price_per_examination") @db.Decimal(10, 2)
+  priceMonthlyFlat    Decimal?        @map("price_monthly_flat") @db.Decimal(10, 2)
+  currency            String          @default("RON")
+
+  status              ContractStatus  @default(draft)
+  notes               String?
+
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt           DateTime?       @map("deleted_at") @db.Timestamptz
+
+  tenant              Tenant          @relation(fields: [tenantId], references: [id])
+  company             Company         @relation(fields: [companyId], references: [id])
+
+  @@map("contracts")
+  @@unique([tenantId, contractYear, contractSequence])
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([tenantId, status])
+  @@index([deletedAt])
 }
 
 model Workplace {

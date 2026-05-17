@@ -115,6 +115,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     updateData.riskAssessmentSignedAt = null
   }
   if (data.isActive !== undefined) updateData.isActive = data.isActive
+  if (data.riskProfile !== undefined) updateData.riskProfile = data.riskProfile
+  if (data.requiredExaminationTypeIds !== undefined) {
+    updateData.requiredExaminationTypeIds = data.requiredExaminationTypeIds
+  }
 
   for (const field of clearableStringFields) {
     if (!(field in body)) continue

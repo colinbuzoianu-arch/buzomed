@@ -6,6 +6,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { WorkplaceForm, type WorkplaceFormValues } from '../../workplace-form'
 import { buildWorkplaceFormLabels } from '../../form-labels'
+import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
 
 interface PageProps {
   params: Promise<{ id: string; wid: string }>
@@ -28,18 +29,30 @@ export default async function EditWorkplacePage({ params }: PageProps) {
   if (!caps.canWriteAdministrative) redirect('/companies')
 
   const { id, wid } = await params
-  const workplace = await prisma.workplace.findFirst({
-    where: {
-      id: wid,
-      companyId: id,
-      tenantId: user.tenantId,
-      deletedAt: null,
-    },
-    include: {
-      company: { select: { id: true, name: true } },
-    },
-  })
+  const [workplace, examinationTypes] = await Promise.all([
+    prisma.workplace.findFirst({
+      where: {
+        id: wid,
+        companyId: id,
+        tenantId: user.tenantId,
+        deletedAt: null,
+      },
+      include: {
+        company: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.examinationType.findMany({
+      where: { isActive: true },
+      orderBy: { nameRo: 'asc' },
+      select: { id: true, nameRo: true, nameEn: true },
+    }),
+  ])
   if (!workplace) notFound()
+
+  const storedIds = workplace.requiredExaminationTypeIds
+  const requiredExaminationTypeIds = Array.isArray(storedIds)
+    ? (storedIds as string[])
+    : []
 
   const initialValues: WorkplaceFormValues = {
     name: workplace.name,
@@ -49,6 +62,8 @@ export default async function EditWorkplacePage({ params }: PageProps) {
     riskAssessmentSignedByCompany: workplace.riskAssessmentSignedByCompany,
     riskAssessmentSignedAt: toDateInput(workplace.riskAssessmentSignedAt),
     isActive: workplace.isActive,
+    riskProfile: parseRiskProfile(workplace.riskProfile),
+    requiredExaminationTypeIds,
   }
 
   const labels = buildWorkplaceFormLabels(t)
@@ -72,6 +87,8 @@ export default async function EditWorkplacePage({ params }: PageProps) {
         workplaceId={workplace.id}
         initialValues={initialValues}
         labels={labels}
+        examinationTypes={examinationTypes}
+        locale={locale}
       />
     </div>
   )

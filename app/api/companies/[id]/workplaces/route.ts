@@ -147,8 +147,10 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
         data.riskAssessmentSignedByCompany ?? false,
       riskAssessmentSignedAt: data.riskAssessmentSignedAt,
       isActive: data.isActive ?? true,
-      // riskProfile and requiredExaminationTypeIds use schema defaults
-      // ({} and [] respectively). Surfaced in session 6.
+      ...(data.riskProfile !== undefined ? { riskProfile: data.riskProfile as Prisma.InputJsonValue } : {}),
+      ...(data.requiredExaminationTypeIds !== undefined
+        ? { requiredExaminationTypeIds: data.requiredExaminationTypeIds }
+        : {}),
     },
   })
 
@@ -163,6 +165,8 @@ export interface ParsedWorkplaceInput {
   riskAssessmentSignedByCompany?: boolean
   riskAssessmentSignedAt?: Date
   isActive?: boolean
+  riskProfile?: Record<string, unknown>
+  requiredExaminationTypeIds?: string[]
 }
 
 export function parseWorkplaceInput(
@@ -214,10 +218,26 @@ export function parseWorkplaceInput(
     }
   }
 
-  // Cross-field: if the cabinet ticked "signed" but didn't pick a date,
-  // and vice versa, we don't reject — the signed flag is the source of
-  // truth. The date is optional context. Real-world the form prevents
-  // this anyway.
+  if (body.riskProfile !== undefined) {
+    if (typeof body.riskProfile !== 'object' || body.riskProfile === null || Array.isArray(body.riskProfile)) {
+      issues.push('riskProfile must be an object')
+    } else {
+      result.riskProfile = body.riskProfile as Record<string, unknown>
+    }
+  }
+
+  if (body.requiredExaminationTypeIds !== undefined) {
+    if (!Array.isArray(body.requiredExaminationTypeIds)) {
+      issues.push('requiredExaminationTypeIds must be an array')
+    } else {
+      const ids = body.requiredExaminationTypeIds as unknown[]
+      if (ids.some((id) => typeof id !== 'string')) {
+        issues.push('requiredExaminationTypeIds must be an array of strings')
+      } else {
+        result.requiredExaminationTypeIds = ids as string[]
+      }
+    }
+  }
 
   return result
 }

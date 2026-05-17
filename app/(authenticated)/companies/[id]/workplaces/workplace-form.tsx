@@ -6,25 +6,23 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
-/**
- * Workplace form — create + edit.
- *
- * Workplaces live under a company; the parent companyId is passed in
- * via props (not URL parsing) so this stays a dumb client component.
- *
- * Risk profile (JSONB) and required examination type IDs are NOT
- * surfaced here — they're session 6 work, when Examination Types exist.
- */
+import {
+  RISK_PROFILE_SCHEMA,
+  emptyRiskProfile,
+  type RiskProfile,
+  type HazardSeverity,
+} from '@/lib/workplaces/risk-profile'
 
 export interface WorkplaceFormValues {
   name: string
   department: string
   description: string
-  examinationIntervalMonths: string // string in form, coerced to int on submit
+  examinationIntervalMonths: string
   riskAssessmentSignedByCompany: boolean
   riskAssessmentSignedAt: string
   isActive: boolean
+  riskProfile: RiskProfile
+  requiredExaminationTypeIds: string[]
 }
 
 export const emptyWorkplaceFormValues: WorkplaceFormValues = {
@@ -35,11 +33,17 @@ export const emptyWorkplaceFormValues: WorkplaceFormValues = {
   riskAssessmentSignedByCompany: false,
   riskAssessmentSignedAt: '',
   isActive: true,
+  riskProfile: emptyRiskProfile(),
+  requiredExaminationTypeIds: [],
 }
 
 export interface WorkplaceFormLabels {
   sectionInfo: string
   sectionRiskAssessment: string
+  sectionHazardProfile: string
+  sectionHazardProfileHelp: string
+  sectionRequiredExamTypes: string
+  sectionRequiredExamTypesHelp: string
   sectionStatus: string
   fieldName: string
   fieldNamePlaceholder: string
@@ -56,6 +60,19 @@ export interface WorkplaceFormLabels {
   submitting: string
   cancel: string
   errorMessage: string
+  hazardCategory: Record<string, string>
+  hazardName: Record<string, string>
+  severityLabel: string
+  severityLow: string
+  severityMedium: string
+  severityHigh: string
+  notesPlaceholder: string
+}
+
+interface ExaminationType {
+  id: string
+  nameRo: string
+  nameEn: string | null
 }
 
 interface Props {
@@ -63,6 +80,8 @@ interface Props {
   workplaceId?: string
   initialValues?: WorkplaceFormValues
   labels: WorkplaceFormLabels
+  examinationTypes: ExaminationType[]
+  locale?: string
 }
 
 export function WorkplaceForm({
@@ -70,6 +89,8 @@ export function WorkplaceForm({
   workplaceId,
   initialValues,
   labels,
+  examinationTypes,
+  locale = 'ro',
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -88,17 +109,47 @@ export function WorkplaceForm({
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  function setHazard(
+    category: keyof RiskProfile,
+    hazard: string,
+    field: 'present' | 'severity' | 'notes',
+    value: boolean | HazardSeverity | string
+  ) {
+    setForm((prev) => {
+      const cat = { ...(prev.riskProfile[category] as Record<string, unknown>) }
+      const entry = { ...(cat[hazard] as Record<string, unknown> ?? { present: false }) }
+      entry[field] = value
+      if (field === 'present' && !value) {
+        delete entry.severity
+        delete entry.notes
+      }
+      cat[hazard] = entry
+      return {
+        ...prev,
+        riskProfile: { ...prev.riskProfile, [category]: cat },
+      }
+    })
+  }
+
+  function toggleExamType(id: string) {
+    setForm((prev) => {
+      const ids = prev.requiredExaminationTypeIds
+      return {
+        ...prev,
+        requiredExaminationTypeIds: ids.includes(id)
+          ? ids.filter((x) => x !== id)
+          : [...ids, id],
+      }
+    })
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
 
     const intervalNum = parseInt(form.examinationIntervalMonths, 10)
-    if (
-      isNaN(intervalNum) ||
-      intervalNum < 1 ||
-      intervalNum > 60
-    ) {
+    if (isNaN(intervalNum) || intervalNum < 1 || intervalNum > 60) {
       setError(labels.errorMessage)
       setSubmitting(false)
       return
@@ -109,16 +160,15 @@ export function WorkplaceForm({
       examinationIntervalMonths: intervalNum,
       riskAssessmentSignedByCompany: form.riskAssessmentSignedByCompany,
       isActive: form.isActive,
+      riskProfile: form.riskProfile,
+      requiredExaminationTypeIds: form.requiredExaminationTypeIds,
     }
 
-    const stringFields: Array<keyof WorkplaceFormValues> = [
-      'department',
-      'description',
-    ]
+    const stringFields: Array<keyof WorkplaceFormValues> = ['department', 'description']
     for (const f of stringFields) {
       const trimmed = (form[f] as string).trim()
       if (isEdit) {
-        payload[f] = trimmed // '' clears
+        payload[f] = trimmed
       } else if (trimmed !== '') {
         payload[f] = trimmed
       }
@@ -135,9 +185,8 @@ export function WorkplaceForm({
       const url = isEdit
         ? `/api/companies/${companyId}/workplaces/${workplaceId}`
         : `/api/companies/${companyId}/workplaces`
-      const method = isEdit ? 'PATCH' : 'POST'
       const response = await fetch(url, {
-        method,
+        method: isEdit ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
@@ -170,6 +219,7 @@ export function WorkplaceForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl">
+      {/* ── Basic info ── */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{labels.sectionInfo}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -204,9 +254,7 @@ export function WorkplaceForm({
               min={1}
               max={60}
               value={form.examinationIntervalMonths}
-              onChange={(e) =>
-                update('examinationIntervalMonths', e.target.value)
-              }
+              onChange={(e) => update('examinationIntervalMonths', e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
               {labels.fieldExaminationIntervalHelp}
@@ -224,6 +272,119 @@ export function WorkplaceForm({
         </div>
       </section>
 
+      {/* ── Hazard profile ── */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">{labels.sectionHazardProfile}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {labels.sectionHazardProfileHelp}
+          </p>
+        </div>
+        <div className="space-y-6">
+          {RISK_PROFILE_SCHEMA.map(({ category, hazards }) => (
+            <div key={category} className="border rounded-lg overflow-hidden">
+              <div className="bg-muted/50 px-4 py-2 border-b">
+                <h3 className="text-sm font-semibold">
+                  {labels.hazardCategory[category] ?? category}
+                </h3>
+              </div>
+              <div className="divide-y">
+                {hazards.map((hazard) => {
+                  const entry = (form.riskProfile[category] as Record<string, { present: boolean; severity?: string; notes?: string }>)[hazard] ?? { present: false }
+                  return (
+                    <div key={hazard} className="px-4 py-3 space-y-2">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={entry.present}
+                          onChange={(e) =>
+                            setHazard(category as keyof RiskProfile, hazard, 'present', e.target.checked)
+                          }
+                        />
+                        <span className="text-sm font-medium">
+                          {labels.hazardName[hazard] ?? hazard}
+                        </span>
+                      </label>
+                      {entry.present && (
+                        <div className="ml-6 flex flex-wrap gap-3">
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">
+                              {labels.severityLabel}
+                            </label>
+                            <select
+                              value={entry.severity ?? ''}
+                              onChange={(e) =>
+                                setHazard(
+                                  category as keyof RiskProfile,
+                                  hazard,
+                                  'severity',
+                                  e.target.value as HazardSeverity
+                                )
+                              }
+                              className="text-sm border rounded-md px-2 py-1 bg-background"
+                            >
+                              <option value="">—</option>
+                              <option value="low">{labels.severityLow}</option>
+                              <option value="medium">{labels.severityMedium}</option>
+                              <option value="high">{labels.severityHigh}</option>
+                            </select>
+                          </div>
+                          <div className="flex-1 min-w-[160px] space-y-1">
+                            <label className="text-xs text-muted-foreground">
+                              {labels.notesPlaceholder}
+                            </label>
+                            <Input
+                              value={entry.notes ?? ''}
+                              onChange={(e) =>
+                                setHazard(
+                                  category as keyof RiskProfile,
+                                  hazard,
+                                  'notes',
+                                  e.target.value
+                                )
+                              }
+                              placeholder={labels.notesPlaceholder}
+                              className="text-sm h-8"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Required examination types ── */}
+      {examinationTypes.length > 0 && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-xl font-semibold">{labels.sectionRequiredExamTypes}</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {labels.sectionRequiredExamTypesHelp}
+            </p>
+          </div>
+          <div className="border rounded-lg divide-y">
+            {examinationTypes.map((et) => (
+              <label key={et.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/50">
+                <input
+                  type="checkbox"
+                  checked={form.requiredExaminationTypeIds.includes(et.id)}
+                  onChange={() => toggleExamType(et.id)}
+                />
+                <span className="text-sm">
+                  {locale === 'en' ? (et.nameEn || et.nameRo) : et.nameRo}
+                </span>
+              </label>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Risk assessment ── */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{labels.sectionRiskAssessment}</h2>
         <div className="space-y-3">
@@ -231,29 +392,24 @@ export function WorkplaceForm({
             <input
               type="checkbox"
               checked={form.riskAssessmentSignedByCompany}
-              onChange={(e) =>
-                update('riskAssessmentSignedByCompany', e.target.checked)
-              }
+              onChange={(e) => update('riskAssessmentSignedByCompany', e.target.checked)}
             />
             <span className="text-sm">{labels.fieldRiskSigned}</span>
           </label>
           <div className="space-y-2 max-w-xs">
-            <Label htmlFor="riskAssessmentSignedAt">
-              {labels.fieldRiskSignedAt}
-            </Label>
+            <Label htmlFor="riskAssessmentSignedAt">{labels.fieldRiskSignedAt}</Label>
             <Input
               id="riskAssessmentSignedAt"
               type="date"
               value={form.riskAssessmentSignedAt}
-              onChange={(e) =>
-                update('riskAssessmentSignedAt', e.target.value)
-              }
+              onChange={(e) => update('riskAssessmentSignedAt', e.target.value)}
               disabled={!form.riskAssessmentSignedByCompany}
             />
           </div>
         </div>
       </section>
 
+      {/* ── Status ── */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{labels.sectionStatus}</h2>
         <label className="flex items-center gap-2">

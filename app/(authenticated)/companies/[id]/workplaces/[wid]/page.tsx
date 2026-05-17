@@ -6,6 +6,11 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { WorkplaceDeleteButton } from './workplace-delete-button'
+import {
+  parseRiskProfile,
+  RISK_PROFILE_SCHEMA,
+  type RiskProfile,
+} from '@/lib/workplaces/risk-profile'
 
 interface PageProps {
   params: Promise<{ id: string; wid: string }>
@@ -78,6 +83,16 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
   ])
 
   if (!workplace) notFound()
+
+  const riskProfile = parseRiskProfile(workplace.riskProfile)
+  const activeHazards: Array<{ category: string; hazard: string }> = []
+  for (const { category, hazards } of RISK_PROFILE_SCHEMA) {
+    for (const hazard of hazards) {
+      if ((riskProfile[category as keyof RiskProfile] as Record<string, { present: boolean }>)[hazard]?.present) {
+        activeHazards.push({ category, hazard })
+      }
+    }
+  }
 
   const dateFormatter = new Intl.DateTimeFormat(
     locale === 'ro' ? 'ro-RO' : 'en-US',
@@ -209,6 +224,57 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
           </div>
         </div>
       </section>
+
+      {/* Hazard profile — new in session 12. */}
+      {activeHazards.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">
+            {t('workplaces.form.sectionHazardProfile')}{' '}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({activeHazards.length})
+            </span>
+          </h2>
+          <div className="border rounded-lg divide-y">
+            {RISK_PROFILE_SCHEMA.map(({ category, hazards }) => {
+              const presentHazards = hazards.filter(
+                (h) => (riskProfile[category as keyof RiskProfile] as Record<string, { present: boolean }>)[h]?.present
+              )
+              if (presentHazards.length === 0) return null
+              return (
+                <div key={category} className="px-4 py-3">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    {t(`workplaces.form.hazardCategory.${category}`)}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {presentHazards.map((hazard) => {
+                      const entry = (riskProfile[category as keyof RiskProfile] as Record<string, { present: boolean; severity?: string }>)[hazard]
+                      return (
+                        <span
+                          key={hazard}
+                          className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${
+                            entry.severity === 'high'
+                              ? 'border-red-300 bg-red-50 text-red-700'
+                              : entry.severity === 'medium'
+                                ? 'border-yellow-300 bg-yellow-50 text-yellow-700'
+                                : 'border-border bg-muted/50 text-foreground'
+                          }`}
+                        >
+                          {t(`workplaces.form.hazardName.${hazard}`)}
+                          {entry.severity && (
+                            <span className="opacity-70">
+                              · {t(`workplaces.form.severity${entry.severity.charAt(0).toUpperCase() + entry.severity.slice(1)}`)}
+                            </span>
+                          )}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">

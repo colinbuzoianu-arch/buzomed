@@ -551,7 +551,49 @@
       "submitCreate": "Create workplace",
       "submitUpdate": "Save changes",
       "submitting": "Saving...",
-      "errorMessage": "The operation could not complete. Please try again."
+      "errorMessage": "The operation could not complete. Please try again.",
+      "sectionHazardProfile": "Risk profile (hazard factors)",
+      "sectionHazardProfileHelp": "Check the hazards present at this workplace and specify their intensity.",
+      "sectionRequiredExamTypes": "Required examination types",
+      "sectionRequiredExamTypesHelp": "Select the mandatory medical examinations for this workplace.",
+      "hazardCategory": {
+        "physical": "Physical factors",
+        "chemical": "Chemical factors",
+        "biological": "Biological factors",
+        "ergonomic": "Ergonomic factors",
+        "psychosocial": "Psychosocial factors"
+      },
+      "hazardName": {
+        "noise": "Noise",
+        "vibrations": "Vibrations",
+        "ionizingRadiation": "Ionizing radiation",
+        "electromagneticFields": "Electromagnetic fields",
+        "extremeTemperatures": "Extreme temperatures",
+        "lightingDeficiency": "Inadequate lighting",
+        "dust": "Dust",
+        "fumes": "Fumes",
+        "vapors": "Vapors",
+        "solvents": "Solvents",
+        "heavyMetals": "Heavy metals",
+        "acidsOrBases": "Acids / bases",
+        "bacteria": "Bacteria",
+        "viruses": "Viruses",
+        "fungi": "Fungi",
+        "bloodbornePathogens": "Bloodborne pathogens",
+        "manualHandling": "Manual handling",
+        "repetitiveMovements": "Repetitive movements",
+        "awkwardPostures": "Awkward postures",
+        "screenWork": "Screen work",
+        "nightShift": "Night shift work",
+        "workplaceStress": "Workplace stress",
+        "isolatedWork": "Isolated work",
+        "violenceRisk": "Violence risk"
+      },
+      "severityLabel": "Severity",
+      "severityLow": "Low",
+      "severityMedium": "Medium",
+      "severityHigh": "High",
+      "notesPlaceholder": "Notes"
     },
     "recentExaminationsTitle": "Recent examinations at this workplace",
     "noExaminations": "No examinations conducted at this workplace."
@@ -880,5 +922,53 @@
     "companies": "companies",
     "employees": "employees",
     "viewFullReport": "Full report"
+  },
+  "contracts": {
+    "sectionTitle": "Contracts",
+    "newButton": "New contract",
+    "empty": "No contracts for this company yet.",
+    "deleteConfirm": "Are you sure you want to delete contract {number}?",
+    "deleting": "Deleting...",
+    "newPage": {
+      "title": "New contract",
+      "subtitle": "Add a contract for this company"
+    },
+    "editPage": {
+      "title": "Edit contract"
+    },
+    "form": {
+      "sectionDates": "Period",
+      "sectionPricing": "Pricing",
+      "sectionServices": "Included services",
+      "fieldStartDate": "Start date",
+      "fieldEndDate": "End date",
+      "fieldEndDateHelp": "Optional — leave blank for an open-ended contract.",
+      "fieldStatus": "Status",
+      "fieldCurrency": "Currency",
+      "fieldPricePerExamination": "Price per examination",
+      "fieldPriceMonthlyFlat": "Monthly flat fee",
+      "fieldServices": "Services",
+      "fieldServicesHelp": "One service per line.",
+      "fieldNotes": "Notes",
+      "submitCreate": "Create contract",
+      "submitUpdate": "Save changes",
+      "submitting": "Saving...",
+      "errorMessage": "The operation could not complete. Please try again.",
+      "required": "required"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "expired": "Expired",
+      "terminated": "Terminated"
+    },
+    "contractNumber": "Contract no.",
+    "startDate": "From",
+    "endDate": "Until",
+    "openEnded": "Open-ended",
+    "price": "Price",
+    "perExamination": "per examination",
+    "monthly": "monthly flat",
+    "noPriceSet": "—"
   }
 }

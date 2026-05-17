@@ -25,10 +25,17 @@ export default async function NewWorkplacePage({ params }: PageProps) {
   }
 
   const { id } = await params
-  const company = await prisma.company.findFirst({
-    where: { id, tenantId: user.tenantId, deletedAt: null },
-    select: { id: true, name: true },
-  })
+  const [company, examinationTypes] = await Promise.all([
+    prisma.company.findFirst({
+      where: { id, tenantId: user.tenantId, deletedAt: null },
+      select: { id: true, name: true },
+    }),
+    prisma.examinationType.findMany({
+      where: { isActive: true },
+      orderBy: { nameRo: 'asc' },
+      select: { id: true, nameRo: true, nameEn: true },
+    }),
+  ])
   if (!company) notFound()
 
   const labels = buildWorkplaceFormLabels(t)
@@ -50,7 +57,12 @@ export default async function NewWorkplacePage({ params }: PageProps) {
         </p>
       </div>
 
-      <WorkplaceForm companyId={company.id} labels={labels} />
+      <WorkplaceForm
+        companyId={company.id}
+        labels={labels}
+        examinationTypes={examinationTypes}
+        locale={locale}
+      />
     </div>
   )
 }
