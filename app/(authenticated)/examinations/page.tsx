@@ -7,6 +7,7 @@ import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import type { ExaminationStatus, RecallStatus } from '@prisma/client'
 import { RecallActions } from '../recalls/recall-actions'
+import { BulkScheduleButton } from '../recalls/bulk-schedule-modal'
 
 /**
  * Merged examinations page (after session 10 fixup).
@@ -447,6 +448,27 @@ async function ScadenteView(props: {
   const visibleRecalls = recalls.filter((r) => r.employee.archivedAt === null)
   const countsMap = Object.fromEntries(allHorizonCounts)
 
+  // Group visible recalls by company for the overview cards
+  type CompanyEntry = {
+    company: { id: string; name: string }
+    overdue: number
+    total: number
+  }
+  const recallByCompanyMap = new Map<string, CompanyEntry>()
+  for (const r of visibleRecalls) {
+    const cid = r.workplace.company.id
+    if (!recallByCompanyMap.has(cid)) {
+      recallByCompanyMap.set(cid, { company: r.workplace.company, overdue: 0, total: 0 })
+    }
+    const entry = recallByCompanyMap.get(cid)!
+    entry.total++
+    if (r.status === 'overdue') entry.overdue++
+  }
+  const companySummary = Array.from(recallByCompanyMap.values()).sort((a, b) => {
+    if (b.overdue !== a.overdue) return b.overdue - a.overdue
+    return b.total - a.total
+  })
+
   const dateFormatter = new Intl.DateTimeFormat(
     props.locale === 'ro' ? 'ro-RO' : 'en-US',
     { dateStyle: 'medium' }
@@ -501,6 +523,81 @@ async function ScadenteView(props: {
           )
         })}
       </div>
+
+      {/* Company overview cards — shown when multiple companies have recalls in this horizon */}
+      {!props.companyIdFilter && companySummary.length > 1 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {companySummary.map(({ company, overdue, total }) => (
+            <div
+              key={company.id}
+              className={`border rounded-lg p-3 space-y-2 ${overdue > 0 ? 'border-destructive/40 bg-destructive/5' : ''}`}
+            >
+              <div className="font-medium text-sm truncate">{company.name}</div>
+              <div className="flex gap-3 text-xs">
+                {overdue > 0 && (
+                  <span className="text-destructive font-medium">
+                    {t('recalls.companyOverdueCount').replace('{count}', String(overdue))}
+                  </span>
+                )}
+                <span className="text-muted-foreground">
+                  {t('recalls.companyTotalCount').replace('{count}', String(total))}
+                </span>
+              </div>
+              <a
+                href={`/examinations?tab=scadente&horizon=${props.horizon}&companyId=${company.id}`}
+                className="inline-block text-xs text-primary hover:underline"
+              >
+                {t('recalls.batchButton').replace('({count})', '').trim()} →
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Bulk schedule button — shown when a company filter is active */}
+      {props.companyIdFilter && props.canWrite && visibleRecalls.length > 0 && (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm text-muted-foreground">
+            {visibleRecalls.length} {t('recalls.companyTotalCount').replace('{count}', '').trim()}
+          </span>
+          <BulkScheduleButton
+            recalls={visibleRecalls.map((r) => ({
+              id: r.id,
+              employeeName: `${r.employee.lastName} ${r.employee.firstName}`,
+              workplaceName: r.workplace.name,
+              examTypeName:
+                props.locale === 'en'
+                  ? (r.examinationType.nameEn ?? r.examinationType.nameRo)
+                  : r.examinationType.nameRo,
+              dueDate: r.dueDate.toISOString(),
+            }))}
+            practitioners={practitioners.map((p) => ({
+              id: p.id,
+              label: `${p.lastName} ${p.firstName}${p.professionalTitle ? ` (${p.professionalTitle})` : ''}`,
+            }))}
+            companyName={companies.find((c) => c.id === props.companyIdFilter)?.name ?? ''}
+            defaultPractitionerId={props.isPractitioner ? props.userId : undefined}
+            labels={{
+              batchButton: t('recalls.batchButton'),
+              batchModalTitle: t('recalls.batchModalTitle'),
+              batchModalSubtitle: t('recalls.batchModalSubtitle'),
+              batchPractitioner: t('recalls.batchPractitioner'),
+              batchStartDate: t('recalls.batchStartDate'),
+              batchStartTime: t('recalls.batchStartTime'),
+              batchStartTimeHelp: t('recalls.batchStartTimeHelp'),
+              batchPreviewTitle: t('recalls.batchPreviewTitle'),
+              batchColWorker: t('recalls.colWorker'),
+              batchColWorkplace: t('recalls.colWorkplace'),
+              batchColExamType: t('recalls.colExamType'),
+              batchColTime: t('recalls.batchColTime'),
+              batchSubmit: t('recalls.batchSubmit'),
+              batchSubmitting: t('recalls.batchSubmitting'),
+              batchCancel: t('recalls.batchCancel'),
+              batchError: t('recalls.errorMessage'),
+            }}
+          />
+        </div>
+      )}
 
       {/* Company filter */}
       {companies.length > 0 && (

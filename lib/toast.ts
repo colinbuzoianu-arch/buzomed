@@ -60,6 +60,10 @@ export const TOAST = {
     toast.success(`Programare creată`, { description: name }),
   recallCancelled: () =>
     toast.success(`Programare anulată`),
+  batchScheduled: (count: number) =>
+    toast.success(`Programări create`, {
+      description: `${count} examinări programate`,
+    }),
 
   // Team
   userUpdated: (name: string) =>

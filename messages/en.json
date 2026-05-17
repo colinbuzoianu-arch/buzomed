@@ -841,7 +841,22 @@
     "cancelReasonLabel": "Reason (optional)",
     "cancelReasonPlaceholder": "e.g. worker left the company",
     "submitCancel": "Confirm cancellation",
-    "errorMessage": "Something went wrong. Please try again."
+    "errorMessage": "Something went wrong. Please try again.",
+    "cancelDialog": "Cancel",
+    "companyOverdueCount": "{count} overdue",
+    "companyTotalCount": "{count} due",
+    "batchButton": "Schedule all ({count})",
+    "batchModalTitle": "Batch schedule — {company}",
+    "batchModalSubtitle": "Examinations will be spaced 20 minutes apart. Set a start time to pre-fill slots.",
+    "batchPractitioner": "Practitioner",
+    "batchStartDate": "Start date",
+    "batchStartTime": "Start time",
+    "batchStartTimeHelp": "Optional — leave empty to create open slots.",
+    "batchPreviewTitle": "Proposed schedule",
+    "batchColTime": "Time",
+    "batchSubmit": "Schedule {count} exams",
+    "batchSubmitting": "Scheduling…",
+    "batchCancel": "Cancel"
   },
   "reports": {
     "title": "Reports",

@@ -841,7 +841,22 @@
     "cancelReasonLabel": "Motiv (opțional)",
     "cancelReasonPlaceholder": "ex: lucrătorul a părăsit compania",
     "submitCancel": "Confirmă anularea",
-    "errorMessage": "A apărut o eroare. Încearcă din nou."
+    "errorMessage": "A apărut o eroare. Încearcă din nou.",
+    "cancelDialog": "Anulează",
+    "companyOverdueCount": "{count} restante",
+    "companyTotalCount": "{count} scadente",
+    "batchButton": "Programare batch ({count})",
+    "batchModalTitle": "Programare batch — {company}",
+    "batchModalSubtitle": "Examinările vor fi distribuite la intervale de 20 de minute. Setează o oră de start pentru a pre-completa sloturile.",
+    "batchPractitioner": "Medic",
+    "batchStartDate": "Data de start",
+    "batchStartTime": "Ora de start",
+    "batchStartTimeHelp": "Opțional — lasă liber pentru a crea programări fără oră.",
+    "batchPreviewTitle": "Programare propusă",
+    "batchColTime": "Ora",
+    "batchSubmit": "Programează {count} examinări",
+    "batchSubmitting": "Se programează…",
+    "batchCancel": "Anulează"
   },
   "reports": {
     "title": "Rapoarte",
