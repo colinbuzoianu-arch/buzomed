@@ -287,15 +287,6 @@ Three audiences:
 
 ### Buzomed's obvious betterness
 
-- **Five excellent standard reports**, not fifty mediocre ones:
-  1. **Annual company health report** — auto-generated narrative + statistics for a company, for the year. AI generates the prose section ("During 2026, X employees were examined. Y were found fit, Z conditionally fit..."), practitioner reviews and edits.
-  2. **Expiration / scheduling overview** — what's due, when, per company
-  3. **Cabinet activity dashboard** — examinations per period, per practitioner, revenue per company
-  4. **Hazard exposure report** — workforce health stats grouped by hazard category (noise-exposed workforce: X people, hearing test trends...)
-  5. **Regulatory snapshot** — generate the format DSP/ITM typically requests on inspection
-- **One CSV export per data table** — for everything else, take it to Excel.
-- **No custom report builder.** We do not build that. (See NEVER_BUILD #10.)
-
 ### MVP scope for Session 5 / 6
 
 - CSV exports for all major tables (V1)

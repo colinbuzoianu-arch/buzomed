@@ -176,11 +176,18 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           {(hasReportingRole || caps.canWriteAdministrative) && (
             <div className="flex items-center gap-2">
               {hasReportingRole && (
-                <Button asChild variant="outline">
-                  <Link href={`/companies/${company.id}/report`}>
-                    {t('companies.viewReport')}
-                  </Link>
-                </Button>
+                <>
+                  <Button asChild variant="outline">
+                    <Link href={`/companies/${company.id}/report`}>
+                      {t('companies.viewReport')}
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href={`/companies/${company.id}/annual-report`}>
+                      {t('companies.viewAnnualReport')}
+                    </Link>
+                  </Button>
+                </>
               )}
               {caps.canWriteAdministrative && (
                 <>

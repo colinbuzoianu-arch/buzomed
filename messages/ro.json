@@ -291,7 +291,8 @@
       "anafInactive": "Firmă inactivă în ANAF — verificați înainte de a semna contractul.",
       "anafPlatitorTva": "Plătitor TVA"
     },
-    "viewReport": "Vezi raportul"
+    "viewReport": "Vezi raportul",
+    "viewAnnualReport": "Raport anual"
   },
   "employees": {
     "title": "Angajați",
@@ -907,6 +908,85 @@
       "company": "Companie",
       "report": "Raport",
       "viewDetail": "Detalii"
+    },
+    "nav": {
+      "activity": "Activitate cabinet",
+      "expiration": "Scadente",
+      "hazards": "Expuneri la noxe",
+      "regulatory": "Snapshot inspectie"
+    },
+    "revenue": {
+      "title": "Venituri facturate",
+      "invoiced": "Total facturat",
+      "paid": "Incasat",
+      "outstanding": "Neincasat",
+      "colCompany": "Companie",
+      "colInvoiced": "Facturat",
+      "colPaid": "Incasat",
+      "colOutstanding": "Neincasat",
+      "noInvoices": "Nicio factura emisa in acest interval."
+    },
+    "perPractitioner": {
+      "title": "Pe medic",
+      "colName": "Medic",
+      "colTotal": "Total",
+      "colApt": "Apt",
+      "colAptConditionat": "Apt cond.",
+      "colInapt": "Inapt",
+      "noPractitioner": "Fara medic asignat"
+    },
+    "expiration": {
+      "title": "Scadente programari",
+      "subtitle": "Angajati cu data scadentei de reexaminare apropiata sau depasita.",
+      "horizon": {
+        "30": "Pana in 30 zile",
+        "60": "Pana in 60 zile",
+        "90": "Pana in 90 zile",
+        "180": "Pana in 180 zile",
+        "label": "Orizont",
+        "overdue": "Restante"
+      },
+      "colWorker": "Angajat",
+      "colCompany": "Companie",
+      "colWorkplace": "Loc de munca",
+      "colDue": "Scadent la",
+      "colDaysLeft": "Zile",
+      "colLastExam": "Ultima exam.",
+      "empty": "Niciun angajat cu scadenta in acest interval.",
+      "exportCsv": "Export CSV",
+      "overdueLabel": "Restant"
+    },
+    "hazards": {
+      "title": "Expunere la noxe",
+      "subtitle": "Angajati expusi per factor de risc, calculat din profilurile locurilor de munca active.",
+      "colCategory": "Categorie",
+      "colHazard": "Factor de risc",
+      "colWorkplaces": "Locuri de munca",
+      "colWorkers": "Angajati expusi",
+      "colExams": "Examinarile in interval",
+      "empty": "Nicio noxa activa definita pentru locurile de munca."
+    },
+    "regulatory": {
+      "title": "Snapshot inspectie DSP/ITM",
+      "subtitle": "Situatie sintetica — format pentru control de inspectie.",
+      "sectionWorkers": "Angajati",
+      "sectionExams": "Examinari medicale",
+      "sectionHazards": "Factori de risc",
+      "sectionRevenue": "Activitate financiara",
+      "totalMonitored": "Angajati in supraveghere medicala",
+      "totalExamined": "Examinati in interval",
+      "totalSigned": "Cu fisa de aptitudine semnata",
+      "apt": "Apti",
+      "aptConditionat": "Apti conditionat",
+      "inaptTemporar": "Innapti temporar",
+      "inapt": "Innapti",
+      "overdueCount": "Scadente depasite",
+      "hazardExposed": "Expusi la cel putin o noxa",
+      "hazardWorkplaces": "Locuri de munca cu noxe declarate",
+      "invoiced": "Total facturat",
+      "paid": "Total incasat",
+      "print": "Printeaza",
+      "exportCsv": "Export CSV"
     }
   },
   "companyReport": {
@@ -1073,5 +1153,34 @@
     "editPage": {
       "title": "Editare factură"
     }
+  },
+  "annualReport": {
+    "title": "Raport anual de activitate",
+    "yearLabel": "An",
+    "backToCompany": "Inapoi la companie",
+    "sectionStats": "Statistici",
+    "sectionProse": "Narativ (generat AI)",
+    "generateProse": "Genereaza narativ",
+    "generating": "Se genereaza...",
+    "proseEditHint": "Textul generat poate fi editat inainte de printare.",
+    "proseApiKeyMissing": "ANTHROPIC_API_KEY nu este configurat pe server.",
+    "proseError": "Generarea a esuat. Incercati din nou.",
+    "print": "Printeaza",
+    "statTotalExams": "Total examinari",
+    "statSigned": "Semnate",
+    "statApt": "Apti",
+    "statAptConditionat": "Apti conditionat",
+    "statInaptTemporar": "Inapti temporar",
+    "statInapt": "Inapti",
+    "statWorkers": "Angajati examinati",
+    "statWorkplaces": "Locuri de munca",
+    "examsTableTitle": "Lista examinari",
+    "colNumber": "Nr.",
+    "colDate": "Data",
+    "colWorker": "Angajat",
+    "colWorkplace": "Loc de munca",
+    "colType": "Tip",
+    "colVerdict": "Verdict",
+    "colSigned": "Fisa"
   }
 }

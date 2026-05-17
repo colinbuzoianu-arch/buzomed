@@ -291,7 +291,8 @@
       "anafInactive": "This company is marked inactive in ANAF — verify before signing a contract.",
       "anafPlatitorTva": "VAT payer"
     },
-    "viewReport": "View report"
+    "viewReport": "View report",
+    "viewAnnualReport": "Annual report"
   },
   "employees": {
     "title": "Employees",
@@ -907,6 +908,85 @@
       "company": "Company",
       "report": "Report",
       "viewDetail": "Details"
+    },
+    "nav": {
+      "activity": "Cabinet activity",
+      "expiration": "Expirations",
+      "hazards": "Hazard exposure",
+      "regulatory": "Inspection snapshot"
+    },
+    "revenue": {
+      "title": "Billed revenue",
+      "invoiced": "Total billed",
+      "paid": "Collected",
+      "outstanding": "Outstanding",
+      "colCompany": "Company",
+      "colInvoiced": "Billed",
+      "colPaid": "Collected",
+      "colOutstanding": "Outstanding",
+      "noInvoices": "No invoices issued in this period."
+    },
+    "perPractitioner": {
+      "title": "By practitioner",
+      "colName": "Practitioner",
+      "colTotal": "Total",
+      "colApt": "Fit",
+      "colAptConditionat": "Cond. fit",
+      "colInapt": "Unfit",
+      "noPractitioner": "No practitioner assigned"
+    },
+    "expiration": {
+      "title": "Examination expirations",
+      "subtitle": "Employees with an upcoming or overdue re-examination date.",
+      "horizon": {
+        "30": "Within 30 days",
+        "60": "Within 60 days",
+        "90": "Within 90 days",
+        "180": "Within 180 days",
+        "label": "Horizon",
+        "overdue": "Overdue"
+      },
+      "colWorker": "Employee",
+      "colCompany": "Company",
+      "colWorkplace": "Workplace",
+      "colDue": "Due date",
+      "colDaysLeft": "Days",
+      "colLastExam": "Last exam",
+      "empty": "No employees with expirations in this period.",
+      "exportCsv": "Export CSV",
+      "overdueLabel": "Overdue"
+    },
+    "hazards": {
+      "title": "Hazard exposure report",
+      "subtitle": "Employees exposed per risk factor, computed from active workplace profiles.",
+      "colCategory": "Category",
+      "colHazard": "Risk factor",
+      "colWorkplaces": "Workplaces",
+      "colWorkers": "Exposed workers",
+      "colExams": "Exams in period",
+      "empty": "No active hazards defined for any workplace."
+    },
+    "regulatory": {
+      "title": "DSP/ITM inspection snapshot",
+      "subtitle": "Synthetic summary — format for inspection purposes.",
+      "sectionWorkers": "Workers",
+      "sectionExams": "Medical examinations",
+      "sectionHazards": "Risk factors",
+      "sectionRevenue": "Financial activity",
+      "totalMonitored": "Workers under medical surveillance",
+      "totalExamined": "Examined in period",
+      "totalSigned": "With signed fitness certificate",
+      "apt": "Fit",
+      "aptConditionat": "Conditionally fit",
+      "inaptTemporar": "Temporarily unfit",
+      "inapt": "Unfit",
+      "overdueCount": "Overdue examinations",
+      "hazardExposed": "Exposed to at least one hazard",
+      "hazardWorkplaces": "Workplaces with declared hazards",
+      "invoiced": "Total billed",
+      "paid": "Total collected",
+      "print": "Print",
+      "exportCsv": "Export CSV"
     }
   },
   "companyReport": {
@@ -1073,5 +1153,34 @@
     "editPage": {
       "title": "Edit invoice"
     }
+  },
+  "annualReport": {
+    "title": "Annual activity report",
+    "yearLabel": "Year",
+    "backToCompany": "Back to company",
+    "sectionStats": "Statistics",
+    "sectionProse": "AI-generated narrative",
+    "generateProse": "Generate narrative",
+    "generating": "Generating...",
+    "proseEditHint": "The generated text can be edited before printing.",
+    "proseApiKeyMissing": "ANTHROPIC_API_KEY is not configured on the server.",
+    "proseError": "Generation failed. Please try again.",
+    "print": "Print",
+    "statTotalExams": "Total examinations",
+    "statSigned": "Signed",
+    "statApt": "Fit",
+    "statAptConditionat": "Conditionally fit",
+    "statInaptTemporar": "Temporarily unfit",
+    "statInapt": "Unfit",
+    "statWorkers": "Workers examined",
+    "statWorkplaces": "Workplaces",
+    "examsTableTitle": "Examination list",
+    "colNumber": "No.",
+    "colDate": "Date",
+    "colWorker": "Employee",
+    "colWorkplace": "Workplace",
+    "colType": "Type",
+    "colVerdict": "Verdict",
+    "colSigned": "Certificate"
   }
 }

@@ -38,25 +38,45 @@ export default async function ReportsPage({ searchParams }: PageProps) {
 
   // Same query path as the API, inlined. Single page; no point doing
   // an HTTP round-trip when this is a server component.
-  const examinations = await prisma.examination.findMany({
-    where: {
-      tenantId: user.tenantId,
-      deletedAt: null,
-      createdAt: { gte: range.from, lt: range.to },
-    },
-    select: {
-      id: true,
-      verdict: true,
-      status: true,
-      signedAt: true,
-      createdAt: true,
-      workplace: {
-        select: {
-          company: { select: { id: true, name: true } },
+  const [examinations, invoices] = await Promise.all([
+    prisma.examination.findMany({
+      where: {
+        tenantId: user.tenantId,
+        deletedAt: null,
+        createdAt: { gte: range.from, lt: range.to },
+      },
+      select: {
+        id: true,
+        verdict: true,
+        status: true,
+        signedAt: true,
+        createdAt: true,
+        practitioner: { select: { id: true, firstName: true, lastName: true } },
+        workplace: {
+          select: {
+            company: { select: { id: true, name: true } },
+          },
         },
       },
-    },
-  })
+    }),
+
+    caps.canWriteAdministrative
+      ? prisma.invoice.findMany({
+          where: {
+            tenantId: user.tenantId,
+            deletedAt: null,
+            status: { notIn: ['draft', 'cancelled'] },
+            issuedAt: { gte: range.from, lt: range.to },
+          },
+          select: {
+            id: true,
+            status: true,
+            total: true,
+            company: { select: { id: true, name: true } },
+          },
+        })
+      : Promise.resolve([]),
+  ])
 
   const overdueRecalls = await prisma.recall.count({
     where: {
@@ -135,6 +155,57 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   }
   const perCompany = Array.from(perCompanyMap.values()).sort(
     (a, b) => b.total - a.total
+  )
+
+  // Per-practitioner breakdown
+  const perPractitionerMap = new Map<
+    string,
+    { name: string; total: number; apt: number; apt_conditionat: number; inapt: number }
+  >()
+  for (const e of examinations) {
+    const key = e.practitioner?.id ?? '__none__'
+    const name = e.practitioner
+      ? `${e.practitioner.lastName} ${e.practitioner.firstName}`
+      : t('reports.perPractitioner.noPractitioner')
+    const existing = perPractitionerMap.get(key) ?? {
+      name,
+      total: 0,
+      apt: 0,
+      apt_conditionat: 0,
+      inapt: 0,
+    }
+    existing.total += 1
+    if (e.verdict === 'apt') existing.apt += 1
+    if (e.verdict === 'apt_conditionat') existing.apt_conditionat += 1
+    if (e.verdict === 'inapt' || e.verdict === 'inapt_temporar') existing.inapt += 1
+    perPractitionerMap.set(key, existing)
+  }
+  const perPractitioner = Array.from(perPractitionerMap.values()).sort(
+    (a, b) => b.total - a.total
+  )
+
+  // Revenue per company
+  const revenueMap = new Map<
+    string,
+    { companyId: string; companyName: string; invoiced: number; paid: number }
+  >()
+  for (const inv of invoices) {
+    const existing = revenueMap.get(inv.company.id) ?? {
+      companyId: inv.company.id,
+      companyName: inv.company.name,
+      invoiced: 0,
+      paid: 0,
+    }
+    existing.invoiced += Number(inv.total)
+    if (inv.status === 'paid') existing.paid += Number(inv.total)
+    revenueMap.set(inv.company.id, existing)
+  }
+  const revenueRows = Array.from(revenueMap.values()).sort(
+    (a, b) => b.invoiced - a.invoiced
+  )
+  const revenueTotals = revenueRows.reduce(
+    (acc, r) => ({ invoiced: acc.invoiced + r.invoiced, paid: acc.paid + r.paid }),
+    { invoiced: 0, paid: 0 }
   )
 
   const monthFormatter = new Intl.DateTimeFormat(
@@ -340,6 +411,86 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           </div>
         )}
       </section>
+      {/* Per-practitioner */}
+      {perPractitioner.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">
+            {t('reports.perPractitioner.title')}
+          </h2>
+          <div className="border rounded-lg overflow-x-auto">
+            <table className="w-full text-sm min-w-[500px]">
+              <thead className="bg-muted/30 text-xs uppercase tracking-wide">
+                <tr>
+                  <th className="text-left px-4 py-2">{t('reports.perPractitioner.colName')}</th>
+                  <th className="text-right px-4 py-2">{t('reports.perPractitioner.colTotal')}</th>
+                  <th className="text-right px-4 py-2">{t('reports.perPractitioner.colApt')}</th>
+                  <th className="text-right px-4 py-2">{t('reports.perPractitioner.colAptConditionat')}</th>
+                  <th className="text-right px-4 py-2">{t('reports.perPractitioner.colInapt')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {perPractitioner.map((p) => (
+                  <tr key={p.name}>
+                    <td className="px-4 py-2 font-medium">{p.name}</td>
+                    <td className="px-4 py-2 text-right font-medium">{p.total}</td>
+                    <td className="px-4 py-2 text-right">{p.apt}</td>
+                    <td className="px-4 py-2 text-right">{p.apt_conditionat}</td>
+                    <td className="px-4 py-2 text-right">{p.inapt}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* Revenue — admin-only */}
+      {caps.canWriteAdministrative && invoices.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">
+            {t('reports.revenue.title')}
+          </h2>
+          <div className="text-xs text-muted-foreground mb-2">
+            {t('reports.revenue.invoiced')}: <strong>{revenueTotals.invoiced.toFixed(2)} RON</strong>
+            {' · '}
+            {t('reports.revenue.paid')}: <strong>{revenueTotals.paid.toFixed(2)} RON</strong>
+            {' · '}
+            {t('reports.revenue.outstanding')}: <strong>{(revenueTotals.invoiced - revenueTotals.paid).toFixed(2)} RON</strong>
+          </div>
+          <div className="border rounded-lg overflow-x-auto">
+            <table className="w-full text-sm min-w-[500px]">
+              <thead className="bg-muted/30 text-xs uppercase tracking-wide">
+                <tr>
+                  <th className="text-left px-4 py-2">{t('reports.revenue.colCompany')}</th>
+                  <th className="text-right px-4 py-2">{t('reports.revenue.colInvoiced')}</th>
+                  <th className="text-right px-4 py-2">{t('reports.revenue.colPaid')}</th>
+                  <th className="text-right px-4 py-2">{t('reports.revenue.colOutstanding')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {revenueRows.map((r) => (
+                  <tr key={r.companyId}>
+                    <td className="px-4 py-2">
+                      <Link href={`/companies/${r.companyId}`} className="hover:underline font-medium">
+                        {r.companyName}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums font-medium">
+                      {r.invoiced.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums text-green-700">
+                      {r.paid.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
+                      {(r.invoiced - r.paid).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   )
 }
