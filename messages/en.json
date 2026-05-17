@@ -407,6 +407,7 @@
     "newExaminationButton": "New examination",
     "examinationsSectionTitle": "Recent examinations",
     "noExaminations": "No examinations recorded for this employee yet.",
+    "downloadFisaTitle": "Download fișa PDF",
     "cnp": {
       "revealButton": "Show",
       "hideButton": "Hide",
@@ -767,7 +768,11 @@
       "backToExamination": "Back to examination",
       "printButton": "Print",
       "draftBanner": "This is a preview. The certificate is only valid once signed.",
-      "downloadPdf": "Download PDF"
+      "downloadPdf": "Download PDF",
+      "saveToDocuments": "Save to Documents",
+      "savingToDocuments": "Saving…",
+      "savedToDocuments": "Saved to Documents",
+      "saveToDocumentsError": "Save failed. Try again."
     },
     "exportCsv": "Export CSV",
     "priorExam": {

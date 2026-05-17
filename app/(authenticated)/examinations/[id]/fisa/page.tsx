@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
+import { FisaArchiveButton } from './fisa-archive-button'
 import './fisa.css'
 
 interface PageProps {
@@ -64,6 +65,21 @@ export default async function FisaPage({ params }: PageProps) {
 
   if (!examination) notFound()
 
+  // Check if a generated fișa is already archived in Documents (for the save button state)
+  const archivedFisa = examination.signedAt
+    ? await prisma.document.findFirst({
+        where: {
+          tenantId: user.tenantId,
+          entityType: 'examination',
+          entityId: id,
+          documentType: 'fisa_aptitudine',
+          isGenerated: true,
+          deletedAt: null,
+        },
+        select: { id: true },
+      })
+    : null
+
   // We render the fișa regardless of signed state for cabinet
   // convenience (e.g., draft preview), but flag it.
   const dateFormatter = new Intl.DateTimeFormat('ro-RO', {
@@ -83,7 +99,19 @@ export default async function FisaPage({ params }: PageProps) {
         >
           ← {t('examinations.fisa.backToExamination')}
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {examination.signedAt && caps.canWriteAdministrative && (
+            <FisaArchiveButton
+              examinationId={examination.id}
+              alreadyArchived={archivedFisa !== null}
+              labels={{
+                save: t('examinations.fisa.saveToDocuments'),
+                saving: t('examinations.fisa.savingToDocuments'),
+                saved: t('examinations.fisa.savedToDocuments'),
+                error: t('examinations.fisa.saveToDocumentsError'),
+              }}
+            />
+          )}
           <a
             href={`/api/examinations/${examination.id}/fisa-pdf`}
             download

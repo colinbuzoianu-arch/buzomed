@@ -407,6 +407,7 @@
     "newExaminationButton": "Examinare nouă",
     "examinationsSectionTitle": "Examinări recente",
     "noExaminations": "Niciun examen înregistrat pentru acest angajat.",
+    "downloadFisaTitle": "Descarcă fișa PDF",
     "cnp": {
       "revealButton": "Afișează",
       "hideButton": "Ascunde",
@@ -767,7 +768,11 @@
       "backToExamination": "Înapoi la examinare",
       "printButton": "Tipărește",
       "draftBanner": "Aceasta este o previzualizare. Fișa este validă doar după semnare.",
-      "downloadPdf": "Descarcă PDF"
+      "downloadPdf": "Descarcă PDF",
+      "saveToDocuments": "Salvează în documente",
+      "savingToDocuments": "Se salvează…",
+      "savedToDocuments": "Salvat în documente",
+      "saveToDocumentsError": "Eroare la salvare. Încearcă din nou."
     },
     "exportCsv": "Exportă CSV",
     "priorExam": {

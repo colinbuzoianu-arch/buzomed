@@ -534,43 +534,69 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
         ) : (
           <div className="border rounded-lg divide-y">
             {recentExaminations.map((e) => (
-              <Link
+              <div
                 key={e.id}
-                href={`/examinations/${e.id}`}
-                className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted transition-colors"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors"
               >
-                <div>
-                  <div className="text-sm font-medium flex items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {e.examinationNumber}
-                    </span>
-                    <span>
-                      {locale === 'en'
-                        ? e.examinationType.nameEn ?? e.examinationType.nameRo
-                        : e.examinationType.nameRo}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {e.signedAt
-                      ? `${t('examinations.signedOn')}: ${dateFormatter.format(e.signedAt)}`
-                      : e.scheduledAt
-                        ? `${t('examinations.scheduledFor')}: ${dateFormatter.format(e.scheduledAt)}`
-                        : dateFormatter.format(e.createdAt)}
-                  </div>
-                </div>
-                <div className="text-xs text-right space-y-1">
-                  <div>
-                    <span className="inline-block px-2 py-0.5 rounded text-xs border">
-                      {t(`examinations.status.${e.status}`)}
-                    </span>
-                  </div>
-                  {e.verdict && (
-                    <div className="text-muted-foreground">
-                      {t(`examinations.form.verdict.${e.verdict}`)}
+                <Link
+                  href={`/examinations/${e.id}`}
+                  className="flex flex-1 items-center justify-between gap-4 min-w-0"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium flex items-center gap-2">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {e.examinationNumber}
+                      </span>
+                      <span className="truncate">
+                        {locale === 'en'
+                          ? e.examinationType.nameEn ?? e.examinationType.nameRo
+                          : e.examinationType.nameRo}
+                      </span>
                     </div>
-                  )}
-                </div>
-              </Link>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {e.signedAt
+                        ? `${t('examinations.signedOn')}: ${dateFormatter.format(e.signedAt)}`
+                        : e.scheduledAt
+                          ? `${t('examinations.scheduledFor')}: ${dateFormatter.format(e.scheduledAt)}`
+                          : dateFormatter.format(e.createdAt)}
+                    </div>
+                  </div>
+                  <div className="text-xs text-right space-y-1 shrink-0">
+                    <div>
+                      <span className="inline-block px-2 py-0.5 rounded text-xs border">
+                        {t(`examinations.status.${e.status}`)}
+                      </span>
+                    </div>
+                    {e.verdict && (
+                      <div className="text-muted-foreground">
+                        {t(`examinations.form.verdict.${e.verdict}`)}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+                {e.signedAt && (
+                  <a
+                    href={`/api/examinations/${e.id}/fisa-pdf`}
+                    download
+                    title={t('employees.downloadFisaTitle')}
+                    className="shrink-0 text-muted-foreground hover:text-foreground p-1 rounded"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                  </a>
+                )}
+              </div>
             ))}
           </div>
         )}
