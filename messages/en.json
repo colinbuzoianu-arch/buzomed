@@ -773,6 +773,8 @@
     "priorExam": {
       "title": "Prior Examination",
       "signedLabel": "Signed on",
+      "createdLabel": "Created on",
+      "draftLabel": "Unsigned",
       "typeLabel": "Examination type",
       "verdictLabel": "Prior verdict",
       "vitalSignsTitle": "Prior vital signs"

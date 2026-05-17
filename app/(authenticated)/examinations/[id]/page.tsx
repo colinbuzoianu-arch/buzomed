@@ -51,20 +51,20 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
 
   if (!examination) notFound()
 
-  // Most recent signed examination for the same employee (excluding this one)
+  // Most recent prior examination for the same employee (excluding cancelled/no_show/this one)
   const priorExam = await prisma.examination.findFirst({
     where: {
       tenantId: user.tenantId,
       employeeId: examination.employeeId,
       id: { not: examination.id },
-      status: 'completed',
-      signedAt: { not: null },
+      status: { notIn: ['cancelled', 'no_show'] },
       deletedAt: null,
     },
-    orderBy: { signedAt: 'desc' },
+    orderBy: { createdAt: 'desc' },
     select: {
       id: true,
       examinationNumber: true,
+      createdAt: true,
       signedAt: true,
       verdict: true,
       verdictConditions: true,
@@ -257,10 +257,15 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
             <span className="text-sm font-medium">
               {t('examinations.priorExam.title')}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="flex items-center gap-2 text-xs text-muted-foreground">
+              {!priorExam.signedAt && (
+                <span className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700">
+                  {t('examinations.priorExam.draftLabel')}
+                </span>
+              )}
               #{priorExam.examinationNumber}
               {' — '}
-              {dateFormatter.format(priorExam.signedAt!)}
+              {dateFormatter.format(priorExam.signedAt ?? priorExam.createdAt)}
             </span>
           </summary>
           <div className="px-4 pb-4 pt-3 border-t space-y-4">
@@ -277,9 +282,13 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
               </div>
               <div>
                 <div className="text-xs text-muted-foreground mb-1">
-                  {t('examinations.priorExam.signedLabel')}
+                  {priorExam.signedAt
+                    ? t('examinations.priorExam.signedLabel')
+                    : t('examinations.priorExam.createdLabel')}
                 </div>
-                <div>{dateFormatter.format(priorExam.signedAt!)}</div>
+                <div>
+                  {dateFormatter.format(priorExam.signedAt ?? priorExam.createdAt)}
+                </div>
               </div>
               {priorExam.verdict && (
                 <div>

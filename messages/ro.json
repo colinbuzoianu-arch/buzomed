@@ -773,6 +773,8 @@
     "priorExam": {
       "title": "Examinare anterioară",
       "signedLabel": "Semnată la",
+      "createdLabel": "Creată la",
+      "draftLabel": "Nesemnată",
       "typeLabel": "Tip examinare",
       "verdictLabel": "Verdict anterior",
       "vitalSignsTitle": "Semne vitale anterioare"
