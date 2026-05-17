@@ -63,5 +63,9 @@ export function buildWorkplaceFormLabels(t: Translator): WorkplaceFormLabels {
     severityMedium: t('workplaces.form.severityMedium'),
     severityHigh: t('workplaces.form.severityHigh'),
     notesPlaceholder: t('workplaces.form.notesPlaceholder'),
+    caenSuggestionsTitle: t('workplaces.form.caenSuggestionsTitle'),
+    caenSuggestionsHint: t('workplaces.form.caenSuggestionsHint'),
+    caenSuggestionsApply: t('workplaces.form.caenSuggestionsApply'),
+    caenSuggestionsApplied: t('workplaces.form.caenSuggestionsApplied'),
   }
 }

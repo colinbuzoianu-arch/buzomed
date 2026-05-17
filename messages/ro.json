@@ -593,7 +593,11 @@
       "severityLow": "Redusă",
       "severityMedium": "Medie",
       "severityHigh": "Ridicată",
-      "notesPlaceholder": "Observații"
+      "notesPlaceholder": "Observații",
+      "caenSuggestionsTitle": "Sugestii bazate pe codul CAEN",
+      "caenSuggestionsHint": "Factorii de risc tipici pentru acest sector de activitate. Aplicați și ajustați după caz.",
+      "caenSuggestionsApply": "Aplică sugestiile",
+      "caenSuggestionsApplied": "Sugestii aplicate"
     },
     "recentExaminationsTitle": "Examinări recente la acest loc de muncă",
     "noExaminations": "Niciun examen efectuat la acest loc de muncă."

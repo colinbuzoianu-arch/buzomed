@@ -28,7 +28,7 @@ export default async function NewWorkplacePage({ params }: PageProps) {
   const [company, examinationTypes] = await Promise.all([
     prisma.company.findFirst({
       where: { id, tenantId: user.tenantId, deletedAt: null },
-      select: { id: true, name: true },
+      select: { id: true, name: true, caenCode: true },
     }),
     prisma.examinationType.findMany({
       where: { isActive: true },
@@ -62,6 +62,7 @@ export default async function NewWorkplacePage({ params }: PageProps) {
         labels={labels}
         examinationTypes={examinationTypes}
         locale={locale}
+        companyCaenCode={company.caenCode}
       />
     </div>
   )

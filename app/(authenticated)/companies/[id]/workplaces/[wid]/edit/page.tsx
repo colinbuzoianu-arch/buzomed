@@ -38,7 +38,7 @@ export default async function EditWorkplacePage({ params }: PageProps) {
         deletedAt: null,
       },
       include: {
-        company: { select: { id: true, name: true } },
+        company: { select: { id: true, name: true, caenCode: true } },
       },
     }),
     prisma.examinationType.findMany({
@@ -89,6 +89,7 @@ export default async function EditWorkplacePage({ params }: PageProps) {
         labels={labels}
         examinationTypes={examinationTypes}
         locale={locale}
+        companyCaenCode={workplace.company.caenCode}
       />
     </div>
   )

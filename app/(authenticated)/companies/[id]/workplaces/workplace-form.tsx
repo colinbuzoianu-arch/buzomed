@@ -10,8 +10,13 @@ import {
   RISK_PROFILE_SCHEMA,
   emptyRiskProfile,
   type RiskProfile,
+  type HazardEntry,
   type HazardSeverity,
 } from '@/lib/workplaces/risk-profile'
+import {
+  getHazardSuggestionsForCaen,
+  type HazardSuggestions,
+} from '@/lib/workplaces/caen-hazards'
 
 export interface WorkplaceFormValues {
   name: string
@@ -67,6 +72,10 @@ export interface WorkplaceFormLabels {
   severityMedium: string
   severityHigh: string
   notesPlaceholder: string
+  caenSuggestionsTitle: string
+  caenSuggestionsHint: string
+  caenSuggestionsApply: string
+  caenSuggestionsApplied: string
 }
 
 interface ExaminationType {
@@ -82,6 +91,7 @@ interface Props {
   labels: WorkplaceFormLabels
   examinationTypes: ExaminationType[]
   locale?: string
+  companyCaenCode?: string | null
 }
 
 export function WorkplaceForm({
@@ -91,6 +101,7 @@ export function WorkplaceForm({
   labels,
   examinationTypes,
   locale = 'ro',
+  companyCaenCode,
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -99,6 +110,9 @@ export function WorkplaceForm({
   )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [suggestionsApplied, setSuggestionsApplied] = useState(false)
+
+  const caenSuggestions: HazardSuggestions | null = getHazardSuggestionsForCaen(companyCaenCode)
 
   const isEdit = !!workplaceId
 
@@ -141,6 +155,24 @@ export function WorkplaceForm({
           : [...ids, id],
       }
     })
+  }
+
+  function applyHazardSuggestions() {
+    if (!caenSuggestions) return
+    setForm((prev) => {
+      const newProfile = { ...prev.riskProfile }
+      for (const [cat, hazards] of Object.entries(caenSuggestions) as [keyof RiskProfile, string[]][]) {
+        const catObj = { ...(newProfile[cat] as Record<string, HazardEntry>) }
+        for (const hazard of hazards) {
+          if (!catObj[hazard]?.present) {
+            catObj[hazard] = { present: true }
+          }
+        }
+        ;(newProfile as Record<string, unknown>)[cat] = catObj
+      }
+      return { ...prev, riskProfile: newProfile }
+    })
+    setSuggestionsApplied(true)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -280,6 +312,35 @@ export function WorkplaceForm({
             {labels.sectionHazardProfileHelp}
           </p>
         </div>
+
+        {caenSuggestions && !suggestionsApplied && (
+          <div className="flex items-start justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-blue-900">
+                {labels.caenSuggestionsTitle}{companyCaenCode ? ` ${companyCaenCode}` : ''}
+              </p>
+              <p className="text-xs text-blue-700 mt-0.5">
+                {labels.caenSuggestionsHint}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="shrink-0 border-blue-300 text-blue-700 hover:bg-blue-100"
+              onClick={applyHazardSuggestions}
+            >
+              {labels.caenSuggestionsApply}
+            </Button>
+          </div>
+        )}
+
+        {suggestionsApplied && (
+          <p className="text-xs text-muted-foreground">
+            ✓ {labels.caenSuggestionsApplied}
+          </p>
+        )}
+
         <div className="space-y-6">
           {RISK_PROFILE_SCHEMA.map(({ category, hazards }) => (
             <div key={category} className="border rounded-lg overflow-hidden">

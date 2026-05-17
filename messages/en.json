@@ -593,7 +593,11 @@
       "severityLow": "Low",
       "severityMedium": "Medium",
       "severityHigh": "High",
-      "notesPlaceholder": "Notes"
+      "notesPlaceholder": "Notes",
+      "caenSuggestionsTitle": "Suggestions based on CAEN code",
+      "caenSuggestionsHint": "Typical hazards for this industry sector. Apply and adjust as needed.",
+      "caenSuggestionsApply": "Apply suggestions",
+      "caenSuggestionsApplied": "Suggestions applied"
     },
     "recentExaminationsTitle": "Recent examinations at this workplace",
     "noExaminations": "No examinations conducted at this workplace."
