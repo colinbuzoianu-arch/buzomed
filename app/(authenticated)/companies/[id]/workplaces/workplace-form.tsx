@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,8 @@ import {
   getHazardSuggestionsForCaen,
   type HazardSuggestions,
 } from '@/lib/workplaces/caen-hazards'
+import { useCaenHazardSuggestion } from '@/hooks/useCaenHazardSuggestion'
+import { CaenHazardSuggestionCard } from '@/components/ai/CaenHazardSuggestionCard'
 
 export interface WorkplaceFormValues {
   name: string
@@ -114,6 +116,26 @@ export function WorkplaceForm({
 
   const caenSuggestions: HazardSuggestions | null = getHazardSuggestionsForCaen(companyCaenCode)
 
+  const {
+    suggest: triggerAiSuggestion,
+    data: aiData,
+    loading: aiLoading,
+    dismiss: dismissAi,
+  } = useCaenHazardSuggestion(companyCaenCode)
+
+  // Auto-trigger once on mount when a valid CAEN code is available.
+  useEffect(() => {
+    triggerAiSuggestion()
+    // triggerAiSuggestion is stable (useCallback); caenCode is fixed for the
+    // lifetime of this form instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Show the AI card while loading or when data is available.
+  const showAiCard = aiLoading || !!aiData
+  // Fall back to the static banner only when the AI card is not present.
+  const showStaticBanner = !showAiCard && !!caenSuggestions && !suggestionsApplied
+
   const isEdit = !!workplaceId
 
   function update<K extends keyof WorkplaceFormValues>(
@@ -172,6 +194,38 @@ export function WorkplaceForm({
       }
       return { ...prev, riskProfile: newProfile }
     })
+    setSuggestionsApplied(true)
+  }
+
+  function applyAiSuggestions(opts: {
+    hazardKeys: string[]
+    intervalMonths: number
+    examTypeIds: string[]
+  }) {
+    setForm((prev) => {
+      const newProfile = { ...prev.riskProfile }
+      for (const hazardKey of opts.hazardKeys) {
+        for (const { category, hazards } of RISK_PROFILE_SCHEMA) {
+          if (hazards.includes(hazardKey)) {
+            const catObj = { ...(newProfile[category] as Record<string, HazardEntry>) }
+            if (!catObj[hazardKey]?.present) {
+              catObj[hazardKey] = { present: true }
+            }
+            ;(newProfile as Record<string, unknown>)[category] = catObj
+            break
+          }
+        }
+      }
+      return {
+        ...prev,
+        riskProfile: newProfile,
+        examinationIntervalMonths: String(opts.intervalMonths),
+        requiredExaminationTypeIds: Array.from(
+          new Set([...prev.requiredExaminationTypeIds, ...opts.examTypeIds])
+        ),
+      }
+    })
+    dismissAi()
     setSuggestionsApplied(true)
   }
 
@@ -313,7 +367,21 @@ export function WorkplaceForm({
           </p>
         </div>
 
-        {caenSuggestions && !suggestionsApplied && (
+        {/* AI-powered suggestion card — shows when API key is configured */}
+        {showAiCard && companyCaenCode && (
+          <CaenHazardSuggestionCard
+            caenCode={companyCaenCode}
+            data={aiData}
+            loading={aiLoading}
+            hazardLabels={labels.hazardName}
+            examinationTypes={examinationTypes}
+            onApply={applyAiSuggestions}
+            onDismiss={dismissAi}
+          />
+        )}
+
+        {/* Static suggestion banner — fallback when AI is unavailable */}
+        {showStaticBanner && (
           <div className="flex items-start justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
             <div>
               <p className="text-sm font-medium text-blue-900">
