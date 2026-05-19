@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import {
   parseImportFile,
   validateRow,
+  aiEnhancedColumnMapping,
   type RawRow,
   type ColumnMapping,
   type ColumnKey,
@@ -52,20 +53,123 @@ interface DiffResult {
 
 type Phase = 'idle' | 'previewing' | 'committing' | 'done'
 
+const COLUMN_KEYS: ColumnKey[] = [
+  'firstName',
+  'lastName',
+  'companyEmployeeId',
+  'email',
+  'department',
+]
+
+function colKeyLabel(key: ColumnKey, labels: Record<string, string>): string {
+  switch (key) {
+    case 'firstName': return labels.colFirstName
+    case 'lastName': return labels.colLastName
+    case 'companyEmployeeId': return labels.colEmployeeId
+    case 'email': return labels.colEmail
+    case 'department': return labels.colDepartment
+  }
+}
+
+function matchWorkplace(company: Company, dept: string | null): Workplace | null {
+  if (!dept) return null
+  const key = dept.toLowerCase().trim()
+  for (const w of company.workplaces) {
+    if (w.department && w.department.toLowerCase() === key) return w
+  }
+  for (const w of company.workplaces) {
+    if (w.name.toLowerCase() === key) return w
+  }
+  return null
+}
+
+function headerToCurrentKey(header: string, mapping: ColumnMapping): ColumnKey | null {
+  for (const [key, h] of Object.entries(mapping.detected) as Array<[ColumnKey, string]>) {
+    if (h === header) return key
+  }
+  return null
+}
+
+function reapplyMapping(originalRows: RawRow[], newMapping: ColumnMapping): RawRow[] {
+  return originalRows.map((row) => {
+    const get = (col: ColumnKey): string | null => {
+      const sourceHeader = newMapping.detected[col]
+      if (!sourceHeader) return null
+      const v = row.raw[sourceHeader]
+      if (v === undefined || v === null) return null
+      const trimmed = String(v).trim()
+      return trimmed === '' ? null : trimmed
+    }
+    return {
+      ...row,
+      firstName: get('firstName'),
+      lastName: get('lastName'),
+      companyEmployeeId: get('companyEmployeeId'),
+      email: get('email'),
+      department: get('department'),
+    }
+  })
+}
+
+function annotateRows(remappedRows: RawRow[], company: Company): AnnotatedRow[] {
+  const seenNames = new Set<string>()
+  const seenEmails = new Set<string>()
+  return remappedRows.map((row) => {
+    const v = validateRow(row)
+    const wp = matchWorkplace(company, row.department)
+    const issues = [...v.issues]
+    const warnings = [...v.warnings]
+
+    if (row.department && !wp) {
+      issues.push('workplace_not_found')
+    }
+
+    const nameKey = `${row.firstName?.toLowerCase()}|${row.lastName?.toLowerCase()}`
+    const emailKey = row.email?.toLowerCase() ?? null
+    const dupName = seenNames.has(nameKey)
+    const dupEmail = emailKey ? seenEmails.has(emailKey) : false
+    if (dupName) warnings.push('duplicate_within_file_name')
+    if (dupEmail) warnings.push('duplicate_within_file_email')
+    if (row.firstName && row.lastName) seenNames.add(nameKey)
+    if (emailKey) seenEmails.add(emailKey)
+
+    return {
+      ...row,
+      issues,
+      warnings,
+      duplicateNameMatch: false,
+      duplicateEmailMatch: false,
+      workplaceMatched: !!wp,
+      workplaceId: wp?.id ?? null,
+    }
+  })
+}
+
 export function ImportClient({ companies, locale, labels }: Props) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Incremented on every new file select or reset; used to ignore stale AI responses.
+  const aiGenRef = useRef(0)
+
   const [companyId, setCompanyId] = useState<string>(
     companies.length === 1 ? companies[0].id : ''
   )
   const [phase, setPhase] = useState<Phase>('idle')
   const [rows, setRows] = useState<AnnotatedRow[]>([])
+  const [rawRows, setRawRows] = useState<RawRow[]>([])
+  const [fileHeaders, setFileHeaders] = useState<string[]>([])
   const [mapping, setMapping] = useState<ColumnMapping | null>(null)
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [skipDuplicates, setSkipDuplicates] = useState(true)
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null)
   const [diffLoading, setDiffLoading] = useState(false)
+  const [aiMappingLoading, setAiMappingLoading] = useState(false)
+  const [aiMappingFailed, setAiMappingFailed] = useState(false)
+  const [aiUsed, setAiUsed] = useState(false)
+  const [aiConfidence, setAiConfidence] = useState<
+    Partial<Record<ColumnKey, 'high' | 'medium' | 'low'>>
+  >({})
   const [commitResult, setCommitResult] = useState<{
     summary: {
       total: number
@@ -82,24 +186,32 @@ export function ImportClient({ companies, locale, labels }: Props) {
 
   const selectedCompany = companies.find((c) => c.id === companyId)
 
-  /**
-   * Workplace matcher. Same algorithm as the server, must stay in sync.
-   * Matches by department field (case-insensitive) or by workplace
-   * name (case-insensitive).
-   */
-  function matchWorkplace(
-    company: Company,
-    dept: string | null
-  ): Workplace | null {
-    if (!dept) return null
-    const key = dept.toLowerCase().trim()
-    for (const w of company.workplaces) {
-      if (w.department && w.department.toLowerCase() === key) return w
-    }
-    for (const w of company.workplaces) {
-      if (w.name.toLowerCase() === key) return w
-    }
-    return null
+  function runDiff(cid: string, annotated: AnnotatedRow[]) {
+    const validForDiff = annotated.filter(
+      (r) => r.issues.length === 0 && r.firstName && r.lastName
+    )
+    if (validForDiff.length === 0) return
+    setDiffLoading(true)
+    setDiffResult(null)
+    fetch('/api/employees/import/diff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyId: cid,
+        rows: validForDiff.map((r) => ({
+          rowNumber: r.rowNumber,
+          firstName: r.firstName,
+          lastName: r.lastName,
+          email: r.email,
+          companyEmployeeId: r.companyEmployeeId,
+          department: r.department,
+        })),
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: DiffResult | null) => { if (data) setDiffResult(data) })
+      .catch(() => {})
+      .finally(() => setDiffLoading(false))
   }
 
   async function handleFileSelect(file: File) {
@@ -107,9 +219,15 @@ export function ImportClient({ companies, locale, labels }: Props) {
       setError(labels.errorNoCompany)
       return
     }
+    const company = selectedCompany // capture at call time
     setError(null)
     setParseErrors([])
     setPhase('previewing')
+    setAiUsed(false)
+    setAiConfidence({})
+    setAiMappingFailed(false)
+    aiGenRef.current++
+    const myGen = aiGenRef.current
 
     try {
       let result: Awaited<ReturnType<typeof parseImportFile>>
@@ -126,76 +244,106 @@ export function ImportClient({ companies, locale, labels }: Props) {
 
       setMapping(result.mapping)
       setParseErrors(result.parseErrors)
+      setRawRows(result.rows)
 
-      // Annotate rows with validation + workplace + duplicate info.
-      // Duplicate-within-file detection: build a set of seen names as
-      // we go and mark second occurrences.
-      const seenNames = new Set<string>()
-      const seenEmails = new Set<string>()
-      const annotated: AnnotatedRow[] = result.rows.map((row) => {
-        const v = validateRow(row)
-        const wp = matchWorkplace(selectedCompany, row.department)
-        const issues = [...v.issues]
-        const warnings = [...v.warnings]
+      // Reconstruct ordered headers from the first row's raw data.
+      const headers =
+        result.rows.length > 0
+          ? Object.keys(result.rows[0].raw)
+          : [
+              ...Object.values(result.mapping.detected),
+              ...result.mapping.unmappedHeaders,
+            ]
+      setFileHeaders(headers)
 
-        if (row.department && !wp) {
-          issues.push('workplace_not_found')
-        }
-
-        const nameKey = `${row.firstName?.toLowerCase()}|${row.lastName?.toLowerCase()}`
-        const emailKey = row.email?.toLowerCase() ?? null
-        const dupName = seenNames.has(nameKey)
-        const dupEmail = emailKey ? seenEmails.has(emailKey) : false
-        if (dupName) warnings.push('duplicate_within_file_name')
-        if (dupEmail) warnings.push('duplicate_within_file_email')
-        if (row.firstName && row.lastName) seenNames.add(nameKey)
-        if (emailKey) seenEmails.add(emailKey)
-
-        return {
-          ...row,
-          issues,
-          warnings,
-          duplicateNameMatch: false, // DB-side dup; preview doesn't check this
-          duplicateEmailMatch: false,
-          workplaceMatched: !!wp,
-          workplaceId: wp?.id ?? null,
-        }
-      })
+      const annotated = annotateRows(result.rows, company)
       setRows(annotated)
+      runDiff(companyId, annotated)
 
-      // Fetch roster diff in background — non-critical, panel just won't show on error
-      const validForDiff = annotated.filter(
-        (r) => r.issues.length === 0 && r.firstName && r.lastName
-      )
-      if (validForDiff.length > 0) {
-        setDiffLoading(true)
-        setDiffResult(null)
-        fetch('/api/employees/import/diff', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            companyId,
-            rows: validForDiff.map((r) => ({
-              rowNumber: r.rowNumber,
-              firstName: r.firstName,
-              lastName: r.lastName,
-              email: r.email,
-              companyEmployeeId: r.companyEmployeeId,
-              department: r.department,
-            })),
-          }),
-        })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data: DiffResult | null) => {
-            if (data) setDiffResult(data)
+      // Trigger AI column mapping when ≥2 required columns are undetected.
+      if (result.mapping.missingColumns.length >= 2) {
+        setAiMappingLoading(true)
+        aiEnhancedColumnMapping(headers, result.mapping)
+          .then((aiResult) => {
+            if (aiGenRef.current !== myGen) return // stale — user reset or re-uploaded
+            if (!aiResult.aiUsed) {
+              setAiMappingFailed(true)
+              return
+            }
+            setMapping(aiResult.mapping)
+            setAiUsed(true)
+            setAiConfidence(aiResult.confidence)
+            const remapped = reapplyMapping(result.rows, aiResult.mapping)
+            const reAnnotated = annotateRows(remapped, company)
+            setRows(reAnnotated)
+            runDiff(companyId, reAnnotated)
           })
-          .catch(() => {})
-          .finally(() => setDiffLoading(false))
+          .finally(() => {
+            if (aiGenRef.current === myGen) setAiMappingLoading(false)
+          })
       }
     } catch (err) {
       console.error('Parse error', err)
       setError(labels.errorParse)
       setPhase('idle')
+    }
+  }
+
+  function handleMappingOverride(sourceHeader: string, newKey: ColumnKey | '') {
+    if (!mapping || !selectedCompany) return
+
+    const newDetected = { ...mapping.detected }
+    const newUnmapped = [...mapping.unmappedHeaders]
+
+    // Remove current assignment of this header (if any)
+    const oldKey = (
+      Object.entries(newDetected).find(([, h]) => h === sourceHeader)?.[0]
+    ) as ColumnKey | undefined
+    if (oldKey) {
+      delete newDetected[oldKey]
+    } else {
+      const idx = newUnmapped.indexOf(sourceHeader)
+      if (idx >= 0) newUnmapped.splice(idx, 1)
+    }
+
+    if (newKey) {
+      // Displace existing occupant (if any) to unmapped
+      const displaced = newDetected[newKey as ColumnKey]
+      if (displaced && displaced !== sourceHeader) {
+        newUnmapped.push(displaced)
+      }
+      newDetected[newKey as ColumnKey] = sourceHeader
+    } else {
+      // Explicit unassign — header goes back to unmapped
+      newUnmapped.push(sourceHeader)
+    }
+
+    const REQUIRED: ColumnKey[] = ['firstName', 'lastName']
+    const missingColumns = REQUIRED.filter((c) => !newDetected[c])
+    const newMapping: ColumnMapping = {
+      detected: newDetected,
+      unmappedHeaders: newUnmapped,
+      missingColumns,
+    }
+
+    setMapping(newMapping)
+
+    // Clear AI confidence badge for manually overridden slots
+    if (oldKey || newKey) {
+      setAiConfidence((prev) => {
+        const updated = { ...prev }
+        if (oldKey) delete updated[oldKey]
+        if (newKey) delete updated[newKey as ColumnKey]
+        return updated
+      })
+    }
+
+    // Re-annotate rows and refresh diff
+    if (rawRows.length > 0) {
+      const remapped = reapplyMapping(rawRows, newMapping)
+      const reAnnotated = annotateRows(remapped, selectedCompany)
+      setRows(reAnnotated)
+      runDiff(companyId, reAnnotated)
     }
   }
 
@@ -249,14 +397,21 @@ export function ImportClient({ companies, locale, labels }: Props) {
   }
 
   function reset() {
+    aiGenRef.current++ // invalidate any in-flight AI calls
     setPhase('idle')
     setRows([])
+    setRawRows([])
+    setFileHeaders([])
     setMapping(null)
     setParseErrors([])
     setError(null)
     setCommitResult(null)
     setDiffResult(null)
     setDiffLoading(false)
+    setAiMappingLoading(false)
+    setAiMappingFailed(false)
+    setAiUsed(false)
+    setAiConfidence({})
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -367,7 +522,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
               <p className="mt-2">
                 <a
                   href={`data:text/csv;charset=utf-8,${encodeURIComponent(
-                    '\uFEFFprenume,nume,id angajat,email,departament\r\n' +
+                    '﻿prenume,nume,id angajat,email,departament\r\n' +
                       'Andreea,Popescu,1001,andreea@example.com,Sudor\r\n' +
                       'Mihai,Ionescu,1002,mihai@example.com,Birou\r\n'
                   )}`}
@@ -402,36 +557,88 @@ export function ImportClient({ companies, locale, labels }: Props) {
         </div>
       )}
 
-      {/* Column mapping summary */}
+      {/* Column mapping panel */}
       {mapping && (
-        <div className="text-sm space-y-2 border rounded-lg p-4 bg-muted/30">
-          <div>
-            <span className="font-medium">{labels.mappingDetected}:</span>{' '}
-            {Object.entries(mapping.detected).length === 0 ? (
-              <span className="text-muted-foreground">—</span>
-            ) : (
-              Object.entries(mapping.detected).map(
-                ([col, header], idx, arr) => (
-                  <span key={col}>
-                    <code className="text-xs bg-background px-1 rounded">
-                      {header}
-                    </code>{' '}
-                    → <strong>{col}</strong>
-                    {idx < arr.length - 1 && ', '}
-                  </span>
-                )
-              )
-            )}
-          </div>
-          {mapping.missingColumns.length > 0 && (
-            <div className="text-destructive">
-              <span className="font-medium">{labels.mappingMissing}:</span>{' '}
-              {mapping.missingColumns.join(', ')}
+        <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
+          {/* AI status indicators */}
+          {aiMappingLoading && (
+            <div className="flex items-center gap-2 text-xs text-violet-600">
+              <span className="inline-block w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+              {labels.mappingAiLoading}
             </div>
           )}
-          {mapping.unmappedHeaders.length > 0 && (
-            <div className="text-muted-foreground text-xs">
-              {labels.mappingUnmapped}: {mapping.unmappedHeaders.join(', ')}
+          {aiMappingFailed && !aiMappingLoading && (
+            <div className="text-xs text-amber-700">
+              ⚠ {labels.mappingAiTimeout}
+            </div>
+          )}
+          {aiUsed && !aiMappingLoading && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 uppercase tracking-wide">
+                AI
+              </span>
+              <p className="text-xs text-violet-600">{labels.mappingAiNote}</p>
+            </div>
+          )}
+
+          {/* All headers with override dropdowns */}
+          {fileHeaders.length > 0 && (
+            <div>
+              <span className="text-sm font-medium">{labels.mappingDetected}:</span>
+              <div className="mt-2 space-y-2">
+                {fileHeaders.map((header) => {
+                  const currentKey = headerToCurrentKey(header, mapping)
+                  const conf = currentKey ? aiConfidence[currentKey] : undefined
+                  const isAiMapped = aiUsed && conf !== undefined
+                  const isLowConf = isAiMapped && conf === 'low'
+                  return (
+                    <div
+                      key={header}
+                      className={`flex items-center gap-2 flex-wrap text-sm${isLowConf ? ' rounded bg-amber-50 px-2 py-0.5' : ''}`}
+                    >
+                      <code className="text-xs bg-background border px-1.5 py-0.5 rounded whitespace-nowrap">
+                        {header}
+                      </code>
+                      <span className="text-muted-foreground text-xs">→</span>
+                      <select
+                        value={currentKey ?? ''}
+                        onChange={(e) =>
+                          handleMappingOverride(
+                            header,
+                            e.target.value as ColumnKey | ''
+                          )
+                        }
+                        className="h-7 rounded border border-input bg-background px-2 text-xs"
+                      >
+                        <option value="">—</option>
+                        {COLUMN_KEYS.map((k) => (
+                          <option key={k} value={k}>
+                            {colKeyLabel(k, labels)}
+                          </option>
+                        ))}
+                      </select>
+                      {isAiMapped && (
+                        <span className="text-[10px] font-semibold px-1 py-0.5 rounded bg-violet-100 text-violet-700 uppercase tracking-wide">
+                          AI
+                        </span>
+                      )}
+                      {isLowConf && (
+                        <span className="text-[10px] text-amber-700">
+                          {labels.mappingLowConfidence}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Missing required columns */}
+          {mapping.missingColumns.length > 0 && (
+            <div className="text-destructive text-sm">
+              <span className="font-medium">{labels.mappingMissing}:</span>{' '}
+              {mapping.missingColumns.join(', ')}
             </div>
           )}
         </div>
@@ -510,7 +717,6 @@ function PreviewSummary({
   const valid = rows.filter((r) => r.issues.length === 0).length
   const withIssues = rows.length - valid
 
-  // Workplace breakdown (valid rows only)
   const byWorkplace = new Map<string, number>()
   let unassigned = 0
   for (const row of rows) {

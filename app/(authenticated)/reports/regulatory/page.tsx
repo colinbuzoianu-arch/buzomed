@@ -190,12 +190,12 @@ export default async function RegulatoryPage({ searchParams }: PageProps) {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">{t('reports.regulatory.sectionExams')}</h2>
         <div className="border rounded-lg divide-y text-sm">
-          <Row label={t('reports.regulatory.totalExamined')} value={stats.total} bold />
-          <Row label={t('reports.regulatory.totalSigned')} value={stats.signed} />
-          <Row label={t('reports.regulatory.apt')} value={stats.apt} />
-          <Row label={t('reports.regulatory.aptConditionat')} value={stats.apt_conditionat} />
-          <Row label={t('reports.regulatory.inaptTemporar')} value={stats.inapt_temporar} />
-          <Row label={t('reports.regulatory.inapt')} value={stats.inapt} />
+          <Row label={t('reports.regulatory.totalExamined')} value={stats.total} bold valueColor="text-[#2BA39A]" />
+          <Row label={t('reports.regulatory.totalSigned')} value={stats.signed} valueColor="text-[#2BA39A]" />
+          <Row label={t('reports.regulatory.apt')} value={stats.apt} valueColor="text-emerald-700" />
+          <Row label={t('reports.regulatory.aptConditionat')} value={stats.apt_conditionat} valueColor="text-amber-700" />
+          <Row label={t('reports.regulatory.inaptTemporar')} value={stats.inapt_temporar} valueColor="text-orange-700" />
+          <Row label={t('reports.regulatory.inapt')} value={stats.inapt} valueColor="text-red-700" />
           <Row
             label={t('reports.regulatory.overdueCount')}
             value={overdueCount}
@@ -238,18 +238,22 @@ function Row({
   value,
   bold = false,
   tone = 'default',
+  valueColor,
 }: {
   label: string
   value: string | number
   bold?: boolean
   tone?: 'default' | 'destructive'
+  valueColor?: string
 }) {
   return (
     <div className="flex justify-between items-center px-4 py-3 gap-4">
       <span className="text-muted-foreground">{label}</span>
       <span
-        className={`tabular-nums ${bold ? 'font-semibold text-base' : ''} ${
-          tone === 'destructive' && Number(value) > 0 ? 'text-destructive font-medium' : ''
+        className={`tabular-nums font-medium ${bold ? 'font-semibold text-base' : ''} ${
+          tone === 'destructive' && Number(value) > 0
+            ? 'text-destructive'
+            : valueColor ?? ''
         }`}
       >
         {value}

@@ -6,18 +6,12 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { InvoiceActions } from '../invoice-actions'
+import { InvoiceStatusBadge } from '@/components/ui/invoice-status-badge'
 
 interface PageProps {
   params: Promise<{ id: string; iid: string }>
 }
 
-const STATUS_CLASSES: Record<string, string> = {
-  draft:     'bg-muted text-muted-foreground border',
-  issued:    'bg-blue-50 text-blue-700 border-blue-300',
-  paid:      'bg-green-50 text-green-700 border-green-300',
-  overdue:   'bg-red-50 text-red-700 border-red-300',
-  cancelled: 'bg-muted text-muted-foreground border',
-}
 
 export default async function InvoiceDetailPage({ params }: PageProps) {
   const user = await requireUser()
@@ -63,13 +57,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
           <div>
             <div className="flex items-baseline gap-3">
               <h1 className="text-3xl font-bold font-mono">{invoice.invoiceNumber}</h1>
-              <span
-                className={`inline-flex items-center text-xs px-2 py-0.5 rounded border ${
-                  STATUS_CLASSES[invoice.status] ?? STATUS_CLASSES.draft
-                }`}
-              >
-                {t(`invoices.status.${invoice.status}`)}
-              </span>
+              <InvoiceStatusBadge status={invoice.status} />
             </div>
             <div className="text-muted-foreground mt-1 text-sm">
               {invoice.company.name}

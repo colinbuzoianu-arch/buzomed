@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { DemoInviteButton } from './demo-invite-button'
+import { ResendInviteButton } from './resend-invite-button'
 
 /**
  * Super-admin index — tenant list with activity metrics and sorting.
@@ -43,6 +44,13 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
     params.sort && (VALID_SORTS as string[]).includes(params.sort)
       ? (params.sort as SortKey)
       : 'created'
+
+  // Recent self-service registrations
+  const recentRegistrations = await prisma.registerRequest.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    select: { id: true, createdAt: true, name: true, email: true, cabinetName: true, city: true },
+  })
 
   // Pull tenants with aggregated activity counts
   const tenants = await prisma.tenant.findMany({
@@ -178,6 +186,43 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
         <StatCard label={t('superAdmin.stats.demoTenants')} value={demoTenants} />
         <StatCard label={t('superAdmin.stats.totalExaminations')} value={totalExaminations} />
       </div>
+
+      {/* Recent registrations */}
+      {recentRegistrations.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Înregistrări recente</h2>
+          <div className="border rounded-lg overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead className="bg-muted/30 text-xs uppercase tracking-wide border-b">
+                <tr>
+                  <th className="text-left px-4 py-2">Data</th>
+                  <th className="text-left px-4 py-2">Nume</th>
+                  <th className="text-left px-4 py-2">Email</th>
+                  <th className="text-left px-4 py-2">Cabinet</th>
+                  <th className="text-left px-4 py-2">Oraș</th>
+                  <th className="px-4 py-2" />
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {recentRegistrations.map((reg) => (
+                  <tr key={reg.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap text-xs">
+                      {dateFormatter.format(reg.createdAt)}
+                    </td>
+                    <td className="px-4 py-2 font-medium whitespace-nowrap">{reg.name}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{reg.email}</td>
+                    <td className="px-4 py-2">{reg.cabinetName}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{reg.city ?? '—'}</td>
+                    <td className="px-4 py-2 text-right">
+                      <ResendInviteButton registrationId={reg.id} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {sorted.length === 0 ? (
         <div className="border border-dashed rounded-lg p-12 text-center">

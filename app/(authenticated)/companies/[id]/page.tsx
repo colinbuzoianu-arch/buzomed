@@ -6,6 +6,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { CompanyDeleteButton } from './company-delete-button'
+import { InvoiceStatusBadge } from '@/components/ui/invoice-status-badge'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -339,40 +340,30 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           </div>
         ) : (
           <div className="border rounded-lg divide-y">
-            {company.invoices.map((inv) => {
-              const statusClass =
-                inv.status === 'paid'
-                  ? 'text-green-700'
-                  : inv.status === 'overdue'
-                    ? 'text-red-600'
-                    : inv.status === 'issued'
-                      ? 'text-blue-700'
-                      : inv.status === 'cancelled'
-                        ? 'text-muted-foreground'
-                        : 'text-muted-foreground'
-              return (
-                <Link
-                  key={inv.id}
-                  href={`/companies/${company.id}/invoices/${inv.id}`}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors"
-                >
-                  <div>
-                    <div className="text-sm font-medium font-mono">
-                      {inv.invoiceNumber}
-                    </div>
-                    <div className={`text-xs mt-0.5 ${statusClass}`}>
-                      {t(`invoices.status.${inv.status}`)}
-                      {inv.issuedAt && ` · ${dateFormatter.format(inv.issuedAt)}`}
+            {company.invoices.map((inv) => (
+              <Link
+                key={inv.id}
+                href={`/companies/${company.id}/invoices/${inv.id}`}
+                className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors"
+              >
+                <div>
+                  <div className="text-sm font-medium font-mono">
+                    {inv.invoiceNumber}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <InvoiceStatusBadge status={inv.status} />
+                    <span className="text-xs text-muted-foreground">
+                      {inv.issuedAt && dateFormatter.format(inv.issuedAt)}
                       {inv.dueDate && inv.status !== 'paid' && ` · ${t('invoices.dueDate')} ${dateFormatter.format(inv.dueDate)}`}
-                    </div>
+                    </span>
                   </div>
-                  <div className="text-sm font-semibold tabular-nums text-right">
-                    {Number(inv.total).toFixed(2)}{' '}
-                    <span className="font-normal text-xs text-muted-foreground">{inv.currency}</span>
-                  </div>
-                </Link>
-              )
-            })}
+                </div>
+                <div className="text-sm font-semibold tabular-nums text-right">
+                  {Number(inv.total).toFixed(2)}{' '}
+                  <span className="font-normal text-xs text-muted-foreground">{inv.currency}</span>
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </section>

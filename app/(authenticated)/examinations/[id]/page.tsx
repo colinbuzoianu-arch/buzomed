@@ -9,6 +9,9 @@ import { ExaminationForm } from './examination-form'
 import { ExaminationActions } from './examination-actions'
 import { DocumentsSection } from '@/app/(authenticated)/_components/documents-section'
 import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
+import { ExaminationHistorySummary } from '@/components/ai/ExaminationHistorySummary'
+import { VerdictBadge } from '@/components/ui/verdict-badge'
+import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -166,9 +169,9 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
               </Link>
             </div>
             <div className="mt-2 flex items-center gap-2 flex-wrap text-xs">
-              <StatusBadge status={examination.status} t={t} />
+              <ExaminationStatusBadge status={examination.status} />
               {isSigned && (
-                <span className="inline-block px-2 py-0.5 rounded text-xs border text-green-700 bg-green-50 border-green-200">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border text-emerald-700 bg-emerald-50 border-emerald-200">
                   ✓ {t('examinations.signedBadge')}
                 </span>
               )}
@@ -222,6 +225,10 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {/* Two-column layout: main content + AI history sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-6 items-start">
+      <div className="space-y-6 min-w-0">
 
       {/* Practitioner + intake metadata */}
       <section className="space-y-3">
@@ -295,7 +302,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
                   <div className="text-xs text-muted-foreground mb-1">
                     {t('examinations.priorExam.verdictLabel')}
                   </div>
-                  <PriorVerdictBadge verdict={priorExam.verdict} t={t} />
+                  <VerdictBadge verdict={priorExam.verdict} />
                   {priorExam.verdictConditions && (
                     <div className="text-xs text-muted-foreground mt-1">
                       {priorExam.verdictConditions}
@@ -446,6 +453,18 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         canWrite={caps.canWriteAdministrative}
         locale={locale}
       />
+
+      </div>{/* end main column */}
+
+      {/* Sidebar */}
+      <aside className="space-y-4 lg:sticky lg:top-6">
+        <ExaminationHistorySummary
+          currentExaminationId={examination.id}
+          employeeId={examination.employeeId}
+        />
+      </aside>
+
+      </div>{/* end grid */}
     </div>
   )
 }
@@ -461,29 +480,6 @@ function Row({ label, value }: { label: string; value: string | null }) {
   )
 }
 
-function PriorVerdictBadge({
-  verdict,
-  t,
-}: {
-  verdict: string
-  t: (k: string) => string
-}) {
-  const colors: Record<string, string> = {
-    apt: 'text-green-700 bg-green-50 border-green-200',
-    apt_conditionat: 'text-amber-700 bg-amber-50 border-amber-200',
-    inapt_temporar: 'text-orange-700 bg-orange-50 border-orange-200',
-    inapt: 'text-red-700 bg-red-50 border-red-200',
-  }
-  return (
-    <span
-      className={`inline-block px-2 py-0.5 rounded text-xs border ${
-        colors[verdict] ?? 'text-muted-foreground bg-muted border-muted'
-      }`}
-    >
-      {t(`examinations.form.verdict.${verdict}`)}
-    </span>
-  )
-}
 
 function PriorVitalSigns({
   vitalSigns,
@@ -522,27 +518,3 @@ function PriorVitalSigns({
   )
 }
 
-function StatusBadge({
-  status,
-  t,
-}: {
-  status: string
-  t: (k: string) => string
-}) {
-  const colors: Record<string, string> = {
-    scheduled: 'text-blue-700 bg-blue-50 border-blue-200',
-    in_progress: 'text-amber-700 bg-amber-50 border-amber-200',
-    completed: 'text-green-700 bg-green-50 border-green-200',
-    cancelled: 'text-muted-foreground bg-muted border-muted',
-    no_show: 'text-muted-foreground bg-muted border-muted',
-  }
-  return (
-    <span
-      className={`inline-block px-2 py-0.5 rounded text-xs border ${
-        colors[status] ?? colors.cancelled
-      }`}
-    >
-      {t(`examinations.status.${status}`)}
-    </span>
-  )
-}

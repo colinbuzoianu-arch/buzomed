@@ -1002,3 +1002,23 @@ model Invitation {
   @@index([expiresAt])
   @@index([acceptedAt])
 }
+
+// ============================================================================
+// SELF-SERVICE REGISTRATIONS
+// ============================================================================
+
+model RegisterRequest {
+  id          String   @id @default(uuid()) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  name        String
+  email       String
+  cabinetName String   @map("cabinet_name")
+  city        String?
+  status      String   @default("pending")
+  tenantId    String?  @map("tenant_id") @db.Uuid
+
+  @@map("register_requests")
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}

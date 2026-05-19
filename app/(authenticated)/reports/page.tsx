@@ -254,18 +254,21 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                 : null
             }
           />
-          <StatCard label={t('reports.headline.apt')} value={headline.apt} />
+          <StatCard label={t('reports.headline.apt')} value={headline.apt} valueColor="text-emerald-700" />
           <StatCard
             label={t('reports.headline.aptConditionat')}
             value={headline.apt_conditionat}
+            valueColor="text-amber-700"
           />
           <StatCard
             label={t('reports.headline.inapt_temporar')}
             value={headline.inapt_temporar}
+            valueColor="text-orange-700"
           />
           <StatCard
             label={t('reports.headline.inapt')}
             value={headline.inapt}
+            valueColor="text-red-700"
           />
           <Link href="/recalls?horizon=overdue" className="block">
             <StatCard
@@ -317,17 +320,17 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                   return (
                     <tr key={`${m.year}-${m.month}`}>
                       <td className="px-4 py-2 capitalize">{label}</td>
-                      <td className="px-4 py-2 text-right font-medium">
+                      <td className="px-4 py-2 text-right font-semibold text-[#2BA39A]">
                         {m.total}
                       </td>
-                      <td className="px-4 py-2 text-right">{m.apt}</td>
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-4 py-2 text-right font-semibold text-emerald-700">{m.apt}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-amber-700">
                         {m.apt_conditionat}
                       </td>
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-4 py-2 text-right font-semibold text-orange-700">
                         {m.inapt_temporar}
                       </td>
-                      <td className="px-4 py-2 text-right">{m.inapt}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-red-700">{m.inapt}</td>
                     </tr>
                   )
                 })}
@@ -385,17 +388,17 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                         {c.companyName}
                       </Link>
                     </td>
-                    <td className="px-4 py-2 text-right font-medium">
+                    <td className="px-4 py-2 text-right font-semibold text-[#2BA39A]">
                       {c.total}
                     </td>
-                    <td className="px-4 py-2 text-right">{c.apt}</td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-2 text-right font-semibold text-emerald-700">{c.apt}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-amber-700">
                       {c.apt_conditionat}
                     </td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-4 py-2 text-right font-semibold text-orange-700">
                       {c.inapt_temporar}
                     </td>
-                    <td className="px-4 py-2 text-right">{c.inapt}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-red-700">{c.inapt}</td>
                     <td className="px-4 py-2 text-right">
                       <Link
                         href={`/companies/${c.companyId}/report?range=${rangeKey}`}
@@ -432,10 +435,10 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                 {perPractitioner.map((p) => (
                   <tr key={p.name}>
                     <td className="px-4 py-2 font-medium">{p.name}</td>
-                    <td className="px-4 py-2 text-right font-medium">{p.total}</td>
-                    <td className="px-4 py-2 text-right">{p.apt}</td>
-                    <td className="px-4 py-2 text-right">{p.apt_conditionat}</td>
-                    <td className="px-4 py-2 text-right">{p.inapt}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-[#2BA39A]">{p.total}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-emerald-700">{p.apt}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-amber-700">{p.apt_conditionat}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-red-700">{p.inapt}</td>
                   </tr>
                 ))}
               </tbody>
@@ -500,11 +503,13 @@ function StatCard({
   value,
   sublabel = null,
   tone = 'default',
+  valueColor = 'text-[#2BA39A]',
 }: {
   label: string
   value: number
   sublabel?: string | null
   tone?: 'default' | 'destructive'
+  valueColor?: string
 }) {
   return (
     <div
@@ -519,7 +524,7 @@ function StatCard({
       </div>
       <div
         className={`text-2xl font-bold mt-1 ${
-          tone === 'destructive' && value > 0 ? 'text-destructive' : ''
+          tone === 'destructive' && value > 0 ? 'text-destructive' : valueColor
         }`}
       >
         {value}

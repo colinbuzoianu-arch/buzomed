@@ -11,6 +11,7 @@ import {
 } from '@/lib/reports/date-ranges'
 import './report.css'
 import { PrintButton } from './print-button'
+import { VerdictBadge } from '@/components/ui/verdict-badge'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -262,9 +263,7 @@ function WorkersTable(props: {
                   </span>
                 </td>
                 <td className="px-4 py-2">
-                  {w.verdict
-                    ? props.t(`examinations.form.verdict.${w.verdict}`)
-                    : '—'}
+                  {w.verdict ? <VerdictBadge verdict={w.verdict} /> : '—'}
                 </td>
                 <td
                   className={`px-4 py-2 whitespace-nowrap ${
@@ -347,9 +346,7 @@ function ExaminationsTable(props: {
                   : e.examinationType.nameRo}
               </td>
               <td className="px-4 py-2">
-                {e.verdict
-                  ? props.t(`examinations.form.verdict.${e.verdict}`)
-                  : '—'}
+                {e.verdict ? <VerdictBadge verdict={e.verdict} /> : '—'}
               </td>
               <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">
                 {e.practitioner

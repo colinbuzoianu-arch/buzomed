@@ -294,6 +294,86 @@ export async function parseImportFile(
   return { mapping, rows, parseErrors: parsed.errors }
 }
 
+export interface AiColumnMappingResult {
+  mapping: ColumnMapping
+  aiUsed: boolean
+  confidence: Partial<Record<ColumnKey, 'high' | 'medium' | 'low'>>
+}
+
+/**
+ * Enhances fuzzy column mapping with AI when ≥2 required columns are undetected.
+ * Only column header names are sent to the API — never actual row data.
+ * Falls back gracefully on timeout (5 s) or any API error.
+ * Must be called from a client context (uses fetch with a relative URL).
+ */
+export async function aiEnhancedColumnMapping(
+  headers: string[],
+  fuzzyMapping: ColumnMapping
+): Promise<AiColumnMappingResult> {
+  if (fuzzyMapping.missingColumns.length < 2) {
+    return { mapping: fuzzyMapping, aiUsed: false, confidence: {} }
+  }
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+  let res: Response
+  try {
+    res = await fetch('/api/ai/column-mapping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ headers }),
+      signal: controller.signal,
+    })
+  } catch {
+    clearTimeout(timeoutId)
+    return { mapping: fuzzyMapping, aiUsed: false, confidence: {} }
+  }
+  clearTimeout(timeoutId)
+
+  if (!res.ok) return { mapping: fuzzyMapping, aiUsed: false, confidence: {} }
+
+  let json: {
+    mapping: Record<string, string | null>
+    confidence: Record<string, 'high' | 'medium' | 'low'>
+  }
+  try {
+    json = await res.json()
+  } catch {
+    return { mapping: fuzzyMapping, aiUsed: false, confidence: {} }
+  }
+
+  // Merge: fuzzy-detected columns keep their mapping; AI fills the gaps only.
+  const mergedDetected: Partial<Record<ColumnKey, string>> = { ...fuzzyMapping.detected }
+  const mergedConfidence: Partial<Record<ColumnKey, 'high' | 'medium' | 'low'>> = {}
+  const stillUnmapped: string[] = []
+
+  for (const header of fuzzyMapping.unmappedHeaders) {
+    const aiKey = json.mapping?.[header] as ColumnKey | null | undefined
+    if (
+      aiKey &&
+      typeof aiKey === 'string' &&
+      (REQUIRED_COLS as string[]).concat(['companyEmployeeId', 'email', 'department']).includes(aiKey) &&
+      !mergedDetected[aiKey as ColumnKey]
+    ) {
+      mergedDetected[aiKey as ColumnKey] = header
+      const conf = json.confidence?.[header]
+      mergedConfidence[aiKey as ColumnKey] = (['high', 'medium', 'low'] as const).includes(conf)
+        ? conf
+        : 'low'
+    } else {
+      stillUnmapped.push(header)
+    }
+  }
+
+  const missingColumns = REQUIRED_COLS.filter((c) => !mergedDetected[c])
+  return {
+    mapping: { detected: mergedDetected, unmappedHeaders: stillUnmapped, missingColumns },
+    aiUsed: true,
+    confidence: mergedConfidence,
+  }
+}
+
 /**
  * Row-level validation. Returns issues for one row; an empty array
  * means the row is committable.

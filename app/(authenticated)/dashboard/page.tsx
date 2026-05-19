@@ -291,11 +291,11 @@ export default async function DashboardPage() {
       <section className="border-t pt-6">
         <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
           <span>
-            <strong className="text-foreground">{companyCount}</strong>{' '}
+            <strong className="text-[#1E4D8B] font-semibold">{companyCount}</strong>{' '}
             {t('dashboard.companies')}
           </span>
           <span>
-            <strong className="text-foreground">{employeeCount}</strong>{' '}
+            <strong className="text-[#1E4D8B] font-semibold">{employeeCount}</strong>{' '}
             {t('dashboard.employees')}
           </span>
           <Link
@@ -355,7 +355,7 @@ function StatCard({
       href={href}
       className="block border rounded-lg p-4 hover:bg-muted transition-colors"
     >
-      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-2xl font-bold text-[#2BA39A]">{value}</div>
       <div className="text-xs text-muted-foreground mt-1 leading-snug">{label}</div>
     </Link>
   )

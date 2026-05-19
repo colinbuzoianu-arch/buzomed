@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import type { ExaminationStatus, RecallStatus } from '@prisma/client'
 import { RecallActions } from '../recalls/recall-actions'
 import { BulkScheduleButton } from '../recalls/bulk-schedule-modal'
+import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
 
 /**
  * Merged examinations page (after session 10 fixup).
@@ -857,7 +858,7 @@ async function ExaminationsListView(props: {
               </div>
             </div>
             <div className="text-xs text-right">
-              <StatusBadge status={e.status} t={t} />
+              <ExaminationStatusBadge status={e.status} />
               {e.scheduledAt && (
                 <div className="text-muted-foreground mt-1">
                   {props.dateFormatter.format(e.scheduledAt)}
@@ -871,25 +872,3 @@ async function ExaminationsListView(props: {
   )
 }
 
-function StatusBadge({
-  status,
-  t,
-}: {
-  status: ExaminationStatus
-  t: (k: string) => string
-}) {
-  const colors: Record<ExaminationStatus, string> = {
-    scheduled: 'text-blue-700 bg-blue-50 border-blue-200',
-    in_progress: 'text-amber-700 bg-amber-50 border-amber-200',
-    completed: 'text-green-700 bg-green-50 border-green-200',
-    cancelled: 'text-muted-foreground bg-muted border-muted',
-    no_show: 'text-muted-foreground bg-muted border-muted',
-  }
-  return (
-    <span
-      className={`inline-block px-2 py-0.5 rounded text-xs border ${colors[status]}`}
-    >
-      {t(`examinations.status.${status}`)}
-    </span>
-  )
-}

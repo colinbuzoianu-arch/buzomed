@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
+import { RecallStatusBadge } from '@/components/ui/recall-status-badge'
 
 interface PageProps {
   searchParams: Promise<{ horizon?: string }>
@@ -187,13 +188,13 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
                           {dateFormatter.format(due)}
                         </span>
                         {isOverdue && (
-                          <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/20">
-                            {t('reports.expiration.overdueLabel')}
+                          <span className="ml-2">
+                            <RecallStatusBadge status="overdue" />
                           </span>
                         )}
                       </td>
                       <td
-                        className={`px-4 py-2 text-right tabular-nums font-medium whitespace-nowrap ${
+                        className={`px-4 py-2 text-right tabular-nums font-semibold whitespace-nowrap ${
                           isOverdue ? 'text-destructive' : daysLeft <= 14 ? 'text-amber-600' : ''
                         }`}
                       >
