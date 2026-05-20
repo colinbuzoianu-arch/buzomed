@@ -273,6 +273,8 @@ export async function POST(request: NextRequest) {
       createdByUserId: auth.user.id,
       firstName: data.firstName!,
       lastName: data.lastName!,
+      jobTitle: data.jobTitle,
+      companyId: data.companyId ?? null,
       idDocumentType: data.idDocumentType ?? 'other',
       idDocumentNumber: storedIdDocumentNumber,
       cnpEncrypted,
@@ -313,6 +315,8 @@ export async function POST(request: NextRequest) {
 export interface ParsedEmployeeInput {
   firstName?: string
   lastName?: string
+  jobTitle?: string
+  companyId?: string | null
   idDocumentType?: IdDocumentType
   idDocumentNumber?: string
   companyEmployeeId?: string
@@ -373,6 +377,16 @@ export function parseEmployeeInput(
     issues,
     { maxLength: 64 }
   )
+  result.jobTitle = optionalString('jobTitle', body.jobTitle, issues, {
+    maxLength: 200,
+  })
+  if ('companyId' in body) {
+    if (body.companyId === null || body.companyId === '') {
+      result.companyId = null
+    } else if (typeof body.companyId === 'string') {
+      result.companyId = body.companyId.trim() || null
+    }
+  }
   result.companyEmployeeId = optionalString(
     'companyEmployeeId',
     body.companyEmployeeId,

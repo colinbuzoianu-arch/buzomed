@@ -137,6 +137,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
 
   const clearableStringFields = [
     'idDocumentNumber',
+    'jobTitle',
     'companyEmployeeId',
     'gender',
     'nationality',
@@ -173,6 +174,28 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
       updateData[field] = null
     } else if (data[field as keyof typeof data] !== undefined) {
       updateData[field] = data[field as keyof typeof data]
+    }
+  }
+
+  if ('companyId' in body) {
+    if (body.companyId === null || body.companyId === '') {
+      updateData.companyId = null
+    } else if (data.companyId != null) {
+      const company = await prisma.company.findFirst({
+        where: {
+          id: data.companyId,
+          tenantId: auth.user.tenantId,
+          deletedAt: null,
+        },
+        select: { id: true },
+      })
+      if (!company) {
+        return NextResponse.json(
+          { error: 'validation_failed', issues: ['companyId does not belong to this tenant'] },
+          { status: 400 }
+        )
+      }
+      updateData.companyId = data.companyId
     }
   }
 

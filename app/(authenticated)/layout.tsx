@@ -1,8 +1,10 @@
 import { requireUser } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { LogoutButton } from '@/components/logout-button'
 import { BuzomedLogo } from '@/components/buzomed-logo'
+import { TenantLogo } from '@/components/tenant-logo'
 import { MobileNav } from '@/components/mobile-nav'
 import Link from 'next/link'
 
@@ -17,9 +19,20 @@ export default async function AuthenticatedLayout({
 
   const isSuperAdmin = user.roles.includes('super_admin')
   const hasTenant = user.tenantId !== null
+  const isAdmin = user.roles.includes('practice_admin')
   const hasReportingRole = user.roles.some(
     (r) => r === 'practitioner' || r === 'practice_admin'
   )
+
+  // Fetch tenant logo for non-super-admin users
+  const tenantLogoUrl = hasTenant
+    ? (
+        await prisma.tenant.findUnique({
+          where: { id: user.tenantId! },
+          select: { logoUrl: true },
+        })
+      )?.logoUrl ?? null
+    : null
 
   // Centralized list of nav items so the mobile drawer and the desktop
   // nav stay in sync. Different visibility rules apply per role.
@@ -35,6 +48,9 @@ export default async function AuthenticatedLayout({
       navItems.push({ href: '/reports', label: t('nav.reports') })
     }
     navItems.push({ href: '/team', label: t('nav.team') })
+    if (isAdmin) {
+      navItems.push({ href: '/settings/practice', label: t('nav.settings') })
+    }
   }
 
   const userDisplayName = `${user.firstName} ${user.lastName}`
@@ -44,7 +60,15 @@ export default async function AuthenticatedLayout({
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 md:gap-8 min-w-0">
-            <BuzomedLogo variant="icon" size="md" />
+            {hasTenant && tenantLogoUrl ? (
+              <div className="flex items-center gap-3">
+                <TenantLogo logoUrl={tenantLogoUrl} size="md" />
+                <span className="w-px h-6 bg-border" />
+                <BuzomedLogo variant="icon" size="sm" />
+              </div>
+            ) : (
+              <BuzomedLogo variant="icon" size="md" />
+            )}
 
             {/* Desktop nav — hidden on mobile, drawer used instead */}
             <nav className="hidden md:flex gap-4 text-sm">

@@ -81,6 +81,7 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
           lastName: true,
           professionalTitle: true,
           professionalCode: true,
+          stampImageUrl: true,
         },
       },
       location: {
@@ -108,6 +109,8 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
   // Build PDF data (mirrors fisa-pdf/route.ts exactly)
   const data = {
     cabinetName: examination.tenant.legalName ?? examination.tenant.name,
+    logoUrl: examination.tenant.logoUrl ?? null,
+    stampUrl: examination.practitioner?.stampImageUrl ?? null,
     cabinetAddress: [
       examination.location.addressLine1,
       examination.location.addressLine2,

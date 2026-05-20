@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Building2 } from 'lucide-react'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -33,6 +34,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
     await Promise.all([
       prisma.employee.findFirst({
         where: { id, tenantId: user.tenantId, deletedAt: null },
+        include: { company: { select: { id: true, name: true } } },
       }),
       prisma.employeeWorkplaceAssignment.findMany({
         where: { employeeId: id, tenantId: user.tenantId },
@@ -126,6 +128,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
       rows: [
         [t('employees.form.fieldLastName'), employee.lastName],
         [t('employees.form.fieldFirstName'), employee.firstName],
+        [t('employees.form.fieldJobTitle'), employee.jobTitle],
         [
           t('employees.form.fieldIdDocumentType'),
           idDocumentTypeLabel[employee.idDocumentType] ?? employee.idDocumentType,
@@ -310,6 +313,26 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Company banner */}
+      <div className="bg-[#F8FAFB] border border-[#E2E8F0] rounded-xl px-5 py-3 flex items-center gap-3">
+        <Building2 size={18} className="text-[#1E4D8B] shrink-0" />
+        {employee.company ? (
+          <span className="text-sm font-medium text-[#0F1F3A]">
+            {employee.company.name}
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground italic">
+            Neatribuit —{' '}
+            <Link
+              href={`/employees/${employee.id}/edit`}
+              className="text-[#1E4D8B] not-italic no-underline hover:underline"
+            >
+              editați angajatul →
+            </Link>
+          </span>
+        )}
       </div>
 
       {sections.map((section) => (

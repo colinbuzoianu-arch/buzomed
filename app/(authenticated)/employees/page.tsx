@@ -43,11 +43,11 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
       id: true,
       firstName: true,
       lastName: true,
-      idDocumentType: true,
-      idDocumentNumber: true,
-      companyEmployeeId: true,
+      jobTitle: true,
+      city: true,
       isActive: true,
       archivedAt: true,
+      company: { select: { name: true } },
     },
   })
 
@@ -126,8 +126,9 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('common.name')}</TableHead>
-                  <TableHead>{t('employees.table.idDocument')}</TableHead>
-                  <TableHead>{t('employees.table.companyEmployeeId')}</TableHead>
+                  <TableHead>{t('employees.columns.company')}</TableHead>
+                  <TableHead>{t('employees.columns.jobTitle')}</TableHead>
+                  <TableHead>{t('employees.columns.city')}</TableHead>
                   {showArchived ? (
                     <TableHead>{t('employees.table.archivedAt')}</TableHead>
                   ) : (
@@ -136,7 +137,10 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employees.map((e) => (
+                {employees.map((e) => {
+                  const companyName =
+                    e.company?.name ?? null
+                  return (
                   <TableRow key={e.id}>
                     <TableCell className="font-medium">
                       <Link
@@ -147,12 +151,13 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                       </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {e.idDocumentNumber
-                        ? `${e.idDocumentType}: ${e.idDocumentNumber}`
-                        : '—'}
+                      {companyName ?? '—'}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {e.companyEmployeeId ?? '—'}
+                      {e.jobTitle ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {e.city ?? '—'}
                     </TableCell>
                     {showArchived ? (
                       <TableCell className="text-muted-foreground text-sm">
@@ -183,14 +188,18 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                       </TableCell>
                     )}
                   </TableRow>
-                ))}
+                  )
+                })}
               </TableBody>
             </Table>
           </div>
 
           {/* Mobile cards — visible only on small screens */}
           <div className="md:hidden space-y-2">
-            {employees.map((e) => (
+            {employees.map((e) => {
+              const companyName =
+                e.company?.name ?? null
+              return (
               <Link
                 key={e.id}
                 href={`/employees/${e.id}`}
@@ -202,16 +211,14 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                       {e.lastName} {e.firstName}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-                      {e.idDocumentNumber && (
-                        <div className="truncate">
-                          {e.idDocumentType}: {e.idDocumentNumber}
-                        </div>
+                      {companyName && (
+                        <div className="truncate">{companyName}</div>
                       )}
-                      {e.companyEmployeeId && (
-                        <div className="truncate">
-                          {t('employees.table.companyEmployeeId')}:{' '}
-                          {e.companyEmployeeId}
-                        </div>
+                      {e.jobTitle && (
+                        <div className="truncate">{e.jobTitle}</div>
+                      )}
+                      {e.city && (
+                        <div className="truncate">{e.city}</div>
                       )}
                     </div>
                   </div>
@@ -245,7 +252,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                   </div>
                 </div>
               </Link>
-            ))}
+              )
+            })}
           </div>
         </>
       )}

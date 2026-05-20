@@ -32,9 +32,17 @@ export default async function EditEmployeePage({ params }: PageProps) {
   if (!caps.canWriteAdministrative) redirect('/employees')
 
   const { id } = await params
-  const employee = await prisma.employee.findFirst({
-    where: { id, tenantId: user.tenantId, deletedAt: null },
-  })
+
+  const [employee, companies] = await Promise.all([
+    prisma.employee.findFirst({
+      where: { id, tenantId: user.tenantId, deletedAt: null },
+    }),
+    prisma.company.findMany({
+      where: { tenantId: user.tenantId, deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    }),
+  ])
   if (!employee) notFound()
 
   // CNP visibility for the edit form.
@@ -68,6 +76,7 @@ export default async function EditEmployeePage({ params }: PageProps) {
   const initialValues: EmployeeFormValues = {
     firstName: employee.firstName,
     lastName: employee.lastName,
+    jobTitle: employee.jobTitle ?? '',
     idDocumentType: employee.idDocumentType,
     idDocumentNumber: prefilledIdDocumentNumber,
     companyEmployeeId: employee.companyEmployeeId ?? '',
@@ -114,6 +123,8 @@ export default async function EditEmployeePage({ params }: PageProps) {
         employeeId={employee.id}
         initialValues={initialValues}
         labels={labels}
+        companies={companies}
+        currentCompanyId={employee.companyId ?? null}
       />
     </div>
   )

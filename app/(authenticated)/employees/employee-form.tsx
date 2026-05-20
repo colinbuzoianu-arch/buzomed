@@ -26,9 +26,11 @@ import { Label } from '@/components/ui/label'
 const ID_DOCUMENT_TYPES = ['cnp', 'passport', 'eu_id_card', 'other'] as const
 type IdDocumentType = (typeof ID_DOCUMENT_TYPES)[number]
 
+
 export interface EmployeeFormValues {
   firstName: string
   lastName: string
+  jobTitle: string
   idDocumentType: IdDocumentType
   idDocumentNumber: string
   companyEmployeeId: string
@@ -53,6 +55,7 @@ export interface EmployeeFormValues {
 export const emptyEmployeeFormValues: EmployeeFormValues = {
   firstName: '',
   lastName: '',
+  jobTitle: '',
   idDocumentType: 'other',
   idDocumentNumber: '',
   companyEmployeeId: '',
@@ -111,7 +114,14 @@ export interface EmployeeFormLabels {
   fieldEmergencyRelationship: string
   fieldBloodType: string
   fieldNotes: string
+  fieldJobTitle: string
+  fieldJobTitlePlaceholder: string
   fieldIsActive: string
+  sectionAssignment: string
+  fieldCompany: string
+  companyNone: string
+  fieldCityPlaceholder: string
+  fieldCompanyEmployeeIdSubtext: string
   required: string
   submitCreate: string
   submitUpdate: string
@@ -124,9 +134,17 @@ interface Props {
   employeeId?: string
   initialValues?: EmployeeFormValues
   labels: EmployeeFormLabels
+  companies?: { id: string; name: string }[]
+  currentCompanyId?: string | null
 }
 
-export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
+export function EmployeeForm({
+  employeeId,
+  initialValues,
+  labels,
+  companies,
+  currentCompanyId,
+}: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [form, setForm] = useState<EmployeeFormValues>(
@@ -134,6 +152,9 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
   )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(
+    currentCompanyId ?? ''
+  )
 
   const isEdit = !!employeeId
 
@@ -155,7 +176,16 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
       idDocumentType: form.idDocumentType,
       isActive: form.isActive,
     }
+
+    if (companies !== undefined) {
+      if (isEdit) {
+        payload.companyId = selectedCompanyId || null
+      } else if (selectedCompanyId) {
+        payload.companyId = selectedCompanyId
+      }
+    }
     const stringFields: Array<keyof EmployeeFormValues> = [
+      'jobTitle',
       'idDocumentNumber',
       'companyEmployeeId',
       'nationality',
@@ -218,6 +248,7 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
         ? `${data.employee.lastName} ${data.employee.firstName}`
         : ''
       TOAST.employeeSaved(savedName)
+
       startTransition(() => {
         if (isEdit) {
           router.push(`/employees/${employeeId}`)
@@ -239,6 +270,61 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl">
+      {companies !== undefined && (
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">{labels.sectionAssignment}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="companySelect">{labels.fieldCompany}</Label>
+              <select
+                id="companySelect"
+                value={selectedCompanyId}
+                onChange={(e) => setSelectedCompanyId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">{labels.companyNone}</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="jobTitle">{labels.fieldJobTitle}</Label>
+              <Input
+                id="jobTitle"
+                value={form.jobTitle}
+                onChange={(e) => update('jobTitle', e.target.value)}
+                placeholder={labels.fieldJobTitlePlaceholder}
+                maxLength={200}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cityAssign">{labels.fieldCity}</Label>
+              <Input
+                id="cityAssign"
+                value={form.city}
+                onChange={(e) => update('city', e.target.value)}
+                placeholder={labels.fieldCityPlaceholder}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="companyEmployeeId">
+                {labels.fieldCompanyEmployeeId}{' '}
+                <span className="text-muted-foreground font-normal text-xs">
+                  {labels.fieldCompanyEmployeeIdSubtext}
+                </span>
+              </Label>
+              <Input
+                id="companyEmployeeId"
+                value={form.companyEmployeeId}
+                onChange={(e) => update('companyEmployeeId', e.target.value)}
+                placeholder="ex: 12345"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{labels.sectionIdentity}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -319,16 +405,6 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="companyEmployeeId">
-              {labels.fieldCompanyEmployeeId}
-            </Label>
-            <Input
-              id="companyEmployeeId"
-              value={form.companyEmployeeId}
-              onChange={(e) => update('companyEmployeeId', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="birthDate">{labels.fieldBirthDate}</Label>
             <Input
               id="birthDate"
@@ -381,14 +457,6 @@ export function EmployeeForm({ employeeId, initialValues, labels }: Props) {
               id="addressLine2"
               value={form.addressLine2}
               onChange={(e) => update('addressLine2', e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="city">{labels.fieldCity}</Label>
-            <Input
-              id="city"
-              value={form.city}
-              onChange={(e) => update('city', e.target.value)}
             />
           </div>
           <div className="space-y-2">

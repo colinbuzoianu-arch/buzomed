@@ -62,6 +62,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
           lastName: true,
           professionalTitle: true,
           professionalCode: true,
+          stampImageUrl: true,
         },
       },
       location: {
@@ -84,6 +85,8 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   // values only, no Prisma objects.
   const data = {
     cabinetName: examination.tenant.legalName ?? examination.tenant.name,
+    logoUrl: examination.tenant.logoUrl ?? null,
+    stampUrl: examination.practitioner?.stampImageUrl ?? null,
     cabinetAddress: [
       examination.location.addressLine1,
       examination.location.addressLine2,

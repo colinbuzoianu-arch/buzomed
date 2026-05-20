@@ -59,6 +59,8 @@ const COLUMN_KEYS: ColumnKey[] = [
   'companyEmployeeId',
   'email',
   'department',
+  'jobTitle',
+  'city',
 ]
 
 function colKeyLabel(key: ColumnKey, labels: Record<string, string>): string {
@@ -68,6 +70,8 @@ function colKeyLabel(key: ColumnKey, labels: Record<string, string>): string {
     case 'companyEmployeeId': return labels.colEmployeeId
     case 'email': return labels.colEmail
     case 'department': return labels.colDepartment
+    case 'jobTitle': return labels.colJobTitle ?? 'Funcție'
+    case 'city': return labels.colCity ?? 'Oraș'
   }
 }
 

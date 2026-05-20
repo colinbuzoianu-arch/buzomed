@@ -18,6 +18,7 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
   Font,
 } from '@react-pdf/renderer'
@@ -221,6 +222,8 @@ interface VitalSigns {
 export interface FisaPdfProps {
   cabinetName: string
   cabinetAddress: string
+  logoUrl: string | null
+  stampUrl: string | null
   examinationNumber: string
   examinationDate: string
   signedAt: string | null
@@ -297,6 +300,12 @@ export function FisaPdfDocument(props: FisaPdfProps) {
         {/* Header */}
         <View style={S.header}>
           <View>
+            {props.logoUrl ? (
+              <Image
+                src={props.logoUrl}
+                style={{ width: 80, height: 30, objectFit: 'contain', marginBottom: 4 }}
+              />
+            ) : null}
             <Text style={S.cabinetName}>{props.cabinetName}</Text>
             <Text style={S.cabinetAddress}>{props.cabinetAddress}</Text>
           </View>
@@ -457,6 +466,12 @@ export function FisaPdfDocument(props: FisaPdfProps) {
           </View>
           <View style={S.signatureBlock}>
             <Text style={S.signatureLabel}>Medic de medicina muncii:</Text>
+            {props.stampUrl ? (
+              <Image
+                src={props.stampUrl}
+                style={{ width: 60, height: 40, objectFit: 'contain', marginBottom: 4 }}
+              />
+            ) : null}
             <Text style={S.signatureLine}>
               {props.practitionerName}
               {props.practitionerTitle

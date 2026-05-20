@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { EmployeeForm } from '../employee-form'
@@ -16,6 +17,12 @@ export default async function NewEmployeePage() {
 
   const caps = tenantDataCapabilities(user, user.tenantId)
   if (!caps.canWriteAdministrative) redirect('/employees')
+
+  const companies = await prisma.company.findMany({
+    where: { tenantId: user.tenantId, deletedAt: null },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true },
+  })
 
   const labels = buildEmployeeFormLabels(t)
 
@@ -36,7 +43,11 @@ export default async function NewEmployeePage() {
         </p>
       </div>
 
-      <EmployeeForm labels={labels} />
+      <EmployeeForm
+        labels={labels}
+        companies={companies}
+        currentCompanyId={null}
+      />
     </div>
   )
 }

@@ -63,6 +63,8 @@ interface ImportRow {
   companyEmployeeId: string | null
   email: string | null
   department: string | null
+  jobTitle: string | null
+  city: string | null
   skipIfDuplicate: boolean
 }
 
@@ -190,6 +192,14 @@ export async function POST(request: NextRequest) {
         typeof r.department === 'string' && r.department.trim()
           ? r.department.trim()
           : null,
+      jobTitle:
+        typeof r.jobTitle === 'string' && r.jobTitle.trim()
+          ? r.jobTitle.trim()
+          : null,
+      city:
+        typeof r.city === 'string' && r.city.trim()
+          ? r.city.trim()
+          : null,
       skipIfDuplicate: r.skipIfDuplicate !== false, // default true
     })
   }
@@ -280,6 +290,8 @@ export async function POST(request: NextRequest) {
             idDocumentType: 'other',
             idDocumentNumber: null,
             companyEmployeeId: row.companyEmployeeId,
+            jobTitle: row.jobTitle,
+            city: row.city,
             email: row.email,
             nationality: 'RO',
             isActive: true,

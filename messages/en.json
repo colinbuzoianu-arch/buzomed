@@ -320,6 +320,11 @@
       "companyEmployeeId": "Employee ID",
       "archivedAt": "Archived at"
     },
+    "columns": {
+      "company": "Company",
+      "jobTitle": "Job Title",
+      "city": "City"
+    },
     "archivedReason": {
       "left_employment": "Left the company",
       "retired": "Retired",
@@ -362,6 +367,8 @@
       "fieldEmergencyRelationship": "Relationship",
       "fieldBloodType": "Blood type",
       "fieldNotes": "Notes",
+      "fieldJobTitle": "Job Title",
+      "fieldJobTitlePlaceholder": "e.g. Operator, Welder, Accountant",
       "fieldIsActive": "Employee is active",
       "required": "required",
       "submitCreate": "Create employee",
@@ -371,7 +378,12 @@
       "fieldIdDocumentTypeCnp": "CNP (Romanian ID number)",
       "fieldIdDocumentTypeCnpHint": "The CNP is encrypted at rest and visible only to practitioners.",
       "fieldCnp": "CNP",
-      "cnpBirthDateMismatch": "Warning: the CNP's embedded birth date ({cnpDate}) doesn't match the date entered below."
+      "cnpBirthDateMismatch": "Warning: the CNP's embedded birth date ({cnpDate}) doesn't match the date entered below.",
+      "sectionAssignment": "Assignment",
+      "fieldCompany": "Company",
+      "companyNone": "— No company —",
+      "fieldCityPlaceholder": "e.g. Cluj-Napoca",
+      "fieldCompanyEmployeeIdSubtext": "(optional)"
     },
     "assignments": {
       "sectionTitle": "Workplace assignments",

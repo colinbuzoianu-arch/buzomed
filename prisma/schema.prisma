@@ -217,6 +217,7 @@ model Tenant {
   settings            Json                @default("{}")
 
   cnpHashSalt         String?             @map("cnp_hash_salt")
+  logoUrl             String?             @map("logo_url")
 
   isDemo              Boolean             @default(false) @map("is_demo")
 
@@ -294,6 +295,7 @@ model User {
   roles               UserRole[]               // multi-role support per question 1
   
   professionalTitle   String?                  @map("professional_title")
+  specialty           String?                  // e.g. "Medic primar medicina muncii"
   professionalCode    String?                  @map("professional_code") // parafa code
   cnpEncrypted        String?                  @map("cnp_encrypted") // for practitioners; encrypted via pgcrypto
   cnpHash             String?                  @map("cnp_hash") // for lookup
@@ -389,6 +391,7 @@ model Company {
   contracts           Contract[]
   invoices            Invoice[]
   medicalEvents       MedicalEvent[]
+  employees           Employee[]      @relation("EmployeeCompany")
 
   @@map("companies")
   @@index([tenantId])
@@ -549,7 +552,9 @@ model Employee {
   
   // Operational identification (per question 4 — Interpretation A)
   companyEmployeeId           String?               @map("company_employee_id") // badge / matricola
-  
+  jobTitle                    String?               @map("job_title")
+  companyId                   String?               @map("company_id") @db.Uuid
+
   // Personal data
   lastName                    String                @map("last_name")
   firstName                   String                @map("first_name")
@@ -590,19 +595,21 @@ model Employee {
   deletedAt                   DateTime?             @map("deleted_at") @db.Timestamptz
   
   tenant                      Tenant                          @relation(fields: [tenantId], references: [id])
+  company                     Company?                        @relation("EmployeeCompany", fields: [companyId], references: [id])
   createdBy                   User?                           @relation(fields: [createdByUserId], references: [id])
   workplaceAssignments        EmployeeWorkplaceAssignment[]
   examinations                Examination[]
   vaccinations                Vaccination[]
   medicalEvents               MedicalEvent[]
   recalls                     Recall[]
-  
+
   @@map("employees")
   @@index([tenantId])
   @@index([tenantId, cnpHash])
   @@index([tenantId, lastName, firstName])
   @@index([tenantId, companyEmployeeId])
   @@index([archivedAt])
+  @@index([companyId])
 }
 
 model EmployeeWorkplaceAssignment {

@@ -320,6 +320,11 @@
       "companyEmployeeId": "ID angajat",
       "archivedAt": "Arhivat la"
     },
+    "columns": {
+      "company": "Companie",
+      "jobTitle": "Funcție",
+      "city": "Oraș"
+    },
     "archivedReason": {
       "left_employment": "Plecat din companie",
       "retired": "Pensionat",
@@ -362,6 +367,8 @@
       "fieldEmergencyRelationship": "Relație",
       "fieldBloodType": "Grupă sanguină",
       "fieldNotes": "Note",
+      "fieldJobTitle": "Funcție",
+      "fieldJobTitlePlaceholder": "ex: Operator, Sudor, Contabil",
       "fieldIsActive": "Angajat activ",
       "required": "obligatoriu",
       "submitCreate": "Creează angajatul",
@@ -371,7 +378,12 @@
       "fieldIdDocumentTypeCnp": "CNP",
       "fieldIdDocumentTypeCnpHint": "CNP-ul este criptat în baza de date și vizibil doar medicilor.",
       "fieldCnp": "CNP",
-      "cnpBirthDateMismatch": "Atenție: data nașterii din CNP ({cnpDate}) nu corespunde cu cea introdusă mai jos."
+      "cnpBirthDateMismatch": "Atenție: data nașterii din CNP ({cnpDate}) nu corespunde cu cea introdusă mai jos.",
+      "sectionAssignment": "Atribuire",
+      "fieldCompany": "Companie",
+      "companyNone": "— Fără companie —",
+      "fieldCityPlaceholder": "ex: Timișoara",
+      "fieldCompanyEmployeeIdSubtext": "(opțional)"
     },
     "assignments": {
       "sectionTitle": "Alocări la locul de muncă",

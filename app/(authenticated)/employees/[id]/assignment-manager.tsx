@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -191,31 +192,38 @@ export function EmployeeAssignmentManager({
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-2">
-        {isReassign && (
+    <div className="flex flex-col items-end gap-2">
+      {!hasWorkplaces ? (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-2 text-sm text-amber-700 max-w-sm">
+          <AlertCircle size={14} className="mt-0.5 shrink-0 text-amber-600" />
+          <span>
+            Nu există locuri de muncă configurate pentru acest cabinet.{' '}
+            <Link href="/companies" className="text-amber-800 underline">
+              Adăugați un loc de muncă →
+            </Link>
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          {isReassign && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEnd}
+              disabled={submitting}
+            >
+              {submitting ? labels.ending : labels.endButton}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
-            onClick={handleEnd}
+            onClick={openDialog}
             disabled={submitting}
           >
-            {submitting ? labels.ending : labels.endButton}
+            {isReassign ? labels.reassignButton : labels.assignButton}
           </Button>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={openDialog}
-          disabled={submitting || !hasWorkplaces}
-        >
-          {isReassign ? labels.reassignButton : labels.assignButton}
-        </Button>
-      </div>
-      {!hasWorkplaces && (
-        <span className="text-xs text-muted-foreground">
-          {labels.noWorkplaces}
-        </span>
+        </div>
       )}
       {error && <span className="text-xs text-destructive">{error}</span>}
 

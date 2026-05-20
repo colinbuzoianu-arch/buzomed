@@ -33,6 +33,8 @@ export type ColumnKey =
   | 'companyEmployeeId'
   | 'email'
   | 'department'
+  | 'jobTitle'
+  | 'city'
 
 export interface RawRow {
   rowNumber: number // 1-indexed in the source file (header = 0)
@@ -41,6 +43,8 @@ export interface RawRow {
   companyEmployeeId: string | null
   email: string | null
   department: string | null
+  jobTitle: string | null
+  city: string | null
   raw: Record<string, string> // for debugging / displaying unmapped values
 }
 
@@ -123,6 +127,37 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
     'post',
     'post de lucru',
     'unit',
+  ],
+  jobTitle: [
+    'functie',
+    'functia',
+    'job title',
+    'jobtitle',
+    'job',
+    'pozitie',
+    'pozitia',
+    'ocupatie',
+    'ocupatia',
+    'rol',
+    'role',
+    'beruf',
+    'berufsbezeichnung',
+    'designation',
+    'title',
+    'titlu',
+  ],
+  city: [
+    'oras',
+    'orasul',
+    'localitate',
+    'localitatea',
+    'city',
+    'town',
+    'location',
+    'locatie',
+    'locatia',
+    'stadt',
+    'wohnort',
   ],
 }
 
@@ -287,6 +322,8 @@ export async function parseImportFile(
       companyEmployeeId: get('companyEmployeeId'),
       email: get('email'),
       department: get('department'),
+      jobTitle: get('jobTitle'),
+      city: get('city'),
       raw: row,
     }
   })
@@ -353,7 +390,7 @@ export async function aiEnhancedColumnMapping(
     if (
       aiKey &&
       typeof aiKey === 'string' &&
-      (REQUIRED_COLS as string[]).concat(['companyEmployeeId', 'email', 'department']).includes(aiKey) &&
+      (REQUIRED_COLS as string[]).concat(['companyEmployeeId', 'email', 'department', 'jobTitle', 'city']).includes(aiKey) &&
       !mergedDetected[aiKey as ColumnKey]
     ) {
       mergedDetected[aiKey as ColumnKey] = header
