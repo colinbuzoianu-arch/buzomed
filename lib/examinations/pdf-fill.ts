@@ -3,6 +3,9 @@ import {
   PDFDocument,
   PDFCheckBox,
   PDFTextField,
+  PDFName,
+  PDFDict,
+  PDFString,
   StandardFonts,
   rgb,
 } from 'pdf-lib'
@@ -41,6 +44,37 @@ export async function fillExaminationPdf(
     }
   }
 
+  // Field appearance: light-blue background, no borders, font capped at 8pt.
+  // Templates may still carry dark-blue BG or visible borders from authoring
+  // tools; this loop normalises all widgets before updateFieldAppearances().
+  for (const field of form.getFields()) {
+    try {
+      // Cap text-field font size at 8pt so filled values fit within small cells.
+      if (field instanceof PDFTextField) {
+        const da = field.acroField.dict.lookupMaybe(PDFName.of('DA'), PDFString)
+        if (da) {
+          const updated = da.decodeText().replace(/(\d+(?:\.\d+)?)\s+Tf/, (_, s) =>
+            parseFloat(s) > 8 ? '8 Tf' : `${s} Tf`
+          )
+          field.acroField.dict.set(PDFName.of('DA'), PDFString.of(updated))
+        }
+      }
+
+      for (const widget of field.acroField.getWidgets()) {
+        const dict = widget.dict as PDFDict
+        const mk = dict.lookupMaybe(PDFName.of('MK'), PDFDict)
+        if (mk) {
+          // #EEF4FF ≈ rgb(0.93, 0.96, 1.0): light blue on screen, near-white in print
+          mk.set(PDFName.of('BG'), pdfDoc.context.obj([0.93, 0.96, 1.0]))
+          mk.delete(PDFName.of('BC')) // remove border colour → no visible outline
+        }
+        dict.delete(PDFName.of('BS')) // remove border stream
+      }
+    } catch {
+      // Never throw on individual field processing
+    }
+  }
+
   // Text overlays — drawn after field fill, before flatten.
   // Used for static layout areas not exposed as AcroForm fields.
   if (overlays && overlays.length > 0) {
@@ -58,7 +92,10 @@ export async function fillExaminationPdf(
     }
   }
 
-  // Stamp/signature image — embedded before flatten so it merges into page content
+  // Stamp/parafa image — embedded before flatten so it merges into page content.
+  // Fișa de Aptitudine has two vertically-stacked copies on one A4 page:
+  //   Copy A (top half): fields at y ≈ 566–793 → stamp below last field
+  //   Copy B (bottom half): fields at y ≈ 150–369 → stamp below last field
   if (stampImageUrl) {
     try {
       const res = await fetch(stampImageUrl)
@@ -71,8 +108,8 @@ export async function fillExaminationPdf(
         : await pdfDoc.embedJpg(imgBytes)
 
       const page = pdfDoc.getPage(0)
-      page.drawImage(embeddedImg, { x: 380, y: 220, width: 80, height: 40 }) // Copy A
-      page.drawImage(embeddedImg, { x: 380, y: 55,  width: 80, height: 40 }) // Copy B
+      page.drawImage(embeddedImg, { x: 380, y: 510, width: 80, height: 35 }) // Copy A
+      page.drawImage(embeddedImg, { x: 380, y: 95,  width: 80, height: 35 }) // Copy B
     } catch (err) {
       console.warn('[pdf-fill] stamp image failed, skipping:', err)
     }

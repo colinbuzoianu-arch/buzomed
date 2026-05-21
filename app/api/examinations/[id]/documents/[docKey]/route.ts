@@ -25,7 +25,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   const examination = await prisma.examination.findFirst({
     where: { id, tenantId: auth.user.tenantId, deletedAt: null },
     include: {
-      tenant: { select: { legalName: true, name: true } },
+      tenant: { select: { legalName: true, name: true, addressLine1: true, city: true } },
       employee: {
         select: {
           firstName: true,
@@ -76,10 +76,16 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   const verdict = examination.verdict ?? ''
 
   // Clinic / cabinet identity
-  const clinicName = examination.tenant.legalName ?? examination.tenant.name
-  const clinicAddr = [examination.location?.addressLine1, examination.location?.city]
-    .filter(Boolean)
-    .join(', ')
+  // Prefer legalName; fall back to location name (specific clinic) then tenant name.
+  const clinicName =
+    examination.tenant.legalName ??
+    examination.location?.name ??
+    examination.tenant.name
+  // Prefer location address; fall back to tenant address registered in platform.
+  const clinicAddr = [
+    examination.location?.addressLine1 ?? examination.tenant.addressLine1,
+    examination.location?.city ?? examination.tenant.city,
+  ].filter(Boolean).join(', ')
 
   // Practitioner full name
   const pracName = examination.practitioner
@@ -101,10 +107,15 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     const typeCheckField =
       TYPE_CHECKBOX[examination.examinationType.code] ?? 'tip_Altele'
 
+    const companyAddr = [
+      examination.workplace.company.addressLine1,
+      examination.workplace.company.city,
+    ].filter(Boolean).join(', ')
+
     for (const suffix of ['_A', '_B']) {
       // Employer / employee data
       fields[`societate${suffix}`] = examination.workplace.company.name
-      fields[`adresa${suffix}`] = clinicAddr
+      fields[`adresa${suffix}`] = companyAddr  // employer address, not clinic
       fields[`nume${suffix}`] = examination.employee.lastName
       fields[`prenume${suffix}`] = examination.employee.firstName
       fields[`cnp${suffix}`] = examination.employee.idDocumentNumber ?? ''
@@ -128,18 +139,29 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       fields[`medic${suffix}`] = pracName
     }
 
-    // Overlays for static layout text (not AcroForm fields):
-    // - Clinic header (appears once at top, shared by both copies)
-    // - Practitioner name in each copy's signature area
+    // Overlays for static layout text (not AcroForm fields).
+    // Fișa has two vertically-stacked copies (A=top, B=bottom) on one A4 (595×842):
+    //   Copy A fields: y ≈ 566–793  →  header above y=785, signature below y=566
+    //   Copy B fields: y ≈ 150–369  →  header above y=369, signature below y=150
     overlays = [
+      // Copy A — clinic header
       { page: 0, x: 320, y: 800, text: clinicName, size: 8 },
       { page: 0, x: 320, y: 789, text: clinicAddr, size: 7.5 },
-      { page: 0, x: 390, y: 248, text: pracName, size: 8 }, // Copy A
-      { page: 0, x: 390, y: 80,  text: pracName, size: 8 }, // Copy B
+      // Copy B — clinic header
+      { page: 0, x: 320, y: 383, text: clinicName, size: 8 },
+      { page: 0, x: 320, y: 372, text: clinicAddr, size: 7.5 },
+      // Practitioner name in signature area of each copy
+      { page: 0, x: 60, y: 545, text: pracName, size: 8 }, // Copy A
+      { page: 0, x: 60, y: 130, text: pracName, size: 8 }, // Copy B
     ]
 
     stampUrl = examination.practitioner?.stampImageUrl ?? null
   } else if (docKey === 'examen_angajare') {
+    // Clinic header overlays — fields start at y=738, header space is y=748–842
+    overlays = [
+      { page: 0, x: 30, y: 822, text: clinicName, size: 9 },
+      { page: 0, x: 30, y: 809, text: clinicAddr, size: 8 },
+    ]
     fields = {
       nume_angajat: `${examination.employee.lastName} ${examination.employee.firstName}`,
       nr_dosar: examination.examinationNumber,
@@ -166,11 +188,16 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       inapt: verdict === 'inapt',
     }
   } else if (docKey === 'examen_periodic') {
+    // Clinic header overlays — fields start at y=738, header space is y=748–842
+    overlays = [
+      { page: 0, x: 30, y: 822, text: clinicName, size: 9 },
+      { page: 0, x: 30, y: 809, text: clinicAddr, size: 8 },
+    ]
     fields = {
-      // Header fields (no p_ prefix)
-      nume_angajat: `${examination.employee.lastName} ${examination.employee.firstName}`,
-      nr_dosar: examination.examinationNumber,
-      data_top: examDate,
+      // All fields in this template use the p_ prefix
+      p_nume_angajat: `${examination.employee.lastName} ${examination.employee.firstName}`,
+      p_nr_dosar: examination.examinationNumber,
+      p_data_top: examDate,
       // Clinical fields use p_ prefix as per template naming
       p_inaltime: str(vs.height),
       p_greutate: str(vs.weight),
@@ -194,10 +221,14 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       p_inapt: verdict === 'inapt',
     }
   } else if (docKey === 'dosar_medical') {
+    const companyAddrDm = [
+      examination.workplace.company.addressLine1,
+      examination.workplace.company.city,
+    ].filter(Boolean).join(', ')
     fields = {
       unitate: examination.workplace.company.name,
       punct_lucru: examination.workplace.name,
-      adresa_unitate: clinicAddr,
+      adresa_unitate: companyAddrDm,
       nume: examination.employee.lastName,
       prenume: examination.employee.firstName,
       data_nasterii: examination.employee.birthDate
