@@ -870,6 +870,10 @@
       "protectia_maternitatii": "Protecția maternității",
       "certificat_invatamant": "Certificat medical — Învățământ superior",
       "certificat_magistratura": "Certificat medical — Magistratură"
+    },
+    "typeGroups": {
+      "hg355": "Examene medicale (HG 355/2007)",
+      "special": "Documente speciale"
     }
   },
   "documents": {

@@ -181,6 +181,8 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
             ),
             fieldNotes: t('examinations.form.fieldNotes'),
             currentWorkplace: t('examinations.form.currentWorkplace'),
+            typeGroupHg355: t('examinations.typeGroups.hg355'),
+            typeGroupSpecial: t('examinations.typeGroups.special'),
             submitCreate: t('examinations.form.submitCreate'),
             submitting: t('examinations.form.submitting'),
             cancel: t('common.cancel'),

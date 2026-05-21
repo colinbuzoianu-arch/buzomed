@@ -50,6 +50,8 @@ interface Labels {
   fieldReferringDocument: string
   fieldNotes: string
   currentWorkplace: string
+  typeGroupHg355: string
+  typeGroupSpecial: string
   submitCreate: string
   submitting: string
   cancel: string
@@ -65,6 +67,22 @@ interface Props {
   preselectedEmployeeId?: string
   labels: Labels
 }
+
+const HG355_CODES = new Set([
+  'angajare',
+  'control_periodic',
+  'adaptare',
+  'reluare_munca',
+  'schimbare_loc_munca',
+  'incetare_munca',
+  'la_cerere',
+])
+
+const SPECIAL_CODES = new Set([
+  'protectia_maternitatii',
+  'certificat_invatamant',
+  'certificat_magistratura',
+])
 
 const REQUEST_SOURCES = [
   '',
@@ -205,11 +223,24 @@ export function NewExaminationForm({
               <option value="">
                 {labels.fieldExaminationTypePlaceholder}
               </option>
-              {examinationTypes.map((tp) => (
-                <option key={tp.id} value={tp.id}>
-                  {tp.name}
-                </option>
-              ))}
+              <optgroup label={labels.typeGroupHg355}>
+                {examinationTypes
+                  .filter((tp) => HG355_CODES.has(tp.code) || !SPECIAL_CODES.has(tp.code))
+                  .map((tp) => (
+                    <option key={tp.id} value={tp.id}>
+                      {tp.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label={labels.typeGroupSpecial}>
+                {examinationTypes
+                  .filter((tp) => SPECIAL_CODES.has(tp.code))
+                  .map((tp) => (
+                    <option key={tp.id} value={tp.id}>
+                      {tp.name}
+                    </option>
+                  ))}
+              </optgroup>
             </select>
           </div>
           <div className="space-y-2">

@@ -870,6 +870,10 @@
       "protectia_maternitatii": "Maternity protection",
       "certificat_invatamant": "Medical certificate — Higher education",
       "certificat_magistratura": "Medical certificate — Magistracy"
+    },
+    "typeGroups": {
+      "hg355": "Medical examinations (HG 355/2007)",
+      "special": "Special documents"
     }
   },
   "documents": {
