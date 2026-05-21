@@ -96,11 +96,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   let overlays: Overlay[] | undefined
   let stampUrl: string | null = null
 
-  // Whiteout helpers — erase the template's placeholder header area before
-  // drawing clinic info. Bounds derived from topmost AcroForm field y-coord.
-  const W = (page: number, x: number, y: number, w: number, h: number): Overlay =>
-    ({ kind: 'whiteout', page, x, y, width: w, height: h })
-
   if (docKey === 'fisa_aptitudine') {
     const TYPE_CHECKBOX: Record<string, string> = {
       angajare: 'tip_Angaja',
@@ -146,12 +141,9 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
 
     // Overlays for static layout text (not AcroForm fields).
     // Fișa has two vertically-stacked copies (A=top, B=bottom) on one A4 (595×842):
-    //   Copy A fields: y ≈ 566–793  →  header above y=793, signature below y=566
-    //   Copy B fields: y ≈ 150–369  →  header in gap y=369–421, signature below y=150
+    //   Copy A fields: y ≈ 566–793  →  header above y=785, signature below y=566
+    //   Copy B fields: y ≈ 150–369  →  header above y=369, signature below y=150
     overlays = [
-      // Erase placeholder content from both header areas
-      W(0, 0, 793, 595, 50),  // Copy A header (y=793–842)
-      W(0, 0, 369, 595, 52),  // Copy B header (y=369–421, gap between copies)
       // Copy A — clinic header
       { page: 0, x: 320, y: 800, text: clinicName, size: 8 },
       { page: 0, x: 320, y: 789, text: clinicAddr, size: 7.5 },
@@ -165,9 +157,8 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
 
     stampUrl = examination.practitioner?.stampImageUrl ?? null
   } else if (docKey === 'examen_angajare') {
-    // Clinic header overlays — fields start at y=738, header space is y=746–842
+    // Clinic header overlays — fields start at y=738, header space is y=748–842
     overlays = [
-      W(0, 0, 746, 595, 96),  // erase placeholder (y=746–842)
       { page: 0, x: 30, y: 822, text: clinicName, size: 9 },
       { page: 0, x: 30, y: 809, text: clinicAddr, size: 8 },
     ]
@@ -197,9 +188,8 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       inapt: verdict === 'inapt',
     }
   } else if (docKey === 'examen_periodic') {
-    // Clinic header overlays — fields start at y=738, header space is y=746–842
+    // Clinic header overlays — fields start at y=738, header space is y=748–842
     overlays = [
-      W(0, 0, 746, 595, 96),  // erase placeholder (y=746–842)
       { page: 0, x: 30, y: 822, text: clinicName, size: 9 },
       { page: 0, x: 30, y: 809, text: clinicAddr, size: 8 },
     ]
@@ -231,7 +221,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       p_inapt: verdict === 'inapt',
     }
   } else if (docKey === 'dosar_medical') {
-    overlays = [W(0, 0, 751, 595, 91)]  // erase placeholder header (y=751–842)
     const companyAddrDm = [
       examination.workplace.company.addressLine1,
       examination.workplace.company.city,
@@ -249,7 +238,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       ocupatia: examination.employee.jobTitle ?? '',
     }
   } else if (docKey === 'bilet_trimitere') {
-    overlays = [W(0, 0, 718, 595, 124)]  // erase placeholder header (y=718–842)
     const birthYear = examination.employee.birthDate
       ? new Date(examination.employee.birthDate).getFullYear()
       : null
@@ -267,7 +255,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       motivul_trimiterii: examination.notes ?? '',
     }
   } else if (docKey === 'adeverinta') {
-    overlays = [W(0, 0, 811, 595, 31)]  // erase placeholder header (y=811–842)
     fields = {
       cnp: examination.employee.idDocumentNumber ?? '',
       nume: examination.employee.lastName,
@@ -278,7 +265,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       data_elib: formatDateRo(new Date()),
     }
   } else if (docKey === 'certificat_invatamant') {
-    overlays = [W(0, 0, 809, 595, 33)]  // erase placeholder header (y=809–842)
     fields = {
       nr_cert: examination.examinationNumber,
       data_cert: examDate,
@@ -290,7 +276,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       recomandari: examination.recommendations ?? '',
     }
   } else if (docKey === 'certificat_magistratura') {
-    overlays = [W(0, 0, 809, 595, 33)]  // erase placeholder header (y=809–842)
     fields = {
       nr_cert: examination.examinationNumber,
       data_cert: examDate,
@@ -304,7 +289,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       recomandari: examination.recommendations ?? '',
     }
   } else if (docKey === 'raport_maternitate') {
-    overlays = [W(0, 0, 811, 595, 31)]  // erase placeholder header (y=811–842)
     const fullName = `${examination.employee.lastName} ${examination.employee.firstName}`
     fields = {
       nr_raport: examination.examinationNumber,
@@ -313,7 +297,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       salariata_2: fullName,
     }
   } else if (docKey === 'informare_maternitate') {
-    overlays = [W(0, 0, 785, 595, 57)]  // erase placeholder header (y=785–842)
     fields = {
       nr_raport: examination.examinationNumber,
       data_raport: examDate,
