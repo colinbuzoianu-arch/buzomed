@@ -43,24 +43,36 @@ export async function fillExaminationPdf(
     }
   }
 
-  // Strip visible borders and backgrounds from every field widget.
-  // pdf-lib's flatten() preserves borders/backgrounds, which appear as
-  // horizontal lines when the PDF is viewed in a browser.
-  // Removing BS (border stream) and MK.BC/MK.BG (appearance characteristics)
-  // from each widget's dictionary eliminates these artefacts.
+  // Set light-blue background on all fields and remove visible borders.
+  // #EEF4FF ≈ rgb(0.93, 0.96, 1.0): visible on screen, prints as near-white
+  // so printed documents are clean and handwriting on top is easy.
+  const FIELD_BG = rgb(0.93, 0.96, 1.0)
+
   for (const field of form.getFields()) {
     try {
       for (const widget of field.acroField.getWidgets()) {
         const dict = widget.dict as PDFDict
-        dict.delete(PDFName.of('BS'))
-        const mk = dict.lookupMaybe(PDFName.of('MK'), PDFDict)
-        if (mk) {
-          mk.delete(PDFName.of('BC')) // border color
-          mk.delete(PDFName.of('BG')) // background color
+
+        // Primary: use the high-level API if available on this pdf-lib build
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mk = (widget as any).getOrCreateAppearanceCharacteristics()
+          mk.setBackgroundColor(FIELD_BG)
+        } catch {
+          // Fallback: write BG directly into the MK (appearance characteristics) dict
+          const mk = dict.lookupMaybe(PDFName.of('MK'), PDFDict)
+          if (mk) {
+            mk.set(PDFName.of('BG'), pdfDoc.context.obj([0.93, 0.96, 1.0]))
+          }
         }
+
+        // Remove border — always, regardless of which BG path ran above
+        const mkDict = dict.lookupMaybe(PDFName.of('MK'), PDFDict)
+        if (mkDict) mkDict.delete(PDFName.of('BC')) // border color
+        dict.delete(PDFName.of('BS'))               // border stream
       }
     } catch {
-      // Some exotic field types don't expose widgets — skip silently
+      // Skip — never throw on individual field processing
     }
   }
 
