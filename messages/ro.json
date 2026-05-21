@@ -383,7 +383,10 @@
       "fieldCompany": "Companie",
       "companyNone": "— Fără companie —",
       "fieldCityPlaceholder": "ex: Timișoara",
-      "fieldCompanyEmployeeIdSubtext": "(opțional)"
+      "fieldCompanyEmployeeIdSubtext": "(opțional)",
+      "fieldWorkplace": "Loc de muncă",
+      "workplaceNone": "— Fără loc de muncă —",
+      "workplaceSelectCompanyFirst": "Selectați mai întâi compania"
     },
     "assignments": {
       "sectionTitle": "Alocări la locul de muncă",

@@ -309,6 +309,27 @@ export async function POST(request: NextRequest) {
     },
   })
 
+  // If a workplaceId was supplied, create the initial WorkplaceAssignment.
+  const workplaceId =
+    typeof body.workplaceId === 'string' && body.workplaceId ? body.workplaceId : null
+  if (workplaceId) {
+    const wp = await prisma.workplace.findFirst({
+      where: { id: workplaceId, tenantId: auth.user.tenantId, deletedAt: null },
+      select: { id: true },
+    })
+    if (wp) {
+      await prisma.employeeWorkplaceAssignment.create({
+        data: {
+          tenantId: auth.user.tenantId,
+          employeeId: employee.id,
+          workplaceId: wp.id,
+          startDate: new Date(),
+          isCurrent: true,
+        },
+      })
+    }
+  }
+
   return NextResponse.json({ employee }, { status: 201 })
 }
 

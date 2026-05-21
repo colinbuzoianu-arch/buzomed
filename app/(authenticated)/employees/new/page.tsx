@@ -21,7 +21,15 @@ export default async function NewEmployeePage() {
   const companies = await prisma.company.findMany({
     where: { tenantId: user.tenantId, deletedAt: null },
     orderBy: { name: 'asc' },
-    select: { id: true, name: true },
+    select: {
+      id: true,
+      name: true,
+      workplaces: {
+        where: { deletedAt: null, isActive: true },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true, department: true },
+      },
+    },
   })
 
   const labels = buildEmployeeFormLabels(t)

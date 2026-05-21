@@ -383,7 +383,10 @@
       "fieldCompany": "Company",
       "companyNone": "— No company —",
       "fieldCityPlaceholder": "e.g. Cluj-Napoca",
-      "fieldCompanyEmployeeIdSubtext": "(optional)"
+      "fieldCompanyEmployeeIdSubtext": "(optional)",
+      "fieldWorkplace": "Workplace",
+      "workplaceNone": "— No workplace —",
+      "workplaceSelectCompanyFirst": "Select a company first"
     },
     "assignments": {
       "sectionTitle": "Workplace assignments",

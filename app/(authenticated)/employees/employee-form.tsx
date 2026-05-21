@@ -120,6 +120,9 @@ export interface EmployeeFormLabels {
   sectionAssignment: string
   fieldCompany: string
   companyNone: string
+  fieldWorkplace: string
+  workplaceNone: string
+  workplaceSelectCompanyFirst: string
   fieldCityPlaceholder: string
   fieldCompanyEmployeeIdSubtext: string
   required: string
@@ -130,11 +133,23 @@ export interface EmployeeFormLabels {
   errorMessage: string
 }
 
+interface WorkplaceOption {
+  id: string
+  name: string
+  department: string | null
+}
+
+interface CompanyOption {
+  id: string
+  name: string
+  workplaces?: WorkplaceOption[]
+}
+
 interface Props {
   employeeId?: string
   initialValues?: EmployeeFormValues
   labels: EmployeeFormLabels
-  companies?: { id: string; name: string }[]
+  companies?: CompanyOption[]
   currentCompanyId?: string | null
 }
 
@@ -155,6 +170,7 @@ export function EmployeeForm({
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(
     currentCompanyId ?? ''
   )
+  const [selectedWorkplaceId, setSelectedWorkplaceId] = useState<string>('')
 
   const isEdit = !!employeeId
 
@@ -182,6 +198,7 @@ export function EmployeeForm({
         payload.companyId = selectedCompanyId || null
       } else if (selectedCompanyId) {
         payload.companyId = selectedCompanyId
+        if (selectedWorkplaceId) payload.workplaceId = selectedWorkplaceId
       }
     }
     const stringFields: Array<keyof EmployeeFormValues> = [
@@ -279,7 +296,10 @@ export function EmployeeForm({
               <select
                 id="companySelect"
                 value={selectedCompanyId}
-                onChange={(e) => setSelectedCompanyId(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCompanyId(e.target.value)
+                  setSelectedWorkplaceId('')
+                }}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="">{labels.companyNone}</option>
@@ -288,6 +308,29 @@ export function EmployeeForm({
                 ))}
               </select>
             </div>
+            {!isEdit && (
+              <div className="space-y-2">
+                <Label htmlFor="workplaceSelect">{labels.fieldWorkplace}</Label>
+                <select
+                  id="workplaceSelect"
+                  value={selectedWorkplaceId}
+                  onChange={(e) => setSelectedWorkplaceId(e.target.value)}
+                  disabled={!selectedCompanyId}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
+                >
+                  <option value="">
+                    {selectedCompanyId
+                      ? labels.workplaceNone
+                      : labels.workplaceSelectCompanyFirst}
+                  </option>
+                  {(companies.find((c) => c.id === selectedCompanyId)?.workplaces ?? []).map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}{w.department ? ` (${w.department})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="jobTitle">{labels.fieldJobTitle}</Label>
               <Input
