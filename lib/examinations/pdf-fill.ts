@@ -11,6 +11,7 @@ import {
 } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 
+// Text drawn on top of the page content.
 export interface TextOverlay {
   page: number
   x: number
@@ -18,6 +19,19 @@ export interface TextOverlay {
   text: string
   size?: number
 }
+
+// White rectangle that blanks out a region before text overlays are drawn.
+// Use this to erase placeholder/branding content baked into template pages.
+export interface WhiteoutRect {
+  kind: 'whiteout'
+  page: number
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type Overlay = TextOverlay | WhiteoutRect
 
 // Geist-Regular (Next.js-bundled, open-source) covers the full Romanian
 // character set — including Ș/ș, Ț/ț, Ă/ă and the cedilla variants Ş/ş, Ţ/ţ
@@ -27,7 +41,7 @@ const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', 'Geist-Regular.ttf
 export async function fillExaminationPdf(
   templatePath: string,
   fields: Record<string, string | boolean>,
-  overlays?: TextOverlay[],
+  overlays?: Overlay[],
   stampImageUrl?: string | null
 ): Promise<Uint8Array> {
   const [templateBytes, fontBytes] = await Promise.all([
@@ -88,18 +102,31 @@ export async function fillExaminationPdf(
     }
   }
 
-  // Text overlays — use the Unicode font so Romanian chars render correctly.
+  // Overlays: whiteout rects first (erase template placeholders), then text.
   if (overlays && overlays.length > 0) {
     for (const ov of overlays) {
       const page = pdfDoc.getPage(ov.page)
-      if (!page || !ov.text) continue
-      page.drawText(ov.text, {
-        x: ov.x,
-        y: ov.y,
-        size: ov.size ?? 8,
-        font: unicodeFont,
-        color: rgb(0, 0, 0),
-      })
+      if (!page) continue
+      if ('kind' in ov && ov.kind === 'whiteout') {
+        page.drawRectangle({
+          x: ov.x,
+          y: ov.y,
+          width: ov.width,
+          height: ov.height,
+          color: rgb(1, 1, 1),
+          borderWidth: 0,
+        })
+      } else {
+        const textOv = ov as TextOverlay
+        if (!textOv.text) continue
+        page.drawText(textOv.text, {
+          x: textOv.x,
+          y: textOv.y,
+          size: textOv.size ?? 8,
+          font: unicodeFont,
+          color: rgb(0, 0, 0),
+        })
+      }
     }
   }
 
