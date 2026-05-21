@@ -105,5 +105,44 @@ VALUES
     true,
     NOW(),
     NOW()
+  ),
+  (
+    gen_random_uuid(),
+    'protectia_maternitatii',
+    'Protecția maternității',
+    'Maternity protection',
+    'Raport și informare privind protecția maternității la locul de muncă.',
+    'OUG 96/2003',
+    null,
+    true,
+    true,
+    NOW(),
+    NOW()
+  ),
+  (
+    gen_random_uuid(),
+    'certificat_invatamant',
+    'Certificat medical — Învățământ superior',
+    'Medical certificate — Higher education',
+    'Certificat medical pentru ocuparea unui post didactic sau de cercetare.',
+    'Ord. MS 1234/2006',
+    null,
+    true,
+    true,
+    NOW(),
+    NOW()
+  ),
+  (
+    gen_random_uuid(),
+    'certificat_magistratura',
+    'Certificat medical — Magistratură',
+    'Medical certificate — Magistracy',
+    'Certificat medical pentru admiterea la Institutul Național al Magistraturii.',
+    'H.C.S.M. nr. 93/2023',
+    null,
+    true,
+    true,
+    NOW(),
+    NOW()
   )
 ON CONFLICT (code) DO NOTHING;

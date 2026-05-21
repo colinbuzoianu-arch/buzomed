@@ -6,6 +6,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { ExaminationForm } from './examination-form'
+import { DocumentsPanel } from './documents-panel'
 import { ExaminationActions } from './examination-actions'
 import { DocumentsSection } from '@/app/(authenticated)/_components/documents-section'
 import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
@@ -113,6 +114,37 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
     isSigned ||
     examination.status === 'cancelled' ||
     examination.status === 'no_show'
+
+  const prefillEnabled =
+    !isLocked &&
+    (examination.status === 'scheduled' || examination.status === 'in_progress')
+
+  const maternityRiskLabels: Record<string, string> = {
+    categoryPhysical: t('examinations.form.maternityRisk.categoryPhysical'),
+    categoryBiological: t('examinations.form.maternityRisk.categoryBiological'),
+    categoryChemical: t('examinations.form.maternityRisk.categoryChemical'),
+    categoryWorkConditions: t('examinations.form.maternityRisk.categoryWorkConditions'),
+    socuri: t('examinations.form.maternityRisk.socuri'),
+    manipulareGreutati: t('examinations.form.maternityRisk.manipulareGreutati'),
+    zgomot: t('examinations.form.maternityRisk.zgomot'),
+    radiatiiIonizante: t('examinations.form.maternityRisk.radiatiiIonizante'),
+    radiatiiNeionizante: t('examinations.form.maternityRisk.radiatiiNeionizante'),
+    temperatureExtreme: t('examinations.form.maternityRisk.temperatureExtreme'),
+    posturiFortat: t('examinations.form.maternityRisk.posturiFortat'),
+    ortostatism: t('examinations.form.maternityRisk.ortostatism'),
+    rubeola: t('examinations.form.maternityRisk.rubeola'),
+    toxoplasma: t('examinations.form.maternityRisk.toxoplasma'),
+    hepatitaB: t('examinations.form.maternityRisk.hepatitaB'),
+    bacteriiCongenitale: t('examinations.form.maternityRisk.bacteriiCongenitale'),
+    substanteR40: t('examinations.form.maternityRisk.substanteR40'),
+    substanteR61: t('examinations.form.maternityRisk.substanteR61'),
+    mercur: t('examinations.form.maternityRisk.mercur'),
+    citostatice: t('examinations.form.maternityRisk.citostatice'),
+    monoxidCarbon: t('examinations.form.maternityRisk.monoxidCarbon'),
+    plumb: t('examinations.form.maternityRisk.plumb'),
+    actSubterana: t('examinations.form.maternityRisk.actSubterana'),
+    lucruNocturn: t('examinations.form.maternityRisk.lucruNocturn'),
+  }
 
   const examTypeName =
     locale === 'en'
@@ -354,8 +386,11 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
 
       <ExaminationForm
         examinationId={examination.id}
+        examinationTypeCode={examination.examinationType.code}
         locked={isLocked}
         signed={isSigned}
+        prefillEnabled={prefillEnabled}
+        maternityRiskLabels={maternityRiskLabels}
         initialValues={{
           // JSONB → structured form values
           anamnesis: jsonOrEmpty(examination.anamnesis),
@@ -364,6 +399,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           hearingTest: jsonOrEmpty(examination.hearingTest),
           lungFunction: jsonOrEmpty(examination.lungFunction),
           additionalTests: jsonOrEmpty(examination.additionalTests),
+          maternityRisk: jsonOrEmpty(examination.maternityRisk),
           diagnoses: jsonOrEmptyArray(examination.diagnoses) as string[],
           clinicalFindings: examination.clinicalFindings ?? '',
           recommendations: examination.recommendations ?? '',
@@ -442,10 +478,60 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           savedToast: t('examinations.form.savedToast'),
           signedNotice: t('examinations.form.signedNotice'),
           errorMessage: t('examinations.form.errorMessage'),
+          // Initial intake
+          sectionInitialIntake: t('examinations.form.sectionInitialIntake'),
+          fieldIntakeRutaProfesionala: t('examinations.form.fieldIntakeRutaProfesionala'),
+          fieldIntakeMedicFamilie: t('examinations.form.fieldIntakeMedicFamilie'),
+          fieldIntakeFumat: t('examinations.form.fieldIntakeFumat'),
+          fieldIntakeAlcool: t('examinations.form.fieldIntakeAlcool'),
+          fieldIntakeCafea: t('examinations.form.fieldIntakeCafea'),
+          fieldIntakeDroguri: t('examinations.form.fieldIntakeDroguri'),
+          fieldIntakeEnergizant: t('examinations.form.fieldIntakeEnergizant'),
+          fieldIntakeAlergii: t('examinations.form.fieldIntakeAlergii'),
+          fieldIntakeSportPerformanta: t('examinations.form.fieldIntakeSportPerformanta'),
+          fieldIntakeTratamenteUrmate: t('examinations.form.fieldIntakeTratamenteUrmate'),
+          fieldIntakeBoliProfesionale: t('examinations.form.fieldIntakeBoliProfesionale'),
+          fieldIntakeBoliProfesionaleDiagnostic: t('examinations.form.fieldIntakeBoliProfesionaleDiagnostic'),
+          fieldIntakeAccidenteMunca: t('examinations.form.fieldIntakeAccidenteMunca'),
+          fieldIntakeAccidenteMuncaDiagnostic: t('examinations.form.fieldIntakeAccidenteMuncaDiagnostic'),
+          fieldIntakeStagiuMilitar: t('examinations.form.fieldIntakeStagiuMilitar'),
+          optYes: t('examinations.form.optYes'),
+          optNo: t('examinations.form.optNo'),
+          optOccasional: t('examinations.form.optOccasional'),
+          // Maternity risk
+          sectionMaternityRisk: t('examinations.form.sectionMaternityRisk'),
+          // Certificate
+          sectionCertificate: t('examinations.form.sectionCertificate'),
+          certApt: t('examinations.form.certApt'),
+          certInapt: t('examinations.form.certInapt'),
+          certAptConditionat: t('examinations.form.certAptConditionat'),
+          certInaptTemporar: t('examinations.form.certInaptTemporar'),
+          // AI prefill
+          prefillLoading: t('examinations.form.prefillLoading'),
+          prefillReady: t('examinations.form.prefillReady'),
+          prefillApply: t('examinations.form.prefillApply'),
+          prefillIgnore: t('examinations.form.prefillIgnore'),
+          prefillTooltip: t('examinations.form.prefillTooltip'),
         }}
       />
 
-      {/* Documents — new in session 7. Pre-loaded on the server. */}
+      {/* Generated document templates for this examination type */}
+      <DocumentsPanel
+        examinationTypeCode={examination.examinationType.code}
+        examinationId={examination.id}
+        employeeFullName={`${examination.employee.lastName} ${examination.employee.firstName}`}
+        locked={isLocked}
+        labels={{
+          title: t('examinations.documentsPanel.title'),
+          downloadBlank: t('examinations.documentsPanel.downloadBlank'),
+          generateFilled: t('examinations.documentsPanel.generateFilled'),
+          generateFilledTooltip: t('examinations.documentsPanel.generateFilledTooltip'),
+          badgeRequired: t('examinations.documentsPanel.badgeRequired'),
+          badgeOptional: t('examinations.documentsPanel.badgeOptional'),
+        }}
+      />
+
+      {/* Uploaded documents — session 7 */}
       <DocumentsSection
         entityType="examination"
         entityId={examination.id}

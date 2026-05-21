@@ -693,7 +693,8 @@ model Examination {
   hearingTest                 Json                      @default("{}") @map("hearing_test")
   lungFunction                Json                      @default("{}") @map("lung_function")
   additionalTests             Json                      @default("{}") @map("additional_tests")
-  
+  maternityRisk               Json                      @default("{}") @map("maternity_risk")
+
   clinicalFindings            String?                   @map("clinical_findings")
   diagnoses                   Json                      @default("[]")
   recommendations             String?

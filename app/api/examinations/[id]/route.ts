@@ -46,6 +46,7 @@ const JSONB_FIELDS = [
   'hearingTest',
   'lungFunction',
   'additionalTests',
+  'maternityRisk',
   'diagnoses',
 ] as const
 
