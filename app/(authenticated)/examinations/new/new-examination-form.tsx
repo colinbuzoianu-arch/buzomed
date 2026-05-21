@@ -22,8 +22,16 @@ interface EmployeeOption {
   firstName: string
   lastName: string
   companyEmployeeId: string | null
-  workplaceName: string
+  workplaceId: string | null
+  workplaceName: string | null
   workplaceDepartment: string | null
+  companyName: string | null
+}
+
+interface WorkplaceOption {
+  id: string
+  name: string
+  department: string | null
   companyName: string
 }
 
@@ -60,6 +68,9 @@ interface Labels {
   fieldReferringDocument: string
   fieldNotes: string
   currentWorkplace: string
+  fieldWorkplace: string
+  workplaceNone: string
+  workplaceRequired: string
   typeGroupHg355: string
   typeGroupSpecial: string
   submitCreate: string
@@ -71,6 +82,7 @@ interface Labels {
 
 interface Props {
   employees: EmployeeOption[]
+  workplaces: WorkplaceOption[]
   examinationTypes: ExaminationTypeOption[]
   practitioners: PractitionerOption[]
   defaultPractitionerId?: string
@@ -106,6 +118,7 @@ const REQUEST_SOURCES = [
 
 export function NewExaminationForm({
   employees,
+  workplaces,
   examinationTypes,
   practitioners,
   defaultPractitionerId,
@@ -119,6 +132,7 @@ export function NewExaminationForm({
       ? preselectedEmployeeId
       : ''
   )
+  const [overrideWorkplaceId, setOverrideWorkplaceId] = useState('')
   const [examinationTypeId, setExaminationTypeId] = useState('')
   const [practitionerId, setPractitionerId] = useState(
     defaultPractitionerId && practitioners.some((p) => p.id === defaultPractitionerId)
@@ -133,11 +147,21 @@ export function NewExaminationForm({
   const [error, setError] = useState<string | null>(null)
 
   const selectedEmployee = employees.find((e) => e.id === employeeId)
+  const needsWorkplace = selectedEmployee !== undefined && selectedEmployee.workplaceId === null
+
+  function handleEmployeeChange(newEmployeeId: string) {
+    setEmployeeId(newEmployeeId)
+    setOverrideWorkplaceId('')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!employeeId || !examinationTypeId || !practitionerId) {
       setError(labels.errorMessage)
+      return
+    }
+    if (needsWorkplace && !overrideWorkplaceId) {
+      setError(labels.workplaceRequired)
       return
     }
     setSubmitting(true)
@@ -148,6 +172,7 @@ export function NewExaminationForm({
       examinationTypeId,
       practitionerId,
     }
+    if (needsWorkplace && overrideWorkplaceId) payload.workplaceId = overrideWorkplaceId
     if (scheduledAt) payload.scheduledAt = new Date(scheduledAt).toISOString()
     if (requestSource) payload.requestSource = requestSource
     if (referringDocumentNumber.trim())
@@ -193,7 +218,7 @@ export function NewExaminationForm({
             <select
               id="employeeId"
               value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
+              onChange={(e) => handleEmployeeChange(e.target.value)}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               required
             >
@@ -201,12 +226,16 @@ export function NewExaminationForm({
               {employees.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.lastName} {emp.firstName}
-                  {emp.companyEmployeeId ? ` (${emp.companyEmployeeId})` : ''} —{' '}
-                  {emp.companyName} / {emp.workplaceName}
+                  {emp.companyEmployeeId ? ` (${emp.companyEmployeeId})` : ''}
+                  {emp.workplaceName
+                    ? ` — ${emp.companyName} / ${emp.workplaceName}`
+                    : emp.companyName
+                    ? ` — ${emp.companyName}`
+                    : ''}
                 </option>
               ))}
             </select>
-            {selectedEmployee && (
+            {selectedEmployee && selectedEmployee.workplaceId && (
               <p className="text-xs text-muted-foreground">
                 {labels.currentWorkplace}:{' '}
                 <span className="font-medium">
@@ -217,6 +246,26 @@ export function NewExaminationForm({
                   : ''}{' '}
                 — {selectedEmployee.companyName}
               </p>
+            )}
+            {needsWorkplace && (
+              <div className="space-y-2 mt-2">
+                <p className="text-xs text-amber-600">{labels.workplaceRequired}</p>
+                <Label htmlFor="overrideWorkplaceId">{labels.fieldWorkplace} <span className="text-destructive">*</span></Label>
+                <select
+                  id="overrideWorkplaceId"
+                  value={overrideWorkplaceId}
+                  onChange={(e) => setOverrideWorkplaceId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">{labels.workplaceNone}</option>
+                  {workplaces.map((wp) => (
+                    <option key={wp.id} value={wp.id}>
+                      {wp.companyName} / {wp.name}
+                      {wp.department ? ` (${wp.department})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
           <div className="space-y-2">
@@ -345,7 +394,13 @@ export function NewExaminationForm({
       <div className="flex items-center gap-3">
         <Button
           type="submit"
-          disabled={submitting || !employeeId || !examinationTypeId || !practitionerId}
+          disabled={
+            submitting ||
+            !employeeId ||
+            !examinationTypeId ||
+            !practitionerId ||
+            (needsWorkplace && !overrideWorkplaceId)
+          }
         >
           {submitting ? labels.submitting : labels.submitCreate}
         </Button>

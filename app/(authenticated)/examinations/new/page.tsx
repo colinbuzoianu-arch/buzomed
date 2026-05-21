@@ -24,19 +24,12 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
   const params = await searchParams
   const preselectedEmployeeId = params.employeeId
 
-  // Eligible employees: active, with a current workplace assignment.
-  // Eligible exam types: all active.
-  // Eligible practitioners: users in this tenant with practitioner /
-  //   practice_admin role and isActive.
-  const [employees, examinationTypes, practitioners] = await Promise.all([
+  const [employees, examinationTypes, practitioners, workplaces] = await Promise.all([
     prisma.employee.findMany({
       where: {
         tenantId: user.tenantId,
         deletedAt: null,
         archivedAt: null,
-        workplaceAssignments: {
-          some: { isCurrent: true },
-        },
       },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
       select: {
@@ -44,6 +37,7 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
         firstName: true,
         lastName: true,
         companyEmployeeId: true,
+        company: { select: { name: true } },
         workplaceAssignments: {
           where: { isCurrent: true },
           take: 1,
@@ -82,20 +76,32 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
         professionalCode: true,
       },
     }),
+    prisma.workplace.findMany({
+      where: { tenantId: user.tenantId, deletedAt: null, isActive: true },
+      orderBy: [{ name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        department: true,
+        company: { select: { name: true } },
+      },
+    }),
   ])
 
-  // Only show employees whose current workplace is still active.
-  const eligibleEmployees = employees
-    .filter((e) => e.workplaceAssignments[0]?.workplace.isActive)
-    .map((e) => ({
+  const eligibleEmployees = employees.map((e) => {
+    const assignment = e.workplaceAssignments[0]
+    const activeAssignment = assignment?.workplace.isActive ? assignment : null
+    return {
       id: e.id,
       firstName: e.firstName,
       lastName: e.lastName,
       companyEmployeeId: e.companyEmployeeId,
-      workplaceName: e.workplaceAssignments[0].workplace.name,
-      workplaceDepartment: e.workplaceAssignments[0].workplace.department,
-      companyName: e.workplaceAssignments[0].workplace.company.name,
-    }))
+      workplaceId: activeAssignment?.workplace.id ?? null,
+      workplaceName: activeAssignment?.workplace.name ?? null,
+      workplaceDepartment: activeAssignment?.workplace.department ?? null,
+      companyName: activeAssignment?.workplace.company.name ?? e.company?.name ?? null,
+    }
+  })
 
   return (
     <div className="space-y-6">
@@ -138,6 +144,12 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
       ) : (
         <NewExaminationForm
           employees={eligibleEmployees}
+          workplaces={workplaces.map((wp) => ({
+            id: wp.id,
+            name: wp.name,
+            department: wp.department,
+            companyName: wp.company.name,
+          }))}
           examinationTypes={examinationTypes.map((tp) => ({
             id: tp.id,
             code: tp.code,
@@ -181,6 +193,9 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
             ),
             fieldNotes: t('examinations.form.fieldNotes'),
             currentWorkplace: t('examinations.form.currentWorkplace'),
+            fieldWorkplace: t('examinations.form.fieldWorkplace'),
+            workplaceNone: t('examinations.form.workplaceNone'),
+            workplaceRequired: t('examinations.form.workplaceRequired'),
             typeGroupHg355: t('examinations.typeGroups.hg355'),
             typeGroupSpecial: t('examinations.typeGroups.special'),
             submitCreate: t('examinations.form.submitCreate'),

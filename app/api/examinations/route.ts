@@ -259,18 +259,46 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Workplace: take the employee's current assignment. Refuse if none
-  // — an exam requires a workplace per HG 355/2007.
+  // Workplace: prefer the employee's current assignment. If none, accept an
+  // explicit workplaceId from the request body (used when scheduling for
+  // employees that were created before the assignment flow was added).
   const currentAssignment = employee.workplaceAssignments[0]
-  if (!currentAssignment || !currentAssignment.workplace.isActive) {
-    return NextResponse.json(
-      {
-        error: 'no_current_workplace',
-        message:
-          'Employee has no active workplace assignment. Assign the employee to a workplace before scheduling an exam.',
-      },
-      { status: 409 }
-    )
+  let resolvedWorkplaceId: string | null = null
+
+  if (currentAssignment?.workplace.isActive) {
+    resolvedWorkplaceId = currentAssignment.workplace.id
+  } else {
+    const bodyWorkplaceId =
+      typeof body.workplaceId === 'string' && body.workplaceId
+        ? body.workplaceId
+        : null
+    if (bodyWorkplaceId) {
+      const wp = await prisma.workplace.findFirst({
+        where: {
+          id: bodyWorkplaceId,
+          tenantId: auth.user.tenantId,
+          deletedAt: null,
+          isActive: true,
+        },
+        select: { id: true },
+      })
+      if (!wp) {
+        return NextResponse.json(
+          { error: 'workplace_not_found', message: 'Selected workplace not found or inactive.' },
+          { status: 404 }
+        )
+      }
+      resolvedWorkplaceId = wp.id
+    } else {
+      return NextResponse.json(
+        {
+          error: 'no_current_workplace',
+          message:
+            'Employee has no active workplace assignment. Assign the employee to a workplace before scheduling an exam.',
+        },
+        { status: 409 }
+      )
+    }
   }
 
   // Resolve the cabinet's primary location (auto-create on first use).
@@ -285,7 +313,7 @@ export async function POST(request: NextRequest) {
     (n) => ({
       tenant: { connect: { id: auth.user!.tenantId! } },
       employee: { connect: { id: employee.id } },
-      workplace: { connect: { id: currentAssignment.workplace.id } },
+      workplace: { connect: { id: resolvedWorkplaceId! } },
       examinationType: { connect: { id: examinationType.id } },
       practitioner: { connect: { id: practitioner.id } },
       location: { connect: { id: locationId } },
