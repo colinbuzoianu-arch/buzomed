@@ -862,7 +862,9 @@
       "title": "Generated documents",
       "downloadBlank": "Download blank",
       "generateFilled": "Generate filled",
-      "generateFilledTooltip": "Coming soon — PDF generation with completed data",
+      "generateFilledTooltip": "Generate PDF with completed data",
+      "generating": "Generating...",
+      "unsignedWarning": "Examination is not signed — documents will contain data saved so far.",
       "badgeRequired": "Required",
       "badgeOptional": "Optional"
     },

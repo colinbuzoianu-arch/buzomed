@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import { EXAM_TYPE_DOCUMENTS } from '@/lib/examinations/document-templates'
 
 interface DocumentsPanelLabels {
@@ -5,6 +8,8 @@ interface DocumentsPanelLabels {
   downloadBlank: string
   generateFilled: string
   generateFilledTooltip: string
+  generating: string
+  unsignedWarning: string
   badgeRequired: string
   badgeOptional: string
 }
@@ -14,13 +19,32 @@ interface Props {
   examinationId: string
   employeeFullName: string
   locked: boolean
+  isCancelled: boolean
   labels: DocumentsPanelLabels
 }
 
-export function DocumentsPanel({ examinationTypeCode, labels }: Props) {
+export function DocumentsPanel({
+  examinationTypeCode,
+  examinationId,
+  locked,
+  isCancelled,
+  labels,
+}: Props) {
+  const [loadingKeys, setLoadingKeys] = useState<Record<string, boolean>>({})
   const docs = EXAM_TYPE_DOCUMENTS[examinationTypeCode] ?? []
 
   if (docs.length === 0) return null
+
+  async function handleGenerate(docKey: string) {
+    setLoadingKeys((prev) => ({ ...prev, [docKey]: true }))
+    try {
+      window.open(`/api/examinations/${examinationId}/documents/${docKey}`, '_blank')
+    } finally {
+      setTimeout(() => {
+        setLoadingKeys((prev) => ({ ...prev, [docKey]: false }))
+      }, 1500)
+    }
+  }
 
   return (
     <section className="space-y-4">
@@ -51,18 +75,46 @@ export function DocumentsPanel({ examinationTypeCode, labels }: Props) {
               >
                 {labels.downloadBlank}
               </a>
-              <span title={labels.generateFilledTooltip}>
-                <button
-                  disabled
-                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border border-input bg-muted text-muted-foreground cursor-not-allowed"
-                >
-                  {labels.generateFilled}
-                </button>
-              </span>
+              <button
+                onClick={() => handleGenerate(doc.key)}
+                disabled={loadingKeys[doc.key] || isCancelled}
+                className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border border-input bg-background hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingKeys[doc.key] ? (
+                  <span className="flex items-center gap-1.5">
+                    <svg
+                      className="animate-spin h-3 w-3"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    {labels.generating}
+                  </span>
+                ) : (
+                  labels.generateFilled
+                )}
+              </button>
             </div>
           </div>
         ))}
       </div>
+      {!locked && (
+        <p className="text-xs text-amber-600 mt-2">{labels.unsignedWarning}</p>
+      )}
     </section>
   )
 }

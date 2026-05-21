@@ -521,11 +521,14 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         examinationId={examination.id}
         employeeFullName={`${examination.employee.lastName} ${examination.employee.firstName}`}
         locked={isLocked}
+        isCancelled={examination.status === 'cancelled' || examination.status === 'no_show'}
         labels={{
           title: t('examinations.documentsPanel.title'),
           downloadBlank: t('examinations.documentsPanel.downloadBlank'),
           generateFilled: t('examinations.documentsPanel.generateFilled'),
           generateFilledTooltip: t('examinations.documentsPanel.generateFilledTooltip'),
+          generating: t('examinations.documentsPanel.generating'),
+          unsignedWarning: t('examinations.documentsPanel.unsignedWarning'),
           badgeRequired: t('examinations.documentsPanel.badgeRequired'),
           badgeOptional: t('examinations.documentsPanel.badgeOptional'),
         }}
