@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
 import { EXAM_TYPE_DOCUMENTS } from '@/lib/examinations/document-templates'
-import { fillExaminationPdf } from '@/lib/examinations/pdf-fill'
+import { fillExaminationPdf, TextOverlay } from '@/lib/examinations/pdf-fill'
 
 interface RouteContext {
   params: Promise<{ id: string; docKey: string }>
@@ -20,6 +20,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   }
 
   const { id, docKey } = await ctx.params
+  console.log('[doc-fill] generating', docKey, 'for exam', id)
 
   const examination = await prisma.examination.findFirst({
     where: { id, tenantId: auth.user.tenantId, deletedAt: null },
@@ -39,7 +40,12 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       workplace: { include: { company: true } },
       examinationType: { select: { nameRo: true, code: true } },
       practitioner: {
-        select: { firstName: true, lastName: true, professionalTitle: true },
+        select: {
+          firstName: true,
+          lastName: true,
+          professionalTitle: true,
+          stampImageUrl: true,
+        },
       },
       location: {
         select: { name: true, addressLine1: true, city: true, county: true },
@@ -68,11 +74,21 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     ? formatDateRo(examination.nextExaminationDueDate)
     : ''
   const verdict = examination.verdict ?? ''
-  const cabAddr = [examination.location?.addressLine1, examination.location?.city]
+
+  // Clinic / cabinet identity
+  const clinicName = examination.tenant.legalName ?? examination.tenant.name
+  const clinicAddr = [examination.location?.addressLine1, examination.location?.city]
     .filter(Boolean)
-    .join(' ')
+    .join(', ')
+
+  // Practitioner full name
+  const pracName = examination.practitioner
+    ? `${examination.practitioner.lastName} ${examination.practitioner.firstName}`
+    : ''
 
   let fields: Record<string, string | boolean> = {}
+  let overlays: TextOverlay[] | undefined
+  let stampUrl: string | null = null
 
   if (docKey === 'fisa_aptitudine') {
     const TYPE_CHECKBOX: Record<string, string> = {
@@ -86,8 +102,9 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       TYPE_CHECKBOX[examination.examinationType.code] ?? 'tip_Altele'
 
     for (const suffix of ['_A', '_B']) {
+      // Employer / employee data
       fields[`societate${suffix}`] = examination.workplace.company.name
-      fields[`adresa${suffix}`] = cabAddr
+      fields[`adresa${suffix}`] = clinicAddr
       fields[`nume${suffix}`] = examination.employee.lastName
       fields[`prenume${suffix}`] = examination.employee.firstName
       fields[`cnp${suffix}`] = examination.employee.idDocumentNumber ?? ''
@@ -97,16 +114,31 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       fields[`data_urm${suffix}`] = nextDueDate
       fields[`recomandari${suffix}`] =
         examination.verdictConditions ?? examination.recommendations ?? ''
+      // Verdict checkboxes
       fields[`apt${suffix}`] = verdict === 'apt'
       fields[`apt_cond${suffix}`] = verdict === 'apt_conditionat'
       fields[`inapt_temp${suffix}`] = verdict === 'inapt_temporar'
       fields[`inapt${suffix}`] = verdict === 'inapt'
-      // Reset all type checkboxes, then set the matching one
+      // Exam-type checkboxes: reset all, then set matching one
       for (const cb of ['tip_Angaja', 'tip_Examen', 'tip_Adapta', 'tip_Reluar', 'tip_Suprav', 'tip_Altele']) {
         fields[`${cb}${suffix}`] = false
       }
       fields[`${typeCheckField}${suffix}`] = true
+      // Practitioner name — try as AcroForm field; also covered by overlay below
+      fields[`medic${suffix}`] = pracName
     }
+
+    // Overlays for static layout text (not AcroForm fields):
+    // - Clinic header (appears once at top, shared by both copies)
+    // - Practitioner name in each copy's signature area
+    overlays = [
+      { page: 0, x: 320, y: 800, text: clinicName, size: 8 },
+      { page: 0, x: 320, y: 789, text: clinicAddr, size: 7.5 },
+      { page: 0, x: 390, y: 248, text: pracName, size: 8 }, // Copy A
+      { page: 0, x: 390, y: 80,  text: pracName, size: 8 }, // Copy B
+    ]
+
+    stampUrl = examination.practitioner?.stampImageUrl ?? null
   } else if (docKey === 'examen_angajare') {
     fields = {
       nume_angajat: `${examination.employee.lastName} ${examination.employee.firstName}`,
@@ -135,7 +167,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     }
   } else if (docKey === 'examen_periodic') {
     fields = {
-      // Header fields shared with angajare (no p_ prefix)
+      // Header fields (no p_ prefix)
       nume_angajat: `${examination.employee.lastName} ${examination.employee.firstName}`,
       nr_dosar: examination.examinationNumber,
       data_top: examDate,
@@ -162,13 +194,10 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       p_inapt: verdict === 'inapt',
     }
   } else if (docKey === 'dosar_medical') {
-    const unitAddr = [examination.location?.addressLine1, examination.location?.city]
-      .filter(Boolean)
-      .join(', ')
     fields = {
       unitate: examination.workplace.company.name,
       punct_lucru: examination.workplace.name,
-      adresa_unitate: unitAddr,
+      adresa_unitate: clinicAddr,
       nume: examination.employee.lastName,
       prenume: examination.employee.firstName,
       data_nasterii: examination.employee.birthDate
@@ -248,7 +277,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
 
   let buffer: Uint8Array
   try {
-    buffer = await fillExaminationPdf(templatePath, fields)
+    buffer = await fillExaminationPdf(templatePath, fields, overlays, stampUrl)
   } catch (err) {
     console.error('[documents] pdf fill failed', err)
     return NextResponse.json(
