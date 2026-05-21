@@ -1,3 +1,4 @@
+import path from 'path'
 import { readFile } from 'fs/promises'
 import {
   PDFDocument,
@@ -6,9 +7,9 @@ import {
   PDFName,
   PDFDict,
   PDFString,
-  StandardFonts,
   rgb,
 } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 
 export interface TextOverlay {
   page: number
@@ -18,14 +19,28 @@ export interface TextOverlay {
   size?: number
 }
 
+// Geist-Regular (Next.js-bundled, open-source) covers the full Romanian
+// character set — including Ș/ș, Ț/ț, Ă/ă and the cedilla variants Ş/ş, Ţ/ţ
+// that standard Helvetica/WinAnsi cannot encode.
+const FONT_PATH = path.join(process.cwd(), 'public', 'fonts', 'Geist-Regular.ttf')
+
 export async function fillExaminationPdf(
   templatePath: string,
   fields: Record<string, string | boolean>,
   overlays?: TextOverlay[],
   stampImageUrl?: string | null
 ): Promise<Uint8Array> {
-  const templateBytes = await readFile(templatePath)
+  const [templateBytes, fontBytes] = await Promise.all([
+    readFile(templatePath),
+    readFile(FONT_PATH),
+  ])
+
   const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true })
+  pdfDoc.registerFontkit(fontkit)
+
+  // Embed Unicode font once; used for both overlays and AcroForm field rendering.
+  const unicodeFont = await pdfDoc.embedFont(fontBytes)
+
   const form = pdfDoc.getForm()
 
   // Fill AcroForm fields
@@ -45,11 +60,10 @@ export async function fillExaminationPdf(
   }
 
   // Field appearance: light-blue background, no borders, font capped at 8pt.
-  // Templates may still carry dark-blue BG or visible borders from authoring
-  // tools; this loop normalises all widgets before updateFieldAppearances().
+  // The DA string provides the font SIZE (used by updateFieldAppearances);
+  // the actual font is overridden by passing unicodeFont below.
   for (const field of form.getFields()) {
     try {
-      // Cap text-field font size at 8pt so filled values fit within small cells.
       if (field instanceof PDFTextField) {
         const da = field.acroField.dict.lookupMaybe(PDFName.of('DA'), PDFString)
         if (da) {
@@ -64,21 +78,18 @@ export async function fillExaminationPdf(
         const dict = widget.dict as PDFDict
         const mk = dict.lookupMaybe(PDFName.of('MK'), PDFDict)
         if (mk) {
-          // #EEF4FF ≈ rgb(0.93, 0.96, 1.0): light blue on screen, near-white in print
           mk.set(PDFName.of('BG'), pdfDoc.context.obj([0.93, 0.96, 1.0]))
-          mk.delete(PDFName.of('BC')) // remove border colour → no visible outline
+          mk.delete(PDFName.of('BC'))
         }
-        dict.delete(PDFName.of('BS')) // remove border stream
+        dict.delete(PDFName.of('BS'))
       }
     } catch {
       // Never throw on individual field processing
     }
   }
 
-  // Text overlays — drawn after field fill, before flatten.
-  // Used for static layout areas not exposed as AcroForm fields.
+  // Text overlays — use the Unicode font so Romanian chars render correctly.
   if (overlays && overlays.length > 0) {
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
     for (const ov of overlays) {
       const page = pdfDoc.getPage(ov.page)
       if (!page || !ov.text) continue
@@ -86,7 +97,7 @@ export async function fillExaminationPdf(
         x: ov.x,
         y: ov.y,
         size: ov.size ?? 8,
-        font,
+        font: unicodeFont,
         color: rgb(0, 0, 0),
       })
     }
@@ -115,10 +126,10 @@ export async function fillExaminationPdf(
     }
   }
 
-  // updateFieldAppearances() regenerates appearance streams with current values
-  // so flatten() paints the correct text rather than a blank widget footprint
+  // Pass unicodeFont so all text fields are rendered with Romanian support.
+  // This overrides the Helvetica/WinAnsi font referenced in each field's DA string.
   try {
-    form.updateFieldAppearances()
+    form.updateFieldAppearances(unicodeFont)
   } catch (err) {
     console.warn('[pdf-fill] updateFieldAppearances failed, continuing:', err)
   }
@@ -126,8 +137,6 @@ export async function fillExaminationPdf(
   try {
     form.flatten()
   } catch (err) {
-    // If flatten throws (e.g. malformed appearance stream in template),
-    // save without flattening — editable PDF is better than a broken one
     console.warn('[pdf-fill] flatten failed, saving without flatten:', err)
     return pdfDoc.save()
   }
