@@ -29,6 +29,7 @@ export default async function PractitionerSettingsPage({ params }: PageContext) 
       specialty: true,
       professionalCode: true,
       stampImageUrl: true,
+      signatureImageUrl: true,
     },
   })
   if (!target) notFound()

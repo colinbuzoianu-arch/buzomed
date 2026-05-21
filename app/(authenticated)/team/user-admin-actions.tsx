@@ -5,6 +5,7 @@ import { TOAST } from '@/lib/toast'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { UserRole } from '@prisma/client'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -217,6 +218,16 @@ export function UserAdminActions({
                 {error}
               </div>
             )}
+          </div>
+
+          <div className="pt-1 border-t">
+            <Link
+              href={`/settings/practitioners/${userId}`}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              Profil &amp; ștampilă →
+            </Link>
           </div>
 
           <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
