@@ -6,6 +6,16 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface EmployeeOption {
   id: string
@@ -76,6 +86,7 @@ const HG355_CODES = new Set([
   'schimbare_loc_munca',
   'incetare_munca',
   'la_cerere',
+  'supraveghere_medicala_speciala',
 ])
 
 const SPECIAL_CODES = new Set([
@@ -213,35 +224,38 @@ export function NewExaminationForm({
               {labels.fieldExaminationType}{' '}
               <span className="text-destructive">*</span>
             </Label>
-            <select
-              id="examinationTypeId"
-              value={examinationTypeId}
-              onChange={(e) => setExaminationTypeId(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            <Select
+              value={examinationTypeId || undefined}
+              onValueChange={setExaminationTypeId}
               required
             >
-              <option value="">
-                {labels.fieldExaminationTypePlaceholder}
-              </option>
-              <optgroup label={labels.typeGroupHg355}>
-                {examinationTypes
-                  .filter((tp) => HG355_CODES.has(tp.code) || !SPECIAL_CODES.has(tp.code))
-                  .map((tp) => (
-                    <option key={tp.id} value={tp.id}>
-                      {tp.name}
-                    </option>
-                  ))}
-              </optgroup>
-              <optgroup label={labels.typeGroupSpecial}>
-                {examinationTypes
-                  .filter((tp) => SPECIAL_CODES.has(tp.code))
-                  .map((tp) => (
-                    <option key={tp.id} value={tp.id}>
-                      {tp.name}
-                    </option>
-                  ))}
-              </optgroup>
-            </select>
+              <SelectTrigger id="examinationTypeId" className="w-full h-10">
+                <SelectValue placeholder={labels.fieldExaminationTypePlaceholder} />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectGroup>
+                  <SelectLabel>{labels.typeGroupHg355}</SelectLabel>
+                  {examinationTypes
+                    .filter((tp) => HG355_CODES.has(tp.code) || !SPECIAL_CODES.has(tp.code))
+                    .map((tp) => (
+                      <SelectItem key={tp.id} value={tp.id}>
+                        {tp.name}
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+                <SelectSeparator />
+                <SelectGroup>
+                  <SelectLabel>{labels.typeGroupSpecial}</SelectLabel>
+                  {examinationTypes
+                    .filter((tp) => SPECIAL_CODES.has(tp.code))
+                    .map((tp) => (
+                      <SelectItem key={tp.id} value={tp.id}>
+                        {tp.name}
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="practitionerId">
