@@ -1,10 +1,9 @@
-import path from 'path'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
 import { EXAM_TYPE_DOCUMENTS } from '@/lib/examinations/document-templates'
-import { fillExaminationPdf, Overlay } from '@/lib/examinations/pdf-fill'
+import { fillExaminationPdf } from '@/lib/examinations/pdf-fill'
 
 interface RouteContext {
   params: Promise<{ id: string; docKey: string }>
@@ -25,7 +24,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   const examination = await prisma.examination.findFirst({
     where: { id, tenantId: auth.user.tenantId, deletedAt: null },
     include: {
-      tenant: { select: { legalName: true, name: true, addressLine1: true, city: true } },
       employee: {
         select: {
           firstName: true,
@@ -39,17 +37,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       },
       workplace: { include: { company: true } },
       examinationType: { select: { nameRo: true, code: true } },
-      practitioner: {
-        select: {
-          firstName: true,
-          lastName: true,
-          professionalTitle: true,
-          stampImageUrl: true,
-        },
-      },
-      location: {
-        select: { name: true, addressLine1: true, city: true, county: true },
-      },
     },
   })
 
@@ -63,8 +50,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     return NextResponse.json({ error: 'document_not_found' }, { status: 404 })
   }
 
-  const templatePath = path.join(process.cwd(), 'public', 'templates', doc.templateFile)
-
   const vs = (examination.vitalSigns ?? {}) as Record<string, unknown>
   const vt = (examination.visionTest ?? {}) as Record<string, unknown>
   const str = (v: unknown): string =>
@@ -75,26 +60,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     : ''
   const verdict = examination.verdict ?? ''
 
-  // Clinic / cabinet identity
-  // Prefer legalName; fall back to location name (specific clinic) then tenant name.
-  const clinicName =
-    examination.tenant.legalName ??
-    examination.location?.name ??
-    examination.tenant.name
-  // Prefer location address; fall back to tenant address registered in platform.
-  const clinicAddr = [
-    examination.location?.addressLine1 ?? examination.tenant.addressLine1,
-    examination.location?.city ?? examination.tenant.city,
-  ].filter(Boolean).join(', ')
-
-  // Practitioner full name
-  const pracName = examination.practitioner
-    ? `${examination.practitioner.lastName} ${examination.practitioner.firstName}`
-    : ''
-
   let fields: Record<string, string | boolean> = {}
-  let overlays: Overlay[] | undefined
-  let stampUrl: string | null = null
 
   if (docKey === 'fisa_aptitudine') {
     const TYPE_CHECKBOX: Record<string, string> = {
@@ -113,9 +79,8 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     ].filter(Boolean).join(', ')
 
     for (const suffix of ['_A', '_B']) {
-      // Employer / employee data
       fields[`societate${suffix}`] = examination.workplace.company.name
-      fields[`adresa${suffix}`] = companyAddr  // employer address, not clinic
+      fields[`adresa${suffix}`] = companyAddr
       fields[`nume${suffix}`] = examination.employee.lastName
       fields[`prenume${suffix}`] = examination.employee.firstName
       fields[`cnp${suffix}`] = examination.employee.idDocumentNumber ?? ''
@@ -125,43 +90,16 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       fields[`data_urm${suffix}`] = nextDueDate
       fields[`recomandari${suffix}`] =
         examination.verdictConditions ?? examination.recommendations ?? ''
-      // Verdict checkboxes
       fields[`apt${suffix}`] = verdict === 'apt'
       fields[`apt_cond${suffix}`] = verdict === 'apt_conditionat'
       fields[`inapt_temp${suffix}`] = verdict === 'inapt_temporar'
       fields[`inapt${suffix}`] = verdict === 'inapt'
-      // Exam-type checkboxes: reset all, then set matching one
       for (const cb of ['tip_Angaja', 'tip_Examen', 'tip_Adapta', 'tip_Reluar', 'tip_Suprav', 'tip_Altele']) {
         fields[`${cb}${suffix}`] = false
       }
       fields[`${typeCheckField}${suffix}`] = true
-      // Practitioner name — try as AcroForm field; also covered by overlay below
-      fields[`medic${suffix}`] = pracName
     }
-
-    // Overlays for static layout text (not AcroForm fields).
-    // Fișa has two vertically-stacked copies (A=top, B=bottom) on one A4 (595×842):
-    //   Copy A fields: y ≈ 566–793  →  header above y=785, signature below y=566
-    //   Copy B fields: y ≈ 150–369  →  header above y=369, signature below y=150
-    overlays = [
-      // Copy A — clinic header
-      { page: 0, x: 320, y: 800, text: clinicName, size: 8 },
-      { page: 0, x: 320, y: 789, text: clinicAddr, size: 7.5 },
-      // Copy B — clinic header
-      { page: 0, x: 320, y: 383, text: clinicName, size: 8 },
-      { page: 0, x: 320, y: 372, text: clinicAddr, size: 7.5 },
-      // Practitioner name in signature area of each copy
-      { page: 0, x: 60, y: 545, text: pracName, size: 8 }, // Copy A
-      { page: 0, x: 60, y: 130, text: pracName, size: 8 }, // Copy B
-    ]
-
-    stampUrl = examination.practitioner?.stampImageUrl ?? null
   } else if (docKey === 'examen_angajare') {
-    // Clinic header overlays — fields start at y=738, header space is y=748–842
-    overlays = [
-      { page: 0, x: 30, y: 822, text: clinicName, size: 9 },
-      { page: 0, x: 30, y: 809, text: clinicAddr, size: 8 },
-    ]
     fields = {
       nume_angajat: `${examination.employee.lastName} ${examination.employee.firstName}`,
       nr_dosar: examination.examinationNumber,
@@ -188,17 +126,10 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       inapt: verdict === 'inapt',
     }
   } else if (docKey === 'examen_periodic') {
-    // Clinic header overlays — fields start at y=738, header space is y=748–842
-    overlays = [
-      { page: 0, x: 30, y: 822, text: clinicName, size: 9 },
-      { page: 0, x: 30, y: 809, text: clinicAddr, size: 8 },
-    ]
     fields = {
-      // All fields in this template use the p_ prefix
       p_nume_angajat: `${examination.employee.lastName} ${examination.employee.firstName}`,
       p_nr_dosar: examination.examinationNumber,
       p_data_top: examDate,
-      // Clinical fields use p_ prefix as per template naming
       p_inaltime: str(vs.height),
       p_greutate: str(vs.weight),
       p_imc: str(vs.bmi),
@@ -273,7 +204,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       cnp: examination.employee.idDocumentNumber ?? '',
       apt: verdict === 'apt',
       inapt: verdict === 'inapt',
-      recomandari: examination.recommendations ?? '',
     }
   } else if (docKey === 'certificat_magistratura') {
     fields = {
@@ -298,8 +228,8 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     }
   } else if (docKey === 'informare_maternitate') {
     fields = {
-      nr_raport: examination.examinationNumber,
-      data_raport: examDate,
+      nr_inf: examination.examinationNumber,
+      data_inf: examDate,
       inf_nume: examination.employee.lastName,
       inf_prenume: examination.employee.firstName,
       inf_cnp: examination.employee.idDocumentNumber ?? '',
@@ -308,7 +238,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
 
   let buffer: Uint8Array
   try {
-    buffer = await fillExaminationPdf(templatePath, fields, overlays, stampUrl)
+    buffer = await fillExaminationPdf(doc.templateFile, fields)
   } catch (err) {
     console.error('[documents] pdf fill failed', err)
     return NextResponse.json(
