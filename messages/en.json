@@ -295,6 +295,15 @@
     "viewAnnualReport": "Annual report"
   },
   "employees": {
+    "combobox": {
+      "placeholder": "Select employee...",
+      "searchPlaceholder": "Search by name, job title...",
+      "noResults": "No employees found.",
+      "typeMore": "Type at least 2 characters"
+    },
+    "search": {
+      "placeholder": "Search employee..."
+    },
     "title": "Employees",
     "subtitle": "People examined by this practice",
     "newButton": "New employee",

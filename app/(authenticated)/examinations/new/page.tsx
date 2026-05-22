@@ -24,37 +24,7 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
   const params = await searchParams
   const preselectedEmployeeId = params.employeeId
 
-  const [employees, examinationTypes, practitioners, workplaces] = await Promise.all([
-    prisma.employee.findMany({
-      where: {
-        tenantId: user.tenantId,
-        deletedAt: null,
-        archivedAt: null,
-      },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        companyEmployeeId: true,
-        company: { select: { name: true } },
-        workplaceAssignments: {
-          where: { isCurrent: true },
-          take: 1,
-          include: {
-            workplace: {
-              select: {
-                id: true,
-                name: true,
-                department: true,
-                isActive: true,
-                company: { select: { name: true } },
-              },
-            },
-          },
-        },
-      },
-    }),
+  const [examinationTypes, practitioners, workplaces] = await Promise.all([
     prisma.examinationType.findMany({
       where: { isActive: true },
       orderBy: { nameRo: 'asc' },
@@ -88,21 +58,6 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
     }),
   ])
 
-  const eligibleEmployees = employees.map((e) => {
-    const assignment = e.workplaceAssignments[0]
-    const activeAssignment = assignment?.workplace.isActive ? assignment : null
-    return {
-      id: e.id,
-      firstName: e.firstName,
-      lastName: e.lastName,
-      companyEmployeeId: e.companyEmployeeId,
-      workplaceId: activeAssignment?.workplace.id ?? null,
-      workplaceName: activeAssignment?.workplace.name ?? null,
-      workplaceDepartment: activeAssignment?.workplace.department ?? null,
-      companyName: activeAssignment?.workplace.company.name ?? e.company?.name ?? null,
-    }
-  })
-
   return (
     <div className="space-y-6">
       <div>
@@ -120,16 +75,7 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      {eligibleEmployees.length === 0 ? (
-        <div className="border border-dashed rounded-lg p-12 text-center space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {t('examinations.newPage.noEligibleEmployees')}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {t('examinations.newPage.noEligibleEmployeesHelp')}
-          </p>
-        </div>
-      ) : examinationTypes.length === 0 ? (
+      {examinationTypes.length === 0 ? (
         <div className="border border-dashed rounded-lg p-12 text-center">
           <p className="text-sm text-muted-foreground">
             {t('examinations.newPage.noExaminationTypes')}
@@ -143,7 +89,6 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
         </div>
       ) : (
         <NewExaminationForm
-          employees={eligibleEmployees}
           workplaces={workplaces.map((wp) => ({
             id: wp.id,
             name: wp.name,
@@ -172,6 +117,9 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
             fieldEmployeePlaceholder: t(
               'examinations.form.fieldEmployeePlaceholder'
             ),
+            fieldEmployeeSearchPlaceholder: t('employees.combobox.searchPlaceholder'),
+            fieldEmployeeNoResults: t('employees.combobox.noResults'),
+            fieldEmployeeTypeMore: t('employees.combobox.typeMore'),
             fieldExaminationType: t('examinations.form.fieldExaminationType'),
             fieldExaminationTypePlaceholder: t(
               'examinations.form.fieldExaminationTypePlaceholder'

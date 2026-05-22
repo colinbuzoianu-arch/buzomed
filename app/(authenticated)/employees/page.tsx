@@ -13,9 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { EmployeeSearchInput } from './employee-search-input'
 
 interface PageProps {
-  searchParams: Promise<{ archived?: string }>
+  searchParams: Promise<{ archived?: string; q?: string }>
 }
 
 export default async function EmployeesPage({ searchParams }: PageProps) {
@@ -31,12 +32,22 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
 
   const params = await searchParams
   const showArchived = params.archived === '1'
+  const q = params.q ?? ''
 
   const employees = await prisma.employee.findMany({
     where: {
       tenantId: user.tenantId,
       deletedAt: null,
       ...(showArchived ? { archivedAt: { not: null } } : { archivedAt: null }),
+      ...(q.length >= 2
+        ? {
+            OR: [
+              { firstName: { contains: q, mode: 'insensitive' } },
+              { lastName: { contains: q, mode: 'insensitive' } },
+              { jobTitle: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
     },
     orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     select: {
@@ -79,23 +90,29 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         )}
       </div>
 
-      <div className="flex gap-2 text-sm">
-        <Link
-          href="/employees"
-          className={`px-3 py-1 rounded-md border ${
-            !showArchived ? 'bg-secondary' : 'hover:bg-muted'
-          }`}
-        >
-          {t('employees.tabs.active')}
-        </Link>
-        <Link
-          href="/employees?archived=1"
-          className={`px-3 py-1 rounded-md border ${
-            showArchived ? 'bg-secondary' : 'hover:bg-muted'
-          }`}
-        >
-          {t('employees.tabs.archived')}
-        </Link>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex gap-2 text-sm">
+          <Link
+            href="/employees"
+            className={`px-3 py-1 rounded-md border ${
+              !showArchived ? 'bg-secondary' : 'hover:bg-muted'
+            }`}
+          >
+            {t('employees.tabs.active')}
+          </Link>
+          <Link
+            href={`/employees?archived=1${q ? `&q=${encodeURIComponent(q)}` : ''}`}
+            className={`px-3 py-1 rounded-md border ${
+              showArchived ? 'bg-secondary' : 'hover:bg-muted'
+            }`}
+          >
+            {t('employees.tabs.archived')}
+          </Link>
+        </div>
+        <EmployeeSearchInput
+          defaultValue={q}
+          placeholder={t('employees.search.placeholder')}
+        />
       </div>
 
       {employees.length === 0 ? (

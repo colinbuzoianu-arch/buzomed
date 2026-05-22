@@ -16,17 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-interface EmployeeOption {
-  id: string
-  firstName: string
-  lastName: string
-  companyEmployeeId: string | null
-  workplaceId: string | null
-  workplaceName: string | null
-  workplaceDepartment: string | null
-  companyName: string | null
-}
+import { EmployeeCombobox, type EmployeeSearchResult } from '@/components/employee-combobox'
 
 interface WorkplaceOption {
   id: string
@@ -51,6 +41,9 @@ interface Labels {
   sectionContext: string
   fieldEmployee: string
   fieldEmployeePlaceholder: string
+  fieldEmployeeSearchPlaceholder: string
+  fieldEmployeeNoResults: string
+  fieldEmployeeTypeMore: string
   fieldExaminationType: string
   fieldExaminationTypePlaceholder: string
   fieldPractitioner: string
@@ -81,7 +74,6 @@ interface Labels {
 }
 
 interface Props {
-  employees: EmployeeOption[]
   workplaces: WorkplaceOption[]
   examinationTypes: ExaminationTypeOption[]
   practitioners: PractitionerOption[]
@@ -117,7 +109,6 @@ const REQUEST_SOURCES = [
 ] as const
 
 export function NewExaminationForm({
-  employees,
   workplaces,
   examinationTypes,
   practitioners,
@@ -127,11 +118,8 @@ export function NewExaminationForm({
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
-  const [employeeId, setEmployeeId] = useState(
-    preselectedEmployeeId && employees.some((e) => e.id === preselectedEmployeeId)
-      ? preselectedEmployeeId
-      : ''
-  )
+  const [employeeId, setEmployeeId] = useState(preselectedEmployeeId ?? '')
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeSearchResult | null>(null)
   const [overrideWorkplaceId, setOverrideWorkplaceId] = useState('')
   const [examinationTypeId, setExaminationTypeId] = useState('')
   const [practitionerId, setPractitionerId] = useState(
@@ -146,11 +134,15 @@ export function NewExaminationForm({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const selectedEmployee = employees.find((e) => e.id === employeeId)
-  const needsWorkplace = selectedEmployee !== undefined && selectedEmployee.workplaceId === null
+  const needsWorkplace = selectedEmployee !== null && selectedEmployee.workplaceId === null
 
-  function handleEmployeeChange(newEmployeeId: string) {
-    setEmployeeId(newEmployeeId)
+  function handleEmployeeIdChange(newId: string) {
+    setEmployeeId(newId)
+    setOverrideWorkplaceId('')
+  }
+
+  function handleEmployeeChange(emp: EmployeeSearchResult | null) {
+    setSelectedEmployee(emp)
     setOverrideWorkplaceId('')
   }
 
@@ -215,26 +207,16 @@ export function NewExaminationForm({
               {labels.fieldEmployee}{' '}
               <span className="text-destructive">*</span>
             </Label>
-            <select
-              id="employeeId"
+            <EmployeeCombobox
               value={employeeId}
-              onChange={(e) => handleEmployeeChange(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              required
-            >
-              <option value="">{labels.fieldEmployeePlaceholder}</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.lastName} {emp.firstName}
-                  {emp.companyEmployeeId ? ` (${emp.companyEmployeeId})` : ''}
-                  {emp.workplaceName
-                    ? ` — ${emp.companyName} / ${emp.workplaceName}`
-                    : emp.companyName
-                    ? ` — ${emp.companyName}`
-                    : ''}
-                </option>
-              ))}
-            </select>
+              onChange={handleEmployeeIdChange}
+              onEmployeeChange={handleEmployeeChange}
+              placeholder={labels.fieldEmployeePlaceholder}
+              searchPlaceholder={labels.fieldEmployeeSearchPlaceholder}
+              noResultsText={labels.fieldEmployeeNoResults}
+              typeMoreText={labels.fieldEmployeeTypeMore}
+              disabled={submitting}
+            />
             {selectedEmployee && selectedEmployee.workplaceId && (
               <p className="text-xs text-muted-foreground">
                 {labels.currentWorkplace}:{' '}
@@ -250,7 +232,9 @@ export function NewExaminationForm({
             {needsWorkplace && (
               <div className="space-y-2 mt-2">
                 <p className="text-xs text-amber-600">{labels.workplaceRequired}</p>
-                <Label htmlFor="overrideWorkplaceId">{labels.fieldWorkplace} <span className="text-destructive">*</span></Label>
+                <Label htmlFor="overrideWorkplaceId">
+                  {labels.fieldWorkplace} <span className="text-destructive">*</span>
+                </Label>
                 <select
                   id="overrideWorkplaceId"
                   value={overrideWorkplaceId}
