@@ -249,7 +249,8 @@
     "table": {
       "name": "Name",
       "cui": "Tax ID",
-      "contact": "Contact person"
+      "contact": "Contact person",
+      "employees": "Employees"
     },
     "newPage": {
       "title": "New company",

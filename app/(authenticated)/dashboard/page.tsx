@@ -172,18 +172,31 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       {/* Greeting */}
       <div>
-        <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight">
-          {t(greetingKey)}, <em>{firstName}</em>.
+        <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight text-foreground">
+          {t(greetingKey)},{' '}
+          <em className="font-display italic text-primary">{firstName}</em>.
         </h1>
-        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-          {cabinetName}
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[hsl(var(--text-muted))]">
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent-positive))]"
+            aria-hidden
+          />
+          <span>{cabinetName}</span>
+          <span aria-hidden className="text-[hsl(var(--text-faint))]">·</span>
+          <span className="tabular-nums">
+            {new Date().toLocaleDateString(locale === 'ro' ? 'ro-RO' : 'en-GB', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+            })}
+          </span>
         </p>
       </div>
 
       {/* Urgent items — the "what needs attention NOW" row */}
       {urgentCount > 0 && (
         <section className="space-y-3">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          <h2 className="text-[11px] font-medium uppercase tracking-[0.1em] text-[hsl(var(--text-muted))]">
             {t('dashboard.needsAttention')}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -220,7 +233,7 @@ export default async function DashboardPage() {
 
       {/* Today section */}
       <section className="space-y-3">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+        <h2 className="text-[11px] font-medium uppercase tracking-[0.1em] text-[hsl(var(--text-muted))]">
           {t('dashboard.today')}
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -228,28 +241,32 @@ export default async function DashboardPage() {
             href="/examinations?tab=programate"
             label={t('dashboard.scheduledToday')}
             value={todayExams}
+            accent="primary"
           />
           <StatCard
             href="/examinations?tab=scadente&horizon=thisWeek"
             label={t('dashboard.dueThisWeek')}
             value={pendingRecalls}
+            accent="warning"
           />
           <StatCard
             href="/examinations?tab=toate"
             label={t('dashboard.thisMonthExams')}
             value={thisMonthExams}
+            accent="muted"
           />
           <StatCard
             href="/employees"
             label={t('dashboard.activeWorkers')}
             value={employeeCount}
+            accent="positive"
           />
         </div>
       </section>
 
       {/* Quick actions */}
       <section className="space-y-3">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+        <h2 className="text-[11px] font-medium uppercase tracking-[0.1em] text-[hsl(var(--text-muted))]">
           {t('dashboard.quickActions')}
         </h2>
         <div className="flex flex-wrap gap-2">
@@ -257,18 +274,30 @@ export default async function DashboardPage() {
             <>
               <Button asChild>
                 <Link href="/examinations/new">
-                  + {t('examinations.newButton')}
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                    <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                  </svg>
+                  <span>{t('examinations.newButton')}</span>
+                  <kbd className="ml-1 hidden sm:inline-flex items-center rounded border border-white/20 bg-white/10 px-1 py-0 text-[10px] font-mono text-white/80 leading-4">
+                    N
+                  </kbd>
                 </Link>
               </Button>
               <Button asChild variant="outline">
                 <Link href="/employees/new">
-                  + {t('employees.newButton')}
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                    <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                  </svg>
+                  <span>{t('employees.newButton')}</span>
                 </Link>
               </Button>
               {caps.canWrite && (
                 <Button asChild variant="outline">
                   <Link href="/companies/new">
-                    + {t('companies.newButton')}
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                      <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                    </svg>
+                    <span>{t('companies.newButton')}</span>
                   </Link>
                 </Button>
               )}
@@ -287,20 +316,20 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* Cabinet overview — small context numbers at the bottom */}
+      {/* Cabinet overview */}
       <section className="border-t pt-6">
-        <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
-          <span>
-            <strong className="text-primary font-semibold">{companyCount}</strong>{' '}
-            {t('dashboard.companies')}
-          </span>
-          <span>
-            <strong className="text-primary font-semibold">{employeeCount}</strong>{' '}
-            {t('dashboard.employees')}
-          </span>
+        <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 text-sm">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-medium tabular-nums text-foreground">{companyCount}</span>
+            <span className="text-[hsl(var(--text-muted))]">{t('dashboard.companies')}</span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-medium tabular-nums text-foreground">{employeeCount}</span>
+            <span className="text-[hsl(var(--text-muted))]">{t('dashboard.employees')}</span>
+          </div>
           <Link
             href="/reports"
-            className="hover:text-foreground transition-colors"
+            className="ml-auto text-sm text-primary hover:underline"
           >
             {t('dashboard.viewFullReport')} →
           </Link>
@@ -325,19 +354,30 @@ function AlertCard({
   tone: 'destructive' | 'warning'
   description: string
 }) {
-  const barColor =
-    tone === 'destructive' ? 'before:bg-destructive' : 'before:bg-amber-500'
-  const valueColor =
-    tone === 'destructive' ? 'text-destructive' : 'text-amber-700'
+  const accent = tone === 'destructive'
+    ? 'before:bg-[hsl(var(--accent-danger))]'
+    : 'before:bg-[hsl(var(--accent-warning))]'
+  const valueColor = tone === 'destructive'
+    ? 'text-[hsl(var(--accent-danger))]'
+    : 'text-[hsl(var(--accent-warning))]'
+  const bg = tone === 'destructive'
+    ? 'hover:bg-[hsl(0_72%_50%/0.06)]'
+    : 'hover:bg-[hsl(38_92%_38%/0.06)]'
 
   return (
     <Link
       href={href}
-      className={`relative block border rounded-lg p-4 transition-colors overflow-hidden hover:bg-muted/50 before:absolute before:inset-x-0 before:top-0 before:h-0.5 ${barColor}`}
+      className={`group relative block rounded-lg border bg-card p-4 transition-colors before:absolute before:left-0 before:top-0 before:h-[2px] before:w-7 before:rounded-b-sm ${accent} ${bg}`}
     >
-      <div className={`text-[28px] leading-none font-semibold tabular-nums ${valueColor}`}>{value}</div>
-      <div className="font-medium mt-1.5 text-sm">{label}</div>
-      <div className="text-xs text-muted-foreground mt-0.5">{description}</div>
+      <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
+        {label}
+      </div>
+      <div className={`mt-1.5 text-3xl font-medium tabular-nums tracking-tight ${valueColor}`}>
+        {value}
+      </div>
+      <div className="mt-1.5 text-[11px] text-[hsl(var(--text-faint))]">
+        {description}
+      </div>
     </Link>
   )
 }
@@ -346,18 +386,39 @@ function StatCard({
   href,
   label,
   value,
+  hint,
+  accent = 'primary',
 }: {
   href: string
   label: string
   value: number
+  hint?: string
+  accent?: 'primary' | 'positive' | 'warning' | 'danger' | 'muted'
 }) {
+  const accentClass = {
+    primary:  'before:bg-primary',
+    positive: 'before:bg-[hsl(var(--accent-positive))]',
+    warning:  'before:bg-[hsl(var(--accent-warning))]',
+    danger:   'before:bg-[hsl(var(--accent-danger))]',
+    muted:    'before:bg-muted-foreground/30',
+  }[accent]
+
   return (
     <Link
       href={href}
-      className="relative block border rounded-lg p-4 hover:bg-muted/50 transition-colors overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-accent"
+      className={`group relative block rounded-lg border bg-card p-4 transition-colors hover:bg-[hsl(var(--surface-tinted))] before:absolute before:left-0 before:top-0 before:h-[2px] before:w-7 before:rounded-b-sm ${accentClass}`}
     >
-      <div className="text-[28px] leading-none font-semibold tabular-nums text-foreground">{value}</div>
-      <div className="text-xs text-muted-foreground mt-1.5 leading-snug">{label}</div>
+      <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
+        {label}
+      </div>
+      <div className="mt-1.5 text-3xl font-medium tabular-nums tracking-tight text-foreground">
+        {value}
+      </div>
+      {hint && (
+        <div className="mt-1.5 text-[11px] text-[hsl(var(--text-faint))] tabular-nums">
+          {hint}
+        </div>
+      )}
     </Link>
   )
 }

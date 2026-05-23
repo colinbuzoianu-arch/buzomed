@@ -70,6 +70,10 @@
   --accent-positive: 162 72% 28%;
   --accent-warning: 38 92% 38%;
   --accent-danger: 0 72% 50%;
+
+  /* Text scale tokens */
+  --text-muted: 220 15% 46%;
+  --text-faint: 220 10% 62%;
 }
 
 .dark {

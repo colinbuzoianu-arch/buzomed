@@ -249,7 +249,8 @@
     "table": {
       "name": "Denumire",
       "cui": "CUI",
-      "contact": "Persoană de contact"
+      "contact": "Persoană de contact",
+      "employees": "Angajați"
     },
     "newPage": {
       "title": "Companie nouă",

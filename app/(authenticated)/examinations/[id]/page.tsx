@@ -201,7 +201,14 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
               </Link>
             </div>
             <div className="mt-2 flex items-center gap-2 flex-wrap text-xs">
-              <ExaminationStatusBadge status={examination.status} />
+              <ExaminationStatusBadge
+                status={examination.status}
+                scheduledAt={examination.scheduledAt}
+                startedAt={examination.startedAt}
+                completedAt={examination.completedAt}
+                signedAt={examination.signedAt}
+                locale={locale === 'en' ? 'en' : 'ro'}
+              />
               {isSigned && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border text-emerald-700 bg-emerald-50 border-emerald-200">
                   ✓ {t('examinations.signedBadge')}

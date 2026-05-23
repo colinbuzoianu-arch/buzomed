@@ -78,6 +78,14 @@ export default async function AuthenticatedLayout({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Command palette hint — visual signal only, not wired yet */}
+            <span
+              className="hidden lg:inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2 py-1 text-[11px] text-[hsl(var(--text-faint))] font-mono"
+              aria-hidden
+            >
+              <span>⌘</span><span>K</span>
+            </span>
+
             <LanguageSwitcher currentLocale={locale} />
 
             <span className="w-px h-5 bg-border hidden lg:block" />

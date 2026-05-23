@@ -858,7 +858,14 @@ async function ExaminationsListView(props: {
               </div>
             </div>
             <div className="text-xs text-right">
-              <ExaminationStatusBadge status={e.status} />
+              <ExaminationStatusBadge
+                status={e.status}
+                scheduledAt={e.scheduledAt}
+                startedAt={e.startedAt}
+                completedAt={e.completedAt}
+                signedAt={e.signedAt}
+                locale={props.locale === 'en' ? 'en' : 'ro'}
+              />
               {e.scheduledAt && (
                 <div className="text-muted-foreground mt-1">
                   {props.dateFormatter.format(e.scheduledAt)}
