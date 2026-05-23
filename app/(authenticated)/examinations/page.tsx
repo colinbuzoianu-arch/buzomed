@@ -246,7 +246,7 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">
+          <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight">
             {t('examinations.title')}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">

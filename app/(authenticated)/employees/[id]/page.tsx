@@ -317,7 +317,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
 
       {/* Company banner */}
       <div className="bg-[#F8FAFB] border border-[#E2E8F0] rounded-xl px-5 py-3 flex items-center gap-3">
-        <Building2 size={18} className="text-[#1E4D8B] shrink-0" />
+        <Building2 size={18} className="text-primary shrink-0" />
         {employee.company ? (
           <span className="text-sm font-medium text-[#0F1F3A]">
             {employee.company.name}
@@ -327,7 +327,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
             Neatribuit —{' '}
             <Link
               href={`/employees/${employee.id}/edit`}
-              className="text-[#1E4D8B] not-italic no-underline hover:underline"
+              className="text-primary not-italic no-underline hover:underline"
             >
               editați angajatul →
             </Link>

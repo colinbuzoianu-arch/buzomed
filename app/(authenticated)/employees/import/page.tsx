@@ -45,7 +45,7 @@ export default async function ImportEmployeesPage() {
         >
           ← {t('employees.import.backToList')}
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-bold mt-2">
+        <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight mt-2">
           {t('employees.import.title')}
         </h1>
         <p className="text-muted-foreground mt-1 text-sm sm:text-base">

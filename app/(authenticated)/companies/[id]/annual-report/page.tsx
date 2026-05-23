@@ -128,7 +128,7 @@ export default async function AnnualReportPage({ params, searchParams }: PagePro
           >
             ← {company.name}
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold mt-2">
+          <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight mt-2">
             {t('annualReport.title')}
           </h1>
           <h2 className="text-xl font-semibold mt-0.5">{company.name}</h2>

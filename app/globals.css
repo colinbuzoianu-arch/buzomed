@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
 @theme inline {
+  --font-sans: var(--font-manrope), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-mono: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -21,36 +25,51 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
   --radius: var(--radius);
+
+  --color-surface-raised: hsl(var(--surface-raised));
+  --color-surface-muted: hsl(var(--surface-muted));
+  --color-surface-tinted: hsl(var(--surface-tinted));
+  --color-accent-positive: hsl(var(--accent-positive));
+  --color-accent-warning: hsl(var(--accent-warning));
+  --color-accent-danger: hsl(var(--accent-danger));
 }
 
 :root {
   /* Buzomed brand colors */
-  --buzomed-blue: 215 70% 35%;
+  --buzomed-blue: 218 60% 18%;
   --buzomed-teal: 180 60% 40%;
-  --buzomed-blue-light: 215 70% 50%;
+  --buzomed-blue-light: 215 70% 35%;
   --buzomed-teal-light: 180 60% 55%;
 
   /* shadcn/ui semantic tokens — Slate-based, Buzomed-tinted */
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --foreground: 220 45% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 220 45% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 215 70% 35%;
+  --popover-foreground: 220 45% 11%;
+  --primary: 218 60% 18%;
   --primary-foreground: 210 40% 98%;
   --secondary: 210 40% 96.1%;
   --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 220 20% 96%;
+  --muted-foreground: 220 15% 46%;
   --accent: 180 60% 40%;
   --accent-foreground: 0 0% 100%;
-  --destructive: 0 84.2% 60.2%;
+  --destructive: 0 72% 50%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 215 70% 35%;
+  --border: 220 20% 92%;
+  --input: 220 20% 92%;
+  --ring: 218 60% 18%;
   --radius: 0.5rem;
+
+  /* Semantic surface tokens */
+  --surface-raised: 0 0% 100%;
+  --surface-muted: 220 20% 97%;
+  --surface-tinted: 218 60% 96%;
+  --accent-positive: 162 72% 28%;
+  --accent-warning: 38 92% 38%;
+  --accent-danger: 0 72% 50%;
 }
 
 .dark {
@@ -82,8 +101,13 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
 }
 
 html {
   scroll-behavior: smooth;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

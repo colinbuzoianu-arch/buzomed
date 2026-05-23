@@ -1160,7 +1160,8 @@
     "viewScadente": "Vezi scadențe",
     "companies": "companii",
     "employees": "angajați",
-    "viewFullReport": "Raport complet"
+    "viewFullReport": "Raport complet",
+    "requiresCall": "Necesită apel telefonic"
   },
   "contracts": {
     "sectionTitle": "Contracte",

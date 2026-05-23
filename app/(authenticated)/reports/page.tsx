@@ -216,7 +216,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">{t('reports.title')}</h1>
+        <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight">{t('reports.title')}</h1>
         <p className="text-muted-foreground mt-1">{t('reports.subtitle')}</p>
       </div>
 
@@ -320,7 +320,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                   return (
                     <tr key={`${m.year}-${m.month}`}>
                       <td className="px-4 py-2 capitalize">{label}</td>
-                      <td className="px-4 py-2 text-right font-semibold text-[#2BA39A]">
+                      <td className="px-4 py-2 text-right font-semibold text-foreground">
                         {m.total}
                       </td>
                       <td className="px-4 py-2 text-right font-semibold text-emerald-700">{m.apt}</td>
@@ -388,7 +388,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                         {c.companyName}
                       </Link>
                     </td>
-                    <td className="px-4 py-2 text-right font-semibold text-[#2BA39A]">
+                    <td className="px-4 py-2 text-right font-semibold text-foreground">
                       {c.total}
                     </td>
                     <td className="px-4 py-2 text-right font-semibold text-emerald-700">{c.apt}</td>
@@ -435,7 +435,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                 {perPractitioner.map((p) => (
                   <tr key={p.name}>
                     <td className="px-4 py-2 font-medium">{p.name}</td>
-                    <td className="px-4 py-2 text-right font-semibold text-[#2BA39A]">{p.total}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-foreground">{p.total}</td>
                     <td className="px-4 py-2 text-right font-semibold text-emerald-700">{p.apt}</td>
                     <td className="px-4 py-2 text-right font-semibold text-amber-700">{p.apt_conditionat}</td>
                     <td className="px-4 py-2 text-right font-semibold text-red-700">{p.inapt}</td>
@@ -503,7 +503,7 @@ function StatCard({
   value,
   sublabel = null,
   tone = 'default',
-  valueColor = 'text-[#2BA39A]',
+  valueColor = 'text-foreground',
 }: {
   label: string
   value: number

@@ -6,6 +6,7 @@ import { LogoutButton } from '@/components/logout-button'
 import { BuzomedLogo } from '@/components/buzomed-logo'
 import { TenantLogo } from '@/components/tenant-logo'
 import { MobileNav } from '@/components/mobile-nav'
+import { AppNav } from '@/components/app-nav'
 import Link from 'next/link'
 
 export default async function AuthenticatedLayout({
@@ -54,41 +55,37 @@ export default async function AuthenticatedLayout({
   }
 
   const userDisplayName = `${user.firstName} ${user.lastName}`
+  const initials = [user.firstName?.[0], user.lastName?.[0]].filter(Boolean).join('').toUpperCase()
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 md:gap-8 min-w-0">
+      <header className="sticky top-0 z-40 border-b bg-gradient-to-b from-background to-background/98 backdrop-blur-sm">
+        <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 md:gap-6 min-w-0">
             {hasTenant && tenantLogoUrl ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <TenantLogo logoUrl={tenantLogoUrl} size="md" />
-                <span className="w-px h-6 bg-border" />
+                <span className="w-px h-5 bg-border" />
                 <BuzomedLogo variant="icon" size="sm" />
               </div>
             ) : (
-              <BuzomedLogo variant="icon" size="md" />
+              <div className="shrink-0">
+                <BuzomedLogo variant="icon" size="md" />
+              </div>
             )}
 
-            {/* Desktop nav — hidden on mobile, drawer used instead */}
-            <nav className="hidden md:flex gap-4 text-sm">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            <AppNav items={navItems} />
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
-            <span className="text-sm text-muted-foreground hidden lg:inline">
-              {userDisplayName}
-            </span>
+          <div className="flex items-center gap-2">
             <LanguageSwitcher currentLocale={locale} />
+
+            <span className="w-px h-5 bg-border hidden lg:block" />
+
+            <div className="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold select-none">
+              {initials}
+            </div>
+
             <div className="hidden md:block">
               <LogoutButton label={t('common.logout')} />
             </div>

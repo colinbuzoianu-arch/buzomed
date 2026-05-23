@@ -1,9 +1,15 @@
 export function VerdictBadge({ verdict }: { verdict: string }) {
-  const styles: Record<string, string> = {
-    apt:             'text-emerald-700 bg-emerald-50 border-emerald-200',
-    apt_conditionat: 'text-amber-700   bg-amber-50   border-amber-200',
-    inapt_temporar:  'text-orange-700  bg-orange-50  border-orange-200',
-    inapt:           'text-red-700     bg-red-50     border-red-200',
+  const dot: Record<string, string> = {
+    apt:             'bg-emerald-500',
+    apt_conditionat: 'bg-amber-500',
+    inapt_temporar:  'bg-orange-500',
+    inapt:           'bg-red-500',
+  }
+  const cls: Record<string, string> = {
+    apt:             'text-emerald-700 border-emerald-200',
+    apt_conditionat: 'text-amber-700 border-amber-200',
+    inapt_temporar:  'text-orange-700 border-orange-200',
+    inapt:           'text-red-700 border-red-200',
   }
   const labels: Record<string, string> = {
     apt:             'Apt',
@@ -11,9 +17,11 @@ export function VerdictBadge({ verdict }: { verdict: string }) {
     inapt_temporar:  'Inapt temporar',
     inapt:           'Inapt',
   }
-  const cls = styles[verdict] ?? 'text-gray-600 bg-gray-50 border-gray-200'
+  const dotCls = dot[verdict] ?? 'bg-gray-400'
+  const textCls = cls[verdict] ?? 'text-gray-600 border-gray-200'
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${cls}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-medium tabular-nums ${textCls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dotCls}`} />
       {labels[verdict] ?? verdict}
     </span>
   )

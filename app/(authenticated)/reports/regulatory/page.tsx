@@ -147,7 +147,7 @@ export default async function RegulatoryPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">{t('reports.regulatory.title')}</h1>
+          <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight">{t('reports.regulatory.title')}</h1>
           <p className="text-muted-foreground mt-1">{t('reports.regulatory.subtitle')}</p>
           <p className="text-xs text-muted-foreground mt-1 print:block hidden">
             {fromLabel} — {toLabel} · {t('reports.regulatory.print')}: {printedAt}
@@ -190,8 +190,8 @@ export default async function RegulatoryPage({ searchParams }: PageProps) {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">{t('reports.regulatory.sectionExams')}</h2>
         <div className="border rounded-lg divide-y text-sm">
-          <Row label={t('reports.regulatory.totalExamined')} value={stats.total} bold valueColor="text-[#2BA39A]" />
-          <Row label={t('reports.regulatory.totalSigned')} value={stats.signed} valueColor="text-[#2BA39A]" />
+          <Row label={t('reports.regulatory.totalExamined')} value={stats.total} bold valueColor="text-foreground" />
+          <Row label={t('reports.regulatory.totalSigned')} value={stats.signed} valueColor="text-foreground" />
           <Row label={t('reports.regulatory.apt')} value={stats.apt} valueColor="text-emerald-700" />
           <Row label={t('reports.regulatory.aptConditionat')} value={stats.apt_conditionat} valueColor="text-amber-700" />
           <Row label={t('reports.regulatory.inaptTemporar')} value={stats.inapt_temporar} valueColor="text-orange-700" />

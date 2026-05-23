@@ -1160,7 +1160,8 @@
     "viewScadente": "View due dates",
     "companies": "companies",
     "employees": "employees",
-    "viewFullReport": "Full report"
+    "viewFullReport": "Full report",
+    "requiresCall": "Requires a call"
   },
   "contracts": {
     "sectionTitle": "Contracts",

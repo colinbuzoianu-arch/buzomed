@@ -1,10 +1,21 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Manrope, Fraunces } from 'next/font/google'
 import { getLocale } from '@/lib/i18n'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const manrope = Manrope({
+  subsets: ['latin', 'latin-ext'],
+  variable: '--font-manrope',
+  display: 'swap',
+})
+
+const fraunces = Fraunces({
+  subsets: ['latin', 'latin-ext'],
+  variable: '--font-fraunces',
+  weight: ['300', '400', '500'],
+  display: 'swap',
+})
 
 /**
  * Root metadata. The icon array lets Next.js emit <link rel="icon">
@@ -45,8 +56,8 @@ export default async function RootLayout({
   const locale = await getLocale()
 
   return (
-    <html lang={locale}>
-      <body className={inter.className}>
+    <html lang={locale} className={`${manrope.variable} ${fraunces.variable}`}>
+      <body className="font-sans antialiased">
         {children}
         <Toaster position="bottom-right" richColors />
       </body>

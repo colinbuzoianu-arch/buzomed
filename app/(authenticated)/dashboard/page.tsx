@@ -172,8 +172,8 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       {/* Greeting */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">
-          {t(greetingKey)}, {firstName}.
+        <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight">
+          {t(greetingKey)}, <em>{firstName}</em>.
         </h1>
         <p className="text-muted-foreground mt-1 text-sm sm:text-base">
           {cabinetName}
@@ -183,7 +183,7 @@ export default async function DashboardPage() {
       {/* Urgent items — the "what needs attention NOW" row */}
       {urgentCount > 0 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
             {t('dashboard.needsAttention')}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -291,11 +291,11 @@ export default async function DashboardPage() {
       <section className="border-t pt-6">
         <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
           <span>
-            <strong className="text-[#1E4D8B] font-semibold">{companyCount}</strong>{' '}
+            <strong className="text-primary font-semibold">{companyCount}</strong>{' '}
             {t('dashboard.companies')}
           </span>
           <span>
-            <strong className="text-[#1E4D8B] font-semibold">{employeeCount}</strong>{' '}
+            <strong className="text-primary font-semibold">{employeeCount}</strong>{' '}
             {t('dashboard.employees')}
           </span>
           <Link
@@ -325,17 +325,18 @@ function AlertCard({
   tone: 'destructive' | 'warning'
   description: string
 }) {
-  const colors =
-    tone === 'destructive'
-      ? 'border-destructive bg-destructive/5 hover:bg-destructive/10'
-      : 'border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30 dark:hover:bg-amber-950/50'
+  const barColor =
+    tone === 'destructive' ? 'before:bg-destructive' : 'before:bg-amber-500'
   const valueColor =
-    tone === 'destructive' ? 'text-destructive' : 'text-amber-700 dark:text-amber-400'
+    tone === 'destructive' ? 'text-destructive' : 'text-amber-700'
 
   return (
-    <Link href={href} className={`block border rounded-lg p-4 transition-colors ${colors}`}>
-      <div className={`text-3xl font-bold ${valueColor}`}>{value}</div>
-      <div className="font-medium mt-1 text-sm">{label}</div>
+    <Link
+      href={href}
+      className={`relative block border rounded-lg p-4 transition-colors overflow-hidden hover:bg-muted/50 before:absolute before:inset-x-0 before:top-0 before:h-0.5 ${barColor}`}
+    >
+      <div className={`text-[28px] leading-none font-semibold tabular-nums ${valueColor}`}>{value}</div>
+      <div className="font-medium mt-1.5 text-sm">{label}</div>
       <div className="text-xs text-muted-foreground mt-0.5">{description}</div>
     </Link>
   )
@@ -353,10 +354,10 @@ function StatCard({
   return (
     <Link
       href={href}
-      className="block border rounded-lg p-4 hover:bg-muted transition-colors"
+      className="relative block border rounded-lg p-4 hover:bg-muted/50 transition-colors overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-accent"
     >
-      <div className="text-2xl font-bold text-[#2BA39A]">{value}</div>
-      <div className="text-xs text-muted-foreground mt-1 leading-snug">{label}</div>
+      <div className="text-[28px] leading-none font-semibold tabular-nums text-foreground">{value}</div>
+      <div className="text-xs text-muted-foreground mt-1.5 leading-snug">{label}</div>
     </Link>
   )
 }

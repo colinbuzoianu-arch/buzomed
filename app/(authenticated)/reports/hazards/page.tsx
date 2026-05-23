@@ -110,7 +110,7 @@ export default async function HazardsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">{t('reports.hazards.title')}</h1>
+        <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight">{t('reports.hazards.title')}</h1>
         <p className="text-muted-foreground mt-1">{t('reports.hazards.subtitle')}</p>
       </div>
 
