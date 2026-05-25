@@ -72,6 +72,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'bad_request' }, { status: 400 })
   }
   const body = asObject(raw) ?? {}
+
+  // Honeypot: legitimate users never fill this; bots almost always do.
+  // Return 200 OK with success: true so bots don't learn they were caught.
+  if (typeof body.website === 'string' && body.website.trim().length > 0) {
+    return NextResponse.json({ success: true })
+  }
+
   const issues: string[] = []
 
   const name = requireString('name', body.name, issues, { maxLength: 100 })

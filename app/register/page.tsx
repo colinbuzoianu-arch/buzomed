@@ -87,6 +87,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [cabinetName, setCabinetName] = useState('')
   const [city, setCity] = useState('')
+  const [website, setWebsite] = useState('')  // honeypot — must stay empty
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -99,7 +100,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/register-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), cabinetName: cabinetName.trim(), city: city.trim() || undefined }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), cabinetName: cabinetName.trim(), city: city.trim() || undefined, website }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -234,6 +235,25 @@ export default function RegisterPage() {
                   value={city}
                   onChange={setCity}
                   disabled={loading}
+                />
+
+                {/* Honeypot — invisible to humans, filled by bots */}
+                <input
+                  type="text"
+                  name="website"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    left: '-9999px',
+                    width: 1,
+                    height: 1,
+                    opacity: 0,
+                    pointerEvents: 'none',
+                  }}
                 />
 
                 {error && (
