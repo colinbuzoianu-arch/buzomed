@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Table,
   TableBody,
@@ -116,25 +117,13 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
       </div>
 
       {employees.length === 0 ? (
-        <div className="border border-dashed rounded-lg p-8 sm:p-12 text-center">
-          <p className="text-muted-foreground text-sm">
-            {showArchived
-              ? t('employees.emptyArchived')
-              : t('employees.empty')}
-          </p>
-          {caps.canWriteAdministrative && !showArchived && (
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              <Button asChild variant="outline">
-                <Link href="/employees/import">
-                  {t('employees.importButton')}
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/employees/new">+ {t('employees.newButton')}</Link>
-              </Button>
-            </div>
-          )}
-        </div>
+        <EmptyState
+          illustration="employees"
+          title={showArchived ? t('employees.emptyTitleArchived') : t('employees.emptyTitle')}
+          description={showArchived ? t('employees.emptyDescriptionArchived') : t('employees.emptyDescription')}
+          primaryAction={caps.canWriteAdministrative && !showArchived ? { label: `+ ${t('employees.newButton')}`, href: '/employees/new' } : undefined}
+          secondaryAction={caps.canWriteAdministrative && !showArchived ? { label: t('employees.importButton'), href: '/employees/import', variant: 'outline' } : undefined}
+        />
       ) : (
         <>
           {/* Desktop table — hidden on small screens */}

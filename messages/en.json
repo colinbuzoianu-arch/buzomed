@@ -73,6 +73,8 @@
       "neverActive": "Never"
     },
     "noTenants": "No practices registered yet. Create the first practice to get started.",
+    "emptyTitle": "No practices registered",
+    "emptyDescription": "Create the first practice to start managing the platform.",
     "subscription": {
       "trial": "Trial",
       "solo": "Solo",
@@ -141,6 +143,8 @@
       "sectionTitle": "Pending invitations",
       "inviteButton": "Invite administrator",
       "noPending": "No pending invitations.",
+      "noPendingTitle": "No pending invitations",
+      "noPendingDescription": "Sent invitations will appear here until accepted.",
       "columnRole": "Role",
       "columnInvitedBy": "Invited by",
       "columnExpiresAt": "Expires",
@@ -183,6 +187,8 @@
     "title": "Team",
     "membersSectionTitle": "Team members",
     "noMembers": "No members yet.",
+    "emptyTitle": "Your team is empty",
+    "emptyDescription": "Invite colleagues to collaborate on certificates and examinations.",
     "membersTable": {
       "roles": "Roles",
       "accountStatus": "Account status",
@@ -194,6 +200,8 @@
       "sectionTitle": "Pending invitations",
       "inviteButton": "Invite teammate",
       "noPending": "No pending invitations.",
+      "noPendingTitle": "No pending invitations",
+      "noPendingDescription": "Sent invitations will appear here until accepted.",
       "columnRole": "Role",
       "columnInvitedBy": "Invited by",
       "columnExpiresAt": "Expires",
@@ -293,7 +301,11 @@
       "anafPlatitorTva": "VAT payer"
     },
     "viewReport": "View report",
-    "viewAnnualReport": "Annual report"
+    "viewAnnualReport": "Annual report",
+    "emptyTitle": "No companies yet",
+    "emptyDescription": "Add your first partner company to manage employees and examinations.",
+    "emptyTitleArchived": "No archived companies",
+    "emptyDescriptionArchived": "Deactivated companies will appear here."
   },
   "employees": {
     "combobox": {
@@ -311,6 +323,10 @@
     "backToList": "Employees",
     "empty": "No employees yet.",
     "emptyArchived": "No archived employees.",
+    "emptyTitle": "No employees yet",
+    "emptyDescription": "Add the first employee or import a list from a company.",
+    "emptyTitleArchived": "No archived employees",
+    "emptyDescriptionArchived": "Archived employees appear here — their medical history remains available.",
     "archived": "Archived",
     "archive": "Archive",
     "archiving": "Archiving...",
@@ -566,6 +582,8 @@
     "sectionTitle": "Workplaces",
     "newButton": "New workplace",
     "empty": "No workplaces yet for this company.",
+    "emptyTitle": "No workplaces yet",
+    "emptyDescription": "Add the first workplace to assign employees and schedule examinations.",
     "assignedCount": "{count} employees",
     "intervalShort": "Interval: {months} months",
     "intervalDisplay": "Every {months} months",
@@ -656,6 +674,8 @@
     "newButton": "New examination",
     "backToList": "Back to examinations",
     "empty": "No examinations yet. Schedule the first one for an employee with a current workplace.",
+    "emptyTitle": "No examinations yet",
+    "emptyDescription": "Schedule the first examination for an employee with a current workplace.",
     "tabs": {
       "all": "All",
       "scheduled": "Scheduled",
@@ -897,6 +917,8 @@
   "documents": {
     "sectionTitle": "Documents",
     "empty": "No documents attached yet.",
+    "emptyTitle": "No documents attached",
+    "emptyDescription": "Upload a document using the button above.",
     "emptyHint": "Use the button above to upload a document.",
     "uploadButton": "Upload document",
     "uploading": "Uploading…",
@@ -939,6 +961,8 @@
     },
     "empty": "No recalls in this range.",
     "emptyOverdue": "No overdue recalls. Nicely done — the cabinet is on top of things.",
+    "emptyTitle": "No recalls in this range",
+    "emptyDescription": "Due examinations will appear automatically based on re-examination dates.",
     "emptyButOverdueHint": "There are {count} overdue recalls in other ranges.",
     "viewOverdue": "View overdue",
     "filterCompany": "Filter by company",
@@ -988,6 +1012,8 @@
     "title": "Reports",
     "subtitle": "Cabinet activity for the selected range.",
     "empty": "No examinations in this range.",
+    "emptyTitle": "No examinations in this range",
+    "emptyDescription": "Select a different date range to view activity.",
     "range": {
       "label": "Range",
       "thisMonth": "This month",
@@ -1105,6 +1131,8 @@
     "tabWorkers": "Workers",
     "tabExaminations": "Examinations",
     "empty": "No examinations for this company in the selected range.",
+    "emptyTitle": "No examinations",
+    "emptyDescription": "No examinations found for this company in the selected range.",
     "colWorker": "Worker",
     "colWorkplace": "Workplace",
     "colLastExam": "Last exam",
@@ -1168,6 +1196,8 @@
     "sectionTitle": "Contracts",
     "newButton": "New contract",
     "empty": "No contracts for this company yet.",
+    "emptyTitle": "No contracts yet",
+    "emptyDescription": "Add a services contract for this company.",
     "deleteConfirm": "Are you sure you want to delete contract {number}?",
     "deleting": "Deleting...",
     "newPage": {
@@ -1217,6 +1247,8 @@
     "newButton": "New invoice",
     "newTitle": "New invoice",
     "empty": "No invoices for this company yet.",
+    "emptyTitle": "No invoices yet",
+    "emptyDescription": "Invoices issued for this company will appear here.",
     "currency": "RON",
     "issuedAt": "Issued",
     "dueDate": "Due",

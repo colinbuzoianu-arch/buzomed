@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { EmptyState } from '@/components/ui/empty-state'
 import { requireUser } from '@/lib/auth'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
@@ -286,9 +287,11 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           {t('reports.monthly.title')}
         </h2>
         {monthlyTrend.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t('reports.empty')}
-          </p>
+          <EmptyState
+            illustration="reports"
+            title={t('reports.emptyTitle')}
+            description={t('reports.emptyDescription')}
+          />
         ) : (
           <div className="border rounded-lg overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
@@ -346,9 +349,11 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           {t('reports.perCompany.title')}
         </h2>
         {perCompany.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t('reports.empty')}
-          </p>
+          <EmptyState
+            illustration="reports"
+            title={t('reports.emptyTitle')}
+            description={t('reports.emptyDescription')}
+          />
         ) : (
           <div className="border rounded-lg overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">

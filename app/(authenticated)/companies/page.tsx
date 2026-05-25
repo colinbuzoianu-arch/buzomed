@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Table,
   TableBody,
@@ -87,16 +88,12 @@ export default async function CompaniesPage() {
       </div>
 
       {companies.length === 0 ? (
-        <div className="border border-dashed rounded-lg p-8 sm:p-12 text-center">
-          <p className="text-muted-foreground text-sm">
-            {t('companies.empty')}
-          </p>
-          {caps.canWriteAdministrative && (
-            <Button asChild className="mt-4">
-              <Link href="/companies/new">+ {t('companies.newButton')}</Link>
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          illustration="companies"
+          title={t('companies.emptyTitle')}
+          description={t('companies.emptyDescription')}
+          primaryAction={caps.canWriteAdministrative ? { label: `+ ${t('companies.newButton')}`, href: '/companies/new' } : undefined}
+        />
       ) : (
         <>
           {/* Desktop table */}

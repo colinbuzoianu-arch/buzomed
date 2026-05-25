@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import { EmptyState } from '@/components/ui/empty-state'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -284,11 +285,11 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
           </span>
         </h2>
         {activeAssignments.length === 0 ? (
-          <div className="border border-dashed rounded-lg p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t('workplaces.noEmployeesAssigned')}
-            </p>
-          </div>
+          <EmptyState
+            size="compact"
+            illustration="employees"
+            title={t('workplaces.noEmployeesAssigned')}
+          />
         ) : (
           <div className="border rounded-lg divide-y">
             {activeAssignments.map((a) => (
@@ -325,11 +326,11 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
           {t('workplaces.recentExaminationsTitle')}
         </h2>
         {recentExaminations.length === 0 ? (
-          <div className="border border-dashed rounded-lg p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t('workplaces.noExaminations')}
-            </p>
-          </div>
+          <EmptyState
+            size="compact"
+            illustration="examinations"
+            title={t('workplaces.noExaminations')}
+          />
         ) : (
           <div className="border rounded-lg divide-y">
             {recentExaminations.map((e) => (

@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { DocumentEntityType, DocumentType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Label } from '@/components/ui/label'
 
 /**
@@ -279,14 +280,12 @@ export function DocumentsList({
       )}
 
       {documents.length === 0 ? (
-        <div className="border border-dashed rounded-lg p-6 text-center">
-          <p className="text-sm text-muted-foreground">{labels.empty}</p>
-          {canWrite && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {labels.emptyHint}
-            </p>
-          )}
-        </div>
+        <EmptyState
+          size="compact"
+          illustration="documents"
+          title={labels.empty}
+          description={canWrite ? labels.emptyHint : undefined}
+        />
       ) : (
         <div className="border rounded-lg divide-y">
           {documents.map((d) => (

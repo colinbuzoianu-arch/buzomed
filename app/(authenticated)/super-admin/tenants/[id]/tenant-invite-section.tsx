@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -298,9 +299,11 @@ export function TenantInviteSection({
       )}
 
       {initialPendingInvitations.length === 0 ? (
-        <div className="border border-dashed rounded-lg p-8 text-center">
-          <p className="text-muted-foreground text-sm">{labels.noPending}</p>
-        </div>
+        <EmptyState
+          size="compact"
+          illustration="team"
+          title={labels.noPending}
+        />
       ) : (
         <div className="border rounded-lg">
           <Table>

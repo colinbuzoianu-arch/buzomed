@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { CompanyDeleteButton } from './company-delete-button'
 import { InvoiceStatusBadge } from '@/components/ui/invoice-status-badge'
 
@@ -253,18 +254,13 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           )}
         </div>
         {company.workplaces.length === 0 ? (
-          <div className="border border-dashed rounded-lg p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t('workplaces.empty')}
-            </p>
-            {caps.canWriteAdministrative && (
-              <Button asChild size="sm" className="mt-3">
-                <Link href={`/companies/${company.id}/workplaces/new`}>
-                  + {t('workplaces.newButton')}
-                </Link>
-              </Button>
-            )}
-          </div>
+          <EmptyState
+            size="compact"
+            illustration="workplaces"
+            title={t('workplaces.emptyTitle')}
+            description={t('workplaces.emptyDescription')}
+            primaryAction={caps.canWriteAdministrative ? { label: `+ ${t('workplaces.newButton')}`, href: `/companies/${company.id}/workplaces/new` } : undefined}
+          />
         ) : (
           <div className="border rounded-lg divide-y">
             {company.workplaces.map((w) => (
@@ -326,18 +322,13 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           )}
         </div>
         {company.invoices.length === 0 ? (
-          <div className="border border-dashed rounded-lg p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t('invoices.empty')}
-            </p>
-            {caps.canWriteAdministrative && (
-              <Button asChild size="sm" className="mt-3">
-                <Link href={`/companies/${company.id}/invoices/new`}>
-                  + {t('invoices.newButton')}
-                </Link>
-              </Button>
-            )}
-          </div>
+          <EmptyState
+            size="compact"
+            illustration="invoices"
+            title={t('invoices.emptyTitle')}
+            description={t('invoices.emptyDescription')}
+            primaryAction={caps.canWriteAdministrative ? { label: `+ ${t('invoices.newButton')}`, href: `/companies/${company.id}/invoices/new` } : undefined}
+          />
         ) : (
           <div className="border rounded-lg divide-y">
             {company.invoices.map((inv) => (
@@ -386,18 +377,13 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           )}
         </div>
         {company.contracts.length === 0 ? (
-          <div className="border border-dashed rounded-lg p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t('contracts.empty')}
-            </p>
-            {caps.canWriteAdministrative && (
-              <Button asChild size="sm" className="mt-3">
-                <Link href={`/companies/${company.id}/contracts/new`}>
-                  + {t('contracts.newButton')}
-                </Link>
-              </Button>
-            )}
-          </div>
+          <EmptyState
+            size="compact"
+            illustration="contracts"
+            title={t('contracts.emptyTitle')}
+            description={t('contracts.emptyDescription')}
+            primaryAction={caps.canWriteAdministrative ? { label: `+ ${t('contracts.newButton')}`, href: `/companies/${company.id}/contracts/new` } : undefined}
+          />
         ) : (
           <div className="border rounded-lg divide-y">
             {company.contracts.map((c) => {

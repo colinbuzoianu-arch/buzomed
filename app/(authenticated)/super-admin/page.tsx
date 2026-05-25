@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { EmptyState } from '@/components/ui/empty-state'
 import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -225,9 +226,12 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
       )}
 
       {sorted.length === 0 ? (
-        <div className="border border-dashed rounded-lg p-12 text-center">
-          <p className="text-muted-foreground">{t('superAdmin.noTenants')}</p>
-        </div>
+        <EmptyState
+          illustration="generic"
+          title={t('superAdmin.emptyTitle')}
+          description={t('superAdmin.emptyDescription')}
+          primaryAction={{ label: t('superAdmin.createTenant'), href: '/super-admin/tenants/new' }}
+        />
       ) : (
         <div className="border rounded-lg overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">

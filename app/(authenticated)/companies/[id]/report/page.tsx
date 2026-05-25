@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import { EmptyState } from '@/components/ui/empty-state'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator, type Locale } from '@/lib/i18n'
@@ -187,9 +188,11 @@ export default async function CompanyReportPage({
       </div>
 
       {examinations.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">
-          {t('companyReport.empty')}
-        </p>
+        <EmptyState
+          illustration="reports"
+          title={t('companyReport.emptyTitle')}
+          description={t('companyReport.emptyDescription')}
+        />
       ) : view === 'workers' ? (
         <WorkersTable
           workers={workers}

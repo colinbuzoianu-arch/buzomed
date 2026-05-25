@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { EmptyState } from '@/components/ui/empty-state'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -54,17 +55,12 @@ export default async function ImportEmployeesPage() {
       </div>
 
       {companies.length === 0 ? (
-        <div className="border border-dashed rounded-lg p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            {t('employees.import.noCompanies')}
-          </p>
-          <Link
-            href="/companies/new"
-            className="inline-block mt-4 text-sm text-primary hover:underline"
-          >
-            + {t('employees.import.createCompany')} →
-          </Link>
-        </div>
+        <EmptyState
+          size="compact"
+          illustration="companies"
+          title={t('employees.import.noCompanies')}
+          primaryAction={{ label: `+ ${t('employees.import.createCompany')}`, href: '/companies/new' }}
+        />
       ) : (
         <ImportClient
           companies={companies.map((c) => ({

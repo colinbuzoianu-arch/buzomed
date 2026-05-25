@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Building2 } from 'lucide-react'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -480,11 +481,11 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
             </div>
           </div>
         ) : (
-          <div className="border border-dashed rounded-lg p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t('employees.assignments.noCurrent')}
-            </p>
-          </div>
+          <EmptyState
+            size="compact"
+            illustration="workplaces"
+            title={t('employees.assignments.noCurrent')}
+          />
         )}
 
         {historyAssignments.length > 0 && (
@@ -549,11 +550,11 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
           </h2>
         </div>
         {recentExaminations.length === 0 ? (
-          <div className="border border-dashed rounded-lg p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t('employees.noExaminations')}
-            </p>
-          </div>
+          <EmptyState
+            size="compact"
+            illustration="examinations"
+            title={t('employees.noExaminations')}
+          />
         ) : (
           <div className="border rounded-lg divide-y">
             {recentExaminations.map((e) => (
