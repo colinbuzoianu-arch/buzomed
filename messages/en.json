@@ -363,8 +363,10 @@
     "columns": {
       "company": "Company",
       "jobTitle": "Job Title",
-      "city": "City"
+      "city": "City",
+      "workplace": "Workplace"
     },
+    "noWorkplace": "No workplace",
     "archivedReason": {
       "left_employment": "Left the company",
       "retired": "Retired",

@@ -61,6 +61,11 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
       isActive: true,
       archivedAt: true,
       company: { select: { name: true } },
+      workplaceAssignments: {
+        where: { isCurrent: true, endDate: null },
+        select: { workplace: { select: { id: true, name: true } } },
+        take: 1,
+      },
     },
   })
 
@@ -134,7 +139,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                   {showArchived ? (
                     <TableHead>{t('employees.table.archivedAt')}</TableHead>
                   ) : (
-                    <TableHead>{t('common.status')}</TableHead>
+                    <TableHead>{t('employees.columns.workplace')}</TableHead>
                   )}
                 </TableRow>
               </TableHeader>
@@ -168,25 +173,16 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                           : '—'}
                       </TableCell>
                     ) : (
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-sm ${
-                            e.isActive
-                              ? 'text-green-700'
-                              : 'text-muted-foreground'
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              e.isActive
-                                ? 'bg-green-600'
-                                : 'bg-muted-foreground'
-                            }`}
-                          />
-                          {e.isActive
-                            ? t('common.active')
-                            : t('common.inactive')}
-                        </span>
+                      <TableCell className="text-sm">
+                        {e.workplaceAssignments[0]?.workplace?.name ? (
+                          <span className="text-foreground">
+                            {e.workplaceAssignments[0].workplace.name}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                            {t('employees.noWorkplace')}
+                          </span>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>
@@ -218,6 +214,13 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                       )}
                       {e.jobTitle && (
                         <div className="truncate">{e.jobTitle}</div>
+                      )}
+                      {!showArchived && (
+                        e.workplaceAssignments[0]?.workplace?.name ? (
+                          <div className="truncate">{e.workplaceAssignments[0].workplace.name}</div>
+                        ) : (
+                          <div className="text-amber-600">{t('employees.noWorkplace')}</div>
+                        )
                       )}
                       {e.city && (
                         <div className="truncate">{e.city}</div>
