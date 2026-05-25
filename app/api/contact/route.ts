@@ -36,6 +36,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'bad_request' }, { status: 400 })
   }
   const body = asObject(raw) ?? {}
+
+  // Honeypot: legitimate users never fill this; bots almost always do.
+  if (typeof body.website === 'string' && body.website.trim().length > 0) {
+    return NextResponse.json({ success: true })
+  }
+
+  // Link-spam: more than 2 URLs in the message is a near-certain bot signal.
+  if (typeof body.message === 'string') {
+    const linkCount = (body.message.match(/https?:\/\//gi) ?? []).length
+    if (linkCount > 2) {
+      return NextResponse.json({ success: true })
+    }
+  }
+
   const issues: string[] = []
 
   const name = requireString('name', body.name, issues, { maxLength: 1000 })
@@ -54,6 +68,13 @@ export async function POST(request: NextRequest) {
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safeEmail)) {
     return NextResponse.json({ error: 'Adresa de email nu este validă.' }, { status: 400 })
+  }
+
+  if (safeSubject.length < 3) {
+    return NextResponse.json(
+      { error: 'Subiectul trebuie să aibă cel puțin 3 caractere.' },
+      { status: 400 }
+    )
   }
 
   if (safeMessage.length < 10) {

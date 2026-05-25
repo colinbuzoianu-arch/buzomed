@@ -45,6 +45,7 @@ export function ContactForm() {
   const [email, setEmail] = useState('')
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
+  const [website, setWebsite] = useState('')  // honeypot — must stay empty
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -62,7 +63,7 @@ export function ContactForm() {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), subject, message: message.trim() }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), subject, message: message.trim(), website }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -146,6 +147,25 @@ export function ContactForm() {
             ))}
           </select>
         </Field>
+
+        {/* Honeypot — invisible to humans, filled by bots */}
+        <input
+          type="text"
+          name="website"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: '-9999px',
+            width: 1,
+            height: 1,
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
+        />
 
         <Field label="Mesaj" id="cf-message">
           <textarea
