@@ -7,6 +7,7 @@ import { BuzomedLogo } from '@/components/buzomed-logo'
 import { TenantLogo } from '@/components/tenant-logo'
 import { MobileNav } from '@/components/mobile-nav'
 import { AppNav } from '@/components/app-nav'
+import { IrisPanel } from '@/components/iris/iris-panel'
 import Link from 'next/link'
 
 export default async function AuthenticatedLayout({
@@ -25,15 +26,15 @@ export default async function AuthenticatedLayout({
     (r) => r === 'practitioner' || r === 'practice_admin'
   )
 
-  // Fetch tenant logo for non-super-admin users
-  const tenantLogoUrl = hasTenant
-    ? (
-        await prisma.tenant.findUnique({
-          where: { id: user.tenantId! },
-          select: { logoUrl: true },
-        })
-      )?.logoUrl ?? null
+  // Fetch tenant data for non-super-admin users
+  const tenantData = hasTenant
+    ? await prisma.tenant.findUnique({
+        where: { id: user.tenantId! },
+        select: { logoUrl: true, name: true },
+      })
     : null
+  const tenantLogoUrl = tenantData?.logoUrl ?? null
+  const cabinetName = tenantData?.name ?? 'Cabinet'
 
   // Centralized list of nav items so the mobile drawer and the desktop
   // nav stay in sync. Different visibility rules apply per role.
@@ -112,6 +113,15 @@ export default async function AuthenticatedLayout({
       <main className="flex-1 container mx-auto px-4 py-6 md:py-8">
         {children}
       </main>
+
+      {/* Iris — asistentul intern */}
+      {hasTenant && (
+        <IrisPanel
+          cabinetName={cabinetName}
+          locale={locale as 'ro' | 'en'}
+          userName={`${user.firstName} ${user.lastName}`}
+        />
+      )}
     </div>
   )
 }

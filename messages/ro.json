@@ -58,6 +58,18 @@
     "superAdmin": "Super admin",
     "fisa": "Fișă"
   },
+  "iris": {
+    "assistant": "Asistentul Buzomed",
+    "open": "Deschide Iris",
+    "close": "Închide Iris",
+    "reset": "Conversație nouă",
+    "placeholder": "Scrie o întrebare...",
+    "sending": "Se trimite...",
+    "send": "Trimite",
+    "enterHint": "Enter ↵ trimite · Shift+Enter linie nouă",
+    "escalated": "Am trimis conversația noastră la Colin. Vei primi răspuns la adresa ta de email în maximum 24h în zilele lucrătoare.",
+    "escalateError": "Nu am putut trimite mesajul. Scrie direct la hello@buzomed.com."
+  },
   "superAdmin": {
     "title": "Administrare Buzomed",
     "subtitle": "Gestionarea cabinetelor înregistrate",

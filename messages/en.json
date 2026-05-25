@@ -58,6 +58,18 @@
     "superAdmin": "Super admin",
     "fisa": "Fitness certificate"
   },
+  "iris": {
+    "assistant": "Buzomed assistant",
+    "open": "Open Iris",
+    "close": "Close Iris",
+    "reset": "New conversation",
+    "placeholder": "Ask a question...",
+    "sending": "Sending...",
+    "send": "Send",
+    "enterHint": "Enter ↵ to send · Shift+Enter for new line",
+    "escalated": "I've sent our conversation to Colin. You'll receive a reply at your email within 24h on working days.",
+    "escalateError": "Could not send the message. Write directly to hello@buzomed.com."
+  },
   "superAdmin": {
     "title": "Buzomed Administration",
     "subtitle": "Manage registered practices",
