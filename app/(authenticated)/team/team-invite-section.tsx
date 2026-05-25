@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { formatDate } from '@/lib/format-date'
 
 /**
  * Interactive invite section for the /team page.
@@ -106,11 +107,6 @@ export function TeamInviteSection({
     recipientName: '',
     role: allowedRoles[0],
   })
-
-  const dateFormatter = new Intl.DateTimeFormat(
-    labels.locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
 
   function roleLabel(role: string): string {
     if (role === 'practice_admin') return labels.rolePracticeAdmin
@@ -366,7 +362,7 @@ export function TeamInviteSection({
                     {inv.invitedByName}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {dateFormatter.format(new Date(inv.expiresAt))}
+                    {formatDate(inv.expiresAt, 'medium', labels.locale === 'ro' ? 'ro' : 'en')}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button

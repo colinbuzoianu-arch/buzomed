@@ -1,6 +1,7 @@
 'use client'
 
 import { TOAST } from '@/lib/toast'
+import { formatDateAuto } from '@/lib/format-date'
 
 import { useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -98,11 +99,6 @@ function BulkScheduleModal({
     if (isNaN(base.getTime())) return recalls.map(() => null)
     return recalls.map((_, i) => new Date(base.getTime() + i * SLOT_MINUTES * 60_000))
   }, [recalls, startDate, startTime])
-
-  const timeFormatter = new Intl.DateTimeFormat(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 
   async function handleSubmit() {
     if (!practitionerId) {
@@ -224,7 +220,7 @@ function BulkScheduleModal({
                     </td>
                     <td className="px-3 py-2 tabular-nums text-muted-foreground whitespace-nowrap">
                       {slots[i]
-                        ? timeFormatter.format(slots[i]!)
+                        ? formatDateAuto(slots[i]!, 'time')
                         : '—'}
                     </td>
                   </tr>

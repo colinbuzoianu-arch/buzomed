@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Building2 } from 'lucide-react'
 import { requireUser } from '@/lib/auth'
@@ -13,6 +14,7 @@ import { DocumentsSection } from '@/app/(authenticated)/_components/documents-se
 import { decryptCnp } from '@/lib/crypto/cnp-cipher'
 import { maskCnp } from '@/lib/crypto/cnp-validation'
 import { CnpReveal } from './cnp-reveal'
+import { formatDate } from '@/lib/format-date'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -86,11 +88,6 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
 
   if (!employee) notFound()
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
   const isArchived = employee.archivedAt !== null
   const currentAssignment = assignmentRows.find((a) => a.isCurrent) ?? null
   const historyAssignments = assignmentRows.filter((a) => !a.isCurrent)
@@ -145,7 +142,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
         [t('employees.form.fieldCompanyEmployeeId'), employee.companyEmployeeId],
         [
           t('employees.form.fieldBirthDate'),
-          employee.birthDate ? dateFormatter.format(employee.birthDate) : null,
+          employee.birthDate ? formatDate(employee.birthDate, 'medium', locale === 'ro' ? 'ro' : 'en') : null,
         ],
         [t('employees.form.fieldGender'), employee.gender],
         [t('employees.form.fieldNationality'), employee.nationality],
@@ -189,12 +186,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/employees"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {t('employees.backToList')}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.employees'), href: '/employees' }, { label: `${employee.lastName} ${employee.firstName}` }]} />
         <div className="flex items-start justify-between mt-2 gap-4">
           <div>
             <h1 className="text-3xl font-bold">
@@ -232,7 +224,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
               )}
               {isArchived && employee.archivedAt && (
                 <span className="text-xs text-muted-foreground">
-                  {dateFormatter.format(employee.archivedAt)}
+                  {formatDate(employee.archivedAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
                 </span>
               )}
               {currentAssignment && (
@@ -254,7 +246,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
                     href={`/examinations/${lastSigned.id}`}
                     className="underline hover:no-underline"
                   >
-                    {dateFormatter.format(lastSigned.signedAt)}
+                    {formatDate(lastSigned.signedAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
                   </Link>
                   {lastSigned.verdict && (
                     <>
@@ -470,7 +462,7 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
                 <div className="text-xs text-muted-foreground mt-1">
                   {currentAssignment.workplace.company.name} •{' '}
                   {t('employees.assignments.since')}{' '}
-                  {dateFormatter.format(currentAssignment.startDate)}
+                  {formatDate(currentAssignment.startDate, 'medium', locale === 'ro' ? 'ro' : 'en')}
                 </div>
                 {currentAssignment.notes && (
                   <div className="text-xs text-muted-foreground mt-2 italic whitespace-pre-wrap">
@@ -517,9 +509,9 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
                     </div>
                     <div className="text-xs text-muted-foreground text-right">
                       <div>
-                        {dateFormatter.format(a.startDate)}
+                        {formatDate(a.startDate, 'medium', locale === 'ro' ? 'ro' : 'en')}
                         {' → '}
-                        {a.endDate ? dateFormatter.format(a.endDate) : '—'}
+                        {a.endDate ? formatDate(a.endDate, 'medium', locale === 'ro' ? 'ro' : 'en') : '—'}
                       </div>
                       {a.reasonForChange && (
                         <div className="mt-0.5">
@@ -579,10 +571,10 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
                       {e.signedAt
-                        ? `${t('examinations.signedOn')}: ${dateFormatter.format(e.signedAt)}`
+                        ? `${t('examinations.signedOn')}: ${formatDate(e.signedAt, 'medium', locale === 'ro' ? 'ro' : 'en')}`
                         : e.scheduledAt
-                          ? `${t('examinations.scheduledFor')}: ${dateFormatter.format(e.scheduledAt)}`
-                          : dateFormatter.format(e.createdAt)}
+                          ? `${t('examinations.scheduledFor')}: ${formatDate(e.scheduledAt, 'medium', locale === 'ro' ? 'ro' : 'en')}`
+                          : formatDate(e.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
                     </div>
                   </div>
                   <div className="text-xs text-right space-y-1 shrink-0">

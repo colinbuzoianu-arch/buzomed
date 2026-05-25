@@ -9,6 +9,7 @@ import type { ExaminationStatus, RecallStatus } from '@prisma/client'
 import { RecallActions } from '../recalls/recall-actions'
 import { BulkScheduleButton } from '../recalls/bulk-schedule-modal'
 import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
+import { formatDate } from '@/lib/format-date'
 
 /**
  * Merged examinations page (after session 10 fixup).
@@ -231,11 +232,6 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
     { key: 'toate', label: t('examinations.tabs.all'), count: totalExams },
   ]
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
   // CSV export URL — when on an exam tab, scope to that status.
   const exportStatus = tabToStatus(tab)
   const exportUrl = exportStatus
@@ -321,7 +317,6 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
           tenantId={user.tenantId}
           status={tabToStatus(tab)}
           locale={locale}
-          dateFormatter={dateFormatter}
           canWrite={caps.canWriteAdministrative}
           t={t}
         />
@@ -469,11 +464,6 @@ async function ScadenteView(props: {
     if (b.overdue !== a.overdue) return b.overdue - a.overdue
     return b.total - a.total
   })
-
-  const dateFormatter = new Intl.DateTimeFormat(
-    props.locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
 
   const t = props.t
   const horizonTabs: Array<{
@@ -701,7 +691,7 @@ async function ScadenteView(props: {
                         : r.examinationType.nameRo}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      {dateFormatter.format(due)}
+                      {formatDate(due, 'medium', props.locale === 'ro' ? 'ro' : 'en')}
                     </td>
                     <td
                       className={`px-4 py-3 whitespace-nowrap ${
@@ -790,7 +780,6 @@ async function ExaminationsListView(props: {
   tenantId: string
   status: ExaminationStatus | null
   locale: 'ro' | 'en'
-  dateFormatter: Intl.DateTimeFormat
   canWrite: boolean
   t: (k: string) => string
 }) {
@@ -868,7 +857,7 @@ async function ExaminationsListView(props: {
               />
               {e.scheduledAt && (
                 <div className="text-muted-foreground mt-1">
-                  {props.dateFormatter.format(e.scheduledAt)}
+                  {formatDate(e.scheduledAt, 'medium', props.locale === 'ro' ? 'ro' : 'en')}
                 </div>
               )}
             </div>

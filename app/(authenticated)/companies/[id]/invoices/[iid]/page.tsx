@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -7,6 +8,7 @@ import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { InvoiceActions } from '../invoice-actions'
 import { InvoiceStatusBadge } from '@/components/ui/invoice-status-badge'
+import { formatDate } from '@/lib/format-date'
 
 interface PageProps {
   params: Promise<{ id: string; iid: string }>
@@ -37,22 +39,12 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
 
   if (!invoice) notFound()
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
   const isVatExempt = Number(invoice.vatRate) === 0
 
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href={`/companies/${companyId}`}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {invoice.company.name}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.companies'), href: '/companies' }, { label: invoice.company.name, href: `/companies/${companyId}` }, { label: invoice.invoiceNumber }]} />
         <div className="flex items-start justify-between mt-2 gap-4 flex-wrap">
           <div>
             <div className="flex items-baseline gap-3">
@@ -65,13 +57,13 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             </div>
             <div className="text-xs text-muted-foreground mt-1 flex gap-3 flex-wrap">
               {invoice.issuedAt && (
-                <span>{t('invoices.issuedAt')}: {dateFormatter.format(invoice.issuedAt)}</span>
+                <span>{t('invoices.issuedAt')}: {formatDate(invoice.issuedAt, 'medium', locale === 'ro' ? 'ro' : 'en')}</span>
               )}
               {invoice.dueDate && (
-                <span>{t('invoices.dueDate')}: {dateFormatter.format(invoice.dueDate)}</span>
+                <span>{t('invoices.dueDate')}: {formatDate(invoice.dueDate, 'medium', locale === 'ro' ? 'ro' : 'en')}</span>
               )}
               {invoice.paidAt && (
-                <span>{t('invoices.paidAt')}: {dateFormatter.format(invoice.paidAt)}</span>
+                <span>{t('invoices.paidAt')}: {formatDate(invoice.paidAt, 'medium', locale === 'ro' ? 'ro' : 'en')}</span>
               )}
               {invoice.contract && (
                 <span>

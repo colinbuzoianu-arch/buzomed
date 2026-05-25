@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { formatDate } from '@/lib/format-date'
 
 /**
  * Interactive invite section for a tenant.
@@ -97,11 +98,6 @@ export function TenantInviteSection({
     recipientName: '',
   })
   const [revokingId, setRevokingId] = useState<string | null>(null)
-
-  const dateFormatter = new Intl.DateTimeFormat(
-    labels.locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
 
   function resetForm() {
     setForm({ email: '', recipientName: '' })
@@ -331,7 +327,7 @@ export function TenantInviteSection({
                     {inv.invitedByName}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {dateFormatter.format(new Date(inv.expiresAt))}
+                    {formatDate(inv.expiresAt, 'medium', labels.locale === 'ro' ? 'ro' : 'en')}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button

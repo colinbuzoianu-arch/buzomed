@@ -1,11 +1,11 @@
 import { redirect, notFound } from 'next/navigation'
-import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { ContractForm, type ContractFormValues } from '../../contract-form'
 import { buildContractFormLabels } from '../../form-labels'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
 interface PageProps {
   params: Promise<{ id: string; cid: string }>
@@ -67,12 +67,7 @@ export default async function EditContractPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href={`/companies/${contract.company.id}/contracts/${cid}`}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {contract.contractNumber}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.companies'), href: '/companies' }, { label: contract.company.name, href: `/companies/${contract.company.id}` }, { label: contract.contractNumber, href: `/companies/${companyId}/contracts/${cid}` }, { label: t('common.edit') }]} />
         <h1 className="text-3xl font-bold mt-2">{t('contracts.editPage.title')}</h1>
       </div>
 

@@ -54,7 +54,9 @@
     "settings": "Settings",
     "recalls": "Recalls",
     "recallsOverdueTooltip": "{count} overdue recall(s)",
-    "reports": "Reports"
+    "reports": "Reports",
+    "superAdmin": "Super admin",
+    "fisa": "Fitness certificate"
   },
   "superAdmin": {
     "title": "Buzomed Administration",

@@ -6,6 +6,7 @@ import type { DocumentEntityType, DocumentType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Label } from '@/components/ui/label'
+import { formatDate } from '@/lib/format-date'
 
 /**
  * Client component for the documents UI. Handles:
@@ -82,17 +83,6 @@ function formatFileSize(bytes: number, locale: 'ro' | 'en'): string {
   if (bytes < 1024) return `${bytes}${nbsp}B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}${nbsp}KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)}${nbsp}MB`
-}
-
-function formatDate(iso: string, locale: 'ro' | 'en'): string {
-  try {
-    return new Intl.DateTimeFormat(
-      locale === 'ro' ? 'ro-RO' : 'en-US',
-      { dateStyle: 'medium', timeStyle: 'short' }
-    ).format(new Date(iso))
-  } catch {
-    return iso
-  }
 }
 
 export function DocumentsList({
@@ -308,7 +298,7 @@ export function DocumentsList({
                   <span>{formatFileSize(d.fileSizeBytes, locale)}</span>
                   <span>•</span>
                   <span>
-                    {labels.uploadedOn} {formatDate(d.createdAt, locale)}
+                    {labels.uploadedOn} {formatDate(d.createdAt, 'datetime', locale === 'ro' ? 'ro' : 'en')}
                   </span>
                   {d.uploadedBy && (
                     <>

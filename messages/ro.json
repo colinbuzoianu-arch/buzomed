@@ -54,7 +54,9 @@
     "settings": "Setări",
     "recalls": "Programări",
     "recallsOverdueTooltip": "{count} programări întârziate",
-    "reports": "Rapoarte"
+    "reports": "Rapoarte",
+    "superAdmin": "Super admin",
+    "fisa": "Fișă"
   },
   "superAdmin": {
     "title": "Administrare Buzomed",

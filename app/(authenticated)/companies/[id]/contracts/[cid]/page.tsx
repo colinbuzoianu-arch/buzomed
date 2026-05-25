@@ -1,11 +1,13 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { ContractDeleteButton } from '../contract-delete-button'
+import { formatDate } from '@/lib/format-date'
 
 interface PageProps {
   params: Promise<{ id: string; cid: string }>
@@ -43,11 +45,6 @@ export default async function ContractDetailPage({ params }: PageProps) {
   })
   if (!contract) notFound()
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
   const services = Array.isArray(contract.services)
     ? (contract.services as string[])
     : []
@@ -55,12 +52,7 @@ export default async function ContractDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href={`/companies/${contract.company.id}`}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {contract.company.name}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.companies'), href: '/companies' }, { label: contract.company.name, href: `/companies/${contract.company.id}` }, { label: contract.contractNumber }]} />
         <div className="flex items-start justify-between mt-2 gap-4">
           <div>
             <h1 className="text-3xl font-bold font-mono">
@@ -105,7 +97,7 @@ export default async function ContractDetailPage({ params }: PageProps) {
               {t('contracts.startDate')}
             </div>
             <div className="md:col-span-2 text-sm">
-              {dateFormatter.format(contract.startDate)}
+              {formatDate(contract.startDate, 'medium', locale === 'ro' ? 'ro' : 'en')}
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4 py-3">
@@ -114,7 +106,7 @@ export default async function ContractDetailPage({ params }: PageProps) {
             </div>
             <div className="md:col-span-2 text-sm">
               {contract.endDate
-                ? dateFormatter.format(contract.endDate)
+                ? formatDate(contract.endDate, 'medium', locale === 'ro' ? 'ro' : 'en')
                 : t('contracts.openEnded')}
             </div>
           </div>

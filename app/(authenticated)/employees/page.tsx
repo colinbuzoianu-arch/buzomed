@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { EmployeeSearchInput } from './employee-search-input'
+import { formatDate } from '@/lib/format-date'
 
 interface PageProps {
   searchParams: Promise<{ archived?: string; q?: string }>
@@ -62,11 +63,6 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
       company: { select: { name: true } },
     },
   })
-
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
 
   return (
     <div className="space-y-6">
@@ -168,7 +164,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                     {showArchived ? (
                       <TableCell className="text-muted-foreground text-sm">
                         {e.archivedAt
-                          ? dateFormatter.format(e.archivedAt)
+                          ? formatDate(e.archivedAt, 'medium', locale === 'ro' ? 'ro' : 'en')
                           : '—'}
                       </TableCell>
                     ) : (
@@ -232,7 +228,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                     {showArchived ? (
                       <span className="text-xs text-muted-foreground">
                         {e.archivedAt
-                          ? dateFormatter.format(e.archivedAt)
+                          ? formatDate(e.archivedAt, 'medium', locale === 'ro' ? 'ro' : 'en')
                           : '—'}
                       </span>
                     ) : (

@@ -13,6 +13,8 @@ import {
 import './report.css'
 import { PrintButton } from './print-button'
 import { VerdictBadge } from '@/components/ui/verdict-badge'
+import { formatDate } from '@/lib/format-date'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -97,10 +99,6 @@ export default async function CompanyReportPage({
     )
   )
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
   const today = new Date()
   today.setUTCHours(0, 0, 0, 0)
 
@@ -113,12 +111,7 @@ export default async function CompanyReportPage({
   return (
     <div className="space-y-6">
       <div className="report-header">
-        <Link
-          href={`/companies/${company.id}`}
-          className="text-sm text-muted-foreground hover:text-foreground print:hidden"
-        >
-          ← {company.name}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.companies'), href: '/companies' }, { label: company.name, href: `/companies/${company.id}` }, { label: t('companyReport.title') }]} className="print:hidden" />
         <div className="flex items-start justify-between gap-4 mt-2">
           <div>
             <h1 className="text-3xl font-bold">
@@ -132,8 +125,8 @@ export default async function CompanyReportPage({
               )}
             </div>
             <div className="text-sm mt-2">
-              {t('companyReport.dateRange')}: {dateFormatter.format(range.from)} —{' '}
-              {dateFormatter.format(new Date(range.to.getTime() - 86_400_000))}
+              {t('companyReport.dateRange')}: {formatDate(range.from, 'medium', locale === 'ro' ? 'ro' : 'en')} —{' '}
+              {formatDate(new Date(range.to.getTime() - 86_400_000), 'medium', locale === 'ro' ? 'ro' : 'en')}
             </div>
           </div>
           <div className="flex items-center gap-2 print:hidden">
@@ -226,11 +219,6 @@ function WorkersTable(props: {
   today: Date
   t: (k: string) => string
 }) {
-  const dateFormatter = new Intl.DateTimeFormat(
-    props.locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
   return (
     <div className="border rounded-lg overflow-x-auto">
       <table className="w-full text-sm">
@@ -260,7 +248,7 @@ function WorkersTable(props: {
                   )}
                 </td>
                 <td className="px-4 py-2 whitespace-nowrap">
-                  {dateFormatter.format(w.createdAt)}
+                  {formatDate(w.createdAt, 'medium', props.locale === 'ro' ? 'ro' : 'en')}
                   <span className="text-xs text-muted-foreground ml-1">
                     ({w.examinationNumber})
                   </span>
@@ -274,7 +262,7 @@ function WorkersTable(props: {
                   }`}
                 >
                   {w.nextExaminationDueDate
-                    ? dateFormatter.format(w.nextExaminationDueDate)
+                    ? formatDate(w.nextExaminationDueDate, 'medium', props.locale === 'ro' ? 'ro' : 'en')
                     : '—'}
                 </td>
                 <td className="px-4 py-2 text-xs">
@@ -308,11 +296,6 @@ function ExaminationsTable(props: {
   locale: Locale
   t: (k: string) => string
 }) {
-  const dateFormatter = new Intl.DateTimeFormat(
-    props.locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
   return (
     <div className="border rounded-lg overflow-x-auto">
       <table className="w-full text-sm">
@@ -335,7 +318,7 @@ function ExaminationsTable(props: {
                 {e.examinationNumber}
               </td>
               <td className="px-4 py-2 whitespace-nowrap">
-                {dateFormatter.format(e.createdAt)}
+                {formatDate(e.createdAt, 'medium', props.locale === 'ro' ? 'ro' : 'en')}
               </td>
               <td className="px-4 py-2 font-medium whitespace-nowrap">
                 {e.employee.lastName} {e.employee.firstName}

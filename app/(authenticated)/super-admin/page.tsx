@@ -6,6 +6,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { DemoInviteButton } from './demo-invite-button'
 import { ResendInviteButton } from './resend-invite-button'
+import { formatDate } from '@/lib/format-date'
 
 /**
  * Super-admin index — tenant list with activity metrics and sorting.
@@ -118,11 +119,6 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
   const demoTenants = tenants.filter((t) => t.isDemo).length
   const totalExaminations = enriched.reduce((s, t) => s + t.examinationCount, 0)
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
   function SortLink({
     sortKey,
     label,
@@ -208,7 +204,7 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
                 {recentRegistrations.map((reg) => (
                   <tr key={reg.id} className="hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-2 text-muted-foreground whitespace-nowrap text-xs">
-                      {dateFormatter.format(reg.createdAt)}
+                      {formatDate(reg.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
                     </td>
                     <td className="px-4 py-2 font-medium whitespace-nowrap">{reg.name}</td>
                     <td className="px-4 py-2 text-muted-foreground">{reg.email}</td>
@@ -325,7 +321,7 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
                               : 'text-muted-foreground'
                         }`}
                       >
-                        {dateFormatter.format(tenant.lastActive)}
+                        {formatDate(tenant.lastActive, 'medium', locale === 'ro' ? 'ro' : 'en')}
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground italic">
@@ -334,7 +330,7 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-sm">
-                    {dateFormatter.format(tenant.createdAt)}
+                    {formatDate(tenant.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
                   </td>
                 </tr>
               ))}

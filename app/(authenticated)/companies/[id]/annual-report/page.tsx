@@ -7,6 +7,8 @@ import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { parseRiskProfile, RISK_PROFILE_SCHEMA } from '@/lib/workplaces/risk-profile'
 import { ProseEditor } from './prose-editor'
 import { PrintButton } from '../report/print-button'
+import { formatDate } from '@/lib/format-date'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -108,11 +110,6 @@ export default async function AnnualReportPage({ params, searchParams }: PagePro
     return t(`workplaces.form.hazardName.${hazardKey}`)
   })
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
   const availableYears = Array.from(
     { length: Math.min(5, currentYear - 2024) },
     (_, i) => currentYear - i
@@ -122,12 +119,7 @@ export default async function AnnualReportPage({ params, searchParams }: PagePro
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <Link
-            href={`/companies/${company.id}`}
-            className="text-sm text-muted-foreground hover:text-foreground print:hidden"
-          >
-            ← {company.name}
-          </Link>
+          <Breadcrumbs items={[{ label: t('nav.companies'), href: '/companies' }, { label: company.name, href: `/companies/${company.id}` }, { label: t('annualReport.title') }]} className="print:hidden" />
           <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight mt-2">
             {t('annualReport.title')}
           </h1>
@@ -241,7 +233,7 @@ export default async function AnnualReportPage({ params, searchParams }: PagePro
                       </Link>
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
-                      {dateFormatter.format(e.createdAt)}
+                      {formatDate(e.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
                     </td>
                     <td className="px-4 py-2 font-medium whitespace-nowrap">
                       {e.employee.lastName} {e.employee.firstName}

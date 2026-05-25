@@ -1,5 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
-import Link from 'next/link'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -108,12 +108,7 @@ export default async function EditEmployeePage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href={`/employees/${employee.id}`}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {employee.lastName} {employee.firstName}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.employees'), href: '/employees' }, { label: `${employee.lastName} ${employee.firstName}`, href: `/employees/${employee.id}` }, { label: t('common.edit') }]} />
         <h1 className="text-3xl font-bold mt-2">
           {t('employees.editPage.title')}
         </h1>

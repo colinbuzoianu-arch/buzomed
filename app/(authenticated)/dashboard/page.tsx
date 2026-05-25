@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
+import { formatDate } from '@/lib/format-date'
 
 /**
  * Dashboard — the first thing a cabinet user sees after logging in.
@@ -184,11 +185,7 @@ export default async function DashboardPage() {
           <span>{cabinetName}</span>
           <span aria-hidden className="text-[hsl(var(--text-faint))]">·</span>
           <span className="tabular-nums">
-            {new Date().toLocaleDateString(locale === 'ro' ? 'ro-RO' : 'en-GB', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-            })}
+            {formatDate(new Date(), 'long', locale === 'en' ? 'en' : 'ro')}
           </span>
         </p>
       </div>

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table'
 import { TeamInviteSection } from './team-invite-section'
 import { UserAdminActions } from './user-admin-actions'
+import { formatDate } from '@/lib/format-date'
 
 /**
  * Team page for practice_admin / practitioner / assistant.
@@ -77,11 +78,6 @@ export default async function TeamPage() {
     // Tenant disappeared from under the user — soft delete or admin nuke.
     redirect('/')
   }
-
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
 
   const isPracticeAdmin = user.roles.includes('practice_admin')
 
@@ -323,7 +319,7 @@ export default async function TeamPage() {
                       {inv.invitedBy.firstName} {inv.invitedBy.lastName}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {dateFormatter.format(inv.expiresAt)}
+                      {formatDate(inv.expiresAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
                     </TableCell>
                   </TableRow>
                 ))}

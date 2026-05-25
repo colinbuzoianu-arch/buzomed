@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { CompanyDeleteButton } from './company-delete-button'
 import { InvoiceStatusBadge } from '@/components/ui/invoice-status-badge'
+import { formatDate } from '@/lib/format-date'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -87,11 +89,6 @@ export default async function CompanyDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
   const sections = [
     {
       title: t('companies.form.sectionInfo'),
@@ -136,13 +133,13 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         [
           t('companies.form.fieldContractStart'),
           company.contractStartDate
-            ? dateFormatter.format(company.contractStartDate)
+            ? formatDate(company.contractStartDate, 'medium', locale === 'ro' ? 'ro' : 'en')
             : null,
         ],
         [
           t('companies.form.fieldContractEnd'),
           company.contractEndDate
-            ? dateFormatter.format(company.contractEndDate)
+            ? formatDate(company.contractEndDate, 'medium', locale === 'ro' ? 'ro' : 'en')
             : null,
         ],
         [t('companies.form.fieldNotes'), company.notes],
@@ -153,12 +150,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/companies"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {t('companies.backToList')}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.companies'), href: '/companies' }, { label: company.name }]} />
         <div className="flex items-start justify-between mt-2 gap-4">
           <div>
             <h1 className="text-3xl font-bold">{company.name}</h1>
@@ -344,8 +336,8 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <InvoiceStatusBadge status={inv.status} />
                     <span className="text-xs text-muted-foreground">
-                      {inv.issuedAt && dateFormatter.format(inv.issuedAt)}
-                      {inv.dueDate && inv.status !== 'paid' && ` · ${t('invoices.dueDate')} ${dateFormatter.format(inv.dueDate)}`}
+                      {inv.issuedAt && formatDate(inv.issuedAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
+                      {inv.dueDate && inv.status !== 'paid' && ` · ${t('invoices.dueDate')} ${formatDate(inv.dueDate, 'medium', locale === 'ro' ? 'ro' : 'en')}`}
                     </span>
                   </div>
                 </div>
@@ -406,8 +398,8 @@ export default async function CompanyDetailPage({ params }: PageProps) {
                     <div className={`text-xs mt-0.5 ${statusClass}`}>
                       {t(`contracts.status.${c.status}`)}
                       {' · '}
-                      {dateFormatter.format(c.startDate)}
-                      {c.endDate ? ` → ${dateFormatter.format(c.endDate)}` : ''}
+                      {formatDate(c.startDate, 'medium', locale === 'ro' ? 'ro' : 'en')}
+                      {c.endDate ? ` → ${formatDate(c.endDate, 'medium', locale === 'ro' ? 'ro' : 'en')}` : ''}
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground text-right">

@@ -1,11 +1,12 @@
 import { redirect, notFound } from 'next/navigation'
-import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { FisaArchiveButton } from './fisa-archive-button'
 import './fisa.css'
+import { formatDate } from '@/lib/format-date'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -82,9 +83,6 @@ export default async function FisaPage({ params }: PageProps) {
 
   // We render the fișa regardless of signed state for cabinet
   // convenience (e.g., draft preview), but flag it.
-  const dateFormatter = new Intl.DateTimeFormat('ro-RO', {
-    dateStyle: 'long',
-  })
 
   const verdictText = examination.verdict
     ? t(`examinations.form.verdict.${examination.verdict}`)
@@ -93,12 +91,7 @@ export default async function FisaPage({ params }: PageProps) {
   return (
     <div className="fisa-wrapper">
       <div className="fisa-controls print:hidden">
-        <Link
-          href={`/examinations/${examination.id}`}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {t('examinations.fisa.backToExamination')}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.examinations'), href: '/examinations' }, { label: `${examination.employee.firstName} ${examination.employee.lastName}`, href: `/examinations/${examination.id}` }, { label: t('nav.fisa') }]} />
         <div className="flex items-center gap-2 flex-wrap">
           {examination.signedAt && caps.canWriteAdministrative && (
             <FisaArchiveButton
@@ -163,10 +156,12 @@ export default async function FisaPage({ params }: PageProps) {
             <div>
               {t('examinations.fisa.dateLabel')}:{' '}
               <strong>
-                {dateFormatter.format(
+                {formatDate(
                   examination.signedAt ??
                     examination.completedAt ??
-                    examination.createdAt
+                    examination.createdAt,
+                  'medium',
+                  'ro'
                 )}
               </strong>
             </div>
@@ -191,7 +186,7 @@ export default async function FisaPage({ params }: PageProps) {
                 {t('examinations.fisa.workerBirthdate')}:
               </span>
               <span className="fisa-value">
-                {dateFormatter.format(examination.employee.birthDate)}
+                {formatDate(examination.employee.birthDate, 'medium', 'ro')}
               </span>
             </div>
           )}
@@ -278,13 +273,13 @@ export default async function FisaPage({ params }: PageProps) {
             examination.inaptTemporarUntil && (
               <div className="fisa-conditions">
                 <strong>{t('examinations.fisa.inaptUntil')}:</strong>{' '}
-                {dateFormatter.format(examination.inaptTemporarUntil)}
+                {formatDate(examination.inaptTemporarUntil, 'medium', 'ro')}
               </div>
             )}
           {examination.nextExaminationDueDate && (
             <div className="fisa-next-due">
               <strong>{t('examinations.fisa.nextDue')}:</strong>{' '}
-              {dateFormatter.format(examination.nextExaminationDueDate)}
+              {formatDate(examination.nextExaminationDueDate, 'medium', 'ro')}
             </div>
           )}
         </section>
@@ -317,7 +312,7 @@ export default async function FisaPage({ params }: PageProps) {
               {examination.signedAt && (
                 <>
                   {' — '}
-                  {dateFormatter.format(examination.signedAt)}
+                  {formatDate(examination.signedAt, 'medium', 'ro')}
                 </>
               )}
             </div>

@@ -13,6 +13,8 @@ import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
 import { ExaminationHistorySummary } from '@/components/ai/ExaminationHistorySummary'
 import { VerdictBadge } from '@/components/ui/verdict-badge'
 import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
+import { formatDate } from '@/lib/format-date'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -100,15 +102,6 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
     hazardHintLabels['additional'] = t('examinations.form.hazardHintAdditional')
   }
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-  const dateTimeFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium', timeStyle: 'short' }
-  )
-
   const isSigned = examination.signedAt !== null
   const isLocked =
     isSigned ||
@@ -162,12 +155,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/examinations"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {t('examinations.backToList')}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.examinations'), href: '/examinations' }, { label: `${examination.employee.lastName} ${examination.employee.firstName}` }]} />
         <div className="flex items-start justify-between mt-2 gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="flex items-baseline gap-3 flex-wrap">
@@ -217,13 +205,13 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
               {examination.scheduledAt && (
                 <span className="text-muted-foreground">
                   {t('examinations.scheduledFor')}:{' '}
-                  {dateTimeFormatter.format(examination.scheduledAt)}
+                  {formatDate(examination.scheduledAt, 'datetime', locale === 'ro' ? 'ro' : 'en')}
                 </span>
               )}
               {examination.signedAt && (
                 <span className="text-muted-foreground">
                   {t('examinations.signedOn')}:{' '}
-                  {dateTimeFormatter.format(examination.signedAt)}
+                  {formatDate(examination.signedAt, 'datetime', locale === 'ro' ? 'ro' : 'en')}
                 </span>
               )}
             </div>
@@ -311,7 +299,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
               )}
               #{priorExam.examinationNumber}
               {' — '}
-              {dateFormatter.format(priorExam.signedAt ?? priorExam.createdAt)}
+              {formatDate(priorExam.signedAt ?? priorExam.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
             </span>
           </summary>
           <div className="px-4 pb-4 pt-3 border-t space-y-4">
@@ -333,7 +321,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
                     : t('examinations.priorExam.createdLabel')}
                 </div>
                 <div>
-                  {dateFormatter.format(priorExam.signedAt ?? priorExam.createdAt)}
+                  {formatDate(priorExam.signedAt ?? priorExam.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
                 </div>
               </div>
               {priorExam.verdict && (

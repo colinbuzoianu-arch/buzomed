@@ -1,5 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
-import Link from 'next/link'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -34,12 +34,7 @@ export default async function NewContractPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href={`/companies/${company.id}`}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {company.name}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.companies'), href: '/companies' }, { label: company.name, href: `/companies/${company.id}` }, { label: t('contracts.newPage.title') }]} />
         <h1 className="text-3xl font-bold mt-2">{t('contracts.newPage.title')}</h1>
         <p className="text-muted-foreground mt-1">{t('contracts.newPage.subtitle')}</p>
       </div>

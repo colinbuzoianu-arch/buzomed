@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { RecallStatusBadge } from '@/components/ui/recall-status-badge'
+import { formatDate } from '@/lib/format-date'
 
 interface PageProps {
   searchParams: Promise<{ horizon?: string }>
@@ -87,11 +88,6 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
     const db = b.nextExaminationDueDate!.getTime()
     return da - db
   })
-
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
 
   const fromParam = today.toISOString().slice(0, 10)
   const toParam = cutoff.toISOString().slice(0, 10)
@@ -185,7 +181,7 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap">
                         <span className={isOverdue ? 'text-destructive font-medium' : ''}>
-                          {dateFormatter.format(due)}
+                          {formatDate(due, 'medium', locale === 'ro' ? 'ro' : 'en')}
                         </span>
                         {isOverdue && (
                           <span className="ml-2">
@@ -208,7 +204,7 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
                           {row.examinationNumber}
                         </Link>
                         <span className="ml-1">
-                          ({dateFormatter.format(row.createdAt)})
+                          ({formatDate(row.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')})
                         </span>
                       </td>
                     </tr>

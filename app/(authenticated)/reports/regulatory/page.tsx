@@ -11,6 +11,7 @@ import {
 } from '@/lib/reports/date-ranges'
 import { parseRiskProfile, RISK_PROFILE_SCHEMA } from '@/lib/workplaces/risk-profile'
 import { PrintButton } from '@/app/(authenticated)/companies/[id]/report/print-button'
+import { formatDate } from '@/lib/format-date'
 
 interface PageProps {
   searchParams: Promise<{ range?: string }>
@@ -135,13 +136,9 @@ export default async function RegulatoryPage({ searchParams }: PageProps) {
     if (hasAny) hazardWorkplaceCount++
   }
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'long' }
-  )
-  const printedAt = dateFormatter.format(new Date())
-  const fromLabel = dateFormatter.format(range.from)
-  const toLabel = dateFormatter.format(new Date(range.to.getTime() - 86_400_000))
+  const printedAt = formatDate(new Date(), 'medium', locale === 'ro' ? 'ro' : 'en')
+  const fromLabel = formatDate(range.from, 'medium', locale === 'ro' ? 'ro' : 'en')
+  const toLabel = formatDate(new Date(range.to.getTime() - 86_400_000), 'medium', locale === 'ro' ? 'ro' : 'en')
 
   return (
     <div className="space-y-6">

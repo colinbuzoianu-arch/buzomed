@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { EmptyState } from '@/components/ui/empty-state'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -12,6 +13,7 @@ import {
   RISK_PROFILE_SCHEMA,
   type RiskProfile,
 } from '@/lib/workplaces/risk-profile'
+import { formatDate } from '@/lib/format-date'
 
 interface PageProps {
   params: Promise<{ id: string; wid: string }>
@@ -95,11 +97,6 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
     }
   }
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
   const activeAssignments = workplace.employeeAssignments.filter(
     (a) => a.employee && !a.employee.archivedAt
   )
@@ -107,12 +104,7 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href={`/companies/${workplace.company.id}`}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← {workplace.company.name}
-        </Link>
+        <Breadcrumbs items={[{ label: t('nav.companies'), href: '/companies' }, { label: workplace.company.name, href: `/companies/${workplace.company.id}` }, { label: workplace.name }]} />
         <div className="flex items-start justify-between mt-2 gap-4">
           <div>
             <h1 className="text-3xl font-bold">{workplace.name}</h1>
@@ -219,7 +211,7 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
             </div>
             <div className="md:col-span-2 text-sm">
               {workplace.riskAssessmentSignedAt
-                ? dateFormatter.format(workplace.riskAssessmentSignedAt)
+                ? formatDate(workplace.riskAssessmentSignedAt, 'medium', locale === 'ro' ? 'ro' : 'en')
                 : '—'}
             </div>
           </div>
@@ -311,7 +303,7 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
                 <div className="text-xs text-muted-foreground">
                   {t('workplaces.assignedSince').replace(
                     '{date}',
-                    dateFormatter.format(a.startDate)
+                    formatDate(a.startDate, 'medium', locale === 'ro' ? 'ro' : 'en')
                   )}
                 </div>
               </Link>
@@ -354,10 +346,10 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
                       : e.examinationType.nameRo}
                     {' • '}
                     {e.signedAt
-                      ? `${t('examinations.signedOn')}: ${dateFormatter.format(e.signedAt)}`
+                      ? `${t('examinations.signedOn')}: ${formatDate(e.signedAt, 'medium', locale === 'ro' ? 'ro' : 'en')}`
                       : e.scheduledAt
-                        ? `${t('examinations.scheduledFor')}: ${dateFormatter.format(e.scheduledAt)}`
-                        : dateFormatter.format(e.createdAt)}
+                        ? `${t('examinations.scheduledFor')}: ${formatDate(e.scheduledAt, 'medium', locale === 'ro' ? 'ro' : 'en')}`
+                        : formatDate(e.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
                   </div>
                 </div>
                 <div className="text-xs text-right space-y-1">

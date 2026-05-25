@@ -14,6 +14,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { TenantInviteSection } from './tenant-invite-section'
+import { formatDate } from '@/lib/format-date'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -107,16 +109,6 @@ export default async function TenantDetailPage({ params }: PageProps) {
     },
   })
 
-  const dateFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium' }
-  )
-
-  const dateTimeFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { dateStyle: 'medium', timeStyle: 'short' }
-  )
-
   const inviteLabels = {
     sectionTitle: t('tenantDetail.invitations.sectionTitle'),
     inviteButton: t('tenantDetail.invitations.inviteButton'),
@@ -149,12 +141,7 @@ export default async function TenantDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-8">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/super-admin" className="hover:text-foreground transition-colors">
-          ← {t('common.back')}
-        </Link>
-      </div>
+      <Breadcrumbs items={[{ label: t('nav.superAdmin'), href: '/super-admin' }, { label: tenant.name }]} />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
@@ -231,7 +218,7 @@ export default async function TenantDetailPage({ params }: PageProps) {
           />
           <ActivityCard
             label={t('tenantDetail.activity.lastActive')}
-            value={lastActive ? dateTimeFormatter.format(lastActive) : '—'}
+            value={lastActive ? formatDate(lastActive, 'datetime', locale === 'ro' ? 'ro' : 'en') : '—'}
             tone={
               lastActive && lastActive > sevenDaysAgo
                 ? 'success'
@@ -259,7 +246,7 @@ export default async function TenantDetailPage({ params }: PageProps) {
                 .join(', ') || null
             }
           />
-          <InfoRow label={t('common.createdAt')} value={dateFormatter.format(tenant.createdAt)} />
+          <InfoRow label={t('common.createdAt')} value={formatDate(tenant.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')} />
         </dl>
       </section>
 
@@ -338,7 +325,7 @@ export default async function TenantDetailPage({ params }: PageProps) {
                               isRecentlyActive ? 'text-green-700' : 'text-muted-foreground'
                             }`}
                           >
-                            {dateTimeFormatter.format(user.lastLoginAt)}
+                            {formatDate(user.lastLoginAt, 'datetime', locale === 'ro' ? 'ro' : 'en')}
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">
