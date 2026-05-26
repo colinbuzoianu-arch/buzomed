@@ -379,13 +379,14 @@ model Company {
   contractStartDate   DateTime?   @map("contract_start_date") @db.Date
   contractEndDate     DateTime?   @map("contract_end_date") @db.Date
   
-  notes               String?
+  notes                       String?
+  recallNotificationEmail     String?  @map("recall_notification_email")
   isActive            Boolean     @default(true) @map("is_active")
-  
+
   createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt           DateTime?   @map("deleted_at") @db.Timestamptz
-  
+
   tenant              Tenant          @relation(fields: [tenantId], references: [id])
   workplaces          Workplace[]
   contracts           Contract[]

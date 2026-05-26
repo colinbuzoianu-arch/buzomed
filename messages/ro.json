@@ -300,6 +300,8 @@
       "fieldContactPersonRole": "Funcție",
       "fieldContactPersonPhone": "Telefon contact",
       "fieldContactPersonEmail": "Email contact",
+      "fieldRecallNotificationEmail": "Email notificări scadențe",
+      "fieldRecallNotificationEmailHint": "Adresă de email unde se trimit notificările de scadență. Dacă e goală, se folosește emailul principal al companiei.",
       "fieldContractStart": "Început contract",
       "fieldContractEnd": "Sfârșit contract",
       "fieldNotes": "Note",

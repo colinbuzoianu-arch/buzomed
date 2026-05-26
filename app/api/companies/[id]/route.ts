@@ -116,6 +116,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     'contactPersonRole',
     'contactPersonPhone',
     'contactPersonEmail',
+    'recallNotificationEmail',
     'notes',
   ] as const
 

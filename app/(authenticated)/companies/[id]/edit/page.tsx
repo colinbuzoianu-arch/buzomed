@@ -62,6 +62,7 @@ export default async function EditCompanyPage({ params }: PageProps) {
     contractStartDate: toDateInput(company.contractStartDate),
     contractEndDate: toDateInput(company.contractEndDate),
     notes: company.notes ?? '',
+    recallNotificationEmail: company.recallNotificationEmail ?? '',
     isActive: company.isActive,
   }
 

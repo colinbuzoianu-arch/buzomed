@@ -35,6 +35,8 @@ export function buildCompanyFormLabels(t: Translator): CompanyFormLabels {
     fieldContractEnd: t('companies.form.fieldContractEnd'),
     fieldNotes: t('companies.form.fieldNotes'),
     fieldIsActive: t('companies.form.fieldIsActive'),
+    fieldRecallNotificationEmail: t('companies.form.fieldRecallNotificationEmail'),
+    fieldRecallNotificationEmailHint: t('companies.form.fieldRecallNotificationEmailHint'),
     required: t('companies.form.required'),
     submitCreate: t('companies.form.submitCreate'),
     submitUpdate: t('companies.form.submitUpdate'),

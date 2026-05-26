@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
       contactPersonRole: data.contactPersonRole,
       contactPersonPhone: data.contactPersonPhone,
       contactPersonEmail: data.contactPersonEmail,
+      recallNotificationEmail: data.recallNotificationEmail,
       contractStartDate: data.contractStartDate,
       contractEndDate: data.contractEndDate,
       notes: data.notes,
@@ -175,6 +176,7 @@ export interface ParsedCompanyInput {
   contractStartDate?: Date
   contractEndDate?: Date
   notes?: string
+  recallNotificationEmail?: string
   isActive?: boolean
 }
 
@@ -234,6 +236,11 @@ export function parseCompanyInput(
     contactPersonEmail: optionalEmail(
       'contactPersonEmail',
       body.contactPersonEmail,
+      issues
+    ),
+    recallNotificationEmail: optionalEmail(
+      'recallNotificationEmail',
+      body.recallNotificationEmail,
       issues
     ),
     contractStartDate: optionalDate(

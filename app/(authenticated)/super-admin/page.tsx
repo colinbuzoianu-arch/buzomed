@@ -6,6 +6,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { DemoInviteButton } from './demo-invite-button'
 import { ResendInviteButton } from './resend-invite-button'
+import { RecallNotificationsButton } from './recall-notifications-button'
 import { formatDate } from '@/lib/format-date'
 
 /**
@@ -167,6 +168,7 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
           <p className="text-muted-foreground mt-1">{t('superAdmin.subtitle')}</p>
         </div>
         <div className="flex gap-2">
+          <RecallNotificationsButton />
           <DemoInviteButton labels={demoInviteLabels} />
           <Button asChild>
             <Link href="/super-admin/tenants/new">

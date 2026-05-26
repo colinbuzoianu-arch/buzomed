@@ -300,6 +300,8 @@
       "fieldContactPersonRole": "Role",
       "fieldContactPersonPhone": "Contact phone",
       "fieldContactPersonEmail": "Contact email",
+      "fieldRecallNotificationEmail": "Recall notification email",
+      "fieldRecallNotificationEmailHint": "Email address for recall deadline notifications. Falls back to the company's main email if empty.",
       "fieldContractStart": "Contract start",
       "fieldContractEnd": "Contract end",
       "fieldNotes": "Notes",

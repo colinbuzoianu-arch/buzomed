@@ -38,6 +38,7 @@ export interface CompanyFormValues {
   contractStartDate: string
   contractEndDate: string
   notes: string
+  recallNotificationEmail: string
   isActive: boolean
 }
 
@@ -61,6 +62,7 @@ export const emptyCompanyFormValues: CompanyFormValues = {
   contractStartDate: '',
   contractEndDate: '',
   notes: '',
+  recallNotificationEmail: '',
   isActive: true,
 }
 
@@ -91,6 +93,8 @@ export interface CompanyFormLabels {
   fieldContractEnd: string
   fieldNotes: string
   fieldIsActive: string
+  fieldRecallNotificationEmail: string
+  fieldRecallNotificationEmailHint: string
   required: string
   submitCreate: string
   submitUpdate: string
@@ -171,6 +175,7 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
       'contactPersonRole',
       'contactPersonPhone',
       'contactPersonEmail',
+      'recallNotificationEmail',
       'notes',
     ]
     for (const f of stringFields) {
@@ -428,6 +433,21 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
               value={form.contactPersonEmail}
               onChange={(e) => update('contactPersonEmail', e.target.value)}
             />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="recallNotificationEmail">
+              {labels.fieldRecallNotificationEmail}
+            </Label>
+            <Input
+              id="recallNotificationEmail"
+              type="email"
+              value={form.recallNotificationEmail}
+              onChange={(e) => update('recallNotificationEmail', e.target.value)}
+              placeholder="contact@companie.ro"
+            />
+            <p className="text-xs text-muted-foreground">
+              {labels.fieldRecallNotificationEmailHint}
+            </p>
           </div>
         </div>
       </section>
