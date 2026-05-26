@@ -13,6 +13,7 @@
  *   Border:      #e2e8f0
  */
 
+import path from 'path'
 import {
   Document,
   Page,
@@ -23,21 +24,17 @@ import {
   Font,
 } from '@react-pdf/renderer'
 
-// Register Inter (already bundled by @react-pdf from Google Fonts proxy).
-// Fallback to Helvetica if the font fails to load.
+// Local TTF files — avoids network dependency at render time.
+// Helvetica (built-in) is Latin-1 and drops Romanian diacritics.
 Font.register({
   family: 'Inter',
   fonts: [
     {
-      src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2',
+      src: path.join(process.cwd(), 'public', 'fonts', 'Inter-Regular.ttf'),
       fontWeight: 400,
     },
     {
-      src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiA.woff2',
-      fontWeight: 600,
-    },
-    {
-      src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYAZ9hiA.woff2',
+      src: path.join(process.cwd(), 'public', 'fonts', 'Inter-Bold.ttf'),
       fontWeight: 700,
     },
   ],
