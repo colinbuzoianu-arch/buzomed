@@ -220,9 +220,8 @@ export default async function LandingPage() {
                 marginBottom: 20,
               }}
             >
-              Medicina muncii,
-              <br />
-              <span style={{ color: '#7dd3fc' }}>fără hârtii.</span>
+              Software construit pentru{' '}
+              <span style={{ color: '#7dd3fc' }}>medicina muncii.</span>
             </h1>
 
             <p
