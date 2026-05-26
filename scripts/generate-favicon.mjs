@@ -62,8 +62,13 @@ async function buildIco(sizes) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const icoBuffer = await buildIco([16, 32, 48])
-await fs.writeFile(path.join(publicDir, 'favicon.ico'), icoBuffer)
-console.log(`favicon.ico written (${icoBuffer.length} bytes)`)
+// Next.js App Router serves app/favicon.ico (takes precedence over public/)
+const appDir = path.join(__dirname, '..', 'app')
+await Promise.all([
+  fs.writeFile(path.join(publicDir, 'favicon.ico'), icoBuffer),
+  fs.writeFile(path.join(appDir, 'favicon.ico'), icoBuffer),
+])
+console.log(`favicon.ico written (${icoBuffer.length} bytes) → public/ and app/`)
 
 await sharp(src)
   .resize(192, 192, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
