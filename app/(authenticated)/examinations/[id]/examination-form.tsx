@@ -421,7 +421,7 @@ export function ExaminationForm({
 
       {/* AI prefill — no prior signed exam available */}
       {prefillEnabled && !prefillDismissed && prefillStatus === 'done' && prefillCount === 0 && (
-        <div className="flex items-center justify-between gap-2 border rounded-md px-4 py-2.5 text-xs text-muted-foreground bg-muted/20">
+        <div className="flex items-center justify-between gap-2 border border-slate-200 bg-slate-50 rounded-md px-4 py-2.5 text-xs text-slate-500">
           <span>{labels.prefillNoData}</span>
           <button
             type="button"

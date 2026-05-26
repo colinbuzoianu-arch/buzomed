@@ -10,6 +10,7 @@ import { DocumentsPanel } from './documents-panel'
 import { ExaminationActions } from './examination-actions'
 import { DocumentsSection } from '@/app/(authenticated)/_components/documents-section'
 import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
+import { getSectionsForExamType } from '@/lib/examinations/document-templates'
 import { ExaminationHistorySummary } from '@/components/ai/ExaminationHistorySummary'
 import { VerdictBadge } from '@/components/ui/verdict-badge'
 import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
@@ -109,11 +110,13 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
     examination.status === 'cancelled' ||
     examination.status === 'no_show'
 
+  const examSections = getSectionsForExamType(examination.examinationType.code)
   const prefillEnabled =
     !isLocked &&
     (examination.status === 'scheduled' ||
       examination.status === 'in_progress' ||
-      examination.status === 'completed')
+      examination.status === 'completed') &&
+    (examSections.showAnamnesis || examSections.showVitalSigns)
 
   const maternityRiskLabels: Record<string, string> = {
     categoryPhysical: t('examinations.form.maternityRisk.categoryPhysical'),
