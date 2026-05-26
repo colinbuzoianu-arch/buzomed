@@ -82,6 +82,7 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
           professionalTitle: true,
           professionalCode: true,
           stampImageUrl: true,
+          signatureImageUrl: true,
         },
       },
       location: {
@@ -111,6 +112,7 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
     cabinetName: examination.tenant.legalName ?? examination.tenant.name,
     logoUrl: examination.tenant.logoUrl ?? null,
     stampUrl: examination.practitioner?.stampImageUrl ?? null,
+    signatureUrl: examination.practitioner?.signatureImageUrl ?? null,
     cabinetAddress: [
       examination.location.addressLine1,
       examination.location.addressLine2,
