@@ -1,18 +1,19 @@
+import path from 'path'
 import {
   Document, Page, Text, View, StyleSheet, Font,
 } from '@react-pdf/renderer'
 
-// Inter suportă diacritice românești (ă â î ș ț).
-// Helvetica (built-in) este Latin-1 și nu le afișează corect.
+// Inter cu fișiere locale — evită dependența de rețea la render time.
+// Helvetica (built-in) este Latin-1 și nu afișează diacritice românești.
 Font.register({
   family: 'Inter',
   fonts: [
     {
-      src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2',
+      src: path.join(process.cwd(), 'public', 'fonts', 'Inter-Regular.ttf'),
       fontWeight: 400,
     },
     {
-      src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYAZ9hiA.woff2',
+      src: path.join(process.cwd(), 'public', 'fonts', 'Inter-Bold.ttf'),
       fontWeight: 700,
     },
   ],
