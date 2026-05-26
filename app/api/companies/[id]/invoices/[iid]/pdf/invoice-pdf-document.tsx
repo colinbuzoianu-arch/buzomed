@@ -1,10 +1,26 @@
 import {
-  Document, Page, Text, View, StyleSheet,
+  Document, Page, Text, View, StyleSheet, Font,
 } from '@react-pdf/renderer'
+
+// Inter suportă diacritice românești (ă â î ș ț).
+// Helvetica (built-in) este Latin-1 și nu le afișează corect.
+Font.register({
+  family: 'Inter',
+  fonts: [
+    {
+      src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2',
+      fontWeight: 400,
+    },
+    {
+      src: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYAZ9hiA.woff2',
+      fontWeight: 700,
+    },
+  ],
+})
 
 const styles = StyleSheet.create({
   page: {
-    fontFamily: 'Helvetica',
+    fontFamily: 'Inter',
     fontSize: 9,
     paddingTop: 40,
     paddingBottom: 50,
@@ -12,41 +28,41 @@ const styles = StyleSheet.create({
     color: '#0f1e3f',
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
-  cabinetName: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#0f1e3f' },
+  cabinetName: { fontSize: 13, fontWeight: 700, color: '#0f1e3f' },
   cabinetDetail: { fontSize: 8, color: '#64748b', marginTop: 2 },
   titleBlock: { marginBottom: 20, borderBottomWidth: 0.5, borderBottomColor: '#e2e8f0', paddingBottom: 14 },
   titleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
-  titleLabel: { fontSize: 16, fontFamily: 'Helvetica-Bold', letterSpacing: -0.3 },
-  titleNumber: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1E4D8B' },
+  titleLabel: { fontSize: 16, fontWeight: 700, letterSpacing: -0.3 },
+  titleNumber: { fontSize: 16, fontWeight: 700, color: '#1E4D8B' },
   metaRow: { flexDirection: 'row', gap: 20, marginBottom: 6 },
   metaItem: { flexDirection: 'row', gap: 4 },
   metaLabel: { color: '#64748b' },
   partiesRow: { flexDirection: 'row', gap: 20, marginBottom: 20 },
   party: { flex: 1, backgroundColor: '#f8fafc', padding: 10, borderRadius: 4 },
-  partyLabel: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#64748b', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 },
-  partyName: { fontSize: 10, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
+  partyLabel: { fontSize: 7, fontWeight: 700, color: '#64748b', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 },
+  partyName: { fontSize: 10, fontWeight: 700, marginBottom: 3 },
   partyDetail: { color: '#475569', marginBottom: 1 },
   tableHeader: { flexDirection: 'row', backgroundColor: '#f1f5f9', padding: '6 8', marginBottom: 0 },
-  tableHeaderCell: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 },
+  tableHeaderCell: { fontSize: 7, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 },
   tableRow: { flexDirection: 'row', padding: '7 8', borderBottomWidth: 0.5, borderBottomColor: '#e2e8f0' },
   tableCell: { fontSize: 9 },
   colDesc: { flex: 1 },
   colQty: { width: 40, textAlign: 'right' },
   colPrice: { width: 60, textAlign: 'right' },
-  colTotal: { width: 60, textAlign: 'right', fontFamily: 'Helvetica-Bold' },
+  colTotal: { width: 60, textAlign: 'right', fontWeight: 700 },
   totalsBlock: { alignItems: 'flex-end', marginTop: 14 },
   totalsInner: { width: 200 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: '#e2e8f0' },
   totalLabel: { color: '#64748b' },
-  totalValue: { fontFamily: 'Helvetica-Bold' },
+  totalValue: { fontWeight: 700 },
   totalGrandRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, marginTop: 2 },
-  totalGrandLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold' },
-  totalGrandValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#0f1e3f' },
+  totalGrandLabel: { fontSize: 10, fontWeight: 700 },
+  totalGrandValue: { fontSize: 10, fontWeight: 700, color: '#0f1e3f' },
   vatNotice: { marginTop: 14, fontSize: 7.5, color: '#64748b', backgroundColor: '#f8fafc', padding: '6 8', borderRadius: 4 },
   notesSection: { marginTop: 14 },
-  notesLabel: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  notesLabel: { fontSize: 7, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   notesText: { fontSize: 8.5, color: '#475569', lineHeight: 1.5 },
-  watermark: { position: 'absolute', top: '40%', left: '15%', fontSize: 72, fontFamily: 'Helvetica-Bold', color: '#fee2e2', opacity: 0.6, transform: 'rotate(-35deg)', letterSpacing: 4 },
+  watermark: { position: 'absolute', top: '40%', left: '15%', fontSize: 72, fontWeight: 700, color: '#fee2e2', opacity: 0.6, transform: 'rotate(-35deg)', letterSpacing: 4 },
   footer: { position: 'absolute', bottom: 24, left: 40, right: 40, flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: '#e2e8f0', paddingTop: 6 },
   footerText: { fontSize: 7, color: '#94a3b8' },
 })
