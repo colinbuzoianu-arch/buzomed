@@ -329,7 +329,9 @@
       "typeMore": "Tastați cel puțin 2 caractere"
     },
     "search": {
-      "placeholder": "Caută angajat..."
+      "placeholder": "Caută angajat...",
+      "workplacePlaceholder": "Loc de muncă",
+      "allWorkplaces": "Toate locurile de muncă"
     },
     "title": "Angajați",
     "subtitle": "Persoane evaluate de cabinet",

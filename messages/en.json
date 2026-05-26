@@ -329,7 +329,9 @@
       "typeMore": "Type at least 2 characters"
     },
     "search": {
-      "placeholder": "Search employee..."
+      "placeholder": "Search employee...",
+      "workplacePlaceholder": "Workplace",
+      "allWorkplaces": "All workplaces"
     },
     "title": "Employees",
     "subtitle": "People examined by this practice",

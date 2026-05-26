@@ -15,10 +15,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { EmployeeSearchInput } from './employee-search-input'
+import { WorkplaceFilter } from '@/components/employees/workplace-filter'
 import { formatDate } from '@/lib/format-date'
 
 interface PageProps {
-  searchParams: Promise<{ archived?: string; q?: string }>
+  searchParams: Promise<{ archived?: string; q?: string; wp?: string }>
 }
 
 export default async function EmployeesPage({ searchParams }: PageProps) {
@@ -35,39 +36,66 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   const params = await searchParams
   const showArchived = params.archived === '1'
   const q = params.q ?? ''
+  const wpFilter = params.wp ?? ''
 
-  const employees = await prisma.employee.findMany({
-    where: {
-      tenantId: user.tenantId,
-      deletedAt: null,
-      ...(showArchived ? { archivedAt: { not: null } } : { archivedAt: null }),
-      ...(q.length >= 2
-        ? {
-            OR: [
-              { firstName: { contains: q, mode: 'insensitive' } },
-              { lastName: { contains: q, mode: 'insensitive' } },
-              { jobTitle: { contains: q, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      jobTitle: true,
-      city: true,
-      isActive: true,
-      archivedAt: true,
-      company: { select: { name: true } },
-      workplaceAssignments: {
-        where: { isCurrent: true, endDate: null },
-        select: { workplace: { select: { id: true, name: true } } },
-        take: 1,
+  const [employees, workplacesForFilter] = await Promise.all([
+    prisma.employee.findMany({
+      where: {
+        tenantId: user.tenantId,
+        deletedAt: null,
+        ...(showArchived ? { archivedAt: { not: null } } : { archivedAt: null }),
+        ...(q.length >= 2
+          ? {
+              OR: [
+                { firstName: { contains: q, mode: 'insensitive' } },
+                { lastName: { contains: q, mode: 'insensitive' } },
+                { jobTitle: { contains: q, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+        ...(wpFilter
+          ? {
+              workplaceAssignments: {
+                some: {
+                  workplaceId: wpFilter,
+                  isCurrent: true,
+                  endDate: null,
+                },
+              },
+            }
+          : {}),
       },
-    },
-  })
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        jobTitle: true,
+        city: true,
+        isActive: true,
+        archivedAt: true,
+        company: { select: { name: true } },
+        workplaceAssignments: {
+          where: { isCurrent: true, endDate: null },
+          select: { workplace: { select: { id: true, name: true } } },
+          take: 1,
+        },
+      },
+    }),
+    prisma.workplace.findMany({
+      where: {
+        tenantId: user.tenantId,
+        deletedAt: null,
+        isActive: true,
+      },
+      orderBy: [{ company: { name: 'asc' } }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        company: { select: { name: true } },
+      },
+    }),
+  ])
 
   return (
     <div className="space-y-6">
@@ -92,7 +120,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
+        {/* Tab-uri activi/arhivați */}
         <div className="flex gap-2 text-sm">
           <Link
             href="/employees"
@@ -111,10 +140,39 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
             {t('employees.tabs.archived')}
           </Link>
         </div>
+
+        {/* Search text */}
         <EmployeeSearchInput
           defaultValue={q}
           placeholder={t('employees.search.placeholder')}
         />
+
+        {/* Filtru workplace — ascuns pe archived tab */}
+        {!showArchived && workplacesForFilter.length > 0 && (
+          <WorkplaceFilter
+            workplaces={workplacesForFilter.map((w) => ({
+              id: w.id,
+              name: w.name,
+              companyName: w.company.name,
+            }))}
+            currentValue={wpFilter}
+            placeholder={t('employees.search.workplacePlaceholder')}
+            allLabel={t('employees.search.allWorkplaces')}
+          />
+        )}
+
+        {/* Badge filtru activ — click șterge ?wp= */}
+        {wpFilter && (
+          <Link
+            href={`/employees${q ? `?q=${encodeURIComponent(q)}` : ''}`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-[hsl(var(--surface-tinted))] px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
+          >
+            <span>
+              {workplacesForFilter.find((w) => w.id === wpFilter)?.name ?? t('employees.search.workplacePlaceholder')}
+            </span>
+            <span aria-hidden className="ml-0.5">×</span>
+          </Link>
+        )}
       </div>
 
       {employees.length === 0 ? (
