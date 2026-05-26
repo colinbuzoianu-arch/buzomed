@@ -365,8 +365,9 @@
     },
     "columns": {
       "company": "Company",
-      "jobTitle": "Job Title",
-      "city": "City",
+      "jobTitle": "Job title",
+      "lastExam": "Last exam",
+      "nextRecall": "Next recall",
       "workplace": "Workplace"
     },
     "noWorkplace": "No workplace",

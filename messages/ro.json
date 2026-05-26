@@ -366,7 +366,8 @@
     "columns": {
       "company": "Companie",
       "jobTitle": "Funcție",
-      "city": "Oraș",
+      "lastExam": "Ultima examinare",
+      "nextRecall": "Scadență",
       "workplace": "Loc de muncă"
     },
     "noWorkplace": "Fără loc de muncă",

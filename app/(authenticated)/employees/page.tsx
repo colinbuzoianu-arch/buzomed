@@ -71,13 +71,30 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         firstName: true,
         lastName: true,
         jobTitle: true,
-        city: true,
         isActive: true,
         archivedAt: true,
         company: { select: { name: true } },
         workplaceAssignments: {
           where: { isCurrent: true, endDate: null },
           select: { workplace: { select: { id: true, name: true } } },
+          take: 1,
+        },
+        examinations: {
+          where: {
+            status: 'completed',
+            deletedAt: null,
+          },
+          orderBy: { completedAt: 'desc' },
+          select: { completedAt: true, signedAt: true, status: true },
+          take: 1,
+        },
+        recalls: {
+          where: {
+            status: { in: ['pending', 'scheduled', 'overdue'] },
+            deletedAt: null,
+          },
+          orderBy: { dueDate: 'asc' },
+          select: { dueDate: true, status: true },
           take: 1,
         },
       },
@@ -185,136 +202,223 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         />
       ) : (
         <>
-          {/* Desktop table — hidden on small screens */}
-          <div className="hidden md:block border rounded-lg">
+          {/* Desktop table */}
+          <div className="hidden md:block border rounded-lg overflow-hidden">
             <Table>
+              {/*
+                Lățimi explicite — fără acestea browserul distribuie spațiu
+                automat și "Companie" ia tot. Totalul = 100%.
+              */}
+              <colgroup>
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '16%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '16%' }} />
+              </colgroup>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('common.name')}</TableHead>
-                  <TableHead>{t('employees.columns.company')}</TableHead>
-                  <TableHead>{t('employees.columns.jobTitle')}</TableHead>
-                  <TableHead>{t('employees.columns.city')}</TableHead>
-                  {showArchived ? (
-                    <TableHead>{t('employees.table.archivedAt')}</TableHead>
-                  ) : (
-                    <TableHead>{t('employees.columns.workplace')}</TableHead>
-                  )}
+                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))] pl-4">
+                    {t('common.name')}
+                  </TableHead>
+                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
+                    {t('employees.columns.company')}
+                  </TableHead>
+                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
+                    {t('employees.columns.jobTitle')}
+                  </TableHead>
+                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
+                    {t('employees.columns.lastExam')}
+                  </TableHead>
+                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
+                    {t('employees.columns.nextRecall')}
+                  </TableHead>
+                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))] pr-4">
+                    {t('employees.columns.workplace')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {employees.map((e) => {
-                  const companyName =
-                    e.company?.name ?? null
+                  const lastExam = e.examinations[0]
+                  const lastExamDate = lastExam?.signedAt ?? lastExam?.completedAt ?? null
+                  const recall = e.recalls[0]
+                  const wp = e.workplaceAssignments[0]?.workplace
+
+                  let recallUrgency: 'overdue' | 'soon' | 'ok' | null = null
+                  if (recall) {
+                    const diffDays = Math.floor(
+                      (new Date(recall.dueDate).getTime() - Date.now()) / 86400000
+                    )
+                    if (recall.status === 'overdue' || diffDays < 0) recallUrgency = 'overdue'
+                    else if (diffDays <= 30) recallUrgency = 'soon'
+                    else recallUrgency = 'ok'
+                  }
+
                   return (
-                  <TableRow key={e.id}>
-                    <TableCell className="font-medium">
-                      <Link
-                        href={`/employees/${e.id}`}
-                        className="hover:underline"
-                      >
-                        {e.lastName} {e.firstName}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {companyName ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {e.jobTitle ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {e.city ?? '—'}
-                    </TableCell>
-                    {showArchived ? (
-                      <TableCell className="text-muted-foreground text-sm">
-                        {e.archivedAt
-                          ? formatDate(e.archivedAt, 'medium', locale === 'ro' ? 'ro' : 'en')
-                          : '—'}
+                    <TableRow key={e.id} className="group">
+                      {/* Nume */}
+                      <TableCell className="pl-4 py-3">
+                        <Link
+                          href={`/employees/${e.id}`}
+                          className="font-medium text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors"
+                        >
+                          <span className="block truncate max-w-[160px]">
+                            {e.lastName} {e.firstName}
+                          </span>
+                        </Link>
                       </TableCell>
-                    ) : (
-                      <TableCell className="text-sm">
-                        {e.workplaceAssignments[0]?.workplace?.name ? (
-                          <span className="text-foreground">
-                            {e.workplaceAssignments[0].workplace.name}
+
+                      {/* Companie */}
+                      <TableCell className="py-3">
+                        <span className="block truncate max-w-[130px] text-sm text-[hsl(var(--text-muted))]">
+                          {e.company?.name ?? '—'}
+                        </span>
+                      </TableCell>
+
+                      {/* Funcție */}
+                      <TableCell className="py-3">
+                        <span className="block truncate max-w-[120px] text-sm text-[hsl(var(--text-muted))]">
+                          {e.jobTitle ?? '—'}
+                        </span>
+                      </TableCell>
+
+                      {/* Ultima examinare */}
+                      <TableCell className="py-3">
+                        {lastExamDate ? (
+                          <span className="text-sm tabular-nums text-[hsl(var(--text-muted))]">
+                            {formatDate(lastExamDate, 'short', locale === 'ro' ? 'ro' : 'en')}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                          <span className="text-sm text-[hsl(var(--text-faint))]">—</span>
+                        )}
+                      </TableCell>
+
+                      {/* Scadență recall */}
+                      <TableCell className="py-3">
+                        {recall ? (
+                          recallUrgency === 'overdue' ? (
+                            <span className="inline-flex items-center gap-1.5 rounded border border-red-200/70 bg-red-50/70 px-2 py-0.5 text-[11px] font-medium tabular-nums text-red-900">
+                              <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" aria-hidden />
+                              {formatDate(recall.dueDate, 'short', locale === 'ro' ? 'ro' : 'en')}
+                            </span>
+                          ) : recallUrgency === 'soon' ? (
+                            <span className="inline-flex items-center gap-1.5 rounded border border-amber-200/70 bg-amber-50/70 px-2 py-0.5 text-[11px] font-medium tabular-nums text-amber-900">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden />
+                              {formatDate(recall.dueDate, 'short', locale === 'ro' ? 'ro' : 'en')}
+                            </span>
+                          ) : (
+                            <span className="text-sm tabular-nums text-[hsl(var(--text-muted))]">
+                              {formatDate(recall.dueDate, 'short', locale === 'ro' ? 'ro' : 'en')}
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-sm text-[hsl(var(--text-faint))]">—</span>
+                        )}
+                      </TableCell>
+
+                      {/* Loc de muncă */}
+                      <TableCell className="py-3 pr-4">
+                        {wp ? (
+                          <span className="block truncate max-w-[120px] text-sm text-[hsl(var(--text-muted))]">
+                            {wp.name}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 rounded border border-amber-200/70 bg-amber-50/70 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden />
                             {t('employees.noWorkplace')}
                           </span>
                         )}
                       </TableCell>
-                    )}
-                  </TableRow>
+                    </TableRow>
                   )
                 })}
               </TableBody>
             </Table>
           </div>
 
-          {/* Mobile cards — visible only on small screens */}
+          {/* Mobile cards */}
           <div className="md:hidden space-y-2">
             {employees.map((e) => {
-              const companyName =
-                e.company?.name ?? null
+              const lastExam = e.examinations[0]
+              const lastExamDate = lastExam?.signedAt ?? lastExam?.completedAt ?? null
+              const recall = e.recalls[0]
+              const wp = e.workplaceAssignments[0]?.workplace
+
+              let recallUrgency: 'overdue' | 'soon' | 'ok' | null = null
+              if (recall) {
+                const diffDays = Math.floor(
+                  (new Date(recall.dueDate).getTime() - Date.now()) / 86400000
+                )
+                if (recall.status === 'overdue' || diffDays < 0) recallUrgency = 'overdue'
+                else if (diffDays <= 30) recallUrgency = 'soon'
+                else recallUrgency = 'ok'
+              }
+
               return (
-              <Link
-                key={e.id}
-                href={`/employees/${e.id}`}
-                className="block border rounded-lg p-4 hover:bg-muted transition-colors"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium truncate">
-                      {e.lastName} {e.firstName}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-                      {companyName && (
-                        <div className="truncate">{companyName}</div>
-                      )}
-                      {e.jobTitle && (
-                        <div className="truncate">{e.jobTitle}</div>
-                      )}
-                      {!showArchived && (
-                        e.workplaceAssignments[0]?.workplace?.name ? (
-                          <div className="truncate">{e.workplaceAssignments[0].workplace.name}</div>
+                <Link
+                  key={e.id}
+                  href={`/employees/${e.id}`}
+                  className="block border rounded-lg p-4 hover:bg-[hsl(var(--surface-tinted))] transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground truncate">
+                        {e.lastName} {e.firstName}
+                      </div>
+                      <div className="mt-1 space-y-0.5">
+                        {e.company?.name && (
+                          <div className="text-xs text-[hsl(var(--text-muted))] truncate">
+                            {e.company.name}
+                          </div>
+                        )}
+                        {e.jobTitle && (
+                          <div className="text-xs text-[hsl(var(--text-muted))] truncate">
+                            {e.jobTitle}
+                          </div>
+                        )}
+                        {wp ? (
+                          <div className="text-xs text-[hsl(var(--text-muted))] truncate">
+                            📍 {wp.name}
+                          </div>
                         ) : (
-                          <div className="text-amber-600">{t('employees.noWorkplace')}</div>
-                        )
-                      )}
-                      {e.city && (
-                        <div className="truncate">{e.city}</div>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-800 mt-0.5">
+                            <span className="h-1 w-1 rounded-full bg-amber-500" aria-hidden />
+                            {t('employees.noWorkplace')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Right side — dates */}
+                    <div className="shrink-0 text-right space-y-1.5">
+                      {showArchived ? (
+                        <div className="text-xs text-[hsl(var(--text-muted))] tabular-nums">
+                          {e.archivedAt
+                            ? formatDate(e.archivedAt, 'short', locale === 'ro' ? 'ro' : 'en')
+                            : '—'}
+                        </div>
+                      ) : (
+                        <>
+                          {lastExamDate && (
+                            <div className="text-[10px] text-[hsl(var(--text-faint))] tabular-nums">
+                              {formatDate(lastExamDate, 'short', locale === 'ro' ? 'ro' : 'en')}
+                            </div>
+                          )}
+                          {recall ? (
+                            <div className={`text-[11px] font-medium tabular-nums ${
+                              recallUrgency === 'overdue' ? 'text-red-700'
+                              : recallUrgency === 'soon' ? 'text-amber-700'
+                              : 'text-[hsl(var(--text-muted))]'
+                            }`}>
+                              ⏱ {formatDate(recall.dueDate, 'short', locale === 'ro' ? 'ro' : 'en')}
+                            </div>
+                          ) : null}
+                        </>
                       )}
                     </div>
                   </div>
-                  <div className="shrink-0">
-                    {showArchived ? (
-                      <span className="text-xs text-muted-foreground">
-                        {e.archivedAt
-                          ? formatDate(e.archivedAt, 'medium', locale === 'ro' ? 'ro' : 'en')
-                          : '—'}
-                      </span>
-                    ) : (
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-xs ${
-                          e.isActive
-                            ? 'text-green-700'
-                            : 'text-muted-foreground'
-                        }`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            e.isActive
-                              ? 'bg-green-600'
-                              : 'bg-muted-foreground'
-                          }`}
-                        />
-                        {e.isActive
-                          ? t('common.active')
-                          : t('common.inactive')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
+                </Link>
               )
             })}
           </div>
