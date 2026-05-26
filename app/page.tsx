@@ -145,7 +145,7 @@ export default async function LandingPage() {
   const user = await getCurrentUser()
   if (user) {
     if (user.roles.includes('super_admin')) redirect('/super-admin')
-    redirect('/team')
+    redirect('/dashboard')
   }
 
   return (
