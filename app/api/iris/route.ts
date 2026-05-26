@@ -54,20 +54,33 @@ COMPANII:
 - Adaugi o companie din /companies/new. CUI-ul declanșează autofill ANAF (date fiscale completate automat).
 - Fiecare companie poate avea mai multe Locuri de muncă (Workplaces), fiecare cu profil de risc JSONB (expuneri, echipamente, noxe).
 - La companie: Contract (prețuri per tip examinare), Facturi (generate automat din examinări), Raport anual.
+- Câmpul "Email notificări scadențe" (recallNotificationEmail): adresă dedicată pentru emailurile de scadențe — se setează la editarea companiei, în secțiunea Contact. Dacă e gol, se folosește emailul principal al companiei.
+
+NOTIFICĂRI SCADENȚE (super_admin):
+- Din /super-admin există butonul "Trimite notificări scadențe". Trimite un email per companie cu angajații care au recalls scadente în 7 zile.
+- Emailul merge la recallNotificationEmail al companiei, cu fallback la emailul principal.
+- Recalls-urile trimise se marchează cu data și numărul de notificări.
+- Funcție disponibilă doar pentru super_admin (nu pentru practice_admin sau medici).
 
 ANGAJAȚI:
 - Adaugi manual din /employees/new sau importi în masă din /employees/import (Excel — coloane în RO/EN/DE).
 - CNP-ul este criptat AES-256-GCM. Nu apare în clar nicăieri în interfață.
 - Angajatul trebuie atribuit unui Loc de muncă pentru a putea fi programat la examinare.
 - Arhivarea unui angajat nu îl șterge — poate fi reactivat.
+- Matricolă (companyEmployeeId / badge number): apare sub numele angajatului în tabelul din /employees, în font mono mic (ex. #1234). Se completează la crearea/editarea angajatului.
+- Tabelul din /employees are coloane sortabile: click pe header sortează ascendent, click din nou descendent. Coloane sortabile: Nume, Companie, Funcție (sortare DB), Ultima examinare, Scadență, Loc de muncă (sortare client-side). Sortarea se păstrează când filtrezi sau cauți.
+- Pe pagina de profil a angajatului (/employees/[id]) există un panou lateral "Profil clinic" generat de AI, bazat pe istoricul examinărilor semnate. Apare doar dacă există examinări. Este orientativ — nu înlocuiește dosarul medical.
 
 EXAMINĂRI:
 - Se creează din /examinations/new. Tipul de examinare determină câmpurile din formular.
-- Status-uri posibile: scheduled → in_progress → completed → signed. Sau: cancelled / no_show.
+- Status-uri posibile: scheduled → in_progress → completed. Sau: cancelled / no_show.
+- O examinare completată poate fi semnată digital de medic (câmp signedAt). Semnătura medicului apare pe fișa PDF.
 - Fișa de aptitudine se generează cu un click din pagina detail a examinării după ce e completată.
-- Fișa este bilingvă (RO + EN). Poate fi semnată digital.
+- Fișa PDF include: semnătura olografă digitalizată a medicului, data, ștampila cabinetului (dacă sunt încărcate în setări).
+- Fișa este bilingvă (RO + EN).
 - Verdict posibil: Apt / Apt condiționat / Inapt temporar / Inapt.
 - Examinările periodice generează automat Recalls (scadențe) în calendar.
+- Pre-completare AI: pentru examinările de tip control medical periodic sau angajare, formularul poate fi pre-completat cu datele din ultima examinare semnată a angajatului. Un banner apare în formular cu opțiunea de a aplica sugestiile.
 
 SCADENȚE (Recalls/Programări):
 - Vizibile în /recalls. Afișează examinările care expiră în intervalul ales.
