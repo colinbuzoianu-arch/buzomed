@@ -8,7 +8,7 @@
  *   await sendEmail({ to: { email: 'x@y.com' }, content })
  */
 
-export { sendEmail } from './send'
+export { sendEmail, sendEmailWithAttachment } from './send'
 export { renderInviteEmail } from './templates'
 export type {
   Locale,

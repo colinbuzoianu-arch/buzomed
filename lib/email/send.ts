@@ -124,3 +124,68 @@ function extractErrorMessage(err: unknown): string {
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
+
+/**
+ * Send an email with a single file attachment via Brevo.
+ *
+ * Separate from sendEmail to keep the core helper simple.
+ * Uses the same retry logic and error handling.
+ */
+export async function sendEmailWithAttachment(
+  params: SendEmailParams
+): Promise<SendEmailResult> {
+  const client = getBrevoClient()
+  const defaultSender = getDefaultSender()
+
+  const message = new brevo.SendSmtpEmail()
+  message.subject = params.content.subject
+  message.htmlContent = params.content.html
+  message.textContent = params.content.text
+
+  message.sender = {
+    email: params.from?.email ?? defaultSender.email,
+    name: params.from?.name ?? defaultSender.name,
+  }
+
+  message.to = [
+    {
+      email: params.to.email,
+      ...(params.to.name && { name: params.to.name }),
+    },
+  ]
+
+  if (params.replyTo) {
+    message.replyTo = {
+      email: params.replyTo.email,
+      ...(params.replyTo.name && { name: params.replyTo.name }),
+    }
+  }
+
+  if (params.tags?.length) {
+    message.tags = params.tags
+  }
+
+  if (params.attachment) {
+    // Brevo SDK accepts attachment as array of { content: base64, name: filename }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(message as any).attachment = [
+      {
+        content: params.attachment.content,
+        name: params.attachment.name,
+      },
+    ]
+  }
+
+  try {
+    const result = await sendWithRetry(client, message)
+    return { success: true, messageId: result.messageId }
+  } catch (err) {
+    const errorMessage = extractErrorMessage(err)
+    console.error('[email] Failed to send with attachment', {
+      to: params.to.email,
+      subject: params.content.subject,
+      error: errorMessage,
+    })
+    return { success: false, error: errorMessage }
+  }
+}

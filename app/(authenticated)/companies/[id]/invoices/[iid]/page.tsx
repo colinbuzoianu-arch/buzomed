@@ -31,7 +31,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
   const invoice = await prisma.invoice.findFirst({
     where: { id: iid, companyId, tenantId: user.tenantId, deletedAt: null },
     include: {
-      company: { select: { id: true, name: true, cui: true } },
+      company: { select: { id: true, name: true, cui: true, email: true, contactPersonEmail: true } },
       contract: { select: { id: true, contractNumber: true } },
       items: { orderBy: { sortOrder: 'asc' } },
     },
@@ -79,34 +79,58 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          {caps.canWriteAdministrative && invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
-            <div className="flex items-center gap-2">
-              {invoice.status === 'draft' && (
-                <Button asChild variant="outline">
-                  <Link href={`/companies/${companyId}/invoices/${iid}/edit`}>
-                    {t('common.edit')}
-                  </Link>
-                </Button>
-              )}
-              <InvoiceActions
-                companyId={companyId}
-                invoiceId={iid}
-                status={invoice.status}
-                labels={{
-                  issue: t('invoices.actions.issue'),
-                  issuing: t('invoices.actions.issuing'),
-                  issueConfirm: t('invoices.actions.issueConfirm'),
-                  pay: t('invoices.actions.pay'),
-                  paying: t('invoices.actions.paying'),
-                  payConfirm: t('invoices.actions.payConfirm'),
-                  cancel: t('common.delete'),
-                  cancelling: t('common.deleting'),
-                  cancelConfirm: t('invoices.actions.deleteConfirm'),
-                  errorMessage: t('invoices.form.errorMessage'),
-                }}
-              />
-            </div>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* PDF download — disponibil pentru orice status */}
+            <Button asChild variant="outline">
+              <a
+                href={`/api/companies/${companyId}/invoices/${iid}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+              >
+                {t('invoices.actions.downloadPdf')}
+              </a>
+            </Button>
+
+            {caps.canWriteAdministrative && invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+              <>
+                {invoice.status === 'draft' && (
+                  <Button asChild variant="outline">
+                    <Link href={`/companies/${companyId}/invoices/${iid}/edit`}>
+                      {t('common.edit')}
+                    </Link>
+                  </Button>
+                )}
+                <InvoiceActions
+                  companyId={companyId}
+                  invoiceId={iid}
+                  invoiceNumber={invoice.invoiceNumber}
+                  status={invoice.status}
+                  hasRecipientEmail={!!(invoice.company.contactPersonEmail ?? invoice.company.email)}
+                  labels={{
+                    issue: t('invoices.actions.issue'),
+                    issuing: t('invoices.actions.issuing'),
+                    issueConfirm: t('invoices.actions.issueConfirm'),
+                    pay: t('invoices.actions.pay'),
+                    paying: t('invoices.actions.paying'),
+                    payConfirm: t('invoices.actions.payConfirm'),
+                    cancel: t('common.delete'),
+                    cancelling: t('common.deleting'),
+                    cancelConfirm: t('invoices.actions.deleteConfirm'),
+                    cancelInvoice: t('invoices.actions.cancelInvoice'),
+                    cancellingInvoice: t('invoices.actions.cancellingInvoice'),
+                    cancelInvoiceConfirm: t('invoices.actions.cancelInvoiceConfirm'),
+                    sendEmail: t('invoices.actions.sendEmail'),
+                    sendingEmail: t('invoices.actions.sendingEmail'),
+                    sendEmailConfirm: t('invoices.actions.sendEmailConfirm'),
+                    emailSent: t('invoices.actions.emailSent'),
+                    noEmailWarning: t('invoices.actions.noEmailWarning'),
+                    errorMessage: t('invoices.form.errorMessage'),
+                  }}
+                />
+              </>
+            )}
+          </div>
         </div>
       </div>
 

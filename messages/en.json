@@ -30,7 +30,8 @@
     "active": "Active",
     "inactive": "Inactive",
     "createdAt": "Created at",
-    "close": "Close"
+    "close": "Close",
+    "deleting": "Deleting..."
   },
   "login": {
     "title": "Sign in",
@@ -1286,7 +1287,16 @@
       "pay": "Mark as paid",
       "paying": "Processing...",
       "payConfirm": "Mark this invoice as paid?",
-      "deleteConfirm": "Are you sure you want to delete this invoice? This action cannot be undone."
+      "deleteConfirm": "Are you sure you want to delete this invoice? This action cannot be undone.",
+      "downloadPdf": "Download PDF",
+      "cancelInvoice": "Cancel invoice",
+      "cancellingInvoice": "Cancelling...",
+      "cancelInvoiceConfirm": "Are you sure you want to cancel this invoice? It will remain in the system with Cancelled status and will show a watermark in PDF.",
+      "sendEmail": "Send by email",
+      "sendingEmail": "Sending...",
+      "sendEmailConfirm": "Send the PDF invoice to the company's email address?",
+      "emailSent": "Email sent successfully",
+      "noEmailWarning": "The company has no email address configured. Add an email in the company details."
     },
     "form": {
       "contractLabel": "Associated contract",

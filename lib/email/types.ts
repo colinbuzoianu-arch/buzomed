@@ -42,6 +42,15 @@ export interface SendEmailParams {
    * Brevo tags (visible in their dashboard for filtering).
    */
   tags?: string[]
+  /**
+   * Optional single file attachment (e.g. a PDF invoice).
+   */
+  attachment?: {
+    /** Base64-encoded file content */
+    content: string
+    /** Filename with extension, e.g. "factura_2025-001.pdf" */
+    name: string
+  }
 }
 
 export interface SendEmailResult {

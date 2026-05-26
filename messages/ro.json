@@ -30,7 +30,8 @@
     "active": "Activ",
     "inactive": "Inactiv",
     "createdAt": "Creat la",
-    "close": "Închide"
+    "close": "Închide",
+    "deleting": "Se șterge..."
   },
   "login": {
     "title": "Autentificare",
@@ -1286,7 +1287,16 @@
       "pay": "Marchează ca plătită",
       "paying": "Se procesează...",
       "payConfirm": "Marchezi această factură ca plătită?",
-      "deleteConfirm": "Sigur vrei să ștergi această factură? Acțiunea este ireversibilă."
+      "deleteConfirm": "Sigur vrei să ștergi această factură? Acțiunea este ireversibilă.",
+      "downloadPdf": "Descarcă PDF",
+      "cancelInvoice": "Anulează factura",
+      "cancellingInvoice": "Se anulează...",
+      "cancelInvoiceConfirm": "Ești sigur că vrei să anulezi factura? Factura rămâne în sistem cu statusul Anulată și va apărea cu watermark în PDF.",
+      "sendEmail": "Trimite pe email",
+      "sendingEmail": "Se trimite...",
+      "sendEmailConfirm": "Trimite factura PDF la adresa de email a companiei?",
+      "emailSent": "Email trimis cu succes",
+      "noEmailWarning": "Compania nu are adresă de email configurată. Adaugă un email în fișa companiei."
     },
     "form": {
       "contractLabel": "Contract asociat",
