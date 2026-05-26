@@ -182,15 +182,25 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     )
   }
 
-  // Verify workplace exists, is in the same tenant, and is active/not deleted.
-  const workplace = await prisma.workplace.findFirst({
-    where: {
-      id: body.workplaceId as string,
-      tenantId: auth.user.tenantId,
-      deletedAt: null,
-    },
-    select: { id: true, isActive: true },
-  })
+  // Verify workplace exists, is in the same tenant, is active, AND belongs
+  // to the same company as the employee. Cross-company assignments are not
+  // allowed — a worker belongs to one employer.
+  const [workplace, employee2] = await Promise.all([
+    prisma.workplace.findFirst({
+      where: {
+        id: body.workplaceId as string,
+        tenantId: auth.user.tenantId,
+        deletedAt: null,
+      },
+      select: { id: true, isActive: true, companyId: true },
+    }),
+    // Re-fetch employee with companyId (loadEmployeeForActor doesn't select it)
+    prisma.employee.findFirst({
+      where: { id: employeeId, tenantId: auth.user.tenantId },
+      select: { companyId: true },
+    }),
+  ])
+
   if (!workplace) {
     return NextResponse.json(
       { error: 'workplace_not_found' },
@@ -202,6 +212,16 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
       {
         error: 'workplace_inactive',
         message: 'Cannot assign an employee to an inactive workplace.',
+      },
+      { status: 409 }
+    )
+  }
+  // Cross-company guard — only enforce when employee has a company set
+  if (employee2?.companyId && workplace.companyId !== employee2.companyId) {
+    return NextResponse.json(
+      {
+        error: 'company_mismatch',
+        message: 'Workplace belongs to a different company than the employee.',
       },
       { status: 409 }
     )

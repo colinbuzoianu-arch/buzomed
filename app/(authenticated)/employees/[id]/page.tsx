@@ -33,12 +33,15 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
 
   const { id } = await params
 
-  const [employee, assignmentRows, workplaceOptions, recentExaminations] =
+  const employee = await prisma.employee.findFirst({
+    where: { id, tenantId: user.tenantId, deletedAt: null },
+    include: { company: { select: { id: true, name: true } } },
+  })
+
+  if (!employee) notFound()
+
+  const [assignmentRows, workplaceOptions, recentExaminations] =
     await Promise.all([
-      prisma.employee.findFirst({
-        where: { id, tenantId: user.tenantId, deletedAt: null },
-        include: { company: { select: { id: true, name: true } } },
-      }),
       prisma.employeeWorkplaceAssignment.findMany({
         where: { employeeId: id, tenantId: user.tenantId },
         orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }],
@@ -57,10 +60,11 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
       prisma.workplace.findMany({
         where: {
           tenantId: user.tenantId,
+          ...(employee.companyId ? { companyId: employee.companyId } : {}),
           deletedAt: null,
           isActive: true,
         },
-        orderBy: [{ company: { name: 'asc' } }, { name: 'asc' }],
+        orderBy: [{ name: 'asc' }],
         select: {
           id: true,
           name: true,
@@ -68,7 +72,6 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
           company: { select: { name: true } },
         },
       }),
-      // New in session 6: recent examinations for this employee.
       prisma.examination.findMany({
         where: { employeeId: id, tenantId: user.tenantId, deletedAt: null },
         orderBy: [
@@ -85,8 +88,6 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
         },
       }),
     ])
-
-  if (!employee) notFound()
 
   const isArchived = employee.archivedAt !== null
   const currentAssignment = assignmentRows.find((a) => a.isCurrent) ?? null
