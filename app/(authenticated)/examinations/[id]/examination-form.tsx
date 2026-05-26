@@ -169,6 +169,7 @@ interface Labels {
   prefillReady: string
   prefillApply: string
   prefillIgnore: string
+  prefillNoData: string
   prefillTooltip: string
 }
 
@@ -415,6 +416,20 @@ export function ExaminationForm({
       {signed && (
         <div className="border border-green-300 bg-green-50 text-green-900 rounded-md px-4 py-3 text-sm">
           {labels.signedNotice}
+        </div>
+      )}
+
+      {/* AI prefill — no prior signed exam available */}
+      {prefillEnabled && !prefillDismissed && prefillStatus === 'done' && prefillCount === 0 && (
+        <div className="flex items-center justify-between gap-2 border rounded-md px-4 py-2.5 text-xs text-muted-foreground bg-muted/20">
+          <span>{labels.prefillNoData}</span>
+          <button
+            type="button"
+            className="hover:opacity-70 leading-none"
+            onClick={() => setPrefillDismissed(true)}
+          >
+            ✕
+          </button>
         </div>
       )}
 

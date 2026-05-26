@@ -862,6 +862,7 @@
       "prefillReady": "AI a pre-completat {count} câmpuri — verificați și confirmați",
       "prefillApply": "Aplică sugestiile",
       "prefillIgnore": "Ignoră",
+      "prefillNoData": "Nicio examinare anterioară semnată — câmpurile nu pot fi pre-completate automat.",
       "prefillTooltip": "Sugestie AI — verificați acest câmp"
     },
     "actions": {

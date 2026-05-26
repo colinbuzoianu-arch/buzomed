@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 export type PrefillStatus = 'idle' | 'loading' | 'done' | 'error'
 
@@ -20,11 +20,11 @@ export function useExaminationPrefill(
 ): UseExaminationPrefillResult {
   const [suggestions, setSuggestions] = useState<Record<string, PrefillSuggestion>>({})
   const [status, setStatus] = useState<PrefillStatus>('idle')
-  const inflight = useRef(false)
 
   useEffect(() => {
-    if (!enabled || inflight.current) return
-    inflight.current = true
+    if (!enabled) return
+
+    let cancelled = false
     setStatus('loading')
 
     fetch('/api/ai/examination-prefill', {
@@ -34,17 +34,17 @@ export function useExaminationPrefill(
     })
       .then((res) => res.json())
       .then((data: { suggestions?: Record<string, PrefillSuggestion> }) => {
-        setSuggestions(data.suggestions ?? {})
-        setStatus('done')
+        if (!cancelled) {
+          setSuggestions(data.suggestions ?? {})
+          setStatus('done')
+        }
       })
       .catch(() => {
-        setStatus('error')
+        if (!cancelled) setStatus('error')
       })
-      .finally(() => {
-        inflight.current = false
-      })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // fires once on mount when enabled
+
+    return () => { cancelled = true }
+  }, [enabled, examinationId])
 
   return { suggestions, status }
 }

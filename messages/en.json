@@ -862,6 +862,7 @@
       "prefillReady": "AI pre-filled {count} fields — please review and confirm",
       "prefillApply": "Apply suggestions",
       "prefillIgnore": "Dismiss",
+      "prefillNoData": "No prior signed examination found — fields cannot be pre-filled automatically.",
       "prefillTooltip": "AI suggestion — please review this field"
     },
     "actions": {

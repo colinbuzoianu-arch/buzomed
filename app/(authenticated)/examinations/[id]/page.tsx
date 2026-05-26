@@ -111,7 +111,9 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
 
   const prefillEnabled =
     !isLocked &&
-    (examination.status === 'scheduled' || examination.status === 'in_progress')
+    (examination.status === 'scheduled' ||
+      examination.status === 'in_progress' ||
+      examination.status === 'completed')
 
   const maternityRiskLabels: Record<string, string> = {
     categoryPhysical: t('examinations.form.maternityRisk.categoryPhysical'),
@@ -510,6 +512,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           prefillReady: t('examinations.form.prefillReady'),
           prefillApply: t('examinations.form.prefillApply'),
           prefillIgnore: t('examinations.form.prefillIgnore'),
+          prefillNoData: t('examinations.form.prefillNoData'),
           prefillTooltip: t('examinations.form.prefillTooltip'),
         }}
       />
