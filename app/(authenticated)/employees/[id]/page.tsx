@@ -15,6 +15,7 @@ import { decryptCnp } from '@/lib/crypto/cnp-cipher'
 import { maskCnp } from '@/lib/crypto/cnp-validation'
 import { CnpReveal } from './cnp-reveal'
 import { formatDate } from '@/lib/format-date'
+import { EmployeeProfileSummary } from '@/components/ai/EmployeeProfileSummary'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -308,6 +309,10 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
           )}
         </div>
       </div>
+
+      {/* Two-column layout on lg+: main content + AI sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6 items-start">
+      <div className="space-y-6 min-w-0">
 
       {/* Company banner */}
       <div className="bg-[#F8FAFB] border border-[#E2E8F0] rounded-xl px-5 py-3 flex items-center gap-3">
@@ -627,6 +632,15 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
         canWrite={caps.canWriteAdministrative}
         locale={locale}
       />
+
+      </div>{/* end main column */}
+
+      {/* Sidebar */}
+      <aside className="space-y-4 lg:sticky lg:top-6">
+        <EmployeeProfileSummary employeeId={employee.id} />
+      </aside>
+
+      </div>{/* end grid */}
     </div>
   )
 }

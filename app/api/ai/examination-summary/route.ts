@@ -214,18 +214,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null)
     if (
       !body ||
-      typeof body.currentExaminationId !== 'string' ||
       typeof body.employeeId !== 'string'
     ) {
       return NextResponse.json({ summary: null, reason: 'bad_request', examinationCount: 0 })
     }
 
-    const { currentExaminationId, employeeId } = body as {
-      currentExaminationId: string
-      employeeId: string
-    }
+    const currentExaminationId: string | null =
+      typeof body.currentExaminationId === 'string' && body.currentExaminationId.trim() !== ''
+        ? body.currentExaminationId
+        : null
 
-    const cacheKey = `${employeeId}:${currentExaminationId}`
+    const { employeeId } = body as { employeeId: string }
+    const cacheKey = `${employeeId}:${currentExaminationId ?? 'profile'}`
     const cached = getCached(cacheKey)
     if (cached) {
       return NextResponse.json(cached)
@@ -245,17 +245,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ summary: null, reason: 'not_found', examinationCount: 0 })
     }
 
-    // Last 3 signed examinations for this employee, excluding the current one
+    // Signed examinations for this employee, excluding the current one if present
     const priorExams = await prisma.examination.findMany({
       where: {
         tenantId: auth.user.tenantId,
         employeeId,
-        id: { not: currentExaminationId },
         signedAt: { not: null },
         deletedAt: null,
+        ...(currentExaminationId ? { id: { not: currentExaminationId } } : {}),
       },
       orderBy: { signedAt: 'desc' },
-      take: 3,
+      take: currentExaminationId ? 3 : 5,
       select: {
         signedAt: true,
         verdict: true,
