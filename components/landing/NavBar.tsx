@@ -61,7 +61,7 @@ export function NavBar() {
               Login
             </button>
           </Link>
-          <Link href="/register">
+          <Link href="/register" className="hidden sm:block">
             <button
               style={{
                 background: '#1E4D8B',
