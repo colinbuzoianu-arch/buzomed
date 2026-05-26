@@ -824,6 +824,7 @@ model DocumentTemplate {
 // VACCINATIONS
 // ============================================================================
 
+// TODO: expose in UI — planned feature, not yet implemented
 model Vaccination {
   id                  String                @id @default(uuid()) @db.Uuid
   tenantId            String                @map("tenant_id") @db.Uuid
@@ -864,6 +865,7 @@ model Vaccination {
 // MEDICAL EVENTS (workplace accidents, emergencies)
 // ============================================================================
 
+// TODO: expose in UI — planned feature, not yet implemented
 model MedicalEvent {
   id                      String                @id @default(uuid()) @db.Uuid
   tenantId                String                @map("tenant_id") @db.Uuid

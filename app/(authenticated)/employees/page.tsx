@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
@@ -16,10 +17,16 @@ import {
 } from '@/components/ui/table'
 import { EmployeeSearchInput } from './employee-search-input'
 import { WorkplaceFilter } from '@/components/employees/workplace-filter'
+import { SortHeader } from '@/components/employees/sort-header'
 import { formatDate } from '@/lib/format-date'
 
 interface PageProps {
-  searchParams: Promise<{ archived?: string; q?: string; wp?: string }>
+  searchParams: Promise<{
+    archived?: string
+    q?: string
+    wp?: string
+    sort?: string
+  }>
 }
 
 export default async function EmployeesPage({ searchParams }: PageProps) {
@@ -37,6 +44,36 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   const showArchived = params.archived === '1'
   const q = params.q ?? ''
   const wpFilter = params.wp ?? ''
+  const sortRaw = params.sort ?? 'name_asc'
+
+  type DbSortKey = 'name_asc' | 'name_desc' | 'company_asc' | 'company_desc' | 'jobTitle_asc' | 'jobTitle_desc'
+  type ClientSortKey = 'lastExam_asc' | 'lastExam_desc' | 'recall_asc' | 'recall_desc' | 'workplace_asc' | 'workplace_desc'
+  type SortKey = DbSortKey | ClientSortKey
+
+  const VALID_SORTS: SortKey[] = [
+    'name_asc', 'name_desc',
+    'company_asc', 'company_desc',
+    'jobTitle_asc', 'jobTitle_desc',
+    'lastExam_asc', 'lastExam_desc',
+    'recall_asc', 'recall_desc',
+    'workplace_asc', 'workplace_desc',
+  ]
+
+  const sort: SortKey = VALID_SORTS.includes(sortRaw as SortKey)
+    ? (sortRaw as SortKey)
+    : 'name_asc'
+
+  const dbOrderBy: Record<DbSortKey, Prisma.EmployeeOrderByWithRelationInput[]> = {
+    name_asc:      [{ lastName: 'asc' }, { firstName: 'asc' }],
+    name_desc:     [{ lastName: 'desc' }, { firstName: 'desc' }],
+    company_asc:   [{ company: { name: 'asc' } }, { lastName: 'asc' }],
+    company_desc:  [{ company: { name: 'desc' } }, { lastName: 'asc' }],
+    jobTitle_asc:  [{ jobTitle: 'asc' }, { lastName: 'asc' }],
+    jobTitle_desc: [{ jobTitle: 'desc' }, { lastName: 'asc' }],
+  }
+
+  const isClientSort = !Object.keys(dbOrderBy).includes(sort)
+  const orderBy = isClientSort ? dbOrderBy.name_asc : dbOrderBy[sort as DbSortKey]
 
   const [employees, workplacesForFilter] = await Promise.all([
     prisma.employee.findMany({
@@ -65,12 +102,13 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
             }
           : {}),
       },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      orderBy,
       select: {
         id: true,
         firstName: true,
         lastName: true,
         jobTitle: true,
+        companyEmployeeId: true,
         isActive: true,
         archivedAt: true,
         company: { select: { name: true } },
@@ -113,6 +151,40 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
       },
     }),
   ])
+
+  // Client-side sort for columns that can't be ordered in DB (join-dependent)
+  let sortedEmployees = [...employees]
+
+  if (sort === 'lastExam_asc' || sort === 'lastExam_desc') {
+    sortedEmployees.sort((a, b) => {
+      const aDate = a.examinations[0]?.signedAt ?? a.examinations[0]?.completedAt ?? null
+      const bDate = b.examinations[0]?.signedAt ?? b.examinations[0]?.completedAt ?? null
+      if (!aDate && !bDate) return 0
+      if (!aDate) return sort === 'lastExam_asc' ? 1 : -1
+      if (!bDate) return sort === 'lastExam_asc' ? -1 : 1
+      const diff = new Date(aDate).getTime() - new Date(bDate).getTime()
+      return sort === 'lastExam_asc' ? diff : -diff
+    })
+  } else if (sort === 'recall_asc' || sort === 'recall_desc') {
+    sortedEmployees.sort((a, b) => {
+      const aDate = a.recalls[0]?.dueDate ?? null
+      const bDate = b.recalls[0]?.dueDate ?? null
+      if (!aDate && !bDate) return 0
+      if (!aDate) return sort === 'recall_asc' ? 1 : -1
+      if (!bDate) return sort === 'recall_asc' ? -1 : 1
+      const diff = new Date(aDate).getTime() - new Date(bDate).getTime()
+      return sort === 'recall_asc' ? diff : -diff
+    })
+  } else if (sort === 'workplace_asc' || sort === 'workplace_desc') {
+    sortedEmployees.sort((a, b) => {
+      const aWp = a.workplaceAssignments[0]?.workplace?.name ?? ''
+      const bWp = b.workplaceAssignments[0]?.workplace?.name ?? ''
+      const cmp = aWp.localeCompare(bWp, 'ro')
+      return sort === 'workplace_asc' ? cmp : -cmp
+    })
+  } else {
+    sortedEmployees = employees
+  }
 
   return (
     <div className="space-y-6">
@@ -205,42 +277,68 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
           {/* Desktop table */}
           <div className="hidden md:block border rounded-lg overflow-hidden">
             <Table>
-              {/*
-                Lățimi explicite — fără acestea browserul distribuie spațiu
-                automat și "Companie" ia tot. Totalul = 100%.
-              */}
               <colgroup>
                 <col style={{ width: '22%' }} />
+                <col style={{ width: '17%' }} />
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '14%' }} />
                 <col style={{ width: '18%' }} />
-                <col style={{ width: '16%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '16%' }} />
               </colgroup>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))] pl-4">
-                    {t('common.name')}
+                  <TableHead className="pl-4">
+                    <SortHeader
+                      label={t('common.name')}
+                      sortAsc="name_asc"
+                      sortDesc="name_desc"
+                      currentSort={sort}
+                    />
                   </TableHead>
-                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
-                    {t('employees.columns.company')}
+                  <TableHead>
+                    <SortHeader
+                      label={t('employees.columns.company')}
+                      sortAsc="company_asc"
+                      sortDesc="company_desc"
+                      currentSort={sort}
+                    />
                   </TableHead>
-                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
-                    {t('employees.columns.jobTitle')}
+                  <TableHead>
+                    <SortHeader
+                      label={t('employees.columns.jobTitle')}
+                      sortAsc="jobTitle_asc"
+                      sortDesc="jobTitle_desc"
+                      currentSort={sort}
+                    />
                   </TableHead>
-                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
-                    {t('employees.columns.lastExam')}
+                  <TableHead>
+                    <SortHeader
+                      label={t('employees.columns.lastExam')}
+                      sortAsc="lastExam_asc"
+                      sortDesc="lastExam_desc"
+                      currentSort={sort}
+                    />
                   </TableHead>
-                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
-                    {t('employees.columns.nextRecall')}
+                  <TableHead>
+                    <SortHeader
+                      label={t('employees.columns.nextRecall')}
+                      sortAsc="recall_asc"
+                      sortDesc="recall_desc"
+                      currentSort={sort}
+                    />
                   </TableHead>
-                  <TableHead className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))] pr-4">
-                    {t('employees.columns.workplace')}
+                  <TableHead className="pr-4">
+                    <SortHeader
+                      label={t('employees.columns.workplace')}
+                      sortAsc="workplace_asc"
+                      sortDesc="workplace_desc"
+                      currentSort={sort}
+                    />
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employees.map((e) => {
+                {sortedEmployees.map((e) => {
                   const lastExam = e.examinations[0]
                   const lastExamDate = lastExam?.signedAt ?? lastExam?.completedAt ?? null
                   const recall = e.recalls[0]
@@ -258,7 +356,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
 
                   return (
                     <TableRow key={e.id} className="group">
-                      {/* Nume */}
+                      {/* Nume + matricolă */}
                       <TableCell className="pl-4 py-3">
                         <Link
                           href={`/employees/${e.id}`}
@@ -268,6 +366,11 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                             {e.lastName} {e.firstName}
                           </span>
                         </Link>
+                        {e.companyEmployeeId && (
+                          <span className="text-[10px] text-[hsl(var(--text-faint))] font-mono tabular-nums">
+                            #{e.companyEmployeeId}
+                          </span>
+                        )}
                       </TableCell>
 
                       {/* Companie */}
@@ -340,7 +443,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
 
           {/* Mobile cards */}
           <div className="md:hidden space-y-2">
-            {employees.map((e) => {
+            {sortedEmployees.map((e) => {
               const lastExam = e.examinations[0]
               const lastExamDate = lastExam?.signedAt ?? lastExam?.completedAt ?? null
               const recall = e.recalls[0]
@@ -367,6 +470,11 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                       <div className="font-medium text-foreground truncate">
                         {e.lastName} {e.firstName}
                       </div>
+                      {e.companyEmployeeId && (
+                        <div className="text-[10px] text-[hsl(var(--text-faint))] font-mono tabular-nums">
+                          #{e.companyEmployeeId}
+                        </div>
+                      )}
                       <div className="mt-1 space-y-0.5">
                         {e.company?.name && (
                           <div className="text-xs text-[hsl(var(--text-muted))] truncate">
