@@ -874,7 +874,9 @@
       "sign": "Sign",
       "signing": "Signing…",
       "signConfirm": "Once signed, this examination becomes final and cannot be edited. Continue?",
-      "signRequirementsNotMet": "Set the verdict before signing."
+      "signRequirementsNotMet": "Set the verdict before signing.",
+      "signNote": "Signing marks the record as final. Apply your handwritten signature and stamp on the printed copy.",
+      "signNoteNoSignature": "You have not uploaded your signature in Settings. Apply your handwritten signature on the printed copy."
     },
     "fisa": {
       "title": "Fitness-for-work certificate",

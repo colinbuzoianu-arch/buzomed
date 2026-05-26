@@ -874,7 +874,9 @@
       "sign": "Semnează",
       "signing": "Se semnează…",
       "signConfirm": "După semnare, examinarea devine definitivă și nu mai poate fi modificată. Continui?",
-      "signRequirementsNotMet": "Setează verdictul înainte de a semna."
+      "signRequirementsNotMet": "Setează verdictul înainte de a semna.",
+      "signNote": "Semnarea marchează fișa ca finalizată. Aplicați semnătura olografă și stampila pe exemplarul tipărit.",
+      "signNoteNoSignature": "Nu ați urcat semnătura în Setări. Aplicați semnătura olografă pe exemplarul tipărit."
     },
     "fisa": {
       "title": "Fișă de aptitudine în muncă",

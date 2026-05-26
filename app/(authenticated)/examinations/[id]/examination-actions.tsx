@@ -24,8 +24,11 @@ interface Props {
     signing: string
     signConfirm: string
     signRequirementsNotMet: string
+    signNote: string
+    signNoteNoSignature: string
     errorMessage: string
   }
+  practitionerHasSignature: boolean
 }
 
 export function ExaminationActions({
@@ -35,6 +38,7 @@ export function ExaminationActions({
   verdictSet,
   canWriteClinical,
   labels,
+  practitionerHasSignature,
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -145,6 +149,13 @@ export function ExaminationActions({
         )}
       </div>
       {error && <span className="text-xs text-destructive">{error}</span>}
+      {canWriteClinical && (
+        <p className="text-[11px] text-[hsl(var(--text-faint))] text-right max-w-[260px] leading-relaxed">
+          {!practitionerHasSignature
+            ? labels.signNoteNoSignature
+            : labels.signNote}
+        </p>
+      )}
     </div>
   )
 }

@@ -50,6 +50,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           lastName: true,
           professionalTitle: true,
           professionalCode: true,
+          signatureImageUrl: true,
         },
       },
     },
@@ -245,8 +246,11 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
                   signRequirementsNotMet: t(
                     'examinations.actions.signRequirementsNotMet'
                   ),
+                  signNote: t('examinations.actions.signNote'),
+                  signNoteNoSignature: t('examinations.actions.signNoteNoSignature'),
                   errorMessage: t('examinations.form.errorMessage'),
                 }}
+                practitionerHasSignature={!!(examination.practitioner?.signatureImageUrl)}
               />
             )}
           </div>

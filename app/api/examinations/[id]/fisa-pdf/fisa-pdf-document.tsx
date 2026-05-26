@@ -224,6 +224,7 @@ export interface FisaPdfProps {
   cabinetAddress: string
   logoUrl: string | null
   stampUrl: string | null
+  signatureUrl: string | null
   examinationNumber: string
   examinationDate: string
   signedAt: string | null
@@ -458,30 +459,56 @@ export function FisaPdfDocument(props: FisaPdfProps) {
 
         {/* Footer / signature */}
         <View style={S.footer}>
+
+          {/* Stânga — semnătura olografă a medicului */}
           <View style={S.signatureBlock}>
-            <Text style={S.signatureLabel}>Data semnării:</Text>
-            <Text style={S.signatureLine}>
-              {props.signedAt ?? 'Nesemnat'}
-            </Text>
+            <Text style={S.signatureLabel}>Semnătura medicului:</Text>
+            {props.signatureUrl ? (
+              <Image
+                src={props.signatureUrl}
+                style={{ width: 80, height: 36, objectFit: 'contain', marginBottom: 6 }}
+              />
+            ) : (
+              <View style={{ height: 36, marginBottom: 6 }} />
+            )}
+            <View style={{ borderTopWidth: 1, borderTopColor: '#94a3b8', paddingTop: 4 }}>
+              <Text style={{ fontSize: 8, color: '#64748b' }}>
+                {props.practitionerName}
+                {props.practitionerTitle ? `\n${props.practitionerTitle}` : ''}
+                {props.practitionerCode ? `\nParafă: ${props.practitionerCode}` : ''}
+              </Text>
+            </View>
           </View>
+
+          {/* Mijloc — data semnării */}
+          <View style={{ width: '20%', alignItems: 'center' }}>
+            <Text style={S.signatureLabel}>Data:</Text>
+            <View style={{ height: 36, marginBottom: 6 }} />
+            <View style={{ borderTopWidth: 1, borderTopColor: '#94a3b8', paddingTop: 4, width: '100%' }}>
+              <Text style={{ fontSize: 8, color: '#0f1e3f', textAlign: 'center' }}>
+                {props.signedAt ?? '—'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Dreapta — stampila cabinetului */}
           <View style={S.signatureBlock}>
-            <Text style={S.signatureLabel}>Medic de medicina muncii:</Text>
+            <Text style={S.signatureLabel}>Stampila:</Text>
             {props.stampUrl ? (
               <Image
                 src={props.stampUrl}
-                style={{ width: 60, height: 40, objectFit: 'contain', marginBottom: 4 }}
+                style={{ width: 80, height: 36, objectFit: 'contain', marginBottom: 6 }}
               />
-            ) : null}
-            <Text style={S.signatureLine}>
-              {props.practitionerName}
-              {props.practitionerTitle
-                ? `\n${props.practitionerTitle}`
-                : ''}
-              {props.practitionerCode
-                ? `\nParafă: ${props.practitionerCode}`
-                : ''}
-            </Text>
+            ) : (
+              <View style={{ height: 36, marginBottom: 6 }} />
+            )}
+            <View style={{ borderTopWidth: 1, borderTopColor: '#94a3b8', paddingTop: 4 }}>
+              <Text style={{ fontSize: 8, color: '#64748b' }}>
+                {props.cabinetName}
+              </Text>
+            </View>
           </View>
+
         </View>
 
         <Text style={S.pageNum}>
