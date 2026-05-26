@@ -293,53 +293,88 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             description={t('reports.emptyDescription')}
           />
         ) : (
-          <div className="border rounded-lg overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
-              <thead className="bg-muted/30 text-xs uppercase tracking-wide">
-                <tr>
-                  <th className="text-left px-4 py-2">
-                    {t('reports.monthly.month')}
-                  </th>
-                  <th className="text-right px-4 py-2">
-                    {t('reports.headline.total')}
-                  </th>
-                  <th className="text-right px-4 py-2">
-                    {t('reports.headline.apt')}
-                  </th>
-                  <th className="text-right px-4 py-2">
-                    {t('reports.headline.aptConditionat')}
-                  </th>
-                  <th className="text-right px-4 py-2">
-                    {t('reports.headline.inapt_temporar')}
-                  </th>
-                  <th className="text-right px-4 py-2">
-                    {t('reports.headline.inapt')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {monthlyTrend.map((m) => {
-                  const label = monthFormatter.format(new Date(Date.UTC(m.year, m.month, 1)))
-                  return (
-                    <tr key={`${m.year}-${m.month}`}>
-                      <td className="px-4 py-2 capitalize">{label}</td>
-                      <td className="px-4 py-2 text-right font-semibold text-foreground">
-                        {m.total}
-                      </td>
-                      <td className="px-4 py-2 text-right font-semibold text-emerald-700">{m.apt}</td>
-                      <td className="px-4 py-2 text-right font-semibold text-amber-700">
-                        {m.apt_conditionat}
-                      </td>
-                      <td className="px-4 py-2 text-right font-semibold text-orange-700">
-                        {m.inapt_temporar}
-                      </td>
-                      <td className="px-4 py-2 text-right font-semibold text-red-700">{m.inapt}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="hidden md:block border rounded-lg overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
+                <thead className="bg-muted/30 text-xs uppercase tracking-wide">
+                  <tr>
+                    <th className="text-left px-4 py-2">
+                      {t('reports.monthly.month')}
+                    </th>
+                    <th className="text-right px-4 py-2">
+                      {t('reports.headline.total')}
+                    </th>
+                    <th className="text-right px-4 py-2">
+                      {t('reports.headline.apt')}
+                    </th>
+                    <th className="text-right px-4 py-2">
+                      {t('reports.headline.aptConditionat')}
+                    </th>
+                    <th className="text-right px-4 py-2">
+                      {t('reports.headline.inapt_temporar')}
+                    </th>
+                    <th className="text-right px-4 py-2">
+                      {t('reports.headline.inapt')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {monthlyTrend.map((m) => {
+                    const label = monthFormatter.format(new Date(Date.UTC(m.year, m.month, 1)))
+                    return (
+                      <tr key={`${m.year}-${m.month}`}>
+                        <td className="px-4 py-2 capitalize">{label}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-foreground">
+                          {m.total}
+                        </td>
+                        <td className="px-4 py-2 text-right font-semibold text-emerald-700">{m.apt}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-amber-700">
+                          {m.apt_conditionat}
+                        </td>
+                        <td className="px-4 py-2 text-right font-semibold text-orange-700">
+                          {m.inapt_temporar}
+                        </td>
+                        <td className="px-4 py-2 text-right font-semibold text-red-700">{m.inapt}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="md:hidden space-y-2">
+              {monthlyTrend.map((m) => {
+                const label = monthFormatter.format(new Date(Date.UTC(m.year, m.month, 1)))
+                return (
+                  <div key={`${m.year}-${m.month}`} className="border rounded-lg p-3">
+                    <div className="font-medium capitalize mb-2">{label}</div>
+                    <div className="grid grid-cols-3 gap-x-3 gap-y-2 text-xs">
+                      <div className="text-center">
+                        <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.total')}</div>
+                        <div className="font-bold text-base">{m.total}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.apt')}</div>
+                        <div className="font-bold text-base text-emerald-700">{m.apt}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.aptConditionat')}</div>
+                        <div className="font-bold text-base text-amber-700">{m.apt_conditionat}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.inapt_temporar')}</div>
+                        <div className="font-bold text-base text-orange-700">{m.inapt_temporar}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.inapt')}</div>
+                        <div className="font-bold text-base text-red-700">{m.inapt}</div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
         )}
       </section>
 
@@ -355,13 +390,14 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             description={t('reports.emptyDescription')}
           />
         ) : (
-          <div className="border rounded-lg overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
-              <thead className="bg-muted/30 text-xs uppercase tracking-wide">
-                <tr>
-                  <th className="text-left px-4 py-2">
-                    {t('reports.perCompany.company')}
-                  </th>
+          <>
+            <div className="hidden md:block border rounded-lg overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
+                <thead className="bg-muted/30 text-xs uppercase tracking-wide">
+                  <tr>
+                    <th className="text-left px-4 py-2">
+                      {t('reports.perCompany.company')}
+                    </th>
                   <th className="text-right px-4 py-2">
                     {t('reports.headline.total')}
                   </th>
@@ -417,6 +453,47 @@ export default async function ReportsPage({ searchParams }: PageProps) {
               </tbody>
             </table>
           </div>
+
+            <div className="md:hidden space-y-2">
+              {perCompany.map((c) => (
+                <div key={c.companyId} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Link href={`/companies/${c.companyId}`} className="font-medium hover:underline">
+                      {c.companyName}
+                    </Link>
+                    <Link
+                      href={`/companies/${c.companyId}/report?range=${rangeKey}`}
+                      className="text-xs text-primary hover:underline shrink-0"
+                    >
+                      {t('reports.perCompany.viewDetail')} →
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-3 gap-x-3 gap-y-2 text-xs">
+                    <div className="text-center">
+                      <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.total')}</div>
+                      <div className="font-bold text-base">{c.total}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.apt')}</div>
+                      <div className="font-bold text-base text-emerald-700">{c.apt}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.aptConditionat')}</div>
+                      <div className="font-bold text-base text-amber-700">{c.apt_conditionat}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.inapt_temporar')}</div>
+                      <div className="font-bold text-base text-orange-700">{c.inapt_temporar}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.inapt')}</div>
+                      <div className="font-bold text-base text-red-700">{c.inapt}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
       {/* Per-practitioner */}
@@ -425,7 +502,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           <h2 className="text-lg font-semibold">
             {t('reports.perPractitioner.title')}
           </h2>
-          <div className="border rounded-lg overflow-x-auto">
+          <div className="hidden md:block border rounded-lg overflow-x-auto">
             <table className="w-full text-sm min-w-[500px]">
               <thead className="bg-muted/30 text-xs uppercase tracking-wide">
                 <tr>
@@ -449,6 +526,32 @@ export default async function ReportsPage({ searchParams }: PageProps) {
               </tbody>
             </table>
           </div>
+
+          <div className="md:hidden space-y-2">
+            {perPractitioner.map((p) => (
+              <div key={p.name} className="border rounded-lg p-3 space-y-2">
+                <div className="font-medium">{p.name}</div>
+                <div className="grid grid-cols-4 gap-x-2 text-xs">
+                  <div className="text-center">
+                    <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.perPractitioner.colTotal')}</div>
+                    <div className="font-bold text-base">{p.total}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.perPractitioner.colApt')}</div>
+                    <div className="font-bold text-base text-emerald-700">{p.apt}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.perPractitioner.colAptConditionat')}</div>
+                    <div className="font-bold text-base text-amber-700">{p.apt_conditionat}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.perPractitioner.colInapt')}</div>
+                    <div className="font-bold text-base text-red-700">{p.inapt}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
@@ -465,7 +568,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             {' · '}
             {t('reports.revenue.outstanding')}: <strong>{(revenueTotals.invoiced - revenueTotals.paid).toFixed(2)} RON</strong>
           </div>
-          <div className="border rounded-lg overflow-x-auto">
+          <div className="hidden md:block border rounded-lg overflow-x-auto">
             <table className="w-full text-sm min-w-[500px]">
               <thead className="bg-muted/30 text-xs uppercase tracking-wide">
                 <tr>
@@ -496,6 +599,30 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="md:hidden space-y-2">
+            {revenueRows.map((r) => (
+              <div key={r.companyId} className="border rounded-lg p-3 space-y-2">
+                <Link href={`/companies/${r.companyId}`} className="font-medium hover:underline block">
+                  {r.companyName}
+                </Link>
+                <div className="grid grid-cols-3 gap-x-2 text-xs">
+                  <div className="text-center">
+                    <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.revenue.colInvoiced')}</div>
+                    <div className="font-bold text-sm tabular-nums">{r.invoiced.toFixed(2)}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.revenue.colPaid')}</div>
+                    <div className="font-bold text-sm tabular-nums text-green-700">{r.paid.toFixed(2)}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.revenue.colOutstanding')}</div>
+                    <div className="font-bold text-sm tabular-nums text-muted-foreground">{(r.invoiced - r.paid).toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}

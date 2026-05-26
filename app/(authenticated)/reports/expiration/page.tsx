@@ -136,7 +136,8 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
             </a>
           </div>
 
-          <div className="border rounded-lg overflow-x-auto">
+          {/* Desktop table */}
+          <div className="hidden md:block border rounded-lg overflow-x-auto">
             <table className="w-full text-sm min-w-[700px]">
               <thead className="bg-muted/30 text-xs uppercase tracking-wide">
                 <tr>
@@ -212,6 +213,74 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-2">
+            {rows.map((row) => {
+              const due = row.nextExaminationDueDate!
+              const daysLeft = Math.ceil(
+                (due.getTime() - today.getTime()) / 86_400_000
+              )
+              const isOverdue = daysLeft < 0
+              return (
+                <div
+                  key={row.employee.id}
+                  className={`border rounded-lg p-3 space-y-2 ${isOverdue ? 'border-destructive/40 bg-destructive/5' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <Link
+                      href={`/employees/${row.employee.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {row.employee.lastName} {row.employee.firstName}
+                    </Link>
+                    <span
+                      className={`text-sm font-semibold whitespace-nowrap tabular-nums ${
+                        isOverdue
+                          ? 'text-destructive'
+                          : daysLeft <= 14
+                            ? 'text-amber-600'
+                            : 'text-muted-foreground'
+                      }`}
+                    >
+                      {isOverdue ? `+${Math.abs(daysLeft)}` : daysLeft}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>
+                      <Link
+                        href={`/companies/${row.workplace.company.id}`}
+                        className="hover:underline"
+                      >
+                        {row.workplace.company.name}
+                      </Link>
+                      {' · '}
+                      {row.workplace.name}
+                      {row.workplace.department && ` — ${row.workplace.department}`}
+                    </div>
+                    <div className={isOverdue ? 'text-destructive font-medium' : ''}>
+                      {formatDate(due, 'medium', locale === 'ro' ? 'ro' : 'en')}
+                      {isOverdue && (
+                        <span className="ml-2 inline-flex">
+                          <RecallStatusBadge status="overdue" />
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <Link
+                        href={`/examinations/${row.id}`}
+                        className="hover:underline"
+                      >
+                        {row.examinationNumber}
+                      </Link>
+                      {' '}
+                      ({formatDate(row.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')})
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </>
       )}

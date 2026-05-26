@@ -466,6 +466,36 @@ async function ScadenteView(props: {
   })
 
   const t = props.t
+
+  const recallActionLabels = {
+    colWorker: t('recalls.colWorker'),
+    colCompany: t('recalls.colCompany'),
+    colWorkplace: t('recalls.colWorkplace'),
+    colExamType: t('recalls.colExamType'),
+    colDueDate: t('recalls.colDueDate'),
+    colDaysUntil: t('recalls.colDaysUntil'),
+    colActions: t('recalls.colActions'),
+    statusOverdue: t('recalls.statusOverdue'),
+    daysOverdue: t('recalls.daysOverdue'),
+    daysUntilDue: t('recalls.daysUntilDue'),
+    dueToday: t('recalls.dueToday'),
+    scheduleButton: t('recalls.scheduleButton'),
+    cancelButton: t('recalls.cancelButton'),
+    scheduling: t('recalls.scheduling'),
+    cancelling: t('recalls.cancelling'),
+    scheduleDialogTitle: t('recalls.scheduleDialogTitle'),
+    schedulePractitioner: t('recalls.schedulePractitioner'),
+    scheduleAt: t('recalls.scheduleAt'),
+    scheduleAtHelp: t('recalls.scheduleAtHelp'),
+    submitSchedule: t('recalls.submitSchedule'),
+    cancelDialogTitle: t('recalls.cancelDialogTitle'),
+    cancelReasonLabel: t('recalls.cancelReasonLabel'),
+    cancelReasonPlaceholder: t('recalls.cancelReasonPlaceholder'),
+    submitCancel: t('recalls.submitCancel'),
+    cancelDialog: t('common.cancel'),
+    errorMessage: t('recalls.errorMessage'),
+  }
+
   const horizonTabs: Array<{
     h: Horizon
     label: string
@@ -629,8 +659,9 @@ async function ScadenteView(props: {
           </p>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-x-auto -mx-4 sm:mx-0">
-          <table className="w-full text-sm min-w-[720px]">
+        <>
+          <div className="hidden md:block border rounded-lg overflow-x-auto">
+            <table className="w-full text-sm min-w-[720px]">
             <thead className="bg-muted/30 text-xs uppercase tracking-wide">
               <tr>
                 <th className="text-left px-4 py-2">{t('recalls.colWorker')}</th>
@@ -726,40 +757,7 @@ async function ScadenteView(props: {
                           defaultPractitionerId={
                             props.isPractitioner ? props.userId : undefined
                           }
-                          labels={{
-                            colWorker: t('recalls.colWorker'),
-                            colCompany: t('recalls.colCompany'),
-                            colWorkplace: t('recalls.colWorkplace'),
-                            colExamType: t('recalls.colExamType'),
-                            colDueDate: t('recalls.colDueDate'),
-                            colDaysUntil: t('recalls.colDaysUntil'),
-                            colActions: t('recalls.colActions'),
-                            statusOverdue: t('recalls.statusOverdue'),
-                            daysOverdue: t('recalls.daysOverdue'),
-                            daysUntilDue: t('recalls.daysUntilDue'),
-                            dueToday: t('recalls.dueToday'),
-                            scheduleButton: t('recalls.scheduleButton'),
-                            cancelButton: t('recalls.cancelButton'),
-                            scheduling: t('recalls.scheduling'),
-                            cancelling: t('recalls.cancelling'),
-                            scheduleDialogTitle: t(
-                              'recalls.scheduleDialogTitle'
-                            ),
-                            schedulePractitioner: t(
-                              'recalls.schedulePractitioner'
-                            ),
-                            scheduleAt: t('recalls.scheduleAt'),
-                            scheduleAtHelp: t('recalls.scheduleAtHelp'),
-                            submitSchedule: t('recalls.submitSchedule'),
-                            cancelDialogTitle: t('recalls.cancelDialogTitle'),
-                            cancelReasonLabel: t('recalls.cancelReasonLabel'),
-                            cancelReasonPlaceholder: t(
-                              'recalls.cancelReasonPlaceholder'
-                            ),
-                            submitCancel: t('recalls.submitCancel'),
-                            cancelDialog: t('common.cancel'),
-                            errorMessage: t('recalls.errorMessage'),
-                          }}
+                          labels={recallActionLabels}
                         />
                       </td>
                     )}
@@ -768,7 +766,88 @@ async function ScadenteView(props: {
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-2">
+            {visibleRecalls.map((r) => {
+              const due = new Date(r.dueDate)
+              const days = Math.round(
+                (due.getTime() - props.today.getTime()) / (1000 * 60 * 60 * 24)
+              )
+              const isOverdue = r.status === 'overdue'
+              return (
+                <div
+                  key={r.id}
+                  className={`border rounded-lg p-3 space-y-2 ${isOverdue ? 'border-destructive/40 bg-destructive/5' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <Link
+                      href={`/employees/${r.employee.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {r.employee.lastName} {r.employee.firstName}
+                    </Link>
+                    <span
+                      className={`text-sm font-semibold whitespace-nowrap tabular-nums ${
+                        isOverdue
+                          ? 'text-destructive'
+                          : days <= 7
+                            ? 'text-amber-600'
+                            : 'text-muted-foreground'
+                      }`}
+                    >
+                      {days === 0
+                        ? t('recalls.dueToday')
+                        : days < 0
+                          ? t('recalls.daysOverdue').replace('{days}', String(-days))
+                          : t('recalls.daysUntilDue').replace('{days}', String(days))}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div>
+                      <Link
+                        href={`/companies/${r.workplace.company.id}`}
+                        className="hover:underline"
+                      >
+                        {r.workplace.company.name}
+                      </Link>
+                      {' · '}
+                      {r.workplace.name}
+                      {r.workplace.department && ` — ${r.workplace.department}`}
+                    </div>
+                    <div>
+                      {props.locale === 'en'
+                        ? r.examinationType.nameEn ?? r.examinationType.nameRo
+                        : r.examinationType.nameRo}
+                    </div>
+                    <div className={isOverdue ? 'text-destructive font-medium' : ''}>
+                      {formatDate(due, 'medium', props.locale === 'ro' ? 'ro' : 'en')}
+                    </div>
+                  </div>
+                  {props.canWrite && (
+                    <div className="pt-1">
+                      <RecallActions
+                        recallId={r.id}
+                        employeeName={`${r.employee.lastName} ${r.employee.firstName}`}
+                        practitioners={practitioners.map((p) => ({
+                          id: p.id,
+                          label: `${p.lastName} ${p.firstName}${
+                            p.professionalTitle ? ` (${p.professionalTitle})` : ''
+                          }`,
+                        }))}
+                        defaultPractitionerId={
+                          props.isPractitioner ? props.userId : undefined
+                        }
+                        labels={recallActionLabels}
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )
