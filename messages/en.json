@@ -1075,10 +1075,13 @@
       "report": "Report",
       "viewDetail": "Details"
     },
+    "exportCsv": "Export CSV",
     "nav": {
       "activity": "Cabinet activity",
       "expiration": "Expirations",
       "hazards": "Hazard exposure",
+      "vaccinations": "Vaccinations",
+      "practitioners": "By practitioner",
       "regulatory": "Inspection snapshot"
     },
     "revenue": {
@@ -1130,7 +1133,41 @@
       "colWorkplaces": "Workplaces",
       "colWorkers": "Exposed workers",
       "colExams": "Exams in period",
-      "empty": "No active hazards defined for any workplace."
+      "empty": "No active hazards defined for any workplace.",
+      "exportCsv": "Export CSV"
+    },
+    "vaccinations": {
+      "title": "Vaccination report",
+      "subtitle": "Vaccinations administered in the selected period",
+      "empty": "No vaccinations in the selected period",
+      "emptyTitle": "No vaccinations",
+      "emptyDescription": "No vaccinations recorded for the selected period.",
+      "colEmployee": "Employee",
+      "colCompany": "Company",
+      "colVaccine": "Vaccine",
+      "colDose": "Dose",
+      "colDate": "Date",
+      "colNextDue": "Next dose",
+      "colReactions": "Reactions",
+      "colPractitioner": "Practitioner",
+      "nextDueOverdue": "Overdue",
+      "exportCsv": "Export CSV"
+    },
+    "practitioners": {
+      "title": "Activity by practitioner",
+      "subtitle": "Examinations conducted by each practitioner in the selected period",
+      "empty": "No examinations in the selected period",
+      "emptyTitle": "No activity",
+      "emptyDescription": "No examinations recorded for the selected period.",
+      "colPractitioner": "Practitioner",
+      "colRole": "Role",
+      "colTotal": "Total",
+      "colSigned": "Signed",
+      "colApt": "Fit",
+      "colAptConditionat": "Cond. fit",
+      "colInaptTemporar": "Temp. unfit",
+      "colInapt": "Unfit",
+      "exportCsv": "Export CSV"
     },
     "regulatory": {
       "title": "DSP/ITM inspection snapshot",

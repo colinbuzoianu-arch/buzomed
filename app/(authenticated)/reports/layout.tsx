@@ -13,6 +13,8 @@ export default async function ReportsLayout({
     { href: '/reports', label: t('reports.nav.activity') },
     { href: '/reports/expiration', label: t('reports.nav.expiration') },
     { href: '/reports/hazards', label: t('reports.nav.hazards') },
+    { href: '/reports/vaccinations', label: t('reports.nav.vaccinations') },
+    { href: '/reports/practitioners', label: t('reports.nav.practitioners') },
     { href: '/reports/regulatory', label: t('reports.nav.regulatory') },
   ]
 

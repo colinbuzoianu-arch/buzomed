@@ -221,8 +221,8 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         <p className="text-muted-foreground mt-1">{t('reports.subtitle')}</p>
       </div>
 
-      {/* Range selector */}
-      <div className="flex flex-wrap gap-2 text-sm">
+      {/* Range selector + export */}
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         {ALL_DATE_RANGES.map((key) => {
           const active = rangeKey === key
           return (
@@ -237,6 +237,16 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             </Link>
           )
         })}
+        <a
+          href={`/api/reports/activity-export?range=${rangeKey}`}
+          download
+          className="inline-flex items-center gap-1.5 h-9 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-[hsl(var(--surface-muted))] transition-colors ml-auto"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M7 2v7m0 0L4.5 6.5M7 9l2.5-2.5M2 11h10"/>
+          </svg>
+          {t('reports.exportCsv')}
+        </a>
       </div>
 
       {/* Headline */}

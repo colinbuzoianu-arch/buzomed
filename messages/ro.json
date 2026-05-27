@@ -1075,10 +1075,13 @@
       "report": "Raport",
       "viewDetail": "Detalii"
     },
+    "exportCsv": "Export CSV",
     "nav": {
       "activity": "Activitate cabinet",
       "expiration": "Scadente",
       "hazards": "Expuneri la noxe",
+      "vaccinations": "Vaccinări",
+      "practitioners": "Per practician",
       "regulatory": "Snapshot inspectie"
     },
     "revenue": {
@@ -1130,7 +1133,41 @@
       "colWorkplaces": "Locuri de munca",
       "colWorkers": "Angajati expusi",
       "colExams": "Examinarile in interval",
-      "empty": "Nicio noxa activa definita pentru locurile de munca."
+      "empty": "Nicio noxa activa definita pentru locurile de munca.",
+      "exportCsv": "Export CSV"
+    },
+    "vaccinations": {
+      "title": "Raport vaccinări",
+      "subtitle": "Vaccinările administrate în intervalul selectat",
+      "empty": "Nicio vaccinare în intervalul selectat",
+      "emptyTitle": "Nicio vaccinare",
+      "emptyDescription": "Nu există vaccinări înregistrate pentru intervalul selectat.",
+      "colEmployee": "Angajat",
+      "colCompany": "Companie",
+      "colVaccine": "Vaccin",
+      "colDose": "Doza",
+      "colDate": "Data",
+      "colNextDue": "Doza următoare",
+      "colReactions": "Reacții",
+      "colPractitioner": "Medic",
+      "nextDueOverdue": "Scadentă",
+      "exportCsv": "Export CSV"
+    },
+    "practitioners": {
+      "title": "Activitate per practician",
+      "subtitle": "Examinări efectuate de fiecare medic în intervalul selectat",
+      "empty": "Nicio examinare în intervalul selectat",
+      "emptyTitle": "Nicio activitate",
+      "emptyDescription": "Nu există examinări înregistrate pentru intervalul selectat.",
+      "colPractitioner": "Practician",
+      "colRole": "Rol",
+      "colTotal": "Total",
+      "colSigned": "Semnate",
+      "colApt": "Apt",
+      "colAptConditionat": "Apt cond.",
+      "colInaptTemporar": "Inapt temp.",
+      "colInapt": "Inapt",
+      "exportCsv": "Export CSV"
     },
     "regulatory": {
       "title": "Snapshot inspectie DSP/ITM",
