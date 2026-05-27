@@ -19,7 +19,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   }
 
   const { id, docKey } = await ctx.params
-  console.log('[doc-fill] generating', docKey, 'for exam', id)
 
   const examination = await prisma.examination.findFirst({
     where: { id, tenantId: auth.user.tenantId, deletedAt: null },
@@ -48,6 +47,9 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   const doc = docs.find((d) => d.key === docKey)
   if (!doc) {
     return NextResponse.json({ error: 'document_not_found' }, { status: 404 })
+  }
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[doc-fill] generating', docKey, 'for exam', id)
   }
 
   const vs = (examination.vitalSigns ?? {}) as Record<string, unknown>

@@ -12,6 +12,9 @@ import { sendEmail } from '@/lib/email'
  * Returns { sent, skipped } where skipped = companies with no email address.
  */
 export async function POST(request: NextRequest) {
+  if (!process.env.CRON_SECRET) {
+    return NextResponse.json({ error: 'cron_secret_not_configured' }, { status: 503 })
+  }
   const secret = request.headers.get('x-cron-secret')
   if (!secret || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })

@@ -17,6 +17,9 @@ export async function POST(request: NextRequest) {
   const currentPage: string = typeof body.currentPage === 'string' ? body.currentPage : '/'
   const cabinetName: string = typeof body.cabinetName === 'string' ? body.cabinetName : '—'
 
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
   const result = await sendEmail({
     to: { email: 'hello@buzomed.com', name: 'Colin Buzomed' },
     content: {
@@ -25,10 +28,10 @@ export async function POST(request: NextRequest) {
         <p><strong>Utilizator:</strong> ${auth.user.firstName} ${auth.user.lastName} (${auth.user.email})</p>
         <p><strong>Cabinet:</strong> ${cabinetName}</p>
         <p><strong>Rol:</strong> ${auth.user.roles.join(', ')}</p>
-        <p><strong>Pagina:</strong> ${currentPage}</p>
+        <p><strong>Pagina:</strong> ${esc(currentPage)}</p>
         <hr />
         <p><strong>Rezumat conversație:</strong></p>
-        <pre style="font-family: monospace; white-space: pre-wrap; font-size: 13px; background: #f5f5f5; padding: 12px; border-radius: 4px;">${summary}</pre>
+        <pre style="font-family: monospace; white-space: pre-wrap; font-size: 13px; background: #f5f5f5; padding: 12px; border-radius: 4px;">${esc(summary)}</pre>
         <hr />
         <p style="font-size: 12px; color: #666;">Trimis automat de Iris — asistentul Buzomed</p>
       `,

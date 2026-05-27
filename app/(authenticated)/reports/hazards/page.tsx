@@ -141,7 +141,9 @@ export default async function HazardsPage({ searchParams }: PageProps) {
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">{t('reports.hazards.empty')}</p>
+        <div className="rounded-lg border border-dashed py-12 text-center">
+          <p className="text-sm text-muted-foreground">{t('reports.hazards.empty')}</p>
+        </div>
       ) : (
         <div className="border rounded-lg overflow-x-auto">
           <table className="w-full text-sm min-w-[600px]">

@@ -61,8 +61,13 @@ export async function POST(request: NextRequest) {
   type RawItem = { description?: unknown; quantity?: unknown; unitPrice?: unknown; lineTotal?: unknown }
   const items = rawItems as RawItem[]
 
-  const subtotal = items.reduce((sum, item) => sum + Number(item.lineTotal ?? 0), 0)
-  const vatRate = Number(body.vatRate ?? 0)
+  const toFinite = (v: unknown, fallback = 0): number => {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : fallback
+  }
+
+  const subtotal = items.reduce((sum, item) => sum + toFinite(item.lineTotal), 0)
+  const vatRate = Math.max(0, Math.min(toFinite(body.vatRate), 1))
   const vatAmount = subtotal * vatRate
   const total = subtotal + vatAmount
 

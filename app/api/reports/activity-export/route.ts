@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       deletedAt: null,
       createdAt: { gte: range.from, lt: range.to },
     },
+    take: 10000,
     orderBy: { createdAt: 'desc' },
     select: {
       examinationNumber: true,

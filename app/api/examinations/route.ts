@@ -63,32 +63,36 @@ export async function GET(request: NextRequest) {
     ...(status ? { status } : {}),
   }
 
-  const examinations = await prisma.examination.findMany({
-    where,
-    orderBy: [{ scheduledAt: 'desc' }, { createdAt: 'desc' }],
-    take: 200,
-    include: {
-      employee: {
-        select: { id: true, firstName: true, lastName: true },
-      },
-      workplace: {
-        select: {
-          id: true,
-          name: true,
-          department: true,
-          company: { select: { id: true, name: true } },
+  try {
+    const examinations = await prisma.examination.findMany({
+      where,
+      orderBy: [{ scheduledAt: 'desc' }, { createdAt: 'desc' }],
+      take: 200,
+      include: {
+        employee: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        workplace: {
+          select: {
+            id: true,
+            name: true,
+            department: true,
+            company: { select: { id: true, name: true } },
+          },
+        },
+        examinationType: {
+          select: { id: true, code: true, nameRo: true, nameEn: true },
+        },
+        practitioner: {
+          select: { id: true, firstName: true, lastName: true },
         },
       },
-      examinationType: {
-        select: { id: true, code: true, nameRo: true, nameEn: true },
-      },
-      practitioner: {
-        select: { id: true, firstName: true, lastName: true },
-      },
-    },
-  })
-
-  return NextResponse.json({ examinations })
+    })
+    return NextResponse.json({ examinations })
+  } catch (err) {
+    console.error('[examinations/GET]', err)
+    return NextResponse.json({ error: 'internal_error' }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -308,26 +312,30 @@ export async function POST(request: NextRequest) {
   )
 
   // Create with collision-safe numbering.
-  const examination = await createExaminationWithNumber(
-    auth.user.tenantId,
-    (n) => ({
-      tenant: { connect: { id: auth.user!.tenantId! } },
-      employee: { connect: { id: employee.id } },
-      workplace: { connect: { id: resolvedWorkplaceId! } },
-      examinationType: { connect: { id: examinationType.id } },
-      practitioner: { connect: { id: practitioner.id } },
-      location: { connect: { id: locationId } },
-      examinationNumber: n.number,
-      examinationYear: n.year,
-      examinationSequence: n.sequence,
-      scheduledAt,
-      status: 'scheduled',
-      requestSource: requestSource ?? null,
-      referringDocumentNumber: referringDocumentNumber ?? null,
-      notes: notes ?? null,
-    }),
-    (created) => created
-  )
-
-  return NextResponse.json({ examination }, { status: 201 })
+  try {
+    const examination = await createExaminationWithNumber(
+      auth.user.tenantId,
+      (n) => ({
+        tenant: { connect: { id: auth.user!.tenantId! } },
+        employee: { connect: { id: employee.id } },
+        workplace: { connect: { id: resolvedWorkplaceId! } },
+        examinationType: { connect: { id: examinationType.id } },
+        practitioner: { connect: { id: practitioner.id } },
+        location: { connect: { id: locationId } },
+        examinationNumber: n.number,
+        examinationYear: n.year,
+        examinationSequence: n.sequence,
+        scheduledAt,
+        status: 'scheduled',
+        requestSource: requestSource ?? null,
+        referringDocumentNumber: referringDocumentNumber ?? null,
+        notes: notes ?? null,
+      }),
+      (created) => created
+    )
+    return NextResponse.json({ examination }, { status: 201 })
+  } catch (err) {
+    console.error('[examinations/POST]', err)
+    return NextResponse.json({ error: 'internal_error' }, { status: 500 })
+  }
 }

@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       deletedAt: null,
       roles: { hasSome: ['practitioner', 'practice_admin'] },
     },
+    take: 1000,
     select: {
       id: true,
       firstName: true,

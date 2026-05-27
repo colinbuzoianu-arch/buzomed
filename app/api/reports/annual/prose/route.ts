@@ -16,33 +16,27 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
 
-  const {
-    companyName,
-    year,
-    totalExams,
-    signed,
-    apt,
-    apt_conditionat,
-    inapt_temporar,
-    inapt,
-    workers,
-    workplaces,
-    topHazards,
-    locale,
-  } = body as {
-    companyName: string
-    year: number
-    totalExams: number
-    signed: number
-    apt: number
-    apt_conditionat: number
-    inapt_temporar: number
-    inapt: number
-    workers: number
-    workplaces: number
-    topHazards: string[]
-    locale: string
+  const clampInt = (v: unknown, max = 1_000_000): number => {
+    const n = Number(v)
+    return Number.isFinite(n) ? Math.max(0, Math.min(Math.round(n), max)) : 0
   }
+
+  const companyName = String(body.companyName ?? '').slice(0, 200)
+  const year = clampInt(body.year, 2100)
+  const totalExams = clampInt(body.totalExams)
+  const signed = clampInt(body.signed)
+  const apt = clampInt(body.apt)
+  const apt_conditionat = clampInt(body.apt_conditionat)
+  const inapt_temporar = clampInt(body.inapt_temporar)
+  const inapt = clampInt(body.inapt)
+  const workers = clampInt(body.workers)
+  const workplaces = clampInt(body.workplaces)
+  const topHazards = Array.isArray(body.topHazards)
+    ? (body.topHazards as unknown[])
+        .slice(0, 20)
+        .map((h) => String(h).slice(0, 100))
+    : []
+  const locale = body.locale === 'en' ? 'en' : 'ro'
 
   const isRo = locale !== 'en'
 

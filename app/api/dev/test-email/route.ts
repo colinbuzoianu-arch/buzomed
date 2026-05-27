@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { renderInviteEmail, sendEmail } from '@/lib/email'
+import { getApiUser } from '@/lib/auth'
 
 /**
  * Dev-only smoke test for the email module.
@@ -20,6 +21,10 @@ export async function GET(request: Request) {
       { error: 'Not available in production' },
       { status: 404 }
     )
+  }
+  const auth = await getApiUser()
+  if (!auth.user || !auth.user.roles.includes('super_admin')) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
   const { searchParams } = new URL(request.url)

@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
   const rangeKey = parseDateRange(searchParams.get('range'))
   const range = resolveDateRange(rangeKey)
 
+  try {
   // Block 1: headline counts. Single query, then post-process.
   const inRange = {
     tenantId: auth.user.tenantId,
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
 
   const headlineExams = await prisma.examination.findMany({
     where: inRange,
+    take: 10000,
     select: {
       id: true,
       verdict: true,
@@ -145,6 +147,7 @@ export async function GET(request: NextRequest) {
   // Block 3: per-company breakdown.
   const perCompanyRaw = await prisma.examination.findMany({
     where: inRange,
+    take: 10000,
     select: {
       id: true,
       verdict: true,
@@ -205,4 +208,8 @@ export async function GET(request: NextRequest) {
     monthlyTrend,
     perCompany,
   })
+  } catch (err) {
+    console.error('[reports/operational]', err)
+    return NextResponse.json({ error: 'internal_error' }, { status: 500 })
+  }
 }

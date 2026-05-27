@@ -667,6 +667,7 @@ model Employee {
   @@index([tenantId, cnpHash])
   @@index([tenantId, lastName, firstName])
   @@index([tenantId, companyEmployeeId])
+  @@index([tenantId, archivedAt])
   @@index([archivedAt])
   @@index([companyId])
 }
@@ -792,6 +793,7 @@ model Examination {
   @@map("examinations")
   @@unique([tenantId, examinationYear, examinationSequence])
   @@index([tenantId])
+  @@index([tenantId, status])
   @@index([tenantId, completedAt])
   @@index([employeeId, completedAt])
   @@index([practitionerId, completedAt])

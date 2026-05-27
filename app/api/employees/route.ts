@@ -267,66 +267,76 @@ export async function POST(request: NextRequest) {
     storedIdDocumentNumber = null
   }
 
-  const employee = await prisma.employee.create({
-    data: {
-      tenantId: auth.user.tenantId,
-      createdByUserId: auth.user.id,
-      firstName: data.firstName!,
-      lastName: data.lastName!,
-      jobTitle: data.jobTitle,
-      companyId: data.companyId ?? null,
-      idDocumentType: data.idDocumentType ?? 'other',
-      idDocumentNumber: storedIdDocumentNumber,
-      cnpEncrypted,
-      cnpHash,
-      companyEmployeeId: data.companyEmployeeId,
-      birthDate: data.birthDate,
-      gender: data.gender,
-      nationality: data.nationality ?? 'RO',
-      addressLine1: data.addressLine1,
-      addressLine2: data.addressLine2,
-      city: data.city,
-      county: data.county,
-      postalCode: data.postalCode,
-      phone: data.phone,
-      email: data.email,
-      emergencyContactName: data.emergencyContactName,
-      emergencyContactPhone: data.emergencyContactPhone,
-      emergencyContactRelationship: data.emergencyContactRelationship,
-      bloodType: data.bloodType,
-      notes: data.notes,
-      isActive: data.isActive ?? true,
-    },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      idDocumentType: true,
-      idDocumentNumber: true,
-      isActive: true,
-      archivedAt: true,
-      createdAt: true,
-    },
-  })
+  let employee: { id: string; firstName: string; lastName: string; idDocumentType: string; idDocumentNumber: string | null; isActive: boolean; archivedAt: Date | null; createdAt: Date }
+  try {
+    employee = await prisma.employee.create({
+      data: {
+        tenantId: auth.user.tenantId,
+        createdByUserId: auth.user.id,
+        firstName: data.firstName!,
+        lastName: data.lastName!,
+        jobTitle: data.jobTitle,
+        companyId: data.companyId ?? null,
+        idDocumentType: data.idDocumentType ?? 'other',
+        idDocumentNumber: storedIdDocumentNumber,
+        cnpEncrypted,
+        cnpHash,
+        companyEmployeeId: data.companyEmployeeId,
+        birthDate: data.birthDate,
+        gender: data.gender,
+        nationality: data.nationality ?? 'RO',
+        addressLine1: data.addressLine1,
+        addressLine2: data.addressLine2,
+        city: data.city,
+        county: data.county,
+        postalCode: data.postalCode,
+        phone: data.phone,
+        email: data.email,
+        emergencyContactName: data.emergencyContactName,
+        emergencyContactPhone: data.emergencyContactPhone,
+        emergencyContactRelationship: data.emergencyContactRelationship,
+        bloodType: data.bloodType,
+        notes: data.notes,
+        isActive: data.isActive ?? true,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        idDocumentType: true,
+        idDocumentNumber: true,
+        isActive: true,
+        archivedAt: true,
+        createdAt: true,
+      },
+    })
+  } catch (err) {
+    console.error('[employees/POST] create failed', err)
+    return NextResponse.json({ error: 'internal_error' }, { status: 500 })
+  }
 
   // If a workplaceId was supplied, create the initial WorkplaceAssignment.
   const workplaceId =
     typeof body.workplaceId === 'string' && body.workplaceId ? body.workplaceId : null
   if (workplaceId) {
-    const wp = await prisma.workplace.findFirst({
-      where: { id: workplaceId, tenantId: auth.user.tenantId, deletedAt: null },
-      select: { id: true },
-    })
-    if (wp) {
-      await prisma.employeeWorkplaceAssignment.create({
-        data: {
-          tenantId: auth.user.tenantId,
-          employeeId: employee.id,
-          workplaceId: wp.id,
-          startDate: new Date(),
-          isCurrent: true,
-        },
+    try {
+      const wp = await prisma.workplace.findFirst({
+        where: { id: workplaceId, tenantId: auth.user.tenantId, deletedAt: null },
+        select: { id: true },
       })
+      if (wp) {
+        await prisma.employeeWorkplaceAssignment.create({
+          data: {
+            tenantId: auth.user.tenantId,
+            employeeId: employee.id,
+            workplaceId: wp.id,
+            startDate: new Date(),
+            isCurrent: true,
+          },
+        })
+      }
+    } catch (err) {
+      console.error('[employees/POST] workplace assignment failed', err)
     }
   }
 
