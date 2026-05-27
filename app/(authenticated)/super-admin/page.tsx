@@ -112,6 +112,23 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
   const demoTenants = tenants.filter((t) => t.isDemo).length
   const totalExaminations = enriched.reduce((s, t) => s + t.examinationCount, 0)
 
+  // Billing stats
+  const billingRows = await prisma.platformInvoice.groupBy({
+    by: ['status'],
+    where: { deletedAt: null },
+    _count: { id: true },
+    _sum: { total: true },
+  })
+  const byStatus = Object.fromEntries(
+    billingRows.map((r) => [r.status, { count: r._count.id, sum: Number(r._sum.total ?? 0) }])
+  )
+  const billingStats = {
+    issued:        byStatus.issued?.count ?? 0,
+    totalUnpaid:   Math.round((byStatus.issued?.sum ?? 0) + (byStatus.overdue?.sum ?? 0)),
+    paidThisMonth: byStatus.paid?.count ?? 0,
+    overdue:       byStatus.overdue?.count ?? 0,
+  }
+
   function SortLink({
     sortKey,
     label,
@@ -176,6 +193,14 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
         <StatCard label={t('superAdmin.stats.activeTenants')} value={activeTenants} tone="success" />
         <StatCard label={t('superAdmin.stats.demoTenants')} value={demoTenants} />
         <StatCard label={t('superAdmin.stats.totalExaminations')} value={totalExaminations} />
+      </div>
+
+      {/* Billing overview */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="Facturi emise" value={billingStats.issued} />
+        <StatCard label="De încasat (RON)" value={billingStats.totalUnpaid} />
+        <StatCard label="Plătite" value={billingStats.paidThisMonth} tone="success" />
+        <StatCard label="Restanțe" value={billingStats.overdue} />
       </div>
 
       {/* Registrations — invite-only */}

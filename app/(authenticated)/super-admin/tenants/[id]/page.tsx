@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { TenantInviteSection } from './tenant-invite-section'
+import { PlatformInvoicesTab } from './platform-invoices-tab'
 import { formatDate } from '@/lib/format-date'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
@@ -354,6 +355,14 @@ export default async function TenantDetailPage({ params }: PageProps) {
           expiresAt: inv.expiresAt.toISOString(),
         }))}
       />
+
+      {/* Facturare platformă */}
+      <section className="space-y-4">
+        <h2 className="text-[13px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
+          Facturare platformă
+        </h2>
+        <PlatformInvoicesTab tenantId={tenant.id} tenantName={tenant.name} />
+      </section>
     </div>
   )
 }
