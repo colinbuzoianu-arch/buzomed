@@ -126,18 +126,24 @@ export default async function AuthenticatedLayout({
       <footer className="border-t bg-[hsl(var(--surface-muted))]/40 py-3 mt-auto">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[11px] text-[hsl(var(--text-faint))]">
-              Buzomed este un produs{' '}
+            <div className="flex items-center gap-1.5 text-[11px] text-[hsl(var(--text-faint))]">
+              <span>Produs de</span>
               <a
                 href="https://verumsell.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-[hsl(var(--text-muted))] transition-colors hover:underline underline-offset-2"
+                className="opacity-50 hover:opacity-80 transition-opacity"
               >
-                Verumsell
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/verumsell-logo.PNG"
+                  alt="Verumsell"
+                  height={14}
+                  style={{ height: 14, width: 'auto', mixBlendMode: 'multiply' }}
+                />
               </a>
-              {' '}· {new Date().getFullYear()}
-            </p>
+              <span>· {new Date().getFullYear()}</span>
+            </div>
             <div className="flex items-center gap-3">
               <a href="/terms" target="_blank" className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors">
                 Termeni
