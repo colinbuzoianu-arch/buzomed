@@ -71,9 +71,11 @@ ANGAJAȚI:
 - Tabelul din /employees are coloane sortabile: click pe header sortează ascendent, click din nou descendent. Coloane sortabile: Nume, Companie, Funcție (sortare DB), Ultima examinare, Scadență, Loc de muncă (sortare client-side). Sortarea se păstrează când filtrezi sau cauți.
 - Pe pagina de profil a angajatului (/employees/[id]) există un panou lateral "Profil clinic" generat de AI, bazat pe istoricul examinărilor semnate. Apare doar dacă există examinări. Este orientativ — nu înlocuiește dosarul medical.
 - Profilul angajatului are 4 tab-uri selectabile prin URL: Examinări (implicit), Vaccinări, Evenimente medicale, Documente. Atribuirile la loc de muncă sunt întotdeauna vizibile, indiferent de tab.
+- Pe lista /employees există butonul "+ Vaccinare nouă" (lângă "+ Angajat nou") care deschide un modal cu autocomplete angajat — permite înregistrarea rapidă a unei vaccinări fără a naviga la profilul angajatului.
 
 VACCINĂRI:
 - Tab "Vaccinări" pe profilul angajatului (/employees/[id]?tab=vaccinations).
+- Înregistrare rapidă: butonul "+ Vaccinare nouă" din header-ul listei de angajați (/employees) deschide un modal cu search angajat (autocomplete după nume) + formular complet.
 - Medicii (practitioner / practice_admin) pot adăuga vaccinări: nume vaccin, cod, producător, număr lot, doza, data administrării, data dozei următoare, cale de administrare, reacții observate, note.
 - Dacă data dozei următoare a trecut, apare avertisment amber "Scadentă".
 - Vaccinările se pot șterge (soft delete). Modificarea nu este disponibilă — șterge și readaugă.
@@ -83,8 +85,10 @@ EVENIMENTE MEDICALE:
 - Tab "Evenimente" pe profilul angajatului (/employees/[id]?tab=medical-events).
 - Tipuri de eveniment: Accident de muncă, Îmbolnăvire bruscă, Prim ajutor, Evacuare, Altul.
 - Outcome posibil: Vindecat complet, Vindecat parțial, Spitalizat, Decedat, Tratament în curs, Altul.
+- Câmpuri suplimentare pentru accidente de muncă (Legea 319/2006): natura leziunii, zile incapacitate de muncă, număr raport ITM.
 - Câmpul "Necesită raport ITHS" bifabil la creare. Dacă e bifat și raportul nu e depus, apare badge amber "Necesită raport ITHS". Medicul marchează raportul ca depus cu butonul "Marchează raport depus" → badge devine verde.
 - Pagina globală /medical-events (vizibilă în nav pentru practitioner și practice_admin) afișează toate evenimentele cabinetului, cu filtru "Accidente" (tip=workplace_accident).
+- Înregistrare rapidă: butonul "+ Eveniment medical nou" din header-ul /medical-events deschide un modal cu search angajat + formular eveniment, fără a naviga la profilul angajatului.
 
 EXAMINĂRI:
 - Se creează din /examinations/new. Tipul de examinare determină câmpurile din formular.
