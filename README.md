@@ -1,4 +1,4 @@
-# Buzomed — session 13: Dashboard + toasts + skeletons + PDF fișă
+# Buzomed — session 13: Dashboard + toasts + skeletons + PDF fișă 
 
 Four "premium feel" improvements shipped as one bundle. None touch the database schema. None add env vars.
 
