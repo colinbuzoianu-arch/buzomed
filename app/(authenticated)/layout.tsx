@@ -8,6 +8,7 @@ import { TenantLogo } from '@/components/tenant-logo'
 import { MobileNav } from '@/components/mobile-nav'
 import { AppNav } from '@/components/app-nav'
 import { IrisPanel } from '@/components/iris/iris-panel'
+import Image from 'next/image'
 import Link from 'next/link'
 
 export default async function AuthenticatedLayout({
@@ -134,12 +135,12 @@ export default async function AuthenticatedLayout({
                 rel="noopener noreferrer"
                 className="opacity-50 hover:opacity-80 transition-opacity"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src="/verumsell-logo.PNG"
                   alt="Verumsell"
-                  height={14}
-                  style={{ height: 14, width: 'auto', mixBlendMode: 'multiply' }}
+                  width={52}
+                  height={18}
+                  style={{ mixBlendMode: 'multiply' }}
                 />
               </a>
               <span>· {new Date().getFullYear()}</span>
