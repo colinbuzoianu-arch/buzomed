@@ -16,12 +16,18 @@ import { maskCnp } from '@/lib/crypto/cnp-validation'
 import { CnpReveal } from './cnp-reveal'
 import { formatDate } from '@/lib/format-date'
 import { EmployeeProfileSummary } from '@/components/ai/EmployeeProfileSummary'
+import { VaccinationsTab } from '@/components/employees/vaccinations-tab'
+import { MedicalEventsTab } from '@/components/employees/medical-events-tab'
+
+const VALID_TABS = ['examinations', 'vaccinations', 'medical-events', 'documents'] as const
+type EmployeeTab = typeof VALID_TABS[number]
 
 interface PageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ tab?: string }>
 }
 
-export default async function EmployeeDetailPage({ params }: PageProps) {
+export default async function EmployeeDetailPage({ params, searchParams }: PageProps) {
   const user = await requireUser()
   const locale = await getLocale()
   const t = getTranslator(locale)
@@ -33,6 +39,10 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
   if (!caps.canRead) redirect('/')
 
   const { id } = await params
+  const sp = await searchParams
+  const activeTab: EmployeeTab = VALID_TABS.includes(sp.tab as EmployeeTab)
+    ? (sp.tab as EmployeeTab)
+    : 'examinations'
 
   const employee = await prisma.employee.findFirst({
     where: { id, tenantId: user.tenantId, deletedAt: null },
@@ -540,98 +550,137 @@ export default async function EmployeeDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* Examinations — new in session 6. */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {t('employees.examinationsSectionTitle')}
-          </h2>
+      {/* Profile tabs */}
+      <div>
+        <div className="flex gap-1 border-b mb-4 overflow-x-auto">
+          {(
+            [
+              ['examinations', t('employees.profileTabs.examinations')],
+              ['vaccinations', t('employees.profileTabs.vaccinations')],
+              ['medical-events', t('employees.profileTabs.medicalEvents')],
+              ['documents', t('employees.profileTabs.documents')],
+            ] as [EmployeeTab, string][]
+          ).map(([key, label]) => (
+            <Link
+              key={key}
+              href={`/employees/${employee.id}?tab=${key}`}
+              className={`shrink-0 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === key
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
         </div>
-        {recentExaminations.length === 0 ? (
-          <EmptyState
-            size="compact"
-            illustration="examinations"
-            title={t('employees.noExaminations')}
-          />
-        ) : (
-          <div className="border rounded-lg divide-y">
-            {recentExaminations.map((e) => (
-              <div
-                key={e.id}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors"
-              >
-                <Link
-                  href={`/examinations/${e.id}`}
-                  className="flex flex-1 items-center justify-between gap-4 min-w-0"
-                >
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium flex items-center gap-2">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {e.examinationNumber}
-                      </span>
-                      <span className="truncate">
-                        {locale === 'en'
-                          ? e.examinationType.nameEn ?? e.examinationType.nameRo
-                          : e.examinationType.nameRo}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {e.signedAt
-                        ? `${t('examinations.signedOn')}: ${formatDate(e.signedAt, 'medium', locale === 'ro' ? 'ro' : 'en')}`
-                        : e.scheduledAt
-                          ? `${t('examinations.scheduledFor')}: ${formatDate(e.scheduledAt, 'medium', locale === 'ro' ? 'ro' : 'en')}`
-                          : formatDate(e.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
-                    </div>
-                  </div>
-                  <div className="text-xs text-right space-y-1 shrink-0">
-                    <div>
-                      <span className="inline-block px-2 py-0.5 rounded text-xs border">
-                        {t(`examinations.status.${e.status}`)}
-                      </span>
-                    </div>
-                    {e.verdict && (
-                      <div className="text-muted-foreground">
-                        {t(`examinations.form.verdict.${e.verdict}`)}
+
+        {activeTab === 'examinations' && (
+          <section className="space-y-3">
+            {recentExaminations.length === 0 ? (
+              <EmptyState
+                size="compact"
+                illustration="examinations"
+                title={t('employees.noExaminations')}
+              />
+            ) : (
+              <div className="border rounded-lg divide-y">
+                {recentExaminations.map((e) => (
+                  <div
+                    key={e.id}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors"
+                  >
+                    <Link
+                      href={`/examinations/${e.id}`}
+                      className="flex flex-1 items-center justify-between gap-4 min-w-0"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium flex items-center gap-2">
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {e.examinationNumber}
+                          </span>
+                          <span className="truncate">
+                            {locale === 'en'
+                              ? e.examinationType.nameEn ?? e.examinationType.nameRo
+                              : e.examinationType.nameRo}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {e.signedAt
+                            ? `${t('examinations.signedOn')}: ${formatDate(e.signedAt, 'medium', locale === 'ro' ? 'ro' : 'en')}`
+                            : e.scheduledAt
+                              ? `${t('examinations.scheduledFor')}: ${formatDate(e.scheduledAt, 'medium', locale === 'ro' ? 'ro' : 'en')}`
+                              : formatDate(e.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
+                        </div>
                       </div>
+                      <div className="text-xs text-right space-y-1 shrink-0">
+                        <div>
+                          <span className="inline-block px-2 py-0.5 rounded text-xs border">
+                            {t(`examinations.status.${e.status}`)}
+                          </span>
+                        </div>
+                        {e.verdict && (
+                          <div className="text-muted-foreground">
+                            {t(`examinations.form.verdict.${e.verdict}`)}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                    {e.signedAt && (
+                      <a
+                        href={`/api/examinations/${e.id}/fisa-pdf`}
+                        download
+                        title={t('employees.downloadFisaTitle')}
+                        className="shrink-0 text-muted-foreground hover:text-foreground p-1 rounded"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                          />
+                        </svg>
+                      </a>
                     )}
                   </div>
-                </Link>
-                {e.signedAt && (
-                  <a
-                    href={`/api/examinations/${e.id}/fisa-pdf`}
-                    download
-                    title={t('employees.downloadFisaTitle')}
-                    className="shrink-0 text-muted-foreground hover:text-foreground p-1 rounded"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-                      />
-                    </svg>
-                  </a>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </section>
         )}
-      </section>
 
-      {/* Documents — new in session 7. */}
-      <DocumentsSection
-        entityType="employee"
-        entityId={employee.id}
-        tenantId={user.tenantId}
-        canWrite={caps.canWriteAdministrative}
-        locale={locale}
-      />
+        {activeTab === 'vaccinations' && (
+          <VaccinationsTab
+            employeeId={employee.id}
+            canWrite={caps.canWriteClinical}
+            locale={locale as 'ro' | 'en'}
+          />
+        )}
+
+        {activeTab === 'medical-events' && (
+          <MedicalEventsTab
+            employeeId={employee.id}
+            canWrite={caps.canWriteClinical}
+            locale={locale as 'ro' | 'en'}
+          />
+        )}
+
+        {activeTab === 'documents' && (
+          <DocumentsSection
+            entityType="employee"
+            entityId={employee.id}
+            tenantId={user.tenantId}
+            canWrite={caps.canWriteAdministrative}
+            locale={locale}
+          />
+        )}
+      </div>
 
       </div>{/* end main column */}
 

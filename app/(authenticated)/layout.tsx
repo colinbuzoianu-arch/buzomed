@@ -57,6 +57,7 @@ export default async function AuthenticatedLayout({
     navItems.push({ href: '/employees', label: t('nav.employees') })
     navItems.push({ href: '/examinations', label: t('nav.examinations') })
     if (hasReportingRole) {
+      navItems.push({ href: '/medical-events', label: t('nav.medicalEvents') })
       navItems.push({ href: '/reports', label: t('nav.reports') })
     }
     navItems.push({ href: '/team', label: t('nav.team') })

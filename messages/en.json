@@ -57,7 +57,8 @@
     "recallsOverdueTooltip": "{count} overdue recall(s)",
     "reports": "Reports",
     "superAdmin": "Super admin",
-    "fisa": "Fitness certificate"
+    "fisa": "Fitness certificate",
+    "medicalEvents": "Medical events"
   },
   "iris": {
     "assistant": "Buzomed assistant",
@@ -471,6 +472,12 @@
     "newExaminationButton": "New examination",
     "examinationsSectionTitle": "Recent examinations",
     "noExaminations": "No examinations recorded for this employee yet.",
+    "profileTabs": {
+      "examinations": "Examinations",
+      "vaccinations": "Vaccinations",
+      "medicalEvents": "Events",
+      "documents": "Documents"
+    },
     "downloadFisaTitle": "Download fișa PDF",
     "cnp": {
       "revealButton": "Show",
@@ -1148,10 +1155,40 @@
       "exportCsv": "Export CSV"
     }
   },
+  "medicalEvents": {
+    "title": "Medical events",
+    "empty": "No medical events recorded.",
+    "tabAll": "All",
+    "tabAccidents": "Accidents",
+    "colDate": "Date",
+    "colEmployee": "Employee",
+    "colCompany": "Company",
+    "colType": "Type",
+    "colOutcome": "Outcome",
+    "colIths": "ITHS report",
+    "type": {
+      "workplace_accident": "Workplace accident",
+      "sudden_illness": "Sudden illness",
+      "first_aid": "First aid",
+      "evacuation": "Evacuation",
+      "other": "Other"
+    },
+    "outcome": {
+      "fully_recovered": "Fully recovered",
+      "partially_recovered": "Partially recovered",
+      "hospitalized": "Hospitalized",
+      "deceased": "Deceased",
+      "ongoing_treatment": "Ongoing treatment",
+      "other": "Other"
+    }
+  },
   "companyReport": {
     "title": "Company report",
     "dateRange": "Range",
     "exportCsv": "Export CSV",
+    "exportEmployeesCsv": "Employees CSV",
+    "exportVaccinationsCsv": "Vaccinations CSV",
+    "exportPdf": "Report PDF",
     "print": "Print",
     "tabWorkers": "Workers",
     "tabExaminations": "Examinations",

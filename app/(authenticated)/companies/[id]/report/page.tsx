@@ -129,14 +129,37 @@ export default async function CompanyReportPage({
               {formatDate(new Date(range.to.getTime() - 86_400_000), 'medium', locale === 'ro' ? 'ro' : 'en')}
             </div>
           </div>
-          <div className="flex items-center gap-2 print:hidden">
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
             <a
               href={exportUrl}
+              download
               className="text-sm border rounded-md px-3 py-1 hover:bg-muted"
             >
-              {t('companyReport.exportCsv')}
+              ↓ {t('companyReport.exportCsv')}
             </a>
-          <PrintButton label={t('companyReport.print')} />
+            <a
+              href={`/api/reports/company/${company.id}/employees-export`}
+              download
+              className="text-sm border rounded-md px-3 py-1 hover:bg-muted"
+            >
+              ↓ {t('companyReport.exportEmployeesCsv')}
+            </a>
+            <a
+              href={`/api/reports/company/${company.id}/vaccinations-export`}
+              download
+              className="text-sm border rounded-md px-3 py-1 hover:bg-muted"
+            >
+              ↓ {t('companyReport.exportVaccinationsCsv')}
+            </a>
+            <a
+              href={`/api/reports/company/${company.id}/pdf?from=${fromDateStr}&to=${toDateStr}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm border rounded-md px-3 py-1 hover:bg-muted"
+            >
+              PDF {t('companyReport.exportPdf')}
+            </a>
+            <PrintButton label={t('companyReport.print')} />
           </div>
         </div>
       </div>
