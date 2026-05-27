@@ -21,6 +21,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
   const body = await request.json().catch(() => ({}))
   const data: Record<string, unknown> = {}
   if (typeof body.ithsReportFiled === 'boolean') data.ithsReportFiled = body.ithsReportFiled
+  if (body.ithsReportNumber !== undefined) data.ithsReportNumber = body.ithsReportNumber || null
 
   await prisma.medicalEvent.update({ where: { id: mid }, data })
   return NextResponse.json({ ok: true })

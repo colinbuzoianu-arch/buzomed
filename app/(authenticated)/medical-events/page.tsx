@@ -69,9 +69,17 @@ export default async function MedicalEventsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Breadcrumbs items={[{ label: t('nav.medicalEvents') }]} />
-        <h1 className="text-3xl font-bold mt-2">{t('medicalEvents.title')}</h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Breadcrumbs items={[{ label: t('nav.medicalEvents') }]} />
+          <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight mt-2">{t('medicalEvents.title')}</h1>
+        </div>
+        <Link
+          href="/medical-events/new"
+          className="inline-flex items-center gap-1.5 h-9 rounded-md bg-primary text-primary-foreground px-3 text-sm font-medium hover:bg-primary/90 transition-colors shrink-0 mt-1"
+        >
+          + {t('medicalEvents.newButton')}
+        </Link>
       </div>
 
       {/* Tabs */}

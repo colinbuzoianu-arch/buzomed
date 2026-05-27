@@ -19,6 +19,9 @@ type MedicalEvent = {
   outcomeNotes: string | null
   requiresIthsReport: boolean
   ithsReportFiled: boolean
+  ithsReportNumber: string | null
+  injuryDescription: string | null
+  daysLost: number | null
   notes: string | null
   practitioner: { firstName: string; lastName: string } | null
   company: { name: string } | null
@@ -56,6 +59,9 @@ const emptyForm = {
   outcome: '' as MedicalEventOutcome | '',
   outcomeNotes: '',
   requiresIthsReport: false,
+  ithsReportNumber: '',
+  injuryDescription: '',
+  daysLost: '',
   notes: '',
 }
 
@@ -240,6 +246,42 @@ export function MedicalEventsTab({ employeeId, canWrite, locale }: Props) {
                 Necesită raport ITHS
               </label>
             </div>
+            {form.requiresIthsReport && (
+              <div className="space-y-1">
+                <label className="text-[12px] text-[hsl(var(--text-muted))]">Număr raport ITM</label>
+                <input
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
+                  value={form.ithsReportNumber}
+                  onChange={e => setForm(f => ({ ...f, ithsReportNumber: e.target.value }))}
+                  placeholder="ex. ITM-BV-2026-001234"
+                />
+              </div>
+            )}
+            {form.eventType === 'workplace_accident' && (
+              <>
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-[12px] text-[hsl(var(--text-muted))]">Natura leziunii</label>
+                  <textarea
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 resize-none"
+                    rows={2}
+                    value={form.injuryDescription}
+                    onChange={e => setForm(f => ({ ...f, injuryDescription: e.target.value }))}
+                    placeholder="ex. Fractură membru superior stâng..."
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[12px] text-[hsl(var(--text-muted))]">Zile incapacitate de muncă</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
+                    value={form.daysLost}
+                    onChange={e => setForm(f => ({ ...f, daysLost: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+              </>
+            )}
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button size="sm" variant="outline" onClick={() => setShowForm(false)}>Anulează</Button>
@@ -292,6 +334,21 @@ export function MedicalEventsTab({ employeeId, canWrite, locale }: Props) {
                   {ev.actionsTaken && (
                     <div className="mt-1 text-[11px] text-[hsl(var(--text-faint))] italic">
                       Acțiuni: {ev.actionsTaken}
+                    </div>
+                  )}
+                  {ev.injuryDescription && (
+                    <div className="mt-1 text-[11px] text-[hsl(var(--text-faint))]">
+                      Leziune: {ev.injuryDescription}
+                    </div>
+                  )}
+                  {ev.daysLost != null && (
+                    <div className="mt-1 text-[11px] text-[hsl(var(--text-faint))]">
+                      Incapacitate: {ev.daysLost} zile
+                    </div>
+                  )}
+                  {ev.ithsReportNumber && (
+                    <div className="mt-1 text-[11px] text-[hsl(var(--text-faint))]">
+                      Nr. raport ITM: {ev.ithsReportNumber}
                     </div>
                   )}
                   {ev.outcomeNotes && (

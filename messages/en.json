@@ -1217,7 +1217,12 @@
       "deceased": "Deceased",
       "ongoing_treatment": "Ongoing treatment",
       "other": "Other"
-    }
+    },
+    "newButton": "New event",
+    "newTitle": "New medical event",
+    "injuryDescription": "Nature of injury",
+    "daysLost": "Days of incapacity",
+    "ithsReportNumber": "ITM report number"
   },
   "companyReport": {
     "title": "Company report",

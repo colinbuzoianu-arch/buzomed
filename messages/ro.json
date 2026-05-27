@@ -1217,7 +1217,12 @@
       "deceased": "Decedat",
       "ongoing_treatment": "Tratament în curs",
       "other": "Altul"
-    }
+    },
+    "newButton": "Eveniment nou",
+    "newTitle": "Eveniment medical nou",
+    "injuryDescription": "Natura leziunii",
+    "daysLost": "Zile incapacitate de muncă",
+    "ithsReportNumber": "Număr raport ITM"
   },
   "companyReport": {
     "title": "Raport companie",

@@ -142,10 +142,11 @@ enum MedicalEventType {
 }
 
 enum MedicalEventOutcome {
-  returned_to_work
-  sent_home
-  referred_to_hospital
-  ambulance_called
+  fully_recovered
+  partially_recovered
+  hospitalized
+  deceased
+  ongoing_treatment
   other
 }
 
@@ -941,7 +942,11 @@ model MedicalEvent {
   
   requiresIthsReport      Boolean               @default(false) @map("requires_iths_report")
   ithsReportFiled         Boolean               @default(false) @map("iths_report_filed")
-  
+  ithsReportNumber        String?               @map("iths_report_number")
+
+  injuryDescription       String?               @map("injury_description")
+  daysLost                Int?                  @map("days_lost")
+
   notes                   String?
   
   createdAt               DateTime              @default(now()) @map("created_at") @db.Timestamptz
