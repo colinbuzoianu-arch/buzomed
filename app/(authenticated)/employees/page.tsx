@@ -19,6 +19,7 @@ import { EmployeeSearchInput } from './employee-search-input'
 import { WorkplaceFilter } from '@/components/employees/workplace-filter'
 import { SortHeader } from '@/components/employees/sort-header'
 import { formatDate } from '@/lib/format-date'
+import { EmployeesHeaderActions } from './employees-header-actions'
 
 interface PageProps {
   searchParams: Promise<{
@@ -202,9 +203,11 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                 {t('employees.importButton')}
               </Link>
             </Button>
-            <Button asChild>
-              <Link href="/employees/new">+ {t('employees.newButton')}</Link>
-            </Button>
+            <EmployeesHeaderActions
+              canWrite={caps.canWriteAdministrative}
+              newEmployeeLabel={t('employees.newButton')}
+              newVaccinationLabel={t('vaccinations.newButton')}
+            />
           </div>
         )}
       </div>

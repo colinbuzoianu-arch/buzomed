@@ -1192,8 +1192,12 @@
       "exportCsv": "Export CSV"
     }
   },
+  "vaccinations": {
+    "newButton": "New vaccination"
+  },
   "medicalEvents": {
     "title": "Medical events",
+    "subtitle": "Workplace accidents, sudden illnesses and other medical events",
     "empty": "No medical events recorded.",
     "tabAll": "All",
     "tabAccidents": "Accidents",

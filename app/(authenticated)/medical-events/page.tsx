@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { formatDate } from '@/lib/format-date'
+import { MedicalEventsHeaderActions } from './medical-events-header-actions'
 
 interface PageProps {
   searchParams: Promise<{ tab?: string }>
@@ -73,13 +74,9 @@ export default async function MedicalEventsPage({ searchParams }: PageProps) {
         <div>
           <Breadcrumbs items={[{ label: t('nav.medicalEvents') }]} />
           <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight mt-2">{t('medicalEvents.title')}</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{t('medicalEvents.subtitle')}</p>
         </div>
-        <Link
-          href="/medical-events/new"
-          className="inline-flex items-center gap-1.5 h-9 rounded-md bg-primary text-primary-foreground px-3 text-sm font-medium hover:bg-primary/90 transition-colors shrink-0 mt-1"
-        >
-          + {t('medicalEvents.newButton')}
-        </Link>
+        <MedicalEventsHeaderActions label={t('medicalEvents.newButton')} />
       </div>
 
       {/* Tabs */}

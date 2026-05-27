@@ -1192,8 +1192,12 @@
       "exportCsv": "Export CSV"
     }
   },
+  "vaccinations": {
+    "newButton": "Vaccinare nouă"
+  },
   "medicalEvents": {
     "title": "Evenimente medicale",
+    "subtitle": "Accidente de muncă, îmbolnăviri bruște și alte evenimente medicale",
     "empty": "Niciun eveniment medical înregistrat.",
     "tabAll": "Toate",
     "tabAccidents": "Accidente",
