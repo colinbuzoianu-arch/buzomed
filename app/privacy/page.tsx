@@ -277,22 +277,14 @@ export default function PrivacyPage() {
           Cererile se depun la{' '}
           <a href="mailto:hello@buzomed.com" style={{ color: '#2BA39A' }}>hello@buzomed.com</a>{' '}
           și vor primi răspuns în termen de maximum 30 de zile calendaristice (termen ce poate fi extins
-          cu 60 de zile pentru cereri complexe, cu notificarea dumneavoastră).
+          cu 60 de zile pentru cereri complexe, cu notificarea dumneavoastră). Preferăm întotdeauna
+          rezolvarea directă și amiabilă a oricărei solicitări.
         </P>
         <P>
-          Aveți de asemenea dreptul de a depune o plângere la{' '}
-          <strong>Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal
-          (ANSPDCP)</strong>:{' '}
-          <a href="https://www.dataprotection.ro" target="_blank" rel="noopener noreferrer" style={{ color: '#2BA39A' }}>
-            www.dataprotection.ro
-          </a>{' '}
-          · B-dul G-ral. Gheorghe Magheru 28-30, Sector 1, București.
-        </P>
-        <P>
-          <em>Notă pentru angajații firmelor cliente:</em> Drepturile dumneavoastră față de datele medicale
-          introduse în platformă trebuie exercitate în principal față de Cabinetul medical (Operatorul),
-          nu față de Verumsell SRL. Buzomed acționează ca procesator și va redirecționa orice cerere
-          primită direct.
+          <em>Notă pentru angajații firmelor cliente:</em> Verumsell SRL acționează ca procesator de date
+          în relația cu cabinetul medical. Solicitările privind datele medicale se adresează Cabinetului
+          (Operatorul datelor), care răspunde față de angajații firmelor sale cliente. Orice solicitare
+          primită direct de Buzomed va fi redirecționată către Cabinetul competent.
         </P>
 
         <H2>13. Incidente de securitate și notificări (Art. 33-34 GDPR)</H2>
