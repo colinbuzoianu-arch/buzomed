@@ -140,6 +140,7 @@ export default async function AuthenticatedLayout({
                   alt="Verumsell"
                   width={52}
                   height={18}
+                  unoptimized
                   style={{ mixBlendMode: 'multiply' }}
                 />
               </a>
