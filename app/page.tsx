@@ -237,7 +237,7 @@ export default async function LandingPage() {
               notificări automate — totul dintr-o singură platformă.
             </p>
 
-            <Link href="/register" style={{ textDecoration: 'none' }}>
+            <Link href="/contact" style={{ textDecoration: 'none' }}>
               <button
                 style={{
                   background: '#1E4D8B',
@@ -251,7 +251,7 @@ export default async function LandingPage() {
                   boxShadow: '0 4px 24px rgba(30,77,139,0.45)',
                 }}
               >
-                Începeți gratuit →
+                Solicită acces →
               </button>
             </Link>
           </div>
@@ -661,7 +661,7 @@ export default async function LandingPage() {
           >
             Creați un cont gratuit și configurați primul cabinet în câteva minute.
           </p>
-          <Link href="/register" style={{ textDecoration: 'none' }}>
+          <Link href="/contact" style={{ textDecoration: 'none' }}>
             <button
               style={{
                 background: 'white',
@@ -675,7 +675,7 @@ export default async function LandingPage() {
                 boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
               }}
             >
-              Începeți gratuit →
+              Solicită acces →
             </button>
           </Link>
         </div>

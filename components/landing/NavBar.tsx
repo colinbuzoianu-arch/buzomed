@@ -61,7 +61,7 @@ export function NavBar() {
               Login
             </button>
           </Link>
-          <Link href="/register" className="hidden sm:block">
+          <Link href="/contact" className="hidden sm:block">
             <button
               style={{
                 background: '#1E4D8B',
@@ -81,7 +81,7 @@ export function NavBar() {
                 ((e.target as HTMLButtonElement).style.background = '#1E4D8B')
               }
             >
-              Înregistrare gratuită
+              Solicită acces
             </button>
           </Link>
         </div>
