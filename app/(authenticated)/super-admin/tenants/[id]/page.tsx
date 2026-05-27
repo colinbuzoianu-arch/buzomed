@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table'
 import { TenantInviteSection } from './tenant-invite-section'
 import { PlatformInvoicesTab } from './platform-invoices-tab'
+import { TenantManagementActions } from './tenant-management-actions'
 import { formatDate } from '@/lib/format-date'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
@@ -179,6 +180,18 @@ export default async function TenantDetailPage({ params }: PageProps) {
             />
             {tenant.subscriptionStatus}
           </span>
+          {tenant.subscriptionStatus !== 'active' && (
+            <span className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-medium ${
+              tenant.subscriptionStatus === 'suspended'
+                ? 'border-amber-200/70 bg-amber-50/70 text-amber-900'
+                : 'border-red-200/70 bg-red-50/70 text-red-900'
+            }`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${
+                tenant.subscriptionStatus === 'suspended' ? 'bg-amber-500' : 'bg-red-500'
+              }`} aria-hidden />
+              {tenant.subscriptionStatus === 'suspended' ? 'Suspendat' : 'Anulat'}
+            </span>
+          )}
         </div>
       </div>
 
@@ -363,6 +376,13 @@ export default async function TenantDetailPage({ params }: PageProps) {
         </h2>
         <PlatformInvoicesTab tenantId={tenant.id} tenantName={tenant.name} />
       </section>
+
+      {/* Management cabinet — acțiuni administrative */}
+      <TenantManagementActions
+        tenantId={tenant.id}
+        tenantName={tenant.name}
+        currentStatus={tenant.subscriptionStatus}
+      />
     </div>
   )
 }

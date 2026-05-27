@@ -48,7 +48,8 @@ const isPublicRoute =
     pathname.startsWith('/api/register-request') ||
     pathname.startsWith('/api/contact') ||
     pathname.startsWith('/_next') ||
-    pathname === '/favicon.ico'
+    pathname === '/favicon.ico' ||
+    pathname === '/suspended'
 
   // Redirect unauthenticated users hitting protected routes to /login
   if (!user && !isPublicRoute) {

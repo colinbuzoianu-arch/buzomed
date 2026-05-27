@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -31,9 +32,17 @@ export default async function AuthenticatedLayout({
   const tenantData = hasTenant
     ? await prisma.tenant.findUnique({
         where: { id: user.tenantId! },
-        select: { logoUrl: true, name: true },
+        select: { logoUrl: true, name: true, subscriptionStatus: true },
       })
     : null
+
+  if (
+    tenantData?.subscriptionStatus === 'suspended' &&
+    !user.roles.includes('super_admin')
+  ) {
+    redirect('/suspended')
+  }
+
   const tenantLogoUrl = tenantData?.logoUrl ?? null
   const cabinetName = tenantData?.name ?? 'Cabinet'
 
