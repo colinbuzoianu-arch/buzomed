@@ -5,6 +5,7 @@ import { canReadTenantData } from '@/lib/permissions/tenant-data'
 import { parseDateRange, resolveDateRange } from '@/lib/reports/date-ranges'
 import { renderCsv, sanitizeFilename, type CsvRow } from '@/lib/reports/csv'
 import { parseRiskProfile, RISK_PROFILE_SCHEMA } from '@/lib/workplaces/risk-profile'
+import { writeAuditLog } from '@/lib/audit/log'
 
 export async function GET(request: NextRequest) {
   const auth = await getApiUser()
@@ -96,6 +97,14 @@ export async function GET(request: NextRequest) {
   const filename = sanitizeFilename(
     `noxe_${range.from.toISOString().slice(0, 10)}_${range.to.toISOString().slice(0, 10)}.csv`
   )
+
+  await writeAuditLog({
+    tenantId: auth.user.tenantId,
+    userId: auth.user.id,
+    action: 'export',
+    entityType: 'workplaces',
+    entitySummary: `Export CSV — hazards report`,
+  })
 
   return new NextResponse(body, {
     headers: {

@@ -230,6 +230,17 @@ model Tenant {
 
   isDemo              Boolean             @default(false) @map("is_demo")
 
+  // GDPR consent tracking
+  termsAcceptedAt     DateTime?           @map("terms_accepted_at") @db.Timestamptz
+  termsVersion        String?             @map("terms_version")        // e.g. "2026-05"
+  privacyAcceptedAt   DateTime?           @map("privacy_accepted_at") @db.Timestamptz
+  privacyVersion      String?             @map("privacy_version")
+  dpaAcceptedAt       DateTime?           @map("dpa_accepted_at") @db.Timestamptz
+  dpaAcceptedBy       String?             @map("dpa_accepted_by")      // full name of person who accepted DPA
+
+  // Data retention (default: 7 years per HG 355/2007)
+  dataRetentionYears  Int                 @default(7) @map("data_retention_years")
+
   createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt           DateTime?           @map("deleted_at") @db.Timestamptz
@@ -315,7 +326,11 @@ model User {
   
   isActive            Boolean                  @default(true) @map("is_active")
   lastLoginAt         DateTime?                @map("last_login_at") @db.Timestamptz
-  
+
+  // GDPR consent for practitioners
+  termsAcceptedAt     DateTime?                @map("terms_accepted_at") @db.Timestamptz
+  termsVersion        String?                  @map("terms_version")
+
   createdAt           DateTime                 @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime                 @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt           DateTime?                @map("deleted_at") @db.Timestamptz
@@ -646,6 +661,11 @@ model Employee {
   
   isActive                    Boolean               @default(true) @map("is_active")
   archivedAt                  DateTime?             @map("archived_at") @db.Timestamptz
+
+  // Per-employee retention override — for workers with special legal exposure
+  // (asbestos, radiation, etc. — up to 40 years by law)
+  // null = use tenant default; non-null = override
+  dataRetentionYears          Int?                  @map("data_retention_years")
   archivedReason              EmployeeArchivedReason? @map("archived_reason")
   
   createdByUserId             String?               @map("created_by_user_id") @db.Uuid

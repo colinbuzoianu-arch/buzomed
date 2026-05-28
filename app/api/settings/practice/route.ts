@@ -25,6 +25,17 @@ export async function PATCH(request: NextRequest) {
   const phone        = optionalString('phone', body.phone, issues, { maxLength: 50 })
   const email        = optionalString('email', body.email, issues, { maxLength: 200 })
 
+  const VALID_RETENTION_YEARS = [7, 10, 15, 25, 40]
+  let dataRetentionYears: number | undefined
+  if ('dataRetentionYears' in body) {
+    const val = body.dataRetentionYears
+    if (typeof val === 'number' && VALID_RETENTION_YEARS.includes(val)) {
+      dataRetentionYears = val
+    } else {
+      issues.push('dataRetentionYears must be one of 7, 10, 15, 25, 40')
+    }
+  }
+
   if (issues.length > 0) return NextResponse.json({ error: issues[0] }, { status: 400 })
 
   const tenant = await prisma.tenant.update({
@@ -37,8 +48,9 @@ export async function PATCH(request: NextRequest) {
       ...(addressLine1 !== undefined && { addressLine1 }),
       ...(phone !== undefined && { phone }),
       ...(email !== undefined && { email }),
+      ...(dataRetentionYears !== undefined && { dataRetentionYears }),
     },
-    select: { id: true, name: true, legalName: true, cui: true, registrationNumber: true, addressLine1: true, phone: true, email: true, logoUrl: true },
+    select: { id: true, name: true, legalName: true, cui: true, registrationNumber: true, addressLine1: true, phone: true, email: true, logoUrl: true, dataRetentionYears: true },
   })
 
   return NextResponse.json({ tenant })

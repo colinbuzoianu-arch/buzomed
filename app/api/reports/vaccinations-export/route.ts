@@ -4,6 +4,7 @@ import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
 import { parseDateRange, resolveDateRange } from '@/lib/reports/date-ranges'
 import { renderCsv, sanitizeFilename, type CsvRow } from '@/lib/reports/csv'
+import { writeAuditLog } from '@/lib/audit/log'
 
 export async function GET(request: NextRequest) {
   const auth = await getApiUser()
@@ -90,6 +91,14 @@ export async function GET(request: NextRequest) {
   const filename = sanitizeFilename(
     `vaccinari_${range.from.toISOString().slice(0, 10)}_${range.to.toISOString().slice(0, 10)}.csv`
   )
+
+  await writeAuditLog({
+    tenantId: auth.user.tenantId,
+    userId: auth.user.id,
+    action: 'export',
+    entityType: 'vaccinations',
+    entitySummary: `Export CSV — vaccinations report`,
+  })
 
   return new NextResponse(body, {
     headers: {

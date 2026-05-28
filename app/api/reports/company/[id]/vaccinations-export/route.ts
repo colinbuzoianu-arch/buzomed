@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
 import { renderCsv, sanitizeFilename } from '@/lib/reports/csv'
+import { writeAuditLog } from '@/lib/audit/log'
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -73,6 +74,15 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
   ]
 
   const filename = `vaccinari_${sanitizeFilename(company.name)}.csv`
+
+  await writeAuditLog({
+    tenantId: auth.user.tenantId,
+    userId: auth.user.id,
+    action: 'export',
+    entityType: 'vaccinations',
+    entitySummary: `Export CSV — company vaccinations report`,
+  })
+
   return new NextResponse(renderCsv(rows), {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',

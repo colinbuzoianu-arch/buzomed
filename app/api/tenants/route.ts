@@ -89,6 +89,9 @@ export async function POST(request: Request) {
     )
   }
 
+  const CURRENT_TERMS_VERSION = '2026-05'
+  const CURRENT_PRIVACY_VERSION = '2026-05'
+
   // Create tenant + admin user in a transaction
   let tenantResult
   try {
@@ -120,6 +123,13 @@ export async function POST(request: Request) {
           },
           settings: {},
           cnpHashSalt,
+          // GDPR consent — captured at tenant creation time
+          termsAcceptedAt: body.termsAccepted ? new Date() : undefined,
+          termsVersion: body.termsAccepted ? CURRENT_TERMS_VERSION : undefined,
+          privacyAcceptedAt: body.privacyAccepted ? new Date() : undefined,
+          privacyVersion: body.privacyAccepted ? CURRENT_PRIVACY_VERSION : undefined,
+          dpaAcceptedAt: body.dpaAccepted ? new Date() : undefined,
+          dpaAcceptedBy: body.dpaName ?? undefined,
         },
       })
 

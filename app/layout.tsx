@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Manrope, Fraunces } from 'next/font/google'
 import { getLocale } from '@/lib/i18n'
 import { Toaster } from '@/components/ui/sonner'
+import { CookieNotice } from '@/components/cookie-notice'
 import './globals.css'
 
 const manrope = Manrope({
@@ -60,6 +61,7 @@ export default async function RootLayout({
       <body className="font-sans antialiased">
         {children}
         <Toaster position="bottom-right" richColors />
+        <CookieNotice />
       </body>
     </html>
   )

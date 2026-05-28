@@ -18,6 +18,7 @@ import { formatDate } from '@/lib/format-date'
 import { EmployeeProfileSummary } from '@/components/ai/EmployeeProfileSummary'
 import { VaccinationsTab } from '@/components/employees/vaccinations-tab'
 import { MedicalEventsTab } from '@/components/employees/medical-events-tab'
+import { RetentionOverrideButton } from '@/components/employees/retention-override-button'
 
 const VALID_TABS = ['examinations', 'vaccinations', 'medical-events', 'documents'] as const
 type EmployeeTab = typeof VALID_TABS[number]
@@ -47,9 +48,15 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
   const employee = await prisma.employee.findFirst({
     where: { id, tenantId: user.tenantId, deletedAt: null },
     include: { company: { select: { id: true, name: true } } },
+    // scalar fields are included by default, including dataRetentionYears
   })
 
   if (!employee) notFound()
+
+  const tenantRetentionYears = (await prisma.tenant.findUnique({
+    where: { id: user.tenantId },
+    select: { dataRetentionYears: true },
+  }))?.dataRetentionYears ?? 7
 
   const [assignmentRows, workplaceOptions, recentExaminations] =
     await Promise.all([
@@ -286,6 +293,17 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
                   {t('common.edit')}
                 </Link>
               </Button>
+              <a
+                href={`/api/employees/${employee.id}/gdpr-export`}
+                download
+                className="inline-flex items-center gap-1.5 h-9 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-muted transition-colors text-muted-foreground"
+                title="Export date personale (GDPR Art. 20)"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
+                  <path d="M6 1v7m0 0L3.5 5.5M6 8l2.5-2.5M1 10h10"/>
+                </svg>
+                GDPR Export
+              </a>
               <EmployeeActions
                 employeeId={employee.id}
                 employeeName={`${employee.lastName} ${employee.firstName}`}
@@ -396,6 +414,36 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
           </div>
         </section>
       ))}
+
+      {/* Data retention override */}
+      {caps.canWriteAdministrative && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Retenție date</h2>
+          <div className="border rounded-lg px-4 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-foreground">Perioadă de retenție</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {employee.dataRetentionYears
+                    ? `${employee.dataRetentionYears} ani (suprascris individual)`
+                    : `${tenantRetentionYears} ani (implicit cabinet)`}
+                </p>
+              </div>
+              <RetentionOverrideButton
+                employeeId={employee.id}
+                currentYears={employee.dataRetentionYears ?? null}
+                tenantDefault={tenantRetentionYears}
+              />
+            </div>
+            {employee.dataRetentionYears && (
+              <p className="mt-2 text-xs text-amber-700">
+                ⚠ Perioadă extinsă activă — date se păstrează {employee.dataRetentionYears} ani
+                conform obligației legale pentru expunere la noxe speciale.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Workplace assignments — from session 5 */}
       <section className="space-y-3">

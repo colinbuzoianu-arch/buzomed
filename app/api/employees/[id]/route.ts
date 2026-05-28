@@ -9,6 +9,7 @@ import {
 } from '@/lib/permissions/tenant-data'
 import { asObject } from '@/lib/validation'
 import { parseEmployeeInput } from '../route'
+import { writeAuditLog } from '@/lib/audit/log'
 import {
   encryptCnp,
   decryptCnp,
@@ -70,6 +71,15 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
       cnpMasked = '*************'
     }
   }
+
+  await writeAuditLog({
+    tenantId: auth.user.tenantId,
+    userId: auth.user.id,
+    action: 'read',
+    entityType: 'employee',
+    entityId: employee.id,
+    entitySummary: `${employee.lastName} ${employee.firstName}`,
+  })
 
   // Strip the raw encrypted blob and hash before returning; they're
   // internal storage details and adding them to the response would be
@@ -331,6 +341,22 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     if (updateData.isActive === undefined) updateData.isActive = true
   }
 
+  // Per-employee data retention override
+  if ('dataRetentionYears' in body) {
+    const val = body.dataRetentionYears
+    if (val === null) {
+      updateData.dataRetentionYears = null
+    } else if (typeof val === 'number' && [7, 10, 15, 25, 40].includes(val)) {
+      updateData.dataRetentionYears = val
+    } else {
+      issues.push('dataRetentionYears must be null or one of 7, 10, 15, 25, 40')
+    }
+  }
+
+  if (issues.length > 0) {
+    return NextResponse.json({ error: 'validation_failed', issues }, { status: 400 })
+  }
+
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json({ employee: existing })
   }
@@ -363,6 +389,16 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
   }
 
   const [employee] = await prisma.$transaction(operations)
+
+  await writeAuditLog({
+    tenantId: auth.user.tenantId,
+    userId: auth.user.id,
+    action: 'update',
+    entityType: 'employee',
+    entityId: id,
+    entitySummary: `${existing.lastName} ${existing.firstName}`,
+    changes: { fields: Object.keys(updateData) },
+  })
 
   return NextResponse.json({ employee })
 }

@@ -31,6 +31,11 @@ export function CreateTenantForm({ labels }: { labels: Labels }) {
     subscriptionTier: 'trial' as 'trial' | 'solo' | 'practice' | 'enterprise',
   })
 
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
+  const [dpaAccepted, setDpaAccepted] = useState(false)
+  const [dpaName, setDpaName] = useState('')
+
   function update<K extends keyof typeof form>(key: K, value: typeof form[K]) {
     setForm({ ...form, [key]: value })
   }
@@ -49,13 +54,29 @@ export function CreateTenantForm({ labels }: { labels: Labels }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (!termsAccepted || !privacyAccepted || !dpaAccepted) {
+      setError('Trebuie să acceptați toți termenii înainte de a crea un cabinet.')
+      return
+    }
+    if (!dpaName.trim()) {
+      setError('Introduceți numele persoanei responsabile pentru DPA.')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const response = await fetch('/api/tenants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          termsAccepted,
+          privacyAccepted,
+          dpaAccepted,
+          dpaName: dpaName.trim(),
+        }),
       })
 
       if (!response.ok) {
@@ -250,6 +271,73 @@ export function CreateTenantForm({ labels }: { labels: Labels }) {
             </select>
           </div>
         </div>
+      </section>
+
+      {/* GDPR consent — obligatoriu înainte de creare */}
+      <section className="bg-card border rounded-lg p-6 space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Confirmări obligatorii
+        </h2>
+
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={e => setTermsAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-input"
+          />
+          <span className="text-sm text-foreground">
+            Am citit și accept{' '}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
+              Termenii și Condițiile
+            </a>{' '}
+            Buzomed.
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={privacyAccepted}
+            onChange={e => setPrivacyAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-input"
+          />
+          <span className="text-sm text-foreground">
+            Am citit și accept{' '}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
+              Politica de Confidențialitate
+            </a>{' '}
+            și prelucrarea datelor cu caracter personal conform GDPR.
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={dpaAccepted}
+            onChange={e => setDpaAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-input"
+          />
+          <span className="text-sm text-foreground">
+            Accept Acordul de Prelucrare a Datelor (DPA) între cabinet și Verumsell SRL,
+            în calitate de procesator de date conform Art. 28 GDPR.
+          </span>
+        </label>
+
+        {dpaAccepted && (
+          <div className="space-y-1.5 ml-6">
+            <label className="text-xs text-muted-foreground">
+              Numele persoanei responsabile (reprezentant legal sau DPO) *
+            </label>
+            <input
+              type="text"
+              value={dpaName}
+              onChange={e => setDpaName(e.target.value)}
+              placeholder="ex. Dr. Ion Popescu"
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
+            />
+          </div>
+        )}
       </section>
 
       {error && (

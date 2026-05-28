@@ -48,6 +48,9 @@ export default async function TenantDetailPage({ params }: PageProps) {
         },
       },
     },
+    // GDPR consent + retention fields
+    // (Prisma includes all scalar fields by default when using `include`,
+    // but listing them explicitly makes the query intent clear)
   })
 
   if (!tenant) notFound()
@@ -262,6 +265,62 @@ export default async function TenantDetailPage({ params }: PageProps) {
           />
           <InfoRow label={t('common.createdAt')} value={formatDate(tenant.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')} />
         </dl>
+      </section>
+
+      {/* GDPR compliance status */}
+      <section className="space-y-3">
+        <h2 className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+          Conformitate GDPR
+        </h2>
+        <div className="rounded-lg border bg-card divide-y">
+          {(
+            [
+              {
+                label: 'Termeni și condiții',
+                accepted: tenant.termsAcceptedAt,
+                version: tenant.termsVersion,
+                by: null,
+              },
+              {
+                label: 'Politică confidențialitate',
+                accepted: tenant.privacyAcceptedAt,
+                version: tenant.privacyVersion,
+                by: null,
+              },
+              {
+                label: 'Acord prelucrare date (DPA)',
+                accepted: tenant.dpaAcceptedAt,
+                version: null,
+                by: tenant.dpaAcceptedBy,
+              },
+            ] as Array<{ label: string; accepted: Date | null; version: string | null; by: string | null }>
+          ).map(item => (
+            <div key={item.label} className="flex items-center justify-between px-4 py-3 gap-4">
+              <span className="text-sm text-foreground">{item.label}</span>
+              <div className="text-right">
+                {item.accepted ? (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-green-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-600" />
+                    Acceptat {formatDate(item.accepted, 'medium', locale === 'ro' ? 'ro' : 'en')}
+                    {item.version && <span className="text-muted-foreground"> · v{item.version}</span>}
+                    {item.by && <span className="text-muted-foreground"> · {item.by}</span>}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-destructive">
+                    <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                    Neacceptat
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+          <div className="flex items-center justify-between px-4 py-3 gap-4">
+            <span className="text-sm text-foreground">Retenție date</span>
+            <span className="text-sm tabular-nums text-muted-foreground">
+              {tenant.dataRetentionYears} ani
+            </span>
+          </div>
+        </div>
       </section>
 
       {/* Members with last-seen */}

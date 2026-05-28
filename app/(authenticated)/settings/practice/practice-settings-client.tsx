@@ -21,6 +21,7 @@ interface Tenant {
   phone: string | null
   email: string | null
   logoUrl: string | null
+  dataRetentionYears: number
 }
 
 interface Practitioner {
@@ -51,6 +52,10 @@ export function PracticeSettingsClient({ tenant, practitioners }: Props) {
   const [phone, setPhone] = useState(tenant.phone ?? '')
   const [email, setEmail] = useState(tenant.email ?? '')
 
+  // ── Retention state ──────────────────────────────────────────────────
+  const [dataRetentionYears, setDataRetentionYears] = useState(tenant.dataRetentionYears)
+  const [retentionPending, setRetentionPending] = useState(false)
+
   // ── Logo state ───────────────────────────────────────────────────────
   const [logoUrl, setLogoUrl] = useState<string | null>(tenant.logoUrl)
   const [logoUploading, setLogoUploading] = useState(false)
@@ -68,6 +73,29 @@ export function PracticeSettingsClient({ tenant, practitioners }: Props) {
     []
   )
   const anaf = useAnafLookup(handleAnafSuccess)
+
+  // ── Save retention ───────────────────────────────────────────────────
+  async function handleSaveRetention() {
+    setRetentionPending(true)
+    try {
+      const res = await fetch('/api/settings/practice', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataRetentionYears }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toastError(json.error ?? 'Eroare la salvare.')
+        return
+      }
+      toastSuccess('Perioadă de retenție salvată')
+      router.refresh()
+    } catch {
+      toastError('Eroare de rețea.')
+    } finally {
+      setRetentionPending(false)
+    }
+  }
 
   // ── Save identity ────────────────────────────────────────────────────
   function handleSaveIdentity() {
@@ -394,6 +422,57 @@ export function PracticeSettingsClient({ tenant, practitioners }: Props) {
             ))}
           </div>
         )}
+      </section>
+
+      {/* ── Section 4: Data Retention ─────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="border-b pb-2">
+          <h2 className="font-semibold text-base">Perioadă de retenție date medicale</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Conform HG 355/2007, perioada minimă legală este de 7 ani. Pentru angajați
+            cu expunere la noxe speciale (azbest, radiații ionizante), legea impune până
+            la 40 de ani de la ultima expunere.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="dataRetentionYears" className="text-sm font-medium">
+            Retenție implicită pentru cabinet
+          </label>
+          <select
+            id="dataRetentionYears"
+            value={dataRetentionYears}
+            onChange={e => setDataRetentionYears(Number(e.target.value))}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 w-64"
+          >
+            <option value={7}>7 ani (standard HG 355/2007)</option>
+            <option value={10}>10 ani</option>
+            <option value={15}>15 ani</option>
+            <option value={25}>25 ani</option>
+            <option value={40}>40 ani (noxe speciale)</option>
+          </select>
+        </div>
+
+        <div className="rounded-lg bg-muted/40 border px-4 py-3">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <strong className="text-foreground">Important:</strong> Perioada de retenție poate fi
+            suprascrisă individual pentru angajați cu expunere la azbest, radiații sau alte noxe
+            cu obligații legale extinse. Găsești această setare pe profilul fiecărui angajat.
+          </p>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <Button onClick={handleSaveRetention} disabled={retentionPending} variant="outline">
+            {retentionPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Se salvează...
+              </>
+            ) : (
+              'Salvează retenție'
+            )}
+          </Button>
+        </div>
       </section>
     </div>
   )

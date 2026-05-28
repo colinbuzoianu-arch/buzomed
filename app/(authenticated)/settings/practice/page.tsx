@@ -25,6 +25,7 @@ export default async function PracticeSettingsPage() {
         phone: true,
         email: true,
         logoUrl: true,
+        dataRetentionYears: true,
       },
     }),
     prisma.user.findMany({

@@ -6,6 +6,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { DemoInviteButton } from './demo-invite-button'
 import { RecallNotificationsButton } from './recall-notifications-button'
+import { RetentionCheckButton } from '@/components/super-admin/retention-check-button'
 import { formatDate } from '@/lib/format-date'
 
 /**
@@ -202,6 +203,20 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
         <StatCard label="Plătite" value={billingStats.paidThisMonth} tone="success" />
         <StatCard label="Restanțe" value={billingStats.overdue} />
       </div>
+
+      {/* GDPR — Data retention check */}
+      <section className="rounded-lg border bg-card p-6 space-y-3">
+        <div>
+          <h2 className="text-[13px] font-medium text-foreground">
+            Verificare retenție date (GDPR Art. 5)
+          </h2>
+          <p className="text-[12px] text-muted-foreground mt-1">
+            Identifică cabinete cu date medicale care depășesc perioada de retenție configurată.
+            Ștergerea rămâne manuală și necesită confirmare explicită.
+          </p>
+        </div>
+        <RetentionCheckButton />
+      </section>
 
       {/* Registrations — invite-only */}
       <section className="rounded-lg border bg-card p-6 space-y-2">

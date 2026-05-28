@@ -4,6 +4,7 @@ import { createElement } from 'react'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
+import { writeAuditLog, getClientIp } from '@/lib/audit/log'
 import { FisaPdfDocument } from './fisa-pdf-document'
 
 /**
@@ -25,7 +26,7 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-export async function GET(_req: NextRequest, ctx: RouteContext) {
+export async function GET(req: NextRequest, ctx: RouteContext) {
   const auth = await getApiUser()
   if (!auth.user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
@@ -165,6 +166,16 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       { status: 500 }
     )
   }
+
+  await writeAuditLog({
+    tenantId: auth.user.tenantId,
+    userId: auth.user.id,
+    action: 'download',
+    entityType: 'examination',
+    entityId: examination.id,
+    entitySummary: `Fișă aptitudine ${examination.examinationNumber} — ${examination.employee.lastName} ${examination.employee.firstName}`,
+    ipAddress: getClientIp(req),
+  })
 
   const filename = `fisa_aptitudine_${examination.examinationNumber.replace('/', '-')}.pdf`
 
