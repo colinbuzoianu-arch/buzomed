@@ -8,6 +8,8 @@ import {
   encryptCnpHashSalt,
 } from '@/lib/crypto/cnp-hash'
 import { isCnpEncryptionConfigured } from '@/lib/crypto/cnp-cipher'
+import { sendEmail } from '@/lib/email'
+import { renderTrialWelcomeEmail } from '@/lib/email/templates/subscription/trial-welcome'
 
 export async function POST(request: Request) {
   // Only super admins can create tenants
@@ -112,10 +114,7 @@ export async function POST(request: Request) {
           email: body.email || null,
           subscriptionTier: body.subscriptionTier || 'trial',
           subscriptionStatus: 'active',
-          trialEndsAt:
-            body.subscriptionTier === 'trial'
-              ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-              : null,
+          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           featureFlags: {
             multi_location_enabled: false,
             granular_permissions_enabled: false,
@@ -164,6 +163,17 @@ export async function POST(request: Request) {
         },
       })
 
+      // Create trial subscription for the new tenant
+      const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+      await tx.subscription.create({
+        data: {
+          tenantId: tenant.id,
+          tier: 'starter',
+          status: 'trial_active',
+          trialEndsAt,
+        },
+      })
+
       return { tenant, adminUser }
     })
   } catch (error) {
@@ -201,6 +211,20 @@ export async function POST(request: Request) {
     recipientName: `${body.adminFirstName} ${body.adminLastName}`,
     appUrl,
   })
+
+  // Send trial welcome email (best-effort, outside transaction)
+  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+  const welcomeContent = renderTrialWelcomeEmail({
+    cabinetName: tenantResult.tenant.name,
+    adminName: `${body.adminFirstName} ${body.adminLastName}`,
+    trialEndsAt,
+    billingUrl: `${appUrl}/settings/billing`,
+  })
+  sendEmail({
+    to: { email: body.adminEmail, name: `${body.adminFirstName} ${body.adminLastName}` },
+    content: welcomeContent,
+    tags: ['trial-welcome'],
+  }).catch((err) => console.error('[tenants] Failed to send welcome email', err))
 
   if (!inviteResult.ok) {
     console.error('[tenants] Failed to send initial admin invite', {

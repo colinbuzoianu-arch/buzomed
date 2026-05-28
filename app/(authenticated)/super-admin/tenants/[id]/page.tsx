@@ -16,6 +16,7 @@ import {
 import { TenantInviteSection } from './tenant-invite-section'
 import { PlatformInvoicesTab } from './platform-invoices-tab'
 import { TenantManagementActions } from './tenant-management-actions'
+import { SubscriptionActions } from './subscription-actions'
 import { formatDate } from '@/lib/format-date'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
@@ -101,6 +102,13 @@ export default async function TenantDetailPage({ params }: PageProps) {
   }, null)
 
   const now = new Date()
+
+  const subscription = await prisma.subscription.findFirst({
+    where: { tenantId: tenant.id },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, status: true, tier: true, trialEndsAt: true, notes: true },
+  })
+
   const pendingInvitations = await prisma.invitation.findMany({
     where: {
       tenantId: tenant.id,
@@ -321,6 +329,18 @@ export default async function TenantDetailPage({ params }: PageProps) {
             </span>
           </div>
         </div>
+      </section>
+
+      {/* Subscription management */}
+      <section className="space-y-3">
+        <h2 className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+          Abonament
+        </h2>
+        <SubscriptionActions
+          tenantId={tenant.id}
+          tenantName={tenant.name}
+          subscription={subscription}
+        />
       </section>
 
       {/* Members with last-seen */}

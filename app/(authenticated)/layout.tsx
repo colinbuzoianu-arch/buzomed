@@ -9,6 +9,7 @@ import { TenantLogo } from '@/components/tenant-logo'
 import { MobileNav } from '@/components/mobile-nav'
 import { AppNav } from '@/components/app-nav'
 import { IrisPanel } from '@/components/iris/iris-panel'
+import { SubscriptionBanner } from '@/components/subscription-banner'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -33,6 +34,14 @@ export default async function AuthenticatedLayout({
     ? await prisma.tenant.findUnique({
         where: { id: user.tenantId! },
         select: { logoUrl: true, name: true, subscriptionStatus: true },
+      })
+    : null
+
+  const subscription = hasTenant
+    ? await prisma.subscription.findFirst({
+        where: { tenantId: user.tenantId! },
+        orderBy: { createdAt: 'desc' },
+        select: { status: true, trialEndsAt: true, tier: true },
       })
     : null
 
@@ -64,6 +73,7 @@ export default async function AuthenticatedLayout({
     if (isAdmin) {
       navItems.push({ href: '/settings/practice', label: t('nav.settings') })
       navItems.push({ href: '/settings/audit-log', label: 'Jurnal acces' })
+      navItems.push({ href: '/settings/billing', label: 'Abonament' })
     }
   }
 
@@ -121,6 +131,8 @@ export default async function AuthenticatedLayout({
           </div>
         </div>
       </header>
+
+      {hasTenant && !isSuperAdmin && <SubscriptionBanner subscription={subscription} />}
 
       <main className="flex-1 container mx-auto px-4 py-6 md:py-8">
         {children}

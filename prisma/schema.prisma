@@ -38,11 +38,22 @@ enum SubscriptionTier {
   enterprise
 }
 
+enum PlanTier {
+  starter
+  growth
+  pro
+  enterprise
+}
+
 enum SubscriptionStatus {
+  trial_active
+  trial_expired
   active
   past_due
-  cancelled
+  canceled
+  cancelled  // kept for backward compat (British spelling)
   suspended
+  comp
 }
 
 enum IdDocumentType {
@@ -263,7 +274,8 @@ model Tenant {
   auditLogEntries     AuditLogEntry[]
   employeeWorkplaceAssignments EmployeeWorkplaceAssignment[]
   platformInvoices    PlatformInvoice[]
-  
+  subscriptions       Subscription[]
+
   @@map("tenants")
   @@index([slug])
   @@index([deletedAt])
@@ -569,6 +581,49 @@ model PlatformInvoiceItem {
 
   @@map("platform_invoice_items")
   @@index([invoiceId])
+}
+
+// ============================================================================
+// SUBSCRIPTION MANAGEMENT
+// ============================================================================
+
+model Plan {
+  id               String        @id @default(cuid())
+  name             String
+  tier             PlanTier      @unique
+  monthlyPrice     Decimal       @map("monthly_price") @db.Decimal(10, 2)
+  maxEmployees     Int           @map("max_employees")  // -1 = unlimited
+  isPublic         Boolean       @default(true) @map("is_public")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  subscriptions    Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  tenantId             String             @map("tenant_id") @db.Uuid
+  planId               String?            @map("plan_id")
+  tier                 PlanTier           @default(starter)
+  status               SubscriptionStatus @default(trial_active)
+  trialEndsAt          DateTime?          @map("trial_ends_at") @db.Timestamptz
+  currentPeriodStart   DateTime?          @map("current_period_start") @db.Timestamptz
+  currentPeriodEnd     DateTime?          @map("current_period_end") @db.Timestamptz
+  canceledAt           DateTime?          @map("canceled_at") @db.Timestamptz
+  stripeCustomerId     String?            @map("stripe_customer_id")
+  stripeSubscriptionId String?            @map("stripe_subscription_id")
+  notes                String?
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant               Tenant             @relation(fields: [tenantId], references: [id])
+  plan                 Plan?              @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+  @@index([tenantId])
+  @@index([status])
 }
 
 model Workplace {
