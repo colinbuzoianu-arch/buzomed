@@ -13,7 +13,7 @@ export default async function BillingPage() {
     redirect('/dashboard')
   }
 
-  const [subscription, plans, employeeCount] = await Promise.all([
+  const [subscription, rawPlans, employeeCount] = await Promise.all([
     getTenantSubscription(user.tenantId),
     prisma.plan.findMany({
       where: { isPublic: true },
@@ -21,6 +21,17 @@ export default async function BillingPage() {
     }),
     countActiveEmployees(user.tenantId),
   ])
+
+  // Decimal is not serializable to Client Components — convert to number
+  const plans = rawPlans.map((p) => ({ ...p, monthlyPrice: Number(p.monthlyPrice) }))
+  const serializedSubscription = subscription
+    ? {
+        ...subscription,
+        plan: subscription.plan
+          ? { ...subscription.plan, monthlyPrice: Number(subscription.plan.monthlyPrice) }
+          : null,
+      }
+    : null
 
   return (
     <div className="space-y-6">
@@ -31,7 +42,7 @@ export default async function BillingPage() {
         </p>
       </div>
       <BillingClient
-        subscription={subscription}
+        subscription={serializedSubscription}
         plans={plans}
         employeeCount={employeeCount}
       />

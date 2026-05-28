@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import type { Plan, Subscription } from '@prisma/client'
+
+type SerializedPlan = Omit<Plan, 'monthlyPrice'> & { monthlyPrice: number }
 import { toastError } from '@/lib/toast'
 
 interface BillingClientProps {
-  subscription: (Subscription & { plan: Plan | null }) | null
-  plans: Plan[]
+  subscription: (Subscription & { plan: SerializedPlan | null }) | null
+  plans: SerializedPlan[]
   employeeCount: number
 }
 
@@ -115,7 +117,7 @@ export function BillingClient({ subscription, plans, employeeCount }: BillingCli
             {plans.map((plan) => {
               const isCurrent = subscription?.plan?.id === plan.id
               const tierLabel = plan.tier.charAt(0).toUpperCase() + plan.tier.slice(1)
-              const price = Number(plan.monthlyPrice)
+              const price = plan.monthlyPrice
               const maxEmp = plan.maxEmployees === -1 ? 'nelimitat' : `până la ${plan.maxEmployees}`
 
               return (
