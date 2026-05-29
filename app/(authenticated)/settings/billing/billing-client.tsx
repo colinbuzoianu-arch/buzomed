@@ -162,6 +162,18 @@ export function BillingClient({ subscription, plans, employeeCount, invoices }: 
         </div>
       </div>
 
+      {/* Enterprise threshold warning — shown when approaching Pro limit */}
+      {status === 'active' && subscription?.tier === 'pro' && employeeCount > 1800 && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Ai <strong>{employeeCount}</strong> angajați activi. La 2 000 vei atinge limita planului Pro.
+          Pentru a continua fără întrerupere, contactează-ne la{' '}
+          <a href="mailto:hello@buzomed.com" className="underline hover:text-amber-700">
+            hello@buzomed.com
+          </a>{' '}
+          pentru un plan Enterprise.
+        </div>
+      )}
+
       {/* Plan comparison — hidden for comp */}
       {!isComp && (
         <div>

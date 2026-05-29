@@ -5,9 +5,15 @@ import { renderTrialDay7Email } from '@/lib/email/templates/subscription/trial-d
 import { renderTrialDay11Email } from '@/lib/email/templates/subscription/trial-day11'
 import { renderTrialExpiredEmail } from '@/lib/email/templates/subscription/trial-expired'
 import { renderTrialDeletionWarningEmail } from '@/lib/email/templates/subscription/trial-deletion-warning'
+import { renderAdminEnterpriseAlertEmail } from '@/lib/email/templates/subscription/admin-enterprise-alert'
+import { renderAdminPastDueAlertEmail } from '@/lib/email/templates/subscription/admin-past-due-alert'
+import { renderAdminTrialUnconvertedAlertEmail } from '@/lib/email/templates/subscription/admin-trial-unconverted-alert'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.buzomed.com'
 const BILLING_URL = `${APP_URL}/settings/billing`
+const ADMIN_EMAIL = 'hello@buzomed.com'
+const ADMIN_NAME = 'Buzomed Admin'
+const SUPER_ADMIN_BASE = `${APP_URL}/super-admin/tenants`
 
 /**
  * POST /api/cron/subscription-check
@@ -47,7 +53,7 @@ export async function POST(request: NextRequest) {
   // activeEmployeeCount was just synced above, so it reflects the current count.
   const subscriptions = await prisma.subscription.findMany({
     where: {
-      status: { in: ['trial_active', 'trial_expired', 'active'] },
+      status: { in: ['trial_active', 'trial_expired', 'active', 'past_due'] },
     },
     include: {
       tenant: {
@@ -138,6 +144,56 @@ export async function POST(request: NextRequest) {
         data: { status: 'past_due' },
       })
       processed++
+    }
+
+    // ── ALERT 1: Enterprise threshold ──────────────────────────────────────
+    if (sub.status === 'active' && sub.activeEmployeeCount > 2000 && !sub.enterpriseAlertSent) {
+      const content = renderAdminEnterpriseAlertEmail({
+        cabinetName: tenant.name,
+        tenantId: tenant.id,
+        activeEmployeeCount: sub.activeEmployeeCount,
+        superAdminUrl: `${SUPER_ADMIN_BASE}/${tenant.id}`,
+      })
+      await sendEmail({ to: { email: ADMIN_EMAIL, name: ADMIN_NAME }, content, tags: ['admin-enterprise-alert'] })
+      await prisma.subscription.update({ where: { id: sub.id }, data: { enterpriseAlertSent: true } })
+      processed++
+    } else if (sub.activeEmployeeCount <= 2000 && sub.enterpriseAlertSent) {
+      // Reset flag when count drops back below threshold
+      await prisma.subscription.update({ where: { id: sub.id }, data: { enterpriseAlertSent: false } })
+    }
+
+    // ── ALERT 2: Past due > 3 days ─────────────────────────────────────────
+    if (sub.status === 'past_due' && sub.currentPeriodEnd && !sub.pastDueAlertSent) {
+      const daysPastDue = Math.floor(
+        (now.getTime() - sub.currentPeriodEnd.getTime()) / (1000 * 60 * 60 * 24)
+      )
+      if (daysPastDue >= 3) {
+        const content = renderAdminPastDueAlertEmail({
+          cabinetName: tenant.name,
+          tenantId: tenant.id,
+          daysPastDue,
+          superAdminUrl: `${SUPER_ADMIN_BASE}/${tenant.id}`,
+        })
+        await sendEmail({ to: { email: ADMIN_EMAIL, name: ADMIN_NAME }, content, tags: ['admin-past-due-alert'] })
+        await prisma.subscription.update({ where: { id: sub.id }, data: { pastDueAlertSent: true } })
+        processed++
+      }
+    }
+
+    // ── ALERT 3: Trial expired, not converted, day 7 ───────────────────────
+    if (sub.status === 'trial_expired' && sub.trialEndsAt) {
+      const daysSinceExpiry = (now.getTime() - sub.trialEndsAt.getTime()) / (1000 * 60 * 60 * 24)
+      if (daysSinceExpiry >= 7 && daysSinceExpiry < 8) {
+        const content = renderAdminTrialUnconvertedAlertEmail({
+          cabinetName: tenant.name,
+          tenantId: tenant.id,
+          employeeCount: sub.activeEmployeeCount,
+          trialExpiredAt: sub.trialEndsAt,
+          superAdminUrl: `${SUPER_ADMIN_BASE}/${tenant.id}`,
+        })
+        await sendEmail({ to: { email: ADMIN_EMAIL, name: ADMIN_NAME }, content, tags: ['admin-trial-unconverted'] })
+        processed++
+      }
     }
   }
 

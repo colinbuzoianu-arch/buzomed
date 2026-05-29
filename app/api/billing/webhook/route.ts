@@ -146,12 +146,14 @@ export async function POST(request: Request) {
         if (periodEndTs) periodEnd = new Date(periodEndTs * 1000)
       }
 
-      // Re-activate past_due subscriptions on successful payment and refresh period
+      // Re-activate past_due subscriptions on successful payment and refresh period.
+      // Reset pastDueAlertSent so the alert fires again if they go past_due again.
       await prisma.subscription.update({
         where: { id: sub.id },
         data: {
           status: 'active',
           currentPeriodEnd: periodEnd,
+          pastDueAlertSent: false,
         },
       })
       break

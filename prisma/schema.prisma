@@ -619,6 +619,8 @@ model Subscription {
   stripeSubscriptionId String?            @map("stripe_subscription_id")
   activeEmployeeCount  Int                @default(0) @map("active_employee_count")
   trialExtendedDays    Int                @default(0) @map("trial_extended_days")
+  enterpriseAlertSent  Boolean            @default(false) @map("enterprise_alert_sent")
+  pastDueAlertSent     Boolean            @default(false) @map("past_due_alert_sent")
   notes                String?
   createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz
