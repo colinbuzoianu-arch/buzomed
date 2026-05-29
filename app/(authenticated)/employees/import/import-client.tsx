@@ -600,6 +600,81 @@ export function ImportClient({ companies, locale, labels }: Props) {
         </p>
       </div>
 
+      {/* How-to accordion */}
+      <details className="border rounded-lg overflow-hidden">
+        <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-muted/50 text-sm font-medium select-none list-none">
+          <span className="text-base leading-none shrink-0">ℹ</span>
+          Cum completez fișierul Excel?
+          <span className="ml-auto text-muted-foreground text-xs font-normal">click pentru detalii</span>
+        </summary>
+        <div className="px-4 pb-4 pt-1 space-y-4 text-sm border-t">
+          <div className="space-y-1 pt-2">
+            <p className="font-medium">Regula 1 — Date companie:</p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              Completează <code className="bg-muted px-1 rounded">nume_companie</code>,{' '}
+              <code className="bg-muted px-1 rounded">cui_companie</code> și{' '}
+              <code className="bg-muted px-1 rounded">adresa_companie</code> doar pe{' '}
+              <strong>primul rând</strong> al fiecărei firme. Rândurile următoare ale aceleiași firme
+              pot lăsa aceste coloane goale — sistemul le grupează automat după CUI.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-medium">Regula 2 — Loc de muncă:</p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              Completează <code className="bg-muted px-1 rounded">loc_de_munca</code> pe fiecare rând
+              unde angajatul are un loc de muncă specific. Dacă mai mulți angajați au același loc de
+              muncă, scrie același nume exact — sistemul îl creează o singură dată.
+            </p>
+          </div>
+          {/* Example table */}
+          <div className="overflow-x-auto rounded border border-border">
+            <table className="text-[11px] w-full">
+              <thead>
+                <tr className="bg-muted/60">
+                  {[
+                    'prenume', 'nume', 'id_angajat', 'email', 'departament',
+                    'functie', 'nume_companie', 'cui_companie', 'adresa_companie', 'loc_de_munca',
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="border-r border-b border-border px-2 py-1.5 text-left font-semibold whitespace-nowrap last:border-r-0"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  ['Ion', 'Popescu', '001', 'ion@abc.ro', 'IT', 'Programator', 'SC ABC SRL', 'RO12345678', 'Str. Unirii 1, Cluj', 'Birou IT'],
+                  ['Maria', 'Ionescu', '002', 'maria@abc.ro', 'IT', 'Tester', '', '', '', 'Birou IT'],
+                  ['Ana', 'Constantin', '003', 'ana@abc.ro', 'Producție', 'Operator', '', '', '', 'Atelier'],
+                  ['Mihai', 'Popa', '004', 'mihai@xyz.ro', 'Admin', 'Contabil', 'SC XYZ SRL', 'RO87654321', 'Bd. Eroilor 5, Brașov', 'Birou administrativ'],
+                  ['Elena', 'Stan', '005', 'elena@xyz.ro', 'Admin', 'Secretară', '', '', '', 'Birou administrativ'],
+                ] as string[][]).map((row, rowIdx) => (
+                  <tr key={rowIdx} className="border-b border-border last:border-b-0">
+                    {row.map((cell, cellIdx) => (
+                      <td
+                        key={cellIdx}
+                        className={`border-r border-border px-2 py-1.5 whitespace-nowrap last:border-r-0 ${
+                          cell === '' ? 'bg-slate-100/70' : ''
+                        }`}
+                      >
+                        {cell !== '' ? cell : <span className="text-transparent select-none" aria-hidden>·</span>}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-amber-800 border border-amber-200 bg-amber-50 rounded-md px-3 py-2">
+            ⚠ Locurile de muncă create automat nu au hazarde asociate. După import,
+            accesează fiecare companie pentru a completa profilul de risc.
+          </p>
+        </div>
+      </details>
+
       {/* Step 2: upload file */}
       <div className="space-y-2">
         <Label htmlFor="file">{labels.fileLabel}</Label>
