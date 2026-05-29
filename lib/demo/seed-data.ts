@@ -311,6 +311,17 @@ export async function seedDemoTenant(
     },
   })
 
+  // Create a complimentary subscription so canTenantDo() grants full access.
+  // status='comp' bypasses all billing gates; no trialEndsAt means it never expires.
+  await prisma.subscription.create({
+    data: {
+      tenantId,
+      status: 'comp',
+      tier: 'pro',
+      activeEmployeeCount: EMPLOYEES.length,
+    },
+  })
+
   return {
     companies: COMPANIES.length,
     employees: EMPLOYEES.length,
