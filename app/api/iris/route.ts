@@ -150,6 +150,18 @@ FACTURARE CLIENȚI (companii din cabinet):
 - Facturile către companiile-client se generează din examinări finalizate + contract activ cu prețuri.
 - Scutite TVA conform Art. 292 Cod Fiscal RO (servicii medicale).
 
+GDPR ȘI PROTECȚIA DATELOR:
+- Buzomed e conform GDPR cu date stocate exclusiv în Frankfurt, Germania (UE).
+- La activarea cabinetului se acceptă obligatoriu: Termeni și Condiții, Politică Confidențialitate și Acord de Prelucrare Date (DPA). Timestamp-ul și versiunea documentului sunt stocate în sistem.
+- Perioadă de retenție date medicale: configurabilă din /settings/practice → secțiunea "Retenție date". Implicit 7 ani (HG 355/2007). Poate fi extinsă la 10, 15, 25 sau 40 ani pentru angajați cu expunere la noxe speciale.
+- Retenție per angajat: pe profilul fiecărui angajat, secțiunea "Retenție date extinsă" — practice_admin poate seta individual o perioadă diferită față de cabinet (ex. 40 ani pentru angajații cu expunere la azbest).
+- Export GDPR per angajat (Art. 20 GDPR): butonul "GDPR Export" pe profilul angajatului (/employees/[id]) → descarcă JSON cu toate datele: examinări, vaccinări, evenimente medicale, documente. CNP-ul NU e inclus în export (e criptat, disponibil prin canal securizat separat).
+- Jurnal de acces (Audit Log): /settings/audit-log (doar practice_admin). Afișează ultimele 200 de acțiuni: descărcări fișe PDF, semnări, exporturi, modificări date angajați — cu utilizatorul, timestamp și IP.
+- Anonimizare GDPR (Art. 17): disponibilă din super-admin pentru fiecare cabinet. Înlocuiește datele de identificare cu [ANONIM]. Istoricul medical se păstrează conform HG 355/2007. Ireversibilă.
+- Verificare retenție date: buton în super-admin care identifică cabinete cu date expirate față de perioada configurată. Ștergerea e întotdeauna manuală, cu confirmare.
+- Cookie notice: banner informativ la prima vizită pe platformă — Buzomed folosește doar cookie-uri tehnice, fără tracking sau publicitate.
+- Pentru solicitări GDPR de la angajați (acces, rectificare, ștergere): practice_admin gestionează direct din Buzomed. Termen de răspuns legal: 30 de zile.
+
 ESCALATION:
 Dacă utilizatorul descrie o eroare tehnică, comportament neașteptat, sau ceva ce nu înțelegi, spune-i că escaladezi problema și roagă-l să confirme cu "da" sau "confirmă". Când confirmă, sistemul trimite automat email la Colin (hello@buzomed.com) cu rezumatul conversației.
 

@@ -4,6 +4,7 @@ import { getApiUser } from '@/lib/auth'
 import { canWriteTenantData } from '@/lib/permissions/tenant-data'
 import { computeNextExaminationDueDate } from '@/lib/examinations/recall'
 import { upsertRecallFromExamination } from '@/lib/recalls/upsert-from-examination'
+import { writeAuditLog, getClientIp } from '@/lib/audit/log'
 
 /**
  * Sign an examination. This is the legal commitment point — fișa de
@@ -34,7 +35,7 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-export async function POST(_request: NextRequest, ctx: RouteContext) {
+export async function POST(request: NextRequest, ctx: RouteContext) {
   const auth = await getApiUser()
   if (!auth.user) {
     return NextResponse.json(
@@ -135,6 +136,16 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
     })
 
     return exam
+  })
+
+  await writeAuditLog({
+    tenantId: auth.user.tenantId,
+    userId: auth.user.id,
+    action: 'sign',
+    entityType: 'examination',
+    entityId: id,
+    entitySummary: `Semnare fișă aptitudine — examinare ${existing.examinationNumber ?? id}`,
+    ipAddress: getClientIp(request),
   })
 
   return NextResponse.json({ examination: updated })

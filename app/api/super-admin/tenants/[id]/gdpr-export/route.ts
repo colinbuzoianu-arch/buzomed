@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
+import { writeAuditLog } from '@/lib/audit/log'
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -59,6 +60,15 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
     employees,
     examinations,
   }
+
+  await writeAuditLog({
+    tenantId: id,
+    userId: auth.user.id,
+    action: 'export',
+    entityType: 'tenant',
+    entityId: id,
+    entitySummary: `GDPR export complet tenant — ${tenant.name}`,
+  })
 
   // CNP is encrypted in DB and not included here — requires separate decryption on a specific GDPR request
   return new NextResponse(JSON.stringify(exportData, null, 2), {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
+import { writeAuditLog } from '@/lib/audit/log'
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -57,6 +58,15 @@ export async function POST(_req: NextRequest, ctx: Ctx) {
       },
     }),
   ])
+
+  await writeAuditLog({
+    tenantId: id,
+    userId: auth.user.id,
+    action: 'delete',
+    entityType: 'tenant',
+    entityId: id,
+    entitySummary: `GDPR anonimizare — ${tenant.name} — ${employeeResult.count} angajați anonimizați`,
+  })
 
   return NextResponse.json({
     ok: true,
