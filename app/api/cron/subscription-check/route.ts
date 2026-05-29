@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
     await prisma.subscription.update({ where: { id: s.id }, data: { activeEmployeeCount: count } })
   }
 
-  // Fetch all non-terminal subscriptions with tenant + practice_admin user
+  // Fetch all non-terminal subscriptions with tenant + practice_admin user.
+  // activeEmployeeCount was just synced above, so it reflects the current count.
   const subscriptions = await prisma.subscription.findMany({
     where: {
       status: { in: ['trial_active', 'trial_expired', 'active'] },
@@ -101,12 +102,13 @@ export async function POST(request: NextRequest) {
         await sendEmail({ to: { email: adminEmail, name: adminName }, content, tags: ['trial-day11'] })
         processed++
       } else if (daysUntilExpiry <= 7) {
-        // Day 7 email
+        // Day 7 email — variant based on active employee count
         const content = renderTrialDay7Email({
           cabinetName: tenant.name,
           adminName,
           trialEndsAt: sub.trialEndsAt,
           billingUrl: BILLING_URL,
+          employeeCount: sub.activeEmployeeCount,
         })
         await sendEmail({ to: { email: adminEmail, name: adminName }, content, tags: ['trial-day7'] })
         processed++

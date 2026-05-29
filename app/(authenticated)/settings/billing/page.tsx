@@ -1,10 +1,35 @@
 import { redirect } from 'next/navigation'
+import Stripe from 'stripe'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getTenantSubscription, countActiveEmployees } from '@/lib/subscription'
-import { BillingClient } from './billing-client'
+import { BillingClient, type StripeInvoice } from './billing-client'
 
 export const metadata = { title: 'Facturare & Abonament — Buzomed' }
+
+async function fetchStripeInvoices(stripeCustomerId: string): Promise<StripeInvoice[]> {
+  const key = process.env.STRIPE_SECRET_KEY
+  if (!key) return []
+  const stripe = new Stripe(key, { apiVersion: '2026-05-27.dahlia' })
+  try {
+    const invoices = await stripe.invoices.list({
+      customer: stripeCustomerId,
+      limit: 12,
+      status: 'paid',
+    })
+    return invoices.data.map((inv) => ({
+      id: inv.id,
+      number: inv.number ?? inv.id,
+      amountPaid: inv.amount_paid,
+      currency: inv.currency,
+      periodStart: inv.period_start,
+      periodEnd: inv.period_end,
+      hostedInvoiceUrl: inv.hosted_invoice_url ?? null,
+    }))
+  } catch {
+    return []
+  }
+}
 
 export default async function BillingPage() {
   const user = await requireUser()
@@ -21,6 +46,10 @@ export default async function BillingPage() {
     }),
     countActiveEmployees(user.tenantId),
   ])
+
+  const invoices = subscription?.stripeCustomerId
+    ? await fetchStripeInvoices(subscription.stripeCustomerId)
+    : []
 
   // Decimal is not serializable to Client Components — convert to number
   const plans = rawPlans.map((p) => ({ ...p, monthlyPrice: Number(p.monthlyPrice) }))
@@ -45,6 +74,7 @@ export default async function BillingPage() {
         subscription={serializedSubscription}
         plans={plans}
         employeeCount={employeeCount}
+        invoices={invoices}
       />
     </div>
   )

@@ -2,14 +2,25 @@
 
 import { useState } from 'react'
 import type { Plan, Subscription } from '@prisma/client'
+import { toastError } from '@/lib/toast'
 
 type SerializedPlan = Omit<Plan, 'monthlyPrice'> & { monthlyPrice: number }
-import { toastError } from '@/lib/toast'
+
+export interface StripeInvoice {
+  id: string
+  number: string
+  amountPaid: number
+  currency: string
+  periodStart: number
+  periodEnd: number
+  hostedInvoiceUrl: string | null
+}
 
 interface BillingClientProps {
   subscription: (Subscription & { plan: SerializedPlan | null }) | null
   plans: SerializedPlan[]
   employeeCount: number
+  invoices: StripeInvoice[]
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -34,7 +45,7 @@ const STATUS_COLORS: Record<string, string> = {
   comp: 'bg-violet-100 text-violet-800',
 }
 
-export function BillingClient({ subscription, plans, employeeCount }: BillingClientProps) {
+export function BillingClient({ subscription, plans, employeeCount, invoices }: BillingClientProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [portalLoading, setPortalLoading] = useState(false)
 
@@ -100,16 +111,28 @@ export function BillingClient({ subscription, plans, employeeCount }: BillingCli
                 {STATUS_LABELS[status] ?? status}
               </span>
             </div>
-            {subscription?.trialEndsAt && status === 'trial_active' && (
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                Trial expiră pe{' '}
-                {new Date(subscription.trialEndsAt).toLocaleDateString('ro-RO', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </p>
-            )}
+            {subscription?.trialEndsAt && status === 'trial_active' && (() => {
+              const trialEnd = new Date(subscription.trialEndsAt)
+              const trialStart = new Date(trialEnd.getTime() - 14 * 24 * 60 * 60 * 1000)
+              const totalMs = trialEnd.getTime() - trialStart.getTime()
+              const elapsedMs = Date.now() - trialStart.getTime()
+              const pct = Math.min(100, Math.max(0, Math.round((elapsedMs / totalMs) * 100)))
+              const daysLeft = Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+              return (
+                <div className="mt-2 space-y-1">
+                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <p className="text-[12px] text-muted-foreground">
+                    {daysLeft} {daysLeft === 1 ? 'zi' : 'zile'} rămase · expiră pe{' '}
+                    {trialEnd.toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              )
+            })()}
             {subscription?.currentPeriodEnd && status === 'active' && (
               <p className="mt-1 text-[13px] text-muted-foreground">
                 Reînnoire pe{' '}
@@ -201,6 +224,44 @@ export function BillingClient({ subscription, plans, employeeCount }: BillingCli
               hello@buzomed.com
             </a>.
           </p>
+        </div>
+      )}
+
+      {/* Invoice history */}
+      {invoices.length > 0 && (
+        <div>
+          <h2 className="text-[13px] font-medium text-foreground mb-3">Istoric facturi</h2>
+          <div className="rounded-lg border divide-y">
+            {invoices.map((inv) => {
+              const amount = (inv.amountPaid / 100).toLocaleString('ro-RO', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })
+              const currency = inv.currency.toUpperCase()
+              const period = `${new Date(inv.periodStart * 1000).toLocaleDateString('ro-RO', { month: 'short', year: 'numeric' })}`
+              return (
+                <div key={inv.id} className="flex items-center justify-between px-4 py-3 text-[13px]">
+                  <div className="flex items-center gap-4">
+                    <span className="text-muted-foreground tabular-nums">{period}</span>
+                    <span className="font-medium">{inv.number}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="tabular-nums">{amount} {currency}</span>
+                    {inv.hostedInvoiceUrl && (
+                      <a
+                        href={inv.hostedInvoiceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline underline-offset-2 hover:text-primary/80"
+                      >
+                        Descarcă
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -113,6 +113,36 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
   const demoTenants = tenants.filter((t) => t.isDemo).length
   const totalExaminations = enriched.reduce((s, t) => s + t.examinationCount, 0)
 
+  // Subscription stats from the new Subscription model
+  const allSubs = await prisma.subscription.findMany({
+    where: { tenant: { deletedAt: null } },
+    select: { status: true, plan: { select: { monthlyPrice: true } } },
+  })
+
+  const subsByStatus = allSubs.reduce<Record<string, number>>((acc, s) => {
+    acc[s.status] = (acc[s.status] ?? 0) + 1
+    return acc
+  }, {})
+
+  const mrr = allSubs
+    .filter((s) => s.status === 'active' && s.plan?.monthlyPrice)
+    .reduce((sum, s) => sum + Number(s.plan!.monthlyPrice), 0)
+
+  const trialExpiredCount = subsByStatus['trial_expired'] ?? 0
+  const activeCount = subsByStatus['active'] ?? 0
+  const conversionRate = trialExpiredCount + activeCount > 0
+    ? Math.round((activeCount / (trialExpiredCount + activeCount)) * 100)
+    : 0
+
+  const subscriptionStats = {
+    trialActive: subsByStatus['trial_active'] ?? 0,
+    trialExpired: trialExpiredCount,
+    active: activeCount,
+    comp: subsByStatus['comp'] ?? 0,
+    mrr,
+    conversionRate,
+  }
+
   // Billing stats
   const billingRows = await prisma.platformInvoice.groupBy({
     by: ['status'],
@@ -194,6 +224,16 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
         <StatCard label={t('superAdmin.stats.activeTenants')} value={activeTenants} tone="success" />
         <StatCard label={t('superAdmin.stats.demoTenants')} value={demoTenants} />
         <StatCard label={t('superAdmin.stats.totalExaminations')} value={totalExaminations} />
+      </div>
+
+      {/* Subscription stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <StatCard label="Trial activ" value={subscriptionStats.trialActive} />
+        <StatCard label="Trial expirat" value={subscriptionStats.trialExpired} />
+        <StatCard label="Activ (plătit)" value={subscriptionStats.active} tone="success" />
+        <StatCard label="Comp / Enterprise" value={subscriptionStats.comp} />
+        <StatCard label="MRR (RON)" value={Math.round(subscriptionStats.mrr)} tone="success" />
+        <StatCard label="Conversie %" value={subscriptionStats.conversionRate} />
       </div>
 
       {/* Billing overview */}

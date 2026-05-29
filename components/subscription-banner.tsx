@@ -18,7 +18,26 @@ export function SubscriptionBanner({ subscription }: SubscriptionBannerProps) {
 
   if (status === 'trial_active' && trialEndsAt) {
     const daysLeft = Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    if (daysLeft > 7) return null
+
+    if (daysLeft > 7) {
+      // Subtle info banner — trial is still comfortable
+      return (
+        <div className="bg-blue-50 border-b border-blue-200 text-blue-800">
+          <div className="container mx-auto px-4 py-2 flex items-center justify-between gap-4 text-[13px]">
+            <span>
+              Ești în perioada de trial.{' '}
+              {daysLeft} {daysLeft === 1 ? 'zi' : 'zile'} rămase.
+            </span>
+            <Link
+              href="/settings/billing"
+              className="shrink-0 font-medium underline underline-offset-2 hover:text-blue-900 transition-colors"
+            >
+              Vezi planuri
+            </Link>
+          </div>
+        </div>
+      )
+    }
 
     return (
       <div className="bg-amber-50 border-b border-amber-200 text-amber-800">
