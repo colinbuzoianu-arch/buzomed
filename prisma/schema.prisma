@@ -594,6 +594,8 @@ model Plan {
   monthlyPrice     Decimal       @map("monthly_price") @db.Decimal(10, 2)
   maxEmployees     Int           @map("max_employees")  // -1 = unlimited
   isPublic         Boolean       @default(true) @map("is_public")
+  stripeProductId  String?       @map("stripe_product_id")
+  stripePriceId    String?       @map("stripe_price_id")
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -614,6 +616,8 @@ model Subscription {
   canceledAt           DateTime?          @map("canceled_at") @db.Timestamptz
   stripeCustomerId     String?            @map("stripe_customer_id")
   stripeSubscriptionId String?            @map("stripe_subscription_id")
+  activeEmployeeCount  Int                @default(0) @map("active_employee_count")
+  trialExtendedDays    Int                @default(0) @map("trial_extended_days")
   notes                String?
   createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz

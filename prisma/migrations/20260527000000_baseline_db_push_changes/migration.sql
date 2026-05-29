@@ -1,0 +1,6 @@
+-- Baseline migration: records all schema changes applied via `prisma db push`
+-- between 20260526100000_add_company_recall_notification_email and this point.
+-- Covers: GDPR fields on Tenant/Employee/User, AuditLogEntry model,
+--         PlanTier enum, SubscriptionStatus enum extensions,
+--         Plan model, Subscription model.
+-- These changes already exist in the database — this file is for tracking only.

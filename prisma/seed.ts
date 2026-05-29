@@ -135,15 +135,15 @@ async function main() {
   // Seed subscription plans
   console.log('\nSeeding subscription plans...')
   const planDefs = [
-    { name: 'Starter',    tier: 'starter'    as const, monthlyPrice: 79,  maxEmployees: 100,  isPublic: true },
-    { name: 'Growth',     tier: 'growth'     as const, monthlyPrice: 199, maxEmployees: 500,  isPublic: true },
-    { name: 'Pro',        tier: 'pro'        as const, monthlyPrice: 449, maxEmployees: 2000, isPublic: true },
-    { name: 'Enterprise', tier: 'enterprise' as const, monthlyPrice: 0,   maxEmployees: -1,   isPublic: false },
+    { name: 'Starter',    tier: 'starter'    as const, monthlyPrice: 79,  maxEmployees: 100,  isPublic: true,  stripePriceId: 'price_1Tc9hKQi3J3l1LWuRBf0Lztz' },
+    { name: 'Growth',     tier: 'growth'     as const, monthlyPrice: 199, maxEmployees: 500,  isPublic: true,  stripePriceId: 'price_1Tc9kJQi3J3l1LWuoRE95wAZ' },
+    { name: 'Pro',        tier: 'pro'        as const, monthlyPrice: 449, maxEmployees: 2000, isPublic: true,  stripePriceId: 'price_1Tc9lkQi3J3l1LWuDHGrDLlK' },
+    { name: 'Enterprise', tier: 'enterprise' as const, monthlyPrice: 0,   maxEmployees: -1,   isPublic: false, stripePriceId: null },
   ]
   for (const p of planDefs) {
     await prisma.plan.upsert({
       where: { tier: p.tier },
-      update: { name: p.name, monthlyPrice: p.monthlyPrice, maxEmployees: p.maxEmployees, isPublic: p.isPublic },
+      update: { name: p.name, monthlyPrice: p.monthlyPrice, maxEmployees: p.maxEmployees, isPublic: p.isPublic, stripePriceId: p.stripePriceId },
       create: p,
     })
   }
