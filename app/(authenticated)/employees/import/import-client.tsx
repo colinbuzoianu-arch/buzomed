@@ -61,6 +61,10 @@ const COLUMN_KEYS: ColumnKey[] = [
   'department',
   'jobTitle',
   'city',
+  'companyName',
+  'cui',
+  'companyAddress',
+  'workplaceName',
 ]
 
 function colKeyLabel(key: ColumnKey, labels: Record<string, string>): string {
@@ -72,6 +76,10 @@ function colKeyLabel(key: ColumnKey, labels: Record<string, string>): string {
     case 'department': return labels.colDepartment
     case 'jobTitle': return labels.colJobTitle ?? 'Funcție'
     case 'city': return labels.colCity ?? 'Oraș'
+    case 'companyName': return 'Nume companie'
+    case 'cui': return 'CUI'
+    case 'companyAddress': return 'Adresă companie'
+    case 'workplaceName': return 'Loc de muncă'
   }
 }
 
@@ -115,17 +123,27 @@ function reapplyMapping(originalRows: RawRow[], newMapping: ColumnMapping): RawR
   })
 }
 
-function annotateRows(remappedRows: RawRow[], company: Company): AnnotatedRow[] {
+function annotateRows(remappedRows: RawRow[], company: Company | null | undefined, extMode = false): AnnotatedRow[] {
   const seenNames = new Set<string>()
   const seenEmails = new Set<string>()
   return remappedRows.map((row) => {
     const v = validateRow(row)
-    const wp = matchWorkplace(company, row.department)
+    const wp = company ? matchWorkplace(company, row.department) : null
     const issues = [...v.issues]
     const warnings = [...v.warnings]
 
-    if (row.department && !wp) {
+    // In extended mode, workplace mismatches are non-fatal (server creates them)
+    if (row.department && !wp && !extMode) {
       issues.push('workplace_not_found')
+    }
+
+    // Warn when only one of cui/companyName is provided
+    if ((row.cui && !row.companyName) || (!row.cui && row.companyName)) {
+      warnings.push('incomplete_company_columns')
+    }
+    // Warn when workplaceName is present but no company to attach it to
+    if (row.workplaceName && !row.cui && !row.companyName && !company) {
+      warnings.push('workplace_without_company')
     }
 
     const nameKey = `${row.firstName?.toLowerCase()}|${row.lastName?.toLowerCase()}`
@@ -174,18 +192,24 @@ export function ImportClient({ companies, locale, labels }: Props) {
   const [aiConfidence, setAiConfidence] = useState<
     Partial<Record<ColumnKey, 'high' | 'medium' | 'low'>>
   >({})
+  const [extendedMode, setExtendedMode] = useState(false)
   const [commitResult, setCommitResult] = useState<{
     summary: {
       total: number
       created: number
       skipped: number
       failed: number
+      companiesCreated: number
+      workplacesCreated: number
+      rowsWithoutCompany: number
+      rowsWithoutWorkplace: number
     }
     results: Array<{
       rowNumber: number
       outcome: 'created' | 'skipped' | 'failed'
       reason?: string
     }>
+    companiesCreated: Array<{ id: string; name: string; cui: string }>
   } | null>(null)
 
   const selectedCompany = companies.find((c) => c.id === companyId)
@@ -219,11 +243,9 @@ export function ImportClient({ companies, locale, labels }: Props) {
   }
 
   async function handleFileSelect(file: File) {
-    if (!companyId || !selectedCompany) {
-      setError(labels.errorNoCompany)
-      return
-    }
-    const company = selectedCompany // capture at call time
+    // In old mode (no per-row company columns), a company must be selected first.
+    // Extended mode is detected from the file headers after parsing, so we can't
+    // enforce this guard here for extended-mode files — we'll re-check after parse.
     setError(null)
     setParseErrors([])
     setPhase('previewing')
@@ -246,6 +268,18 @@ export function ImportClient({ companies, locale, labels }: Props) {
         result = await parseImportFile({ text })
       }
 
+      const isExtended = !!(result.mapping.detected.companyName || result.mapping.detected.cui)
+      setExtendedMode(isExtended)
+
+      // Old mode still requires a company to be selected.
+      if (!isExtended && (!companyId || !selectedCompany)) {
+        setError(labels.errorNoCompany)
+        setPhase('idle')
+        return
+      }
+
+      const company = selectedCompany ?? null
+
       setMapping(result.mapping)
       setParseErrors(result.parseErrors)
       setRawRows(result.rows)
@@ -260,9 +294,9 @@ export function ImportClient({ companies, locale, labels }: Props) {
             ]
       setFileHeaders(headers)
 
-      const annotated = annotateRows(result.rows, company)
+      const annotated = annotateRows(result.rows, company, isExtended)
       setRows(annotated)
-      runDiff(companyId, annotated)
+      if (!isExtended) runDiff(companyId, annotated)
 
       // Trigger AI column mapping when ≥2 required columns are undetected.
       if (result.mapping.missingColumns.length >= 2) {
@@ -278,9 +312,9 @@ export function ImportClient({ companies, locale, labels }: Props) {
             setAiUsed(true)
             setAiConfidence(aiResult.confidence)
             const remapped = reapplyMapping(result.rows, aiResult.mapping)
-            const reAnnotated = annotateRows(remapped, company)
+            const reAnnotated = annotateRows(remapped, company, isExtended)
             setRows(reAnnotated)
-            runDiff(companyId, reAnnotated)
+            if (!isExtended) runDiff(companyId, reAnnotated)
           })
           .finally(() => {
             if (aiGenRef.current === myGen) setAiMappingLoading(false)
@@ -345,15 +379,19 @@ export function ImportClient({ companies, locale, labels }: Props) {
     // Re-annotate rows and refresh diff
     if (rawRows.length > 0) {
       const remapped = reapplyMapping(rawRows, newMapping)
-      const reAnnotated = annotateRows(remapped, selectedCompany)
+      const reAnnotated = annotateRows(remapped, selectedCompany, extendedMode)
       setRows(reAnnotated)
-      runDiff(companyId, reAnnotated)
+      if (!extendedMode) runDiff(companyId, reAnnotated)
     }
   }
 
   async function handleCommit() {
-    if (!companyId || rows.length === 0) {
+    if (rows.length === 0) {
       setError(labels.errorNoValidRows)
+      return
+    }
+    if (!extendedMode && !companyId) {
+      setError(labels.errorNoCompany)
       return
     }
     const validRows = rows.filter(
@@ -372,7 +410,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          companyId,
+          companyId: companyId || null,
           rows: validRows.map((r) => ({
             rowNumber: r.rowNumber,
             firstName: r.firstName!,
@@ -380,7 +418,13 @@ export function ImportClient({ companies, locale, labels }: Props) {
             companyEmployeeId: r.companyEmployeeId,
             email: r.email,
             department: r.department,
+            jobTitle: r.jobTitle,
+            city: r.city,
             skipIfDuplicate: skipDuplicates,
+            companyName: r.companyName ?? null,
+            cui: r.cui ?? null,
+            companyAddress: r.companyAddress ?? null,
+            workplaceName: r.workplaceName ?? null,
           })),
         }),
       })
@@ -403,6 +447,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
   function reset() {
     aiGenRef.current++ // invalidate any in-flight AI calls
     setPhase('idle')
+    setExtendedMode(false)
     setRows([])
     setRawRows([])
     setFileHeaders([])
@@ -450,6 +495,60 @@ export function ImportClient({ companies, locale, labels }: Props) {
               }
             />
           </div>
+          {/* Extended-mode auto-created entities */}
+          {(commitResult.summary.companiesCreated > 0 ||
+            commitResult.summary.workplacesCreated > 0 ||
+            commitResult.summary.rowsWithoutCompany > 0 ||
+            commitResult.summary.rowsWithoutWorkplace > 0) && (
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              {commitResult.summary.companiesCreated > 0 && (
+                <StatBox
+                  label="Companii create automat"
+                  value={commitResult.summary.companiesCreated}
+                  tone="success"
+                />
+              )}
+              {commitResult.summary.workplacesCreated > 0 && (
+                <StatBox
+                  label="Locuri de muncă create"
+                  value={commitResult.summary.workplacesCreated}
+                  tone="success"
+                />
+              )}
+              {commitResult.summary.rowsWithoutCompany > 0 && (
+                <StatBox
+                  label="Rânduri fără companie"
+                  value={commitResult.summary.rowsWithoutCompany}
+                />
+              )}
+              {commitResult.summary.rowsWithoutWorkplace > 0 && (
+                <StatBox
+                  label="Rânduri fără loc de muncă"
+                  value={commitResult.summary.rowsWithoutWorkplace}
+                />
+              )}
+            </div>
+          )}
+          {commitResult.companiesCreated?.length > 0 && (
+            <div className="mt-4 border border-amber-200 bg-amber-50 rounded-md p-3 text-sm text-amber-900 space-y-2">
+              <p className="font-medium">
+                Locurile de muncă create automat nu au hazarde asociate.
+                Adaugă profilul de risc din pagina companiei.
+              </p>
+              <ul className="space-y-0.5 pl-1">
+                {commitResult.companiesCreated.map((c) => (
+                  <li key={c.id}>
+                    <a
+                      href={`/companies/${c.id}`}
+                      className="underline hover:text-amber-700"
+                    >
+                      {c.name} ({c.cui})
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => router.push('/employees')}>
@@ -468,7 +567,14 @@ export function ImportClient({ companies, locale, labels }: Props) {
     <div className="space-y-6">
       {/* Step 1: pick company */}
       <div className="space-y-2">
-        <Label htmlFor="company">{labels.companyLabel}</Label>
+        <Label htmlFor="company">
+          {labels.companyLabel}
+          {extendedMode && (
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              (opțional în modul extins)
+            </span>
+          )}
+        </Label>
         <select
           id="company"
           value={companyId}
@@ -487,59 +593,81 @@ export function ImportClient({ companies, locale, labels }: Props) {
             </option>
           ))}
         </select>
-        <p className="text-xs text-muted-foreground">{labels.companyHelp}</p>
+        <p className="text-xs text-muted-foreground">
+          {extendedMode
+            ? 'Opțional — folosit ca rezervă pentru rândurile fără companie din fișier.'
+            : labels.companyHelp}
+        </p>
       </div>
 
       {/* Step 2: upload file */}
-      {companyId && (
-        <div className="space-y-2">
-          <Label htmlFor="file">{labels.fileLabel}</Label>
-          <Input
-            id="file"
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) handleFileSelect(f)
-            }}
-            disabled={phase === 'committing'}
-          />
-          <p className="text-xs text-muted-foreground">{labels.fileHelp}</p>
-          <details className="text-xs text-muted-foreground">
-            <summary className="cursor-pointer hover:text-foreground">
-              {labels.fileFormatHelp}
-            </summary>
-            <div className="mt-2 pl-2 border-l-2 border-muted">
-              <p>
-                {locale === 'ro'
-                  ? 'Antetele așteptate (toleranță la sinonime):'
-                  : 'Expected headers (synonyms tolerated):'}
-              </p>
-              <ul className="list-disc list-inside mt-1 space-y-0.5">
-                <li>{labels.colFirstName}: prenume, first name, prenumele</li>
-                <li>{labels.colLastName}: nume, last name, surname</li>
-                <li>{labels.colEmployeeId}: id angajat, marca, matricola, employee id</li>
-                <li>{labels.colEmail}: email, e-mail, mail</li>
-                <li>{labels.colDepartment}: departament, sectie, post, workplace</li>
-              </ul>
-              <p className="mt-2">
-                <a
-                  href={`data:text/csv;charset=utf-8,${encodeURIComponent(
-                    '﻿prenume,nume,id angajat,email,departament\r\n' +
-                      'Andreea,Popescu,1001,andreea@example.com,Sudor\r\n' +
-                      'Mihai,Ionescu,1002,mihai@example.com,Birou\r\n'
-                  )}`}
-                  download="template_angajati.csv"
-                  className="text-primary hover:underline"
-                >
-                  {labels.downloadTemplate}
-                </a>
-              </p>
+      <div className="space-y-2">
+        <Label htmlFor="file">{labels.fileLabel}</Label>
+        <Input
+          id="file"
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) handleFileSelect(f)
+          }}
+          disabled={phase === 'committing'}
+        />
+        <p className="text-xs text-muted-foreground">{labels.fileHelp}</p>
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer hover:text-foreground">
+            {labels.fileFormatHelp}
+          </summary>
+          <div className="mt-2 pl-2 border-l-2 border-muted">
+            <p>
+              {locale === 'ro'
+                ? 'Antetele așteptate (toleranță la sinonime):'
+                : 'Expected headers (synonyms tolerated):'}
+            </p>
+            <ul className="list-disc list-inside mt-1 space-y-0.5">
+              <li>{labels.colFirstName}: prenume, first name, prenumele</li>
+              <li>{labels.colLastName}: nume, last name, surname</li>
+              <li>{labels.colEmployeeId}: id angajat, marca, matricola, employee id</li>
+              <li>{labels.colEmail}: email, e-mail, mail</li>
+              <li>{labels.colDepartment}: departament, sectie, post, workplace</li>
+              <li>Nume companie: companie, firma, company name, angajator</li>
+              <li>CUI: cui_companie, cod fiscal, cif</li>
+              <li>Adresă companie: adresa_companie, sediu social (opțional)</li>
+              <li>Loc de muncă: loc_de_munca, punct de lucru, work location (opțional)</li>
+            </ul>
+            <p className="mt-2 text-[hsl(var(--text-muted))] italic">
+              Coloanele <code>Nume companie</code>, <code>CUI</code> și <code>Loc de muncă</code> sunt
+              opționale — dacă sunt prezente, companiile și locurile de muncă se creează automat.
+            </p>
+            <div className="mt-2 flex gap-3 flex-wrap">
+              <a
+                href={`data:text/csv;charset=utf-8,${encodeURIComponent(
+                  '﻿prenume,nume,id angajat,email,departament\r\n' +
+                    'Andreea,Popescu,1001,andreea@example.com,Sudor\r\n' +
+                    'Mihai,Ionescu,1002,mihai@example.com,Birou\r\n'
+                )}`}
+                download="template_angajati.csv"
+                className="text-primary hover:underline"
+              >
+                {labels.downloadTemplate} (simplu)
+              </a>
+              <a
+                href={`data:text/csv;charset=utf-8,${encodeURIComponent(
+                  '﻿prenume,nume,id angajat,email,departament,functie,nume_companie,cui_companie,adresa_companie,loc_de_munca\r\n' +
+                    'Ion,Popescu,001,ion@firma.ro,IT,Programator,SC Firma SRL,RO12345678,Str. Exemplu 1 Cluj,Birou IT\r\n' +
+                    'Maria,Ionescu,002,maria@firma.ro,,,SC Firma SRL,RO12345678,,\r\n' +
+                    'Ana,Constantin,003,,,,,,,\r\n'
+                )}`}
+                download="template_angajati_extins.csv"
+                className="text-primary hover:underline"
+              >
+                {labels.downloadTemplate} (extins cu companii)
+              </a>
             </div>
-          </details>
-        </div>
-      )}
+          </div>
+        </details>
+      </div>
 
       {/* Errors */}
       {error && (
@@ -681,7 +809,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
             </Label>
           </div>
 
-          <PreviewTable rows={rows} labels={labels} />
+          <PreviewTable rows={rows} labels={labels} extendedMode={extendedMode} />
 
           <div className="flex flex-wrap gap-2 sticky bottom-4 bg-background/95 backdrop-blur border rounded-lg p-3">
             <Button
@@ -803,9 +931,11 @@ function StatBox({
 function PreviewTable({
   rows,
   labels,
+  extendedMode,
 }: {
   rows: AnnotatedRow[]
   labels: Record<string, string>
+  extendedMode: boolean
 }) {
   return (
     <div className="border rounded-lg overflow-x-auto -mx-4 sm:mx-0">
@@ -818,7 +948,15 @@ function PreviewTable({
             <th className="text-left px-3 py-2">{labels.colLastName}</th>
             <th className="text-left px-3 py-2">{labels.colEmployeeId}</th>
             <th className="text-left px-3 py-2">{labels.colEmail}</th>
-            <th className="text-left px-3 py-2">{labels.colDepartment}</th>
+            {extendedMode ? (
+              <>
+                <th className="text-left px-3 py-2">Companie</th>
+                <th className="text-left px-3 py-2">CUI</th>
+                <th className="text-left px-3 py-2">Loc de muncă</th>
+              </>
+            ) : (
+              <th className="text-left px-3 py-2">{labels.colDepartment}</th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -881,14 +1019,28 @@ function PreviewTable({
                 <td className="px-3 py-2 text-muted-foreground">
                   {r.email ?? '—'}
                 </td>
-                <td className="px-3 py-2 text-muted-foreground">
-                  {r.department ?? '—'}
-                  {r.department && !r.workplaceMatched && (
-                    <span className="text-destructive text-xs ml-1">
-                      (?)
-                    </span>
-                  )}
-                </td>
+                {extendedMode ? (
+                  <>
+                    <td className="px-3 py-2 text-muted-foreground max-w-[140px] truncate">
+                      {r.companyName ?? '—'}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground font-mono text-xs">
+                      {r.cui ?? '—'}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {r.workplaceName ?? r.department ?? '—'}
+                    </td>
+                  </>
+                ) : (
+                  <td className="px-3 py-2 text-muted-foreground">
+                    {r.department ?? '—'}
+                    {r.department && !r.workplaceMatched && (
+                      <span className="text-destructive text-xs ml-1">
+                        (?)
+                      </span>
+                    )}
+                  </td>
+                )}
               </tr>
             )
           })}
@@ -995,6 +1147,10 @@ function warningLabel(code: string, labels: Record<string, string>): string {
     case 'duplicate_within_file_name':
     case 'duplicate_within_file_email':
       return labels.warningDuplicateEmployee
+    case 'incomplete_company_columns':
+      return 'CUI sau Nume companie lipsă — compania nu va fi creată'
+    case 'workplace_without_company':
+      return 'Loc de muncă fără companie — nu va fi atașat'
     default:
       return code
   }

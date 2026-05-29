@@ -59,6 +59,7 @@ export default async function CompaniesPage() {
       city: true,
       contactPersonName: true,
       isActive: true,
+      createdFromImport: true,
       _count: {
         select: {
           employees: {
@@ -133,6 +134,12 @@ export default async function CompaniesPage() {
                           {companyInitials(c.name)}
                         </span>
                         <span className="min-w-0 truncate">{c.name}</span>
+                        {c.createdFromImport && (
+                          <span className="shrink-0 inline-flex items-center gap-1 rounded border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">
+                            <span className="h-1 w-1 rounded-full bg-teal-500" aria-hidden />
+                            Creat din import
+                          </span>
+                        )}
                         {!c.isActive && (
                           <span className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
                             <span className="h-1 w-1 rounded-full bg-slate-400" aria-hidden />
@@ -177,6 +184,12 @@ export default async function CompaniesPage() {
                   <div className="min-w-0 flex-1">
                     <div className="font-medium truncate flex items-center gap-2">
                       <span className="truncate">{c.name}</span>
+                      {c.createdFromImport && (
+                        <span className="shrink-0 inline-flex items-center gap-1 rounded border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">
+                          <span className="h-1 w-1 rounded-full bg-teal-500" aria-hidden />
+                          Creat din import
+                        </span>
+                      )}
                       {!c.isActive && (
                         <span className="shrink-0 inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
                           <span className="h-1 w-1 rounded-full bg-slate-400" aria-hidden />

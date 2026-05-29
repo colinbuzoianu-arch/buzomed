@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { EmptyState } from '@/components/ui/empty-state'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -54,26 +53,29 @@ export default async function ImportEmployeesPage() {
         </p>
       </div>
 
-      {companies.length === 0 ? (
-        <EmptyState
-          size="compact"
-          illustration="companies"
-          title={t('employees.import.noCompanies')}
-          primaryAction={{ label: `+ ${t('employees.import.createCompany')}`, href: '/companies/new' }}
-        />
-      ) : (
-        <ImportClient
-          companies={companies.map((c) => ({
-            id: c.id,
-            name: c.name,
-            workplaces: c.workplaces.map((w) => ({
-              id: w.id,
-              name: w.name,
-              department: w.department,
-            })),
-          }))}
-          locale={locale}
-          labels={{
+      {companies.length === 0 && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+          Nu ai companii create. Folosește template-ul extins (cu coloanele{' '}
+          <code>nume_companie</code> + <code>cui_companie</code>) pentru a le
+          crea automat din import, sau{' '}
+          <Link href="/companies/new" className="underline hover:text-blue-600">
+            creează o companie
+          </Link>{' '}
+          înainte de import.
+        </div>
+      )}
+      <ImportClient
+        companies={companies.map((c) => ({
+          id: c.id,
+          name: c.name,
+          workplaces: c.workplaces.map((w) => ({
+            id: w.id,
+            name: w.name,
+            department: w.department,
+          })),
+        }))}
+        locale={locale}
+        labels={{
             stepCompany: t('employees.import.stepCompany'),
             stepFile: t('employees.import.stepFile'),
             stepPreview: t('employees.import.stepPreview'),
@@ -151,7 +153,6 @@ export default async function ImportEmployeesPage() {
             workplaceUnassigned: t('employees.import.workplaceUnassigned'),
           }}
         />
-      )}
     </div>
   )
 }

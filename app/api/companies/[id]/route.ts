@@ -149,6 +149,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     return NextResponse.json({ company: existing })
   }
 
+  // Clear the import badge the first time a doctor manually edits the company
+  updateData.createdFromImport = false
+
   const company = await prisma.company.update({
     where: { id },
     data: updateData,

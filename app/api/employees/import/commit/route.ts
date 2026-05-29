@@ -7,53 +7,17 @@ import { asObject } from '@/lib/validation'
 /**
  * Bulk employee import — commit endpoint.
  *
- * Workflow:
- *   1. Client parses CSV/XLSX in browser (lib/employees/import-parser.ts)
- *   2. User reviews the preview, fixes errors locally if any
- *   3. Client POSTs the validated rows here to commit
- *   4. Server validates against the DB (company exists, workplaces
- *      match, no duplicate employees on (firstName + lastName) within
- *      tenant), then creates Employee + WorkplaceAssignment in one
- *      transaction per row
+ * Supports two modes:
  *
- * Per-row failures don't abort the whole import — we return a
- * report indicating which rows succeeded and which failed.
+ * Old mode (companyId provided, no per-row company data):
+ *   - companyId is required
+ *   - department column → strict match to existing Workplace (fail row if not found)
  *
- * Input shape:
- *   {
- *     companyId: string,
- *     rows: Array<{
- *       firstName: string,
- *       lastName: string,
- *       companyEmployeeId: string | null,
- *       email: string | null,
- *       department: string | null,
- *     }>
- *   }
- *
- * Output shape:
- *   {
- *     summary: { total, created, skipped, failed },
- *     results: Array<{
- *       rowNumber: number,
- *       outcome: 'created' | 'skipped' | 'failed',
- *       reason?: string,
- *       employeeId?: string,
- *     }>
- *   }
- *
- * Notes on what is NOT done here:
- *   - CNP encryption: bulk import does NOT accept CNPs (cabinets get
- *     these at the in-person exam, not from HR exports). Employees
- *     are created with idDocumentType='other' and idDocumentNumber=null.
- *   - Workplace auto-creation: if the row's department doesn't match
- *     an existing Workplace at the chosen company, the row is REJECTED,
- *     not silently created. Workplaces drive risk profile + exam
- *     intervals; auto-creating them would hide important config decisions.
- *   - Duplicate detection: an existing employee matches if
- *     (firstName.toLowerCase + lastName.toLowerCase) is the same. Email
- *     match is also reported as a soft duplicate. The caller can choose
- *     to skip these rows.
+ * Extended mode (per-row companyName + cui columns present):
+ *   - companyId is optional (used as fallback for rows without company data)
+ *   - Companies are found-or-created by CUI
+ *   - Workplaces are found-or-created by name under the resolved company
+ *   - workplace_not_found is non-fatal (employee imported without workplace)
  */
 
 interface ImportRow {
@@ -66,6 +30,11 @@ interface ImportRow {
   jobTitle: string | null
   city: string | null
   skipIfDuplicate: boolean
+  // Extended columns
+  companyName: string | null
+  cui: string | null
+  companyAddress: string | null
+  workplaceName: string | null
 }
 
 interface RowOutcome {
@@ -74,9 +43,18 @@ interface RowOutcome {
   reason?: string
   employeeId?: string
   duplicateEmployeeId?: string
+  warning?: string
 }
 
 const MAX_ROWS_PER_IMPORT = 500
+
+function normalizeCui(raw: string): string {
+  return raw.trim().toUpperCase().replace(/^RO\s*/i, '')
+}
+
+function isValidCui(raw: string): boolean {
+  return /^\d{6,10}$/.test(normalizeCui(raw))
+}
 
 export async function POST(request: NextRequest) {
   const auth = await getApiUser()
@@ -98,18 +76,9 @@ export async function POST(request: NextRequest) {
   }
 
   const body = asObject(raw) ?? {}
-  const companyId = typeof body.companyId === 'string' ? body.companyId : null
+  const fallbackCompanyId = typeof body.companyId === 'string' && body.companyId ? body.companyId : null
   const rowsInput = Array.isArray(body.rows) ? body.rows : []
 
-  if (!companyId) {
-    return NextResponse.json(
-      {
-        error: 'validation_failed',
-        issues: ['companyId is required'],
-      },
-      { status: 400 }
-    )
-  }
   if (rowsInput.length === 0) {
     return NextResponse.json(
       { error: 'validation_failed', issues: ['rows is empty'] },
@@ -118,177 +87,231 @@ export async function POST(request: NextRequest) {
   }
   if (rowsInput.length > MAX_ROWS_PER_IMPORT) {
     return NextResponse.json(
-      {
-        error: 'too_many_rows',
-        message: `Maximum ${MAX_ROWS_PER_IMPORT} rows per import`,
-      },
+      { error: 'too_many_rows', message: `Maximum ${MAX_ROWS_PER_IMPORT} rows per import` },
       { status: 400 }
     )
   }
 
-  // Validate the company exists in this tenant.
-  const company = await prisma.company.findFirst({
-    where: { id: companyId, tenantId: auth.user.tenantId, deletedAt: null },
-    select: {
-      id: true,
-      name: true,
-      workplaces: {
-        where: { deletedAt: null, isActive: true },
-        select: { id: true, name: true, department: true },
+  // Validate the fallback company if provided
+  let fallbackCompany: { id: string; name: string; workplaces: { id: string; name: string; department: string | null }[] } | null = null
+  if (fallbackCompanyId) {
+    fallbackCompany = await prisma.company.findFirst({
+      where: { id: fallbackCompanyId, tenantId: auth.user.tenantId, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        workplaces: {
+          where: { deletedAt: null, isActive: true },
+          select: { id: true, name: true, department: true },
+        },
       },
-    },
-  })
-  if (!company) {
-    return NextResponse.json({ error: 'company_not_found' }, { status: 404 })
-  }
-
-  // Build a lookup table for workplace matching. We match by:
-  //   1. exact department field match (case-insensitive)
-  //   2. exact name field match (case-insensitive)
-  // Cabinets sometimes use "department" loosely — the row's "department"
-  // value may correspond to either the Workplace name OR the Workplace.department
-  // sub-field. We try both.
-  const workplaceByDept = new Map<string, { id: string; name: string }>()
-  const workplaceByName = new Map<string, { id: string; name: string }>()
-  for (const w of company.workplaces) {
-    workplaceByName.set(w.name.toLowerCase(), { id: w.id, name: w.name })
-    if (w.department) {
-      workplaceByDept.set(w.department.toLowerCase(), {
-        id: w.id,
-        name: w.name,
-      })
+    })
+    if (!fallbackCompany) {
+      return NextResponse.json({ error: 'company_not_found' }, { status: 404 })
     }
   }
-  function findWorkplace(dept: string | null): { id: string; name: string } | null {
+
+  // Workplace lookup for the fallback company (old-mode strict matching)
+  const workplaceByDept = new Map<string, { id: string; name: string }>()
+  const workplaceByName = new Map<string, { id: string; name: string }>()
+  for (const w of fallbackCompany?.workplaces ?? []) {
+    workplaceByName.set(w.name.toLowerCase(), { id: w.id, name: w.name })
+    if (w.department) workplaceByDept.set(w.department.toLowerCase(), { id: w.id, name: w.name })
+  }
+  function findFallbackWorkplace(dept: string | null): { id: string; name: string } | null {
     if (!dept) return null
     const key = dept.toLowerCase().trim()
     return workplaceByDept.get(key) ?? workplaceByName.get(key) ?? null
   }
 
-  // Normalize and validate the input rows.
+  // Normalize and validate input rows
   const rows: ImportRow[] = []
   for (let i = 0; i < rowsInput.length; i++) {
     const r = asObject(rowsInput[i]) ?? {}
     const firstName = typeof r.firstName === 'string' ? r.firstName.trim() : ''
     const lastName = typeof r.lastName === 'string' ? r.lastName.trim() : ''
-    if (!firstName || !lastName) {
-      // Defensive — the client should have caught this. Still tolerate it.
-      continue
-    }
+    if (!firstName || !lastName) continue
     rows.push({
-      rowNumber:
-        typeof r.rowNumber === 'number' ? r.rowNumber : i + 2,
+      rowNumber: typeof r.rowNumber === 'number' ? r.rowNumber : i + 2,
       firstName,
       lastName,
-      companyEmployeeId:
-        typeof r.companyEmployeeId === 'string' && r.companyEmployeeId.trim()
-          ? r.companyEmployeeId.trim()
-          : null,
-      email:
-        typeof r.email === 'string' && r.email.trim()
-          ? r.email.trim().toLowerCase()
-          : null,
-      department:
-        typeof r.department === 'string' && r.department.trim()
-          ? r.department.trim()
-          : null,
-      jobTitle:
-        typeof r.jobTitle === 'string' && r.jobTitle.trim()
-          ? r.jobTitle.trim()
-          : null,
-      city:
-        typeof r.city === 'string' && r.city.trim()
-          ? r.city.trim()
-          : null,
-      skipIfDuplicate: r.skipIfDuplicate !== false, // default true
+      companyEmployeeId: typeof r.companyEmployeeId === 'string' && r.companyEmployeeId.trim() ? r.companyEmployeeId.trim() : null,
+      email: typeof r.email === 'string' && r.email.trim() ? r.email.trim().toLowerCase() : null,
+      department: typeof r.department === 'string' && r.department.trim() ? r.department.trim() : null,
+      jobTitle: typeof r.jobTitle === 'string' && r.jobTitle.trim() ? r.jobTitle.trim() : null,
+      city: typeof r.city === 'string' && r.city.trim() ? r.city.trim() : null,
+      skipIfDuplicate: r.skipIfDuplicate !== false,
+      companyName: typeof r.companyName === 'string' && r.companyName.trim() ? r.companyName.trim() : null,
+      cui: typeof r.cui === 'string' && r.cui.trim() ? r.cui.trim() : null,
+      companyAddress: typeof r.companyAddress === 'string' && r.companyAddress.trim() ? r.companyAddress.trim() : null,
+      workplaceName: typeof r.workplaceName === 'string' && r.workplaceName.trim() ? r.workplaceName.trim() : null,
     })
   }
 
   if (rows.length === 0) {
     return NextResponse.json(
-      {
-        error: 'validation_failed',
-        issues: ['No valid rows to import'],
-      },
+      { error: 'validation_failed', issues: ['No valid rows to import'] },
       { status: 400 }
     )
   }
 
-  // Pre-load existing employees in this tenant for duplicate detection.
-  // We compare by lowercased first+last name AND by email. This is a
-  // small additional read but avoids N+1 inside the per-row loop.
+  // Detect mode: extended if any row carries per-row company data
+  const isExtendedMode = rows.some((r) => r.cui || r.companyName)
+
+  // Old-mode guard: if no per-row company data and no fallback company → reject
+  if (!isExtendedMode && !fallbackCompanyId) {
+    return NextResponse.json(
+      { error: 'validation_failed', issues: ['companyId is required when file has no company columns'] },
+      { status: 400 }
+    )
+  }
+
+  // Pre-load existing employees for duplicate detection
   const existingEmployees = await prisma.employee.findMany({
     where: { tenantId: auth.user.tenantId, deletedAt: null },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-    },
+    select: { id: true, firstName: true, lastName: true, email: true },
   })
   const existingByName = new Map<string, string>()
   const existingByEmail = new Map<string, string>()
   for (const e of existingEmployees) {
-    const nameKey = `${e.firstName.toLowerCase()}|${e.lastName.toLowerCase()}`
-    existingByName.set(nameKey, e.id)
-    if (e.email) {
-      existingByEmail.set(e.email.toLowerCase(), e.id)
-    }
+    existingByName.set(`${e.firstName.toLowerCase()}|${e.lastName.toLowerCase()}`, e.id)
+    if (e.email) existingByEmail.set(e.email.toLowerCase(), e.id)
   }
 
-  // Process row by row. Each row is its own short transaction so a
-  // mid-batch failure doesn't roll back successful predecessors.
+  // Per-import caches for company/workplace resolution
+  const companiesCache = new Map<string, string>()  // normalizedCui → companyId
+  const workplacesCache = new Map<string, string>() // `${companyId}:${lowerName}` → workplaceId
+
+  let created = 0, skipped = 0, failed = 0
+  let companiesCreated = 0, workplacesCreated = 0
+  let rowsWithoutCompany = 0, rowsWithoutWorkplace = 0
+  const newCompanyList: Array<{ id: string; name: string; cui: string }> = []
   const results: RowOutcome[] = []
-  let created = 0
-  let skipped = 0
-  let failed = 0
+
+  const tenantId = auth.user.tenantId
 
   for (const row of rows) {
     try {
-      // Duplicate detection
-      const nameKey = `${row.firstName.toLowerCase()}|${row.lastName.toLowerCase()}`
-      const dupByName = existingByName.get(nameKey)
-      const dupByEmail = row.email
-        ? existingByEmail.get(row.email)
-        : undefined
-      const duplicate = dupByName ?? dupByEmail
-      if (duplicate) {
-        if (row.skipIfDuplicate) {
-          results.push({
-            rowNumber: row.rowNumber,
-            outcome: 'skipped',
-            reason: 'duplicate_employee',
-            duplicateEmployeeId: duplicate,
-          })
-          skipped++
-          continue
+      // ── 1. Resolve company ────────────────────────────────────────────
+      let resolvedCompanyId: string | null = null
+      let rowWarning: string | undefined
+
+      if (row.cui && row.companyName) {
+        if (!isValidCui(row.cui)) {
+          rowWarning = 'invalid_cui'
+          resolvedCompanyId = fallbackCompanyId
+        } else {
+          const normalized = normalizeCui(row.cui)
+          if (companiesCache.has(normalized)) {
+            resolvedCompanyId = companiesCache.get(normalized)!
+          } else {
+            const existing = await prisma.company.findFirst({
+              where: {
+                tenantId,
+                deletedAt: null,
+                cui: { in: [normalized, `RO${normalized}`] },
+              },
+              select: { id: true },
+            })
+            if (existing) {
+              companiesCache.set(normalized, existing.id)
+              resolvedCompanyId = existing.id
+            } else {
+              const created = await prisma.company.create({
+                data: {
+                  tenantId,
+                  name: row.companyName,
+                  cui: normalized,
+                  addressLine1: row.companyAddress ?? null,
+                  createdFromImport: true,
+                },
+                select: { id: true },
+              })
+              companiesCache.set(normalized, created.id)
+              resolvedCompanyId = created.id
+              newCompanyList.push({ id: created.id, name: row.companyName, cui: normalized })
+              companiesCreated++
+            }
+          }
         }
-        // Caller asked to import-anyway; fall through to create.
+      } else if (row.cui || row.companyName) {
+        // One column present without the other
+        rowWarning = 'incomplete_company_columns'
+        resolvedCompanyId = fallbackCompanyId
+      } else {
+        resolvedCompanyId = fallbackCompanyId
       }
 
-      // Workplace lookup
-      const workplace = findWorkplace(row.department)
-      if (row.department && !workplace) {
-        results.push({
-          rowNumber: row.rowNumber,
-          outcome: 'failed',
-          reason: 'workplace_not_found',
-        })
-        failed++
+      if (!resolvedCompanyId) rowsWithoutCompany++
+
+      // ── 2. Resolve workplace ──────────────────────────────────────────
+      let resolvedWorkplaceId: string | null = null
+
+      if (row.workplaceName && resolvedCompanyId) {
+        const cacheKey = `${resolvedCompanyId}:${row.workplaceName.toLowerCase()}`
+        if (workplacesCache.has(cacheKey)) {
+          resolvedWorkplaceId = workplacesCache.get(cacheKey)!
+        } else {
+          const existingWp = await prisma.workplace.findFirst({
+            where: {
+              companyId: resolvedCompanyId,
+              tenantId,
+              deletedAt: null,
+              name: { equals: row.workplaceName, mode: 'insensitive' },
+            },
+            select: { id: true },
+          })
+          if (existingWp) {
+            workplacesCache.set(cacheKey, existingWp.id)
+            resolvedWorkplaceId = existingWp.id
+          } else {
+            const newWp = await prisma.workplace.create({
+              data: { companyId: resolvedCompanyId, tenantId, name: row.workplaceName, isActive: true },
+              select: { id: true },
+            })
+            workplacesCache.set(cacheKey, newWp.id)
+            resolvedWorkplaceId = newWp.id
+            workplacesCreated++
+          }
+        }
+      } else if (row.department && resolvedCompanyId) {
+        const wp = findFallbackWorkplace(row.department)
+        resolvedWorkplaceId = wp?.id ?? null
+        if (!resolvedWorkplaceId) {
+          if (!isExtendedMode) {
+            // Old mode: strict — fail the row
+            results.push({ rowNumber: row.rowNumber, outcome: 'failed', reason: 'workplace_not_found' })
+            failed++
+            continue
+          }
+          rowsWithoutWorkplace++
+        }
+      } else if (row.workplaceName && !resolvedCompanyId) {
+        rowsWithoutWorkplace++
+      }
+
+      // ── 3. Duplicate detection ────────────────────────────────────────
+      const nameKey = `${row.firstName.toLowerCase()}|${row.lastName.toLowerCase()}`
+      const dupByName = existingByName.get(nameKey)
+      const dupByEmail = row.email ? existingByEmail.get(row.email) : undefined
+      const duplicate = dupByName ?? dupByEmail
+      if (duplicate && row.skipIfDuplicate) {
+        results.push({ rowNumber: row.rowNumber, outcome: 'skipped', reason: 'duplicate_employee', duplicateEmployeeId: duplicate })
+        skipped++
         continue
       }
 
-      // Create employee + optional workplace assignment
+      // ── 4. Create employee + workplace assignment ─────────────────────
       const result = await prisma.$transaction(async (tx) => {
         const employee = await tx.employee.create({
           data: {
-            tenantId: auth.user!.tenantId!,
+            tenantId,
             createdByUserId: auth.user!.id,
             firstName: row.firstName,
             lastName: row.lastName,
-            // No CNP from bulk import — captured later at first exam
             idDocumentType: 'other',
             idDocumentNumber: null,
+            companyId: resolvedCompanyId,
             companyEmployeeId: row.companyEmployeeId,
             jobTitle: row.jobTitle,
             city: row.city,
@@ -298,12 +321,12 @@ export async function POST(request: NextRequest) {
           },
           select: { id: true },
         })
-        if (workplace) {
+        if (resolvedWorkplaceId) {
           await tx.employeeWorkplaceAssignment.create({
             data: {
-              tenantId: auth.user!.tenantId!,
+              tenantId,
               employeeId: employee.id,
-              workplaceId: workplace.id,
+              workplaceId: resolvedWorkplaceId,
               startDate: new Date(),
               isCurrent: true,
               reasonForChange: 'hired',
@@ -313,22 +336,13 @@ export async function POST(request: NextRequest) {
         return employee
       })
 
-      // Update the lookup tables so subsequent rows in the same import
-      // also detect this as a duplicate.
       existingByName.set(nameKey, result.id)
       if (row.email) existingByEmail.set(row.email, result.id)
 
-      results.push({
-        rowNumber: row.rowNumber,
-        outcome: 'created',
-        employeeId: result.id,
-      })
+      results.push({ rowNumber: row.rowNumber, outcome: 'created', employeeId: result.id, warning: rowWarning })
       created++
     } catch (err) {
-      console.error('[employees.import] row failed', {
-        rowNumber: row.rowNumber,
-        error: (err as Error).message,
-      })
+      console.error('[employees.import] row failed', { rowNumber: row.rowNumber, error: (err as Error).message })
       const code = (err as { code?: string }).code
       results.push({
         rowNumber: row.rowNumber,
@@ -340,8 +354,9 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({
-    summary: { total: rows.length, created, skipped, failed },
+    summary: { total: rows.length, created, skipped, failed, companiesCreated, workplacesCreated, rowsWithoutCompany, rowsWithoutWorkplace },
     results,
-    company: { id: company.id, name: company.name },
+    company: fallbackCompany ? { id: fallbackCompany.id, name: fallbackCompany.name } : null,
+    companiesCreated: newCompanyList,
   })
 }

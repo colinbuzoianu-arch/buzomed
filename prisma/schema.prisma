@@ -419,6 +419,7 @@ model Company {
   notes                       String?
   recallNotificationEmail     String?  @map("recall_notification_email")
   isActive            Boolean     @default(true) @map("is_active")
+  createdFromImport   Boolean     @default(false) @map("created_from_import")
 
   createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz

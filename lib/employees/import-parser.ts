@@ -35,6 +35,10 @@ export type ColumnKey =
   | 'department'
   | 'jobTitle'
   | 'city'
+  | 'companyName'
+  | 'cui'
+  | 'companyAddress'
+  | 'workplaceName'
 
 export interface RawRow {
   rowNumber: number // 1-indexed in the source file (header = 0)
@@ -45,6 +49,11 @@ export interface RawRow {
   department: string | null
   jobTitle: string | null
   city: string | null
+  // Extended import columns — present when file uses the new 10-column template
+  companyName: string | null
+  cui: string | null
+  companyAddress: string | null
+  workplaceName: string | null
   raw: Record<string, string> // for debugging / displaying unmapped values
 }
 
@@ -158,6 +167,46 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
     'locatia',
     'stadt',
     'wohnort',
+  ],
+  companyName: [
+    'nume_companie',
+    'nume companie',
+    'companie',
+    'firma',
+    'denumire firma',
+    'denumire companie',
+    'company',
+    'company name',
+    'angajator',
+    'employer',
+  ],
+  cui: [
+    'cui',
+    'cui_companie',
+    'cui companie',
+    'cod fiscal',
+    'codul fiscal',
+    'cif',
+    'tax id',
+    'vat',
+  ],
+  companyAddress: [
+    'adresa_companie',
+    'adresa companie',
+    'adresa firma',
+    'company address',
+    'sediu',
+    'sediu social',
+  ],
+  workplaceName: [
+    'loc_de_munca',
+    'loc de munca',
+    'locul de munca',
+    'punct de lucru',
+    'punct lucru',
+    'work location',
+    'work site',
+    'locatie munca',
   ],
 }
 
@@ -324,6 +373,10 @@ export async function parseImportFile(
       department: get('department'),
       jobTitle: get('jobTitle'),
       city: get('city'),
+      companyName: get('companyName'),
+      cui: get('cui'),
+      companyAddress: get('companyAddress'),
+      workplaceName: get('workplaceName'),
       raw: row,
     }
   })
