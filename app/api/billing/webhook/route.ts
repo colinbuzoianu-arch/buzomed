@@ -127,6 +127,36 @@ export async function POST(request: Request) {
       break
     }
 
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object as Stripe.Invoice
+      const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id
+
+      if (!customerId) break
+
+      const sub = await prisma.subscription.findFirst({
+        where: { stripeCustomerId: customerId },
+      })
+      if (!sub) break
+
+      // Refresh period end from the linked Stripe subscription if we have one stored
+      let periodEnd: Date | null = sub.currentPeriodEnd
+      if (sub.stripeSubscriptionId) {
+        const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId, { expand: ['items'] })
+        const periodEndTs = stripeSub.items.data[0]?.current_period_end
+        if (periodEndTs) periodEnd = new Date(periodEndTs * 1000)
+      }
+
+      // Re-activate past_due subscriptions on successful payment and refresh period
+      await prisma.subscription.update({
+        where: { id: sub.id },
+        data: {
+          status: 'active',
+          currentPeriodEnd: periodEnd,
+        },
+      })
+      break
+    }
+
     case 'customer.subscription.deleted': {
       const stripeSub = event.data.object as Stripe.Subscription
       const subId = stripeSub.id

@@ -12,10 +12,11 @@ const BILLING_URL = `${APP_URL}/settings/billing`
 /**
  * POST /api/cron/subscription-check
  *
- * Daily job (06:00 UTC via vercel.json cron) that:
+ * Daily job (07:00 UTC via vercel.json cron) that:
+ * - Syncs activeEmployeeCount on every live subscription
  * - Transitions trial_active → trial_expired when trialEndsAt has passed
  * - Sends reminder emails at day 7 and day 11 (3 days before expiry)
- * - Sends deletion warning 30 days after trial_expired (day 44)
+ * - Sends deletion warning 30 days after trialEndsAt (14 days before data deletion)
  * - Transitions active → past_due when currentPeriodEnd has passed
  */
 export async function POST(request: NextRequest) {
@@ -29,6 +30,18 @@ export async function POST(request: NextRequest) {
 
   const now = new Date()
   let processed = 0
+
+  // Sync activeEmployeeCount for every live subscription
+  const liveSubs = await prisma.subscription.findMany({
+    where: { status: { notIn: ['canceled', 'cancelled'] } },
+    select: { id: true, tenantId: true },
+  })
+  for (const s of liveSubs) {
+    const count = await prisma.employee.count({
+      where: { tenantId: s.tenantId, isActive: true, archivedAt: null, deletedAt: null },
+    })
+    await prisma.subscription.update({ where: { id: s.id }, data: { activeEmployeeCount: count } })
+  }
 
   // Fetch all non-terminal subscriptions with tenant + practice_admin user
   const subscriptions = await prisma.subscription.findMany({

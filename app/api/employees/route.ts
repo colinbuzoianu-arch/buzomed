@@ -15,6 +15,7 @@ import {
   optionalString,
   requireString,
 } from '@/lib/validation'
+import { canTenantDo } from '@/lib/subscription'
 import {
   encryptCnp,
   isCnpEncryptionConfigured,
@@ -146,6 +147,14 @@ export async function POST(request: NextRequest) {
   }
   if (!canWriteAdministrative(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
+
+  const subscriptionCheck = await canTenantDo(auth.user.tenantId, 'add_employee')
+  if (!subscriptionCheck.allowed) {
+    return NextResponse.json(
+      { error: 'subscription_limit', reason: subscriptionCheck.reason },
+      { status: 403 }
+    )
   }
 
   let raw: unknown

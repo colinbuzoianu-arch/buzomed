@@ -11,6 +11,7 @@ import {
   canWriteAdministrative,
 } from '@/lib/permissions/tenant-data'
 import { asObject, optionalString } from '@/lib/validation'
+import { canTenantDo } from '@/lib/subscription'
 import { ensurePrimaryLocation } from '@/lib/examinations/auto-location'
 import { createExaminationWithNumber } from '@/lib/examinations/numbering'
 
@@ -108,6 +109,14 @@ export async function POST(request: NextRequest) {
   }
   if (!canWriteAdministrative(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
+
+  const subscriptionCheck = await canTenantDo(auth.user.tenantId, 'add_examination')
+  if (!subscriptionCheck.allowed) {
+    return NextResponse.json(
+      { error: 'subscription_limit', reason: subscriptionCheck.reason },
+      { status: 403 }
+    )
   }
 
   let raw: unknown

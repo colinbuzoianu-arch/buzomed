@@ -36,9 +36,28 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function BillingClient({ subscription, plans, employeeCount }: BillingClientProps) {
   const [loading, setLoading] = useState<string | null>(null)
+  const [portalLoading, setPortalLoading] = useState(false)
 
   const status = subscription?.status ?? 'trial_expired'
   const isComp = status === 'comp'
+  const isActive = status === 'active'
+
+  async function handlePortal() {
+    setPortalLoading(true)
+    try {
+      const res = await fetch('/api/billing/portal', { method: 'POST' })
+      if (!res.ok) {
+        toastError('Eroare la deschiderea portalului de facturare.')
+        return
+      }
+      const { url } = await res.json()
+      if (url) window.location.href = url
+    } catch {
+      toastError('Eroare de conexiune. Încearcă din nou.')
+    } finally {
+      setPortalLoading(false)
+    }
+  }
 
   async function handleCheckout(planId: string) {
     setLoading(planId)
@@ -102,9 +121,20 @@ export function BillingClient({ subscription, plans, employeeCount }: BillingCli
               </p>
             )}
           </div>
-          <div className="text-right">
-            <div className="text-[13px] text-muted-foreground">Angajați activi</div>
-            <div className="text-2xl font-bold">{employeeCount}</div>
+          <div className="flex flex-col items-end gap-3">
+            <div className="text-right">
+              <div className="text-[13px] text-muted-foreground">Angajați activi</div>
+              <div className="text-2xl font-bold">{employeeCount}</div>
+            </div>
+            {isActive && (
+              <button
+                onClick={handlePortal}
+                disabled={portalLoading}
+                className="h-8 px-3 rounded-md border text-[13px] font-medium hover:bg-accent disabled:opacity-60 transition-colors"
+              >
+                {portalLoading ? 'Se deschide...' : 'Gestionează abonamentul'}
+              </button>
+            )}
           </div>
         </div>
       </div>

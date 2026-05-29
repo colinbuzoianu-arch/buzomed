@@ -76,24 +76,25 @@ export async function POST(request: Request) {
     }
   }
 
-  // Price lookup key convention: "plan_{tier}_monthly"
-  const priceData: Stripe.Checkout.SessionCreateParams.LineItem = {
-    price_data: {
-      currency: 'ron',
-      unit_amount: Math.round(Number(plan.monthlyPrice) * 100),
-      recurring: { interval: 'month' },
-      product_data: {
-        name: `Buzomed ${plan.name}`,
-        metadata: { planId: plan.id, tier: plan.tier },
-      },
-    },
-    quantity: 1,
-  }
+  const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = plan.stripePriceId
+    ? { price: plan.stripePriceId, quantity: 1 }
+    : {
+        price_data: {
+          currency: 'ron',
+          unit_amount: Math.round(Number(plan.monthlyPrice) * 100),
+          recurring: { interval: 'month' },
+          product_data: {
+            name: `Buzomed ${plan.name}`,
+            metadata: { planId: plan.id, tier: plan.tier },
+          },
+        },
+        quantity: 1,
+      }
 
   const session = await stripe.checkout.sessions.create({
     customer: stripeCustomerId,
     mode: 'subscription',
-    line_items: [priceData],
+    line_items: [lineItem],
     success_url: `${appUrl}/settings/billing?checkout=success`,
     cancel_url: `${appUrl}/settings/billing?checkout=canceled`,
     metadata: { tenantId: auth.user.tenantId, planId: plan.id, tier: plan.tier },
