@@ -173,21 +173,60 @@ Pentru a evita complexitate și date greșite, următoarele NU se fac automat:
 
 ---
 
-## 7. Ordinea de implementare
+## 7. Instrucțiuni vizuale în pagina de import
+
+### Secțiune „Cum completez Excel-ul?" — expandabilă (collapsed by default)
+
+Adaugă un accordion / collapsible panel deasupra butonului de upload, cu titlul
+„Cum completez fișierul Excel?" și iconița de info (ℹ).
+
+### Conținut panel — două reguli + tabel exemplu:
+
+**Regula 1 — Date companie:**
+> Completează `nume_companie`, `cui_companie` și `adresa_companie` doar pe **primul rând**
+> al fiecărei firme. Rândurile următoare ale aceleiași firme pot lăsa aceste coloane goale —
+> sistemul le grupează automat după CUI.
+
+**Regula 2 — Loc de muncă:**
+> Completează `loc_de_munca` pe fiecare rând unde angajatul are un loc de muncă specific.
+> Dacă mai mulți angajați au același loc de muncă, scrie același nume exact —
+> sistemul îl creează o singură dată.
+
+**Tabel exemplu vizual** (render ca tabel HTML în UI, nu imagine):
+
+| prenume | nume | id_angajat | email | departament | functie | nume_companie | cui_companie | adresa_companie | loc_de_munca |
+|---------|------|-----------|-------|-------------|---------|---------------|--------------|-----------------|--------------|
+| Ion | Popescu | 001 | ion@abc.ro | IT | Programator | SC ABC SRL | RO12345678 | Str. Unirii 1, Cluj | Birou IT |
+| Maria | Ionescu | 002 | maria@abc.ro | IT | Tester | | | | Birou IT |
+| Ana | Constantin | 003 | ana@abc.ro | Producție | Operator | | | | Atelier |
+| Mihai | Popa | 004 | mihai@xyz.ro | Admin | Contabil | SC XYZ SRL | RO87654321 | Bd. Eroilor 5, Brașov | Birou administrativ |
+| Elena | Stan | 005 | elena@xyz.ro | Admin | Secretară | | | | Birou administrativ |
+
+Celulele goale din tabel se afișează cu fundal ușor gri ca să fie clar că sunt
+intenționat goale (nu lipsă din greșeală).
+
+**Notă sub tabel:**
+> ⚠ Locurile de muncă create automat nu au hazarde asociate.
+> După import, accesează fiecare companie pentru a completa profilul de risc.
+
+---
+
+## 8. Ordinea de implementare
 
 1. Extinde funcția de procesare import cu logica de companie + workplace (backend)
 2. Actualizează template CSV
 3. Extinde raportul de import cu noile secțiuni
 4. Adaugă badge „Creat din import" pe companiile nou create
-5. Actualizează tooltip/hint în UI-ul de upload
-6. Testează cu un Excel de 3 scenarii:
+5. Adaugă secțiunea expandabilă „Cum completez Excel-ul?" cu tabelul exemplu vizual
+6. Actualizează tooltip/hint în UI-ul de upload
+7. Testează cu un Excel de 3 scenarii:
    - Angajați cu companie + loc de muncă complete
    - Angajați cu companie dar fără loc de muncă
    - Angajați fără nicio informație de companie (backward compat)
 
 ---
 
-## Criterii de acceptare
+## 9. Criterii de acceptare
 
 - [ ] Template nou cu 10 coloane se descarcă corect
 - [ ] Import cu coloane noi creează companiile automat, o singură dată per CUI
@@ -197,3 +236,5 @@ Pentru a evita complexitate și date greșite, următoarele NU se fac automat:
 - [ ] Raportul de import afișează câte companii și locuri de muncă s-au creat
 - [ ] Avertisment afișat pentru locuri de muncă fără hazarde
 - [ ] Badge „Creat din import" vizibil pe companiile nou create
+- [ ] Secțiunea „Cum completez Excel-ul?" vizibilă și expandabilă în pagina de import
+- [ ] Tabelul exemplu afișează corect celulele goale cu fundal gri
