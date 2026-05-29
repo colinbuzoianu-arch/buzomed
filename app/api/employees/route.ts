@@ -124,6 +124,12 @@ export async function GET(request: NextRequest) {
       archivedReason: true,
       createdAt: true,
       updatedAt: true,
+      company: { select: { id: true, name: true } },
+      workplaceAssignments: {
+        where: { isCurrent: true },
+        select: { workplace: { select: { id: true, name: true } } },
+        take: 1,
+      },
     },
     take: 200,
   })
