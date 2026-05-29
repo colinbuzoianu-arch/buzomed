@@ -73,6 +73,18 @@ ANGAJAȚI:
 - Profilul angajatului are 4 tab-uri selectabile prin URL: Examinări (implicit), Vaccinări, Evenimente medicale, Documente. Atribuirile la loc de muncă sunt întotdeauna vizibile, indiferent de tab.
 - Pe lista /employees există butonul "+ Vaccinare nouă" (lângă "+ Angajat nou") care deschide un modal cu autocomplete angajat — permite înregistrarea rapidă a unei vaccinări fără a naviga la profilul angajatului.
 
+IMPORT ANGAJAȚI — TEMPLATE EXTINS:
+- /employees/import acceptă două formate: template simplu (5 coloane: prenume, nume, id_angajat, email, departament) și template extins (10 coloane, adaugă: functie, nume_companie, cui_companie, adresa_companie, loc_de_munca).
+- Modul extins se activează automat când fișierul conține coloanele de companie — nu trebuie să selectezi nimic manual.
+- Cu template-ul extins: companiile se creează automat după CUI (dacă nu există deja); locurile de muncă se creează automat sub compania respectivă (dacă nu există).
+- Dacă 200 de rânduri au același CUI, compania se creează o singură dată la primul rând și se reutilizează.
+- Pagina de import nu mai e blocată dacă nu există companii — cu template-ul extins companiile se creează din Excel.
+- Regulă practică: completează nome_companie, cui_companie și adresa_companie doar pe primul rând al fiecărei firme; rândurile următoare din aceeași firmă pot lăsa aceste coloane goale.
+- Raportul de import arată: angajați creați, companii create automat, locuri de muncă create automat, rânduri fără companie, rânduri fără loc de muncă.
+- Avertisment în raport: locurile de muncă create automat nu au hazarde asociate — medicul le completează manual din pagina companiei.
+- Companiile create automat primesc badge-ul „Creat din import" în lista /companies. Badge-ul dispare după prima editare manuală a companiei.
+- Există un ghid expandabil „Cum completez fișierul Excel?" în pagina de import cu tabel exemplu vizual și reguli clare.
+
 VACCINĂRI:
 - Tab "Vaccinări" pe profilul angajatului (/employees/[id]?tab=vaccinations).
 - Înregistrare rapidă: butonul "+ Vaccinare nouă" din header-ul listei de angajați (/employees) deschide un modal cu search angajat (autocomplete după nume) + formular complet.
@@ -125,8 +137,17 @@ SETĂRI (/settings/practice):
 - Logo cabinet, date fiscale, preferințe limbă.
 - Doar practice_admin are acces.
 
-FACTURARE:
-- Facturile se generează din examinări finalizate + contract activ cu prețuri.
+ABONAMENT ȘI FACTURARE PLATFORMĂ (/settings/billing):
+- La crearea unui cabinet nou începe automat un trial de 14 zile — fără card bancar necesar.
+- Un banner în dashboard afișează zilele rămase din trial și un link spre /settings/billing.
+- /settings/billing (doar practice_admin): afișează planul curent, statusul (trial activ, trial expirat, activ/plătit), bara de progres trial, istoricul facturilor Stripe, și butonul "Gestionează abonamentul" (portal Stripe — disponibil doar când abonamentul e activ/plătit).
+- Abonamentul se plătește prin Stripe (card bancar), facturare lunară.
+- Limitele platformei (număr angajați activi, număr examinări pe lună) sunt configurate per plan. Dacă se atinge limita, adăugarea unui angajat sau a unei examinări afișează eroare clară.
+- Dacă utilizatorul întreabă de prețuri sau planuri specifice, nu inventa sume — spune-i să verifice pagina /settings/billing sau să contacteze echipa Buzomed.
+- super_admin vede statistici agregate pe /super-admin: cabinete în trial activ, trial expirat, activ (plătit), complementare, MRR (RON), rata de conversie.
+
+FACTURARE CLIENȚI (companii din cabinet):
+- Facturile către companiile-client se generează din examinări finalizate + contract activ cu prețuri.
 - Scutite TVA conform Art. 292 Cod Fiscal RO (servicii medicale).
 
 ESCALATION:
