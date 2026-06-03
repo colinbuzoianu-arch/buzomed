@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type BulkMode = 'employees' | 'recalls'
+
 interface RecallItem {
   id: string
   employeeId: string
@@ -16,13 +18,13 @@ interface RecallItem {
   jobTitle: string | null
   companyId: string
   companyName: string
-  workplaceId: string
-  workplaceName: string
+  workplaceId: string | null
+  workplaceName: string | null
   department: string | null
-  examinationTypeId: string
-  examinationTypeName: string
-  dueDate: string
-  status: 'pending' | 'overdue'
+  examinationTypeId: string | null
+  examinationTypeName: string | null
+  dueDate: string | null
+  status: 'pending' | 'overdue' | 'no_examination'
   daysOverdue: number | null
   hasConflict: boolean
 }
@@ -45,7 +47,7 @@ interface Session {
 interface SubmitResult {
   created: number
   failed: number
-  failures: Array<{ recallId: string; reason?: string }>
+  failures: Array<{ itemId: string; reason?: string }>
 }
 
 const HORIZONS = [
@@ -58,41 +60,47 @@ const HORIZONS = [
   { value: 'all',       label: 'Toate' },
 ] as const
 
+const SELECT_CLS = 'flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: string | null }) {
   const [step, setStep] = useState<1 | 2 | 3>(1)
 
+  // Mode toggle
+  const [mode, setMode] = useState<BulkMode>('employees')
+
   // Filter state
-  const [companyId, setCompanyId]                 = useState(initialCompanyId ?? '')
-  const [workplaceId, setWorkplaceId]             = useState('')
-  const [department, setDepartment]               = useState('')
-  const [examinationTypeId, setExaminationTypeId] = useState('')
-  const [horizon, setHorizon]                     = useState('thisMonth')
+  const [companyId, setCompanyId]   = useState(initialCompanyId ?? '')
+  const [workplaceId, setWorkplaceId]   = useState('')
+  const [department, setDepartment]     = useState('')
+  const [examinationTypeId, setExaminationTypeId] = useState('')  // only for recalls mode filter
+  const [horizon, setHorizon]           = useState('thisMonth')
 
   // Filter options (from /filters endpoint)
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     companies: [], workplaces: [], departments: [], examinationTypes: [], practitioners: [],
   })
 
-  // Recall data
-  const [recalls, setRecalls]       = useState<RecallItem[]>([])
-  const [recallsLoading, setRecallsLoading] = useState(false)
-  const [recallsError, setRecallsError]     = useState<string | null>(null)
+  // Results
+  const [items, setItems]         = useState<RecallItem[]>([])
+  const [itemsLoading, setItemsLoading] = useState(false)
+  const [itemsError, setItemsError]     = useState<string | null>(null)
 
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // Step 2
   const [slotMinutes, setSlotMinutes] = useState(20)
+  const [globalExamTypeId, setGlobalExamTypeId] = useState('')  // required in employees mode
   const [sessions, setSessions] = useState<Session[]>([
     { _key: 'session-0', practitionerId: '', startDatetime: '', slotCount: 0 },
   ])
 
   // Step 3
-  const [submitting, setSubmitting]     = useState(false)
+  const [submitting, setSubmitting]         = useState(false)
   const [submitProgress, setSubmitProgress] = useState({ done: 0, total: 0 })
-  const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null)
+  const [submitResult, setSubmitResult]     = useState<SubmitResult | null>(null)
 
   // ─── Load filter options ────────────────────────────────────────────────────
 
@@ -104,75 +112,80 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
       .then((r) => r.json())
       .then((data: FilterOptions) => {
         setFilterOptions(data)
-        // Reset dependant filters when company changes
         setWorkplaceId('')
         setDepartment('')
       })
       .catch(() => {})
   }, [companyId])
 
-  // ─── Fetch recalls ──────────────────────────────────────────────────────────
+  // ─── Fetch items ────────────────────────────────────────────────────────────
 
-  function fetchRecalls() {
-    setRecallsLoading(true)
-    setRecallsError(null)
+  function fetchItems() {
+    setItemsLoading(true)
+    setItemsError(null)
     setSelectedIds(new Set())
 
-    const params = new URLSearchParams({ horizon })
-    if (companyId)         params.set('companyId', companyId)
-    if (workplaceId)       params.set('workplaceId', workplaceId)
-    if (department)        params.set('department', department)
-    if (examinationTypeId) params.set('examinationTypeId', examinationTypeId)
+    const params = new URLSearchParams({ mode })
+    if (companyId)   params.set('companyId', companyId)
+    if (workplaceId) params.set('workplaceId', workplaceId)
+    if (department)  params.set('department', department)
+    if (mode === 'recalls') {
+      params.set('horizon', horizon)
+      if (examinationTypeId) params.set('examinationTypeId', examinationTypeId)
+    }
 
     fetch(`/api/examinations/bulk-schedule?${params}`)
       .then((r) => r.json())
       .then((data: { recalls: RecallItem[]; total: number }) => {
-        setRecalls(data.recalls)
-        setRecallsLoading(false)
+        setItems(data.recalls)
+        setItemsLoading(false)
       })
       .catch(() => {
-        setRecallsError('Eroare la încărcarea datelor.')
-        setRecallsLoading(false)
+        setItemsError('Eroare la încărcarea datelor.')
+        setItemsLoading(false)
       })
   }
 
-  // Auto-fetch when companyId changes (and it's non-empty)
+  // Auto-fetch when companyId or mode changes
   useEffect(() => {
-    if (companyId) fetchRecalls()
+    if (companyId) fetchItems()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId])
+  }, [companyId, mode])
+
+  // ─── Mode switch ─────────────────────────────────────────────────────────────
+
+  function switchMode(m: BulkMode) {
+    setMode(m)
+    setItems([])
+    setSelectedIds(new Set())
+  }
 
   // ─── Selection helpers ──────────────────────────────────────────────────────
 
-  const selectedRecalls = useMemo(
-    () => recalls.filter((r) => selectedIds.has(r.id)),
-    [recalls, selectedIds]
+  const selectedItems = useMemo(
+    () => items.filter((r) => selectedIds.has(r.id)),
+    [items, selectedIds]
   )
 
   function toggleAll() {
-    if (selectedIds.size === recalls.length) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(recalls.map((r) => r.id)))
-    }
+    setSelectedIds(selectedIds.size === items.length ? new Set() : new Set(items.map((r) => r.id)))
   }
 
   function toggleOne(id: string) {
     const next = new Set(selectedIds)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
+    if (next.has(id)) next.delete(id); else next.add(id)
     setSelectedIds(next)
   }
 
-  // ─── Step 1 → Step 2 transition ────────────────────────────────────────────
+  // ─── Step transitions ───────────────────────────────────────────────────────
 
   function goToStep2() {
-    const totalSlots = selectedRecalls.length
     setSessions([{
       _key: 'session-0',
-      practitionerId: filterOptions.practitioners.length === 1 ? filterOptions.practitioners[0].id : '',
+      practitionerId: filterOptions.practitioners.length === 1
+        ? filterOptions.practitioners[0].id : '',
       startDatetime: '',
-      slotCount: totalSlots,
+      slotCount: selectedItems.length,
     }])
     setStep(2)
   }
@@ -196,45 +209,57 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
   }
 
   const totalAllocated = sessions.reduce((s, ses) => s + ses.slotCount, 0)
-  const totalSelected  = selectedRecalls.length
+  const totalSelected  = selectedItems.length
   const slotDiff       = totalSelected - totalAllocated
 
-  // Build per-session recall assignments
   const sessionAssignments = useMemo(() => {
     const result: Array<{ session: Session; recalls: RecallItem[] }> = []
     let cursor = 0
     for (const ses of sessions) {
-      result.push({ session: ses, recalls: selectedRecalls.slice(cursor, cursor + ses.slotCount) })
+      result.push({ session: ses, recalls: selectedItems.slice(cursor, cursor + ses.slotCount) })
       cursor += ses.slotCount
     }
     return result
-  }, [sessions, selectedRecalls])
+  }, [sessions, selectedItems])
 
-  // ─── Step 3: submit ─────────────────────────────────────────────────────────
+  // ─── Step 2 validation ──────────────────────────────────────────────────────
+
+  const step2Valid =
+    slotDiff === 0 &&
+    sessions.every((s) => s.practitionerId && s.startDatetime) &&
+    (mode === 'recalls' || globalExamTypeId !== '')
+
+  // ─── Submit ─────────────────────────────────────────────────────────────────
 
   async function handleSubmit() {
     setSubmitting(true)
     setSubmitResult(null)
 
-    // Build flat items list: session recalls → { recallId, scheduledAt }
-    type PostItem = { recallId: string; scheduledAt?: string }
-    type SessionBatch = { practitionerId: string; items: PostItem[] }
+    type RecallsPostItem = { recallId: string; scheduledAt?: string }
+    type EmployeesPostItem = { employeeId: string; scheduledAt?: string; examinationTypeId: string; workplaceId: string | null }
+    type PostItem = RecallsPostItem | EmployeesPostItem
+    type SessionBatch = { practitionerId: string; mode: BulkMode; items: PostItem[] }
 
     const batches: SessionBatch[] = sessionAssignments
       .filter((sa) => sa.session.practitionerId && sa.recalls.length > 0)
       .flatMap((sa) => {
-        const items: PostItem[] = sa.recalls.map((r, i) => {
-          if (!sa.session.startDatetime) return { recallId: r.id }
-          const base = new Date(sa.session.startDatetime)
-          return {
-            recallId: r.id,
-            scheduledAt: new Date(base.getTime() + i * slotMinutes * 60_000).toISOString(),
+        const postItems: PostItem[] = sa.recalls.map((r, i) => {
+          const scheduledAt = sa.session.startDatetime
+            ? new Date(new Date(sa.session.startDatetime).getTime() + i * slotMinutes * 60_000).toISOString()
+            : undefined
+          if (mode === 'employees') {
+            return {
+              employeeId: r.employeeId,
+              scheduledAt,
+              examinationTypeId: globalExamTypeId,
+              workplaceId: r.workplaceId,
+            } satisfies EmployeesPostItem
           }
+          return { recallId: r.id, scheduledAt } satisfies RecallsPostItem
         })
-        // Split into chunks of 200
         const chunks: SessionBatch[] = []
-        for (let i = 0; i < items.length; i += 200) {
-          chunks.push({ practitionerId: sa.session.practitionerId, items: items.slice(i, i + 200) })
+        for (let i = 0; i < postItems.length; i += 200) {
+          chunks.push({ practitionerId: sa.session.practitionerId, mode, items: postItems.slice(i, i + 200) })
         }
         return chunks
       })
@@ -251,15 +276,15 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
         const resp = await fetch('/api/examinations/bulk-schedule', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ practitionerId: batch.practitionerId, items: batch.items }),
+          body: JSON.stringify({ practitionerId: batch.practitionerId, mode: batch.mode, items: batch.items }),
         })
         const data = await resp.json().catch(() => ({}))
         if (resp.ok && data.summary) {
           totalCreated += data.summary.created as number
           totalFailed  += data.summary.failed  as number
-          const batchFailures = (data.results as Array<{ recallId: string; outcome: string; reason?: string }>)
+          const batchFailures = (data.results as Array<{ itemId: string; outcome: string; reason?: string }>)
             .filter((r) => r.outcome === 'failed')
-            .map((r) => ({ recallId: r.recallId, reason: r.reason }))
+            .map((r) => ({ itemId: r.itemId, reason: r.reason }))
           failures.push(...batchFailures)
         } else {
           totalFailed += batch.items.length
@@ -276,6 +301,12 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
+  const emptyMessage = itemsLoading ? 'Se încarcă…' : !companyId
+    ? 'Selectați o companie pentru a continua.'
+    : mode === 'employees'
+      ? 'Niciun angajat fără examinare activă găsit pentru filtrele selectate.'
+      : 'Nicio scadență găsită pentru filtrele selectate.'
+
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Header */}
@@ -288,219 +319,251 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
         <h1 className="text-2xl font-bold">Programare în masă</h1>
       </div>
 
-      {/* Step indicator */}
       <StepIndicator step={step} />
 
       {/* ── Step 1 ── */}
       {step === 1 && (
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-          {/* Filter panel */}
-          <aside className="space-y-4">
-            <h2 className="font-semibold text-sm">Filtre</h2>
-
-            <div className="space-y-1.5">
-              <Label>Companie *</Label>
-              <select
-                value={companyId}
-                onChange={(e) => { setCompanyId(e.target.value); setRecalls([]) }}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">— selectați —</option>
-                {filterOptions.companies.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+        <div className="space-y-5">
+          {/* Mode toggle */}
+          <div className="border rounded-lg p-4 bg-muted/20 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Mod programare</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <ModeOption
+                value="employees"
+                current={mode}
+                label="Angajați fără examinare activă"
+                description="Pentru angajați noi sau fără programare curentă — cel mai frecvent caz"
+                onSelect={switchMode}
+              />
+              <ModeOption
+                value="recalls"
+                current={mode}
+                label="Scadențe (recalls existente)"
+                description="Pentru re-examinări periodice cu scadențe înregistrate"
+                onSelect={switchMode}
+              />
             </div>
+          </div>
 
-            <div className="space-y-1.5">
-              <Label>Loc de muncă</Label>
-              <select
-                value={workplaceId}
-                onChange={(e) => setWorkplaceId(e.target.value)}
-                disabled={!companyId || filterOptions.workplaces.length === 0}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm disabled:opacity-50"
-              >
-                <option value="">Toate</option>
-                {filterOptions.workplaces.map((w) => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </select>
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+            {/* Filter panel */}
+            <aside className="space-y-4">
+              <h2 className="font-semibold text-sm">Filtre</h2>
 
-            <div className="space-y-1.5">
-              <Label>Departament</Label>
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                disabled={!companyId || filterOptions.departments.length === 0}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm disabled:opacity-50"
-              >
-                <option value="">Toate</option>
-                {filterOptions.departments.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Tip examinare</Label>
-              <select
-                value={examinationTypeId}
-                onChange={(e) => setExaminationTypeId(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">Toate</option>
-                {filterOptions.examinationTypes.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Perioadă</Label>
-              <select
-                value={horizon}
-                onChange={(e) => setHorizon(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                {HORIZONS.map((h) => (
-                  <option key={h.value} value={h.value}>{h.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <Button
-              onClick={fetchRecalls}
-              disabled={!companyId || recallsLoading}
-              className="w-full"
-            >
-              {recallsLoading ? 'Se încarcă…' : 'Aplicați filtrele'}
-            </Button>
-          </aside>
-
-          {/* Results panel */}
-          <div className="space-y-3">
-            {recallsError && (
-              <p className="text-sm text-destructive">{recallsError}</p>
-            )}
-
-            {recalls.length > 0 && (
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">{selectedIds.size}</span> din{' '}
-                  {recalls.length} selectați
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleAll}
+              <div className="space-y-1.5">
+                <Label>Companie *</Label>
+                <select
+                  value={companyId}
+                  onChange={(e) => { setCompanyId(e.target.value); setItems([]) }}
+                  className={SELECT_CLS}
                 >
-                  {selectedIds.size === recalls.length ? 'Deselectează tot' : 'Selectează tot'}
-                </Button>
+                  <option value="">— selectați —</option>
+                  {filterOptions.companies.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </div>
-            )}
 
-            {recallsLoading ? (
-              <div className="border rounded-lg p-8 text-center text-sm text-muted-foreground">
-                Se încarcă…
+              <div className="space-y-1.5">
+                <Label>Loc de muncă</Label>
+                <select
+                  value={workplaceId}
+                  onChange={(e) => setWorkplaceId(e.target.value)}
+                  disabled={!companyId || filterOptions.workplaces.length === 0}
+                  className={`${SELECT_CLS} disabled:opacity-50`}
+                >
+                  <option value="">Toate</option>
+                  {filterOptions.workplaces.map((w) => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
               </div>
-            ) : recalls.length === 0 ? (
-              <div className="border border-dashed rounded-lg p-12 text-center text-sm text-muted-foreground">
-                {companyId
-                  ? 'Nicio scadență găsită pentru filtrele selectate.'
-                  : 'Selectați o companie pentru a vedea scadențele.'}
+
+              <div className="space-y-1.5">
+                <Label>Departament</Label>
+                <select
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  disabled={!companyId || filterOptions.departments.length === 0}
+                  className={`${SELECT_CLS} disabled:opacity-50`}
+                >
+                  <option value="">Toate</option>
+                  {filterOptions.departments.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
               </div>
-            ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-[700px]">
-                    <thead className="bg-muted/30 text-xs uppercase tracking-wide border-b">
-                      <tr>
-                        <th className="px-3 py-2 w-8">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.size === recalls.length && recalls.length > 0}
-                            onChange={toggleAll}
-                            className="rounded"
-                          />
-                        </th>
-                        <th className="text-left px-3 py-2">Angajat</th>
-                        <th className="text-left px-3 py-2">Loc de muncă</th>
-                        <th className="text-left px-3 py-2">Departament</th>
-                        <th className="text-left px-3 py-2">Tip examinare</th>
-                        <th className="text-left px-3 py-2 whitespace-nowrap">Scadență</th>
-                        <th className="text-left px-3 py-2">Status</th>
-                        <th className="text-left px-3 py-2">Conflict</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {recalls.map((r) => (
-                        <tr
-                          key={r.id}
-                          className={`hover:bg-muted/20 cursor-pointer ${
-                            r.status === 'overdue' ? 'bg-destructive/5' : ''
-                          }`}
-                          onClick={() => toggleOne(r.id)}
-                        >
-                          <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+
+              {/* Recalls-only filters */}
+              {mode === 'recalls' && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label>Tip examinare</Label>
+                    <select
+                      value={examinationTypeId}
+                      onChange={(e) => setExaminationTypeId(e.target.value)}
+                      className={SELECT_CLS}
+                    >
+                      <option value="">Toate</option>
+                      {filterOptions.examinationTypes.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Perioadă</Label>
+                    <select
+                      value={horizon}
+                      onChange={(e) => setHorizon(e.target.value)}
+                      className={SELECT_CLS}
+                    >
+                      {HORIZONS.map((h) => (
+                        <option key={h.value} value={h.value}>{h.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              <Button
+                onClick={fetchItems}
+                disabled={!companyId || itemsLoading}
+                className="w-full"
+              >
+                {itemsLoading ? 'Se încarcă…' : 'Aplicați filtrele'}
+              </Button>
+            </aside>
+
+            {/* Results panel */}
+            <div className="space-y-3">
+              {itemsError && (
+                <p className="text-sm text-destructive">{itemsError}</p>
+              )}
+
+              {items.length > 0 && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">{selectedIds.size}</span> din{' '}
+                    {items.length} selectați
+                  </span>
+                  <Button variant="outline" size="sm" onClick={toggleAll}>
+                    {selectedIds.size === items.length ? 'Deselectează tot' : 'Selectează tot'}
+                  </Button>
+                </div>
+              )}
+
+              {itemsLoading ? (
+                <div className="border rounded-lg p-8 text-center text-sm text-muted-foreground">
+                  Se încarcă…
+                </div>
+              ) : items.length === 0 ? (
+                <div className="border border-dashed rounded-lg p-12 text-center text-sm text-muted-foreground">
+                  {emptyMessage}
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[600px]">
+                      <thead className="bg-muted/30 text-xs uppercase tracking-wide border-b">
+                        <tr>
+                          <th className="px-3 py-2 w-8">
                             <input
                               type="checkbox"
-                              checked={selectedIds.has(r.id)}
-                              onChange={() => toggleOne(r.id)}
+                              checked={selectedIds.size === items.length && items.length > 0}
+                              onChange={toggleAll}
                               className="rounded"
                             />
-                          </td>
-                          <td className="px-3 py-2 font-medium whitespace-nowrap">
-                            {r.employeeName}
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground">{r.workplaceName}</td>
-                          <td className="px-3 py-2 text-muted-foreground">{r.department ?? '—'}</td>
-                          <td className="px-3 py-2 text-muted-foreground">{r.examinationTypeName}</td>
-                          <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                            {formatShortDate(r.dueDate)}
-                          </td>
-                          <td className="px-3 py-2">
-                            {r.status === 'overdue' ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                                Restanță {r.daysOverdue ? `(${r.daysOverdue}z)` : ''}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                                Scadent curând
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2">
-                            {r.hasConflict && (
-                              <span
-                                title="Are examinare programată"
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
-                              >
-                                ⚠ Programat
-                              </span>
-                            )}
-                          </td>
+                          </th>
+                          <th className="text-left px-3 py-2">Angajat</th>
+                          <th className="text-left px-3 py-2">Loc de muncă</th>
+                          <th className="text-left px-3 py-2">Departament</th>
+                          {mode === 'employees' && (
+                            <th className="text-left px-3 py-2">Funcție</th>
+                          )}
+                          {mode === 'recalls' && (
+                            <>
+                              <th className="text-left px-3 py-2">Tip examinare</th>
+                              <th className="text-left px-3 py-2 whitespace-nowrap">Scadență</th>
+                              <th className="text-left px-3 py-2">Status</th>
+                              <th className="text-left px-3 py-2">Conflict</th>
+                            </>
+                          )}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y">
+                        {items.map((r) => (
+                          <tr
+                            key={r.id}
+                            className={`hover:bg-muted/20 cursor-pointer ${
+                              r.status === 'overdue' ? 'bg-destructive/5' : ''
+                            }`}
+                            onClick={() => toggleOne(r.id)}
+                          >
+                            <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.has(r.id)}
+                                onChange={() => toggleOne(r.id)}
+                                className="rounded"
+                              />
+                            </td>
+                            <td className="px-3 py-2 font-medium whitespace-nowrap">
+                              {r.employeeName}
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground">{r.workplaceName ?? '—'}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{r.department ?? '—'}</td>
+                            {mode === 'employees' && (
+                              <td className="px-3 py-2 text-muted-foreground">{r.jobTitle ?? '—'}</td>
+                            )}
+                            {mode === 'recalls' && (
+                              <>
+                                <td className="px-3 py-2 text-muted-foreground">{r.examinationTypeName ?? '—'}</td>
+                                <td className="px-3 py-2 tabular-nums whitespace-nowrap">
+                                  {r.dueDate ? formatShortDate(r.dueDate) : '—'}
+                                </td>
+                                <td className="px-3 py-2">
+                                  {r.status === 'overdue' ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                      Restanță{r.daysOverdue ? ` (${r.daysOverdue}z)` : ''}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                      Scadent curând
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2">
+                                  {r.hasConflict && (
+                                    <span
+                                      title="Are examinare programată"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
+                                    >
+                                      ⚠ Programat
+                                    </span>
+                                  )}
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="px-3 py-2 border-t text-xs text-muted-foreground bg-muted/20">
+                    {items.length} {mode === 'employees' ? 'angajați' : 'scadențe'}
+                  </div>
                 </div>
-                <div className="px-3 py-2 border-t text-xs text-muted-foreground bg-muted/20">
-                  {recalls.length} scadențe
-                </div>
-              </div>
-            )}
+              )}
 
-            {recalls.length > 0 && (
-              <div className="flex justify-end">
-                <Button
-                  onClick={goToStep2}
-                  disabled={selectedIds.size === 0}
-                >
-                  Continuați cu {selectedIds.size} selecții →
-                </Button>
-              </div>
-            )}
+              {items.length > 0 && (
+                <div className="flex justify-end">
+                  <Button onClick={goToStep2} disabled={selectedIds.size === 0}>
+                    Continuați cu {selectedIds.size} selecții →
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -508,6 +571,27 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
       {/* ── Step 2 ── */}
       {step === 2 && (
         <div className="space-y-6 max-w-3xl">
+          {/* Global exam type — required in employees mode */}
+          {mode === 'employees' && (
+            <div className="border rounded-lg p-4 bg-muted/10 space-y-2">
+              <div className="space-y-1.5">
+                <Label>
+                  Tip examinare pentru toți angajații *
+                </Label>
+                <select
+                  value={globalExamTypeId}
+                  onChange={(e) => setGlobalExamTypeId(e.target.value)}
+                  className={SELECT_CLS}
+                >
+                  <option value="">— selectați —</option>
+                  {filterOptions.examinationTypes.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-4">
             <div className="space-y-1.5">
               <Label>Interval per examinare (minute)</Label>
@@ -529,10 +613,7 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
             {sessions.map((ses, idx) => {
               const assignment = sessionAssignments[idx]
               const endTime = ses.startDatetime && ses.slotCount > 0
-                ? new Date(
-                    new Date(ses.startDatetime).getTime() +
-                    (ses.slotCount - 1) * slotMinutes * 60_000
-                  )
+                ? new Date(new Date(ses.startDatetime).getTime() + (ses.slotCount - 1) * slotMinutes * 60_000)
                 : null
               return (
                 <SessionBlock
@@ -541,7 +622,7 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
                   session={ses}
                   practitioners={filterOptions.practitioners}
                   endTime={endTime}
-                  previewRecalls={assignment?.recalls.slice(0, 3) ?? []}
+                  previewItems={assignment?.recalls.slice(0, 3) ?? []}
                   totalInSession={ses.slotCount}
                   onUpdate={(patch) => updateSession(ses._key, patch)}
                   onRemove={sessions.length > 1 ? () => removeSession(ses._key) : undefined}
@@ -551,9 +632,7 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
           </div>
 
           {sessions.length < 10 && (
-            <Button variant="outline" onClick={addSession} size="sm">
-              + Adaugă sesiune
-            </Button>
+            <Button variant="outline" onClick={addSession} size="sm">+ Adaugă sesiune</Button>
           )}
 
           {slotDiff !== 0 && (
@@ -566,13 +645,7 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
 
           <div className="flex gap-3 pt-2">
             <Button variant="outline" onClick={() => setStep(1)}>← Înapoi</Button>
-            <Button
-              onClick={() => setStep(3)}
-              disabled={
-                slotDiff !== 0 ||
-                sessions.some((s) => !s.practitionerId || !s.startDatetime)
-              }
-            >
+            <Button onClick={() => setStep(3)} disabled={!step2Valid}>
               Previzualizare →
             </Button>
           </div>
@@ -583,6 +656,15 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
       {step === 3 && !submitResult && (
         <div className="space-y-6 max-w-4xl">
           <h2 className="font-semibold">Previzualizare programare</h2>
+
+          {mode === 'employees' && globalExamTypeId && (
+            <p className="text-sm text-muted-foreground">
+              Tip examinare:{' '}
+              <strong>
+                {filterOptions.examinationTypes.find((t) => t.id === globalExamTypeId)?.name ?? '—'}
+              </strong>
+            </p>
+          )}
 
           <div className="border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
@@ -596,15 +678,13 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {sessionAssignments.flatMap(({ session, recalls: sRecalls }, si) =>
-                    sRecalls.map((r, ri) => {
+                  {sessionAssignments.flatMap(({ session, recalls: sItems }, si) =>
+                    sItems.map((r, ri) => {
                       const pracLabel = filterOptions.practitioners.find(
                         (p) => p.id === session.practitionerId
                       )?.label ?? session.practitionerId
                       const scheduledAt = session.startDatetime
-                        ? new Date(
-                            new Date(session.startDatetime).getTime() + ri * slotMinutes * 60_000
-                          )
+                        ? new Date(new Date(session.startDatetime).getTime() + ri * slotMinutes * 60_000)
                         : null
                       return (
                         <tr key={r.id}>
@@ -647,8 +727,7 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
                   className="h-full bg-primary transition-all"
                   style={{
                     width: submitProgress.total > 0
-                      ? `${(submitProgress.done / submitProgress.total) * 100}%`
-                      : '0%',
+                      ? `${(submitProgress.done / submitProgress.total) * 100}%` : '0%',
                   }}
                 />
               </div>
@@ -656,9 +735,7 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
           )}
 
           <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={() => setStep(2)} disabled={submitting}>
-              ← Înapoi
-            </Button>
+            <Button variant="outline" onClick={() => setStep(2)} disabled={submitting}>← Înapoi</Button>
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting ? 'Se procesează…' : `Confirmare programare în masă (${totalSelected})`}
             </Button>
@@ -692,8 +769,8 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
               </div>
               <div className="divide-y text-sm">
                 {submitResult.failures.map((f) => (
-                  <div key={f.recallId} className="px-3 py-2 flex justify-between gap-4">
-                    <span className="text-muted-foreground font-mono text-xs">{f.recallId}</span>
+                  <div key={f.itemId} className="px-3 py-2 flex justify-between gap-4">
+                    <span className="text-muted-foreground font-mono text-xs">{f.itemId}</span>
                     <span className="text-destructive text-xs">{f.reason ?? 'eroare'}</span>
                   </div>
                 ))}
@@ -710,6 +787,42 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
   )
 }
 
+// ─── ModeOption ───────────────────────────────────────────────────────────────
+
+function ModeOption({
+  value,
+  current,
+  label,
+  description,
+  onSelect,
+}: {
+  value: BulkMode
+  current: BulkMode
+  label: string
+  description: string
+  onSelect: (m: BulkMode) => void
+}) {
+  const selected = value === current
+  return (
+    <button
+      onClick={() => onSelect(value)}
+      className={`flex items-start gap-3 flex-1 rounded-lg border p-3 text-left transition-all ${
+        selected ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+      }`}
+    >
+      <span className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+        selected ? 'border-primary' : 'border-muted-foreground'
+      }`}>
+        {selected && <span className="w-2 h-2 rounded-full bg-primary" />}
+      </span>
+      <div>
+        <p className={`text-sm font-medium ${selected ? 'text-primary' : ''}`}>{label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      </div>
+    </button>
+  )
+}
+
 // ─── SessionBlock ─────────────────────────────────────────────────────────────
 
 function SessionBlock({
@@ -717,7 +830,7 @@ function SessionBlock({
   session,
   practitioners,
   endTime,
-  previewRecalls,
+  previewItems,
   totalInSession,
   onUpdate,
   onRemove,
@@ -726,7 +839,7 @@ function SessionBlock({
   session: Session
   practitioners: Array<{ id: string; label: string }>
   endTime: Date | null
-  previewRecalls: RecallItem[]
+  previewItems: RecallItem[]
   totalInSession: number
   onUpdate: (patch: Partial<Omit<Session, '_key'>>) => void
   onRemove?: () => void
@@ -737,10 +850,7 @@ function SessionBlock({
       <div className="flex items-center justify-between">
         <h3 className="font-medium text-sm">Sesiunea {index}</h3>
         {onRemove && (
-          <button
-            onClick={onRemove}
-            className="text-xs text-muted-foreground hover:text-destructive"
-          >
+          <button onClick={onRemove} className="text-xs text-muted-foreground hover:text-destructive">
             Șterge
           </button>
         )}
@@ -753,7 +863,7 @@ function SessionBlock({
             id={`${labelId}-prac`}
             value={session.practitionerId}
             onChange={(e) => onUpdate({ practitionerId: e.target.value })}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className={SELECT_CLS}
           >
             <option value="">— selectați —</option>
             {practitioners.map((p) => (
@@ -771,9 +881,7 @@ function SessionBlock({
             onChange={(e) => onUpdate({ startDatetime: e.target.value })}
           />
           {endTime && (
-            <p className="text-xs text-muted-foreground">
-              Sfârșit estimat: {formatDatetime(endTime)}
-            </p>
+            <p className="text-xs text-muted-foreground">Sfârșit estimat: {formatDatetime(endTime)}</p>
           )}
         </div>
 
@@ -790,11 +898,11 @@ function SessionBlock({
         </div>
       </div>
 
-      {previewRecalls.length > 0 && (
+      {previewItems.length > 0 && (
         <div className="text-xs text-muted-foreground">
           Primii angajați:{' '}
-          {previewRecalls.map((r) => r.employeeName).join(', ')}
-          {totalInSession > previewRecalls.length && ` +${totalInSession - previewRecalls.length} alții`}
+          {previewItems.map((r) => r.employeeName).join(', ')}
+          {totalInSession > previewItems.length && ` +${totalInSession - previewItems.length} alții`}
         </div>
       )}
     </div>
@@ -813,22 +921,14 @@ function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
     <div className="flex items-center gap-2 text-sm">
       {steps.map((s, i) => (
         <div key={s.n} className="flex items-center gap-2">
-          <div
-            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-              step === s.n
-                ? 'bg-primary text-primary-foreground'
-                : step > s.n
-                  ? 'bg-primary/20 text-primary'
-                  : 'bg-muted text-muted-foreground'
-            }`}
-          >
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+            step === s.n ? 'bg-primary text-primary-foreground'
+              : step > s.n ? 'bg-primary/20 text-primary'
+              : 'bg-muted text-muted-foreground'
+          }`}>
             {s.n}
           </div>
-          <span
-            className={step === s.n ? 'font-medium' : 'text-muted-foreground'}
-          >
-            {s.label}
-          </span>
+          <span className={step === s.n ? 'font-medium' : 'text-muted-foreground'}>{s.label}</span>
           {i < steps.length - 1 && <span className="text-muted-foreground mx-1">›</span>}
         </div>
       ))}
