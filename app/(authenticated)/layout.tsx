@@ -19,6 +19,12 @@ export default async function AuthenticatedLayout({
   children: React.ReactNode
 }) {
   const user = await requireUser()
+
+  // company_hr users have their own portal — keep them out of the main app
+  if (user.roles.includes('company_hr') && !user.roles.some(r => r !== 'company_hr')) {
+    redirect('/hr-portal/dashboard')
+  }
+
   const locale = await getLocale()
   const t = getTranslator(locale)
 

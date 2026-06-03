@@ -58,6 +58,8 @@ export interface CreateInvitationInput {
   recipientName?: string
   expiryDays?: number
   appUrl: string
+  /** Company IDs for company_hr invitations */
+  companyIds?: string[]
 }
 
 export type CreateInvitationResult =
@@ -207,6 +209,10 @@ export async function createInvitation(
           tokenHash,
           expiresAt,
           invitedByUserId: input.actor.userId,
+          metadata:
+            input.role === 'company_hr' && input.companyIds?.length
+              ? { companyIds: input.companyIds }
+              : undefined,
         },
       })
     })

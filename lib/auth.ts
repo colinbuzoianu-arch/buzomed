@@ -54,7 +54,7 @@ export async function requireUser(): Promise<AppUser> {
  * Server-side guard: requires user with at least one of the given roles.
  */
 export async function requireRole(
-  ...allowedRoles: Array<'super_admin' | 'practice_admin' | 'practitioner' | 'assistant'>
+  ...allowedRoles: Array<'super_admin' | 'practice_admin' | 'practitioner' | 'assistant' | 'company_hr'>
 ): Promise<AppUser> {
   const user = await requireUser()
   const hasRole = user.roles.some((r) => allowedRoles.includes(r as typeof allowedRoles[number]))

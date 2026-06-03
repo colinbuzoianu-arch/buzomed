@@ -74,7 +74,13 @@ interface Labels {
   rolePracticeAdmin: string
   rolePractitioner: string
   roleAssistant: string
+  roleCompanyHr: string
   locale: 'ro' | 'en'
+}
+
+interface CompanyOption {
+  id: string
+  name: string
 }
 
 interface Props {
@@ -83,6 +89,7 @@ interface Props {
   allowedRoles: UserRole[]
   labels: Labels
   initialPendingInvitations: PendingInvitation[]
+  companies: CompanyOption[]
 }
 
 export function TeamInviteSection({
@@ -91,6 +98,7 @@ export function TeamInviteSection({
   allowedRoles,
   labels,
   initialPendingInvitations,
+  companies,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -108,16 +116,26 @@ export function TeamInviteSection({
     role: allowedRoles[0],
   })
 
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([])
+
   function roleLabel(role: string): string {
     if (role === 'practice_admin') return labels.rolePracticeAdmin
     if (role === 'practitioner') return labels.rolePractitioner
     if (role === 'assistant') return labels.roleAssistant
+    if (role === 'company_hr') return labels.roleCompanyHr
     return role
   }
 
   function resetForm() {
     setForm({ email: '', recipientName: '', role: allowedRoles[0] })
+    setSelectedCompanyIds([])
     setError(null)
+  }
+
+  function toggleCompany(id: string) {
+    setSelectedCompanyIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    )
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -127,6 +145,12 @@ export function TeamInviteSection({
     setSubmitting(true)
 
     try {
+      if (form.role === 'company_hr' && selectedCompanyIds.length === 0) {
+        setError('Selectați cel puțin o companie pentru accesul HR.')
+        setSubmitting(false)
+        return
+      }
+
       const response = await fetch('/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,6 +160,7 @@ export function TeamInviteSection({
           tenantId,
           recipientName: form.recipientName.trim() || undefined,
           locale: labels.locale,
+          ...(form.role === 'company_hr' && { companyIds: selectedCompanyIds }),
         }),
       })
 
@@ -267,7 +292,6 @@ export function TeamInviteSection({
                 <div className="space-y-2">
                   <Label htmlFor="invite-role">{labels.fieldRole} *</Label>
                   {allowedRoles.length === 1 ? (
-                    // Single role — show as read-only display for clarity
                     <div className="text-sm border rounded-md px-3 py-2 bg-muted">
                       {roleLabel(allowedRoles[0])}
                     </div>
@@ -275,9 +299,10 @@ export function TeamInviteSection({
                     <select
                       id="invite-role"
                       value={form.role}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setForm({ ...form, role: e.target.value as UserRole })
-                      }
+                        setSelectedCompanyIds([])
+                      }}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                       {allowedRoles.map((role) => (
@@ -288,6 +313,39 @@ export function TeamInviteSection({
                     </select>
                   )}
                 </div>
+
+                {form.role === 'company_hr' && companies.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Acces companii *</Label>
+                    <div className="border rounded-md divide-y max-h-48 overflow-y-auto">
+                      {companies.map((company) => (
+                        <label
+                          key={company.id}
+                          className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCompanyIds.includes(company.id)}
+                            onChange={() => toggleCompany(company.id)}
+                            className="h-4 w-4 rounded border-gray-300"
+                          />
+                          <span className="text-sm">{company.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {selectedCompanyIds.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Selectați cel puțin o companie.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {form.role === 'company_hr' && companies.length === 0 && (
+                  <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-700">
+                    Nu există companii în acest cabinet. Adăugați mai întâi o companie.
+                  </div>
+                )}
 
                 {error && (
                   <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">

@@ -29,6 +29,7 @@ enum UserRole {
   practice_admin
   practitioner
   assistant
+  company_hr
 }
 
 enum SubscriptionTier {
@@ -275,6 +276,7 @@ model Tenant {
   employeeWorkplaceAssignments EmployeeWorkplaceAssignment[]
   platformInvoices    PlatformInvoice[]
   subscriptions       Subscription[]
+  companyHrAssignments CompanyHrAssignment[]
 
   @@map("tenants")
   @@index([slug])
@@ -362,7 +364,8 @@ model User {
   invitationsCreated      Invitation[]                  @relation("InvitationInviter")
   invitationsAccepted     Invitation[]                  @relation("InvitationAcceptor")
   invitationsRevoked      Invitation[]                  @relation("InvitationRevoker")
-  
+  hrAssignments           CompanyHrAssignment[]
+
   @@map("users")
   @@index([tenantId])
   @@index([email])
@@ -431,6 +434,7 @@ model Company {
   invoices            Invoice[]
   medicalEvents       MedicalEvent[]
   employees           Employee[]      @relation("EmployeeCompany")
+  hrAssignments       CompanyHrAssignment[]
 
   @@map("companies")
   @@index([tenantId])
@@ -1145,6 +1149,9 @@ model Invitation {
   revokedAt           DateTime?       @map("revoked_at") @db.Timestamptz
   revokedByUserId     String?         @map("revoked_by_user_id") @db.Uuid
 
+  // Opaque metadata bag — used today for company_hr companyIds, extensible later
+  metadata            Json?
+
   createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -1158,6 +1165,28 @@ model Invitation {
   @@index([tenantId, email])
   @@index([expiresAt])
   @@index([acceptedAt])
+}
+
+// ============================================================================
+// COMPANY HR PORTAL
+// ============================================================================
+
+model CompanyHrAssignment {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user        User     @relation(fields: [userId], references: [id])
+  company     Company  @relation(fields: [companyId], references: [id])
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("company_hr_assignments")
+  @@unique([userId, companyId])
+  @@index([userId])
+  @@index([companyId])
+  @@index([tenantId])
 }
 
 // ============================================================================

@@ -10,6 +10,7 @@ const VALID_ROLES: UserRole[] = [
   'practice_admin',
   'practitioner',
   'assistant',
+  'company_hr',
 ]
 
 export async function POST(request: NextRequest) {
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
     role: parsed.role,
     tenantId: parsed.tenantId,
     recipientName: parsed.recipientName,
+    companyIds: parsed.companyIds,
     appUrl,
   })
 
@@ -192,6 +194,7 @@ interface ParsedCreateBody {
   tenantId: string
   recipientName?: string
   locale: Locale
+  companyIds?: string[]
 }
 interface InvalidCreateBody {
   ok: false
@@ -225,6 +228,15 @@ function parseCreateBody(body: unknown): ParsedCreateBody | InvalidCreateBody {
     issues.push("locale must be 'ro' or 'en'")
   }
 
+  // company_hr invitations must specify at least one company
+  if (b.role === 'company_hr') {
+    if (!Array.isArray(b.companyIds) || (b.companyIds as unknown[]).length === 0) {
+      issues.push('companyIds is required and must be a non-empty array for company_hr role')
+    } else if (!(b.companyIds as unknown[]).every((id) => typeof id === 'string')) {
+      issues.push('companyIds must be an array of strings')
+    }
+  }
+
   if (issues.length > 0) {
     return { ok: false, issues }
   }
@@ -237,6 +249,10 @@ function parseCreateBody(body: unknown): ParsedCreateBody | InvalidCreateBody {
     recipientName:
       typeof b.recipientName === 'string' ? b.recipientName.trim() : undefined,
     locale: locale as Locale,
+    companyIds:
+      b.role === 'company_hr' && Array.isArray(b.companyIds)
+        ? (b.companyIds as string[])
+        : undefined,
   }
 }
 

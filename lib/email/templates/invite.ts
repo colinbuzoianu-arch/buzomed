@@ -150,6 +150,7 @@ const translations: Record<Locale, InviteCopy> = {
       practice_admin: 'Administrator cabinet',
       practitioner: 'Medic',
       assistant: 'Asistent',
+      company_hr: 'HR Angajator',
     },
   },
   en: {
@@ -177,6 +178,7 @@ const translations: Record<Locale, InviteCopy> = {
       practice_admin: 'Practice Administrator',
       practitioner: 'Practitioner',
       assistant: 'Assistant',
+      company_hr: 'Employer HR',
     },
   },
 }

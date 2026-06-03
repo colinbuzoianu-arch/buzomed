@@ -284,6 +284,19 @@ export async function acceptInvitation(
         },
       })
 
+      // For company_hr invitations, create the company access assignments
+      const meta = invitation.metadata as { companyIds?: string[] } | null
+      if (invitation.role === 'company_hr' && meta?.companyIds?.length) {
+        await tx.companyHrAssignment.createMany({
+          data: meta.companyIds.map((companyId) => ({
+            userId,
+            companyId,
+            tenantId: invitation.tenantId,
+          })),
+          skipDuplicates: true,
+        })
+      }
+
       return userId
     })
   } catch (err) {

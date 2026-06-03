@@ -51,7 +51,7 @@ export default async function TeamPage() {
     user.tenantId
   )
 
-  const [tenant, members, pendingInvitations] = await Promise.all([
+  const [tenant, members, pendingInvitations, companies] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: user.tenantId },
       select: { id: true, name: true },
@@ -71,6 +71,11 @@ export default async function TeamPage() {
       include: {
         invitedBy: { select: { firstName: true, lastName: true } },
       },
+    }),
+    prisma.company.findMany({
+      where: { tenantId: user.tenantId, isActive: true, deletedAt: null },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
     }),
   ])
 
@@ -136,6 +141,7 @@ export default async function TeamPage() {
     rolePracticeAdmin: t('team.invitations.role_practice_admin'),
     rolePractitioner: t('team.invitations.role_practitioner'),
     roleAssistant: t('team.invitations.role_assistant'),
+    roleCompanyHr: t('team.invitations.role_company_hr'),
     locale,
   }
 
@@ -278,6 +284,7 @@ export default async function TeamPage() {
           tenantName={tenant.name}
           allowedRoles={allowedRolesToInvite}
           labels={inviteLabels}
+          companies={companies}
           initialPendingInvitations={pendingInvitations.map((inv) => ({
             id: inv.id,
             email: inv.email,

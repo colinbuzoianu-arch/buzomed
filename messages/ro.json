@@ -184,7 +184,8 @@
       "role_super_admin": "Super-administrator",
       "role_practice_admin": "Administrator",
       "role_practitioner": "Medic",
-      "role_assistant": "Asistent"
+      "role_assistant": "Asistent",
+      "role_company_hr": "HR Angajator"
     },
     "activityTitle": "Activitate",
     "activity": {
@@ -240,7 +241,8 @@
       "role_super_admin": "Super-administrator",
       "role_practice_admin": "Administrator",
       "role_practitioner": "Medic",
-      "role_assistant": "Asistent"
+      "role_assistant": "Asistent",
+      "role_company_hr": "HR Angajator"
     },
     "userAdmin": {
       "edit": "Editează",
@@ -594,6 +596,7 @@
     "role_practice_admin": "administrator de cabinet",
     "role_practitioner": "medic",
     "role_assistant": "asistent",
+    "role_company_hr": "HR angajator",
     "error_expired": {
       "title": "Invitație expirată",
       "body": "Această invitație a expirat. Vă rugăm să contactați persoana care v-a invitat pentru a primi una nouă."

@@ -184,7 +184,8 @@
       "role_super_admin": "Super administrator",
       "role_practice_admin": "Administrator",
       "role_practitioner": "Practitioner",
-      "role_assistant": "Assistant"
+      "role_assistant": "Assistant",
+      "role_company_hr": "Employer HR"
     },
     "activityTitle": "Activity",
     "activity": {
@@ -240,7 +241,8 @@
       "role_super_admin": "Super administrator",
       "role_practice_admin": "Administrator",
       "role_practitioner": "Practitioner",
-      "role_assistant": "Assistant"
+      "role_assistant": "Assistant",
+      "role_company_hr": "Employer HR"
     },
     "userAdmin": {
       "edit": "Edit",
@@ -594,6 +596,7 @@
     "role_practice_admin": "practice administrator",
     "role_practitioner": "practitioner",
     "role_assistant": "assistant",
+    "role_company_hr": "employer HR",
     "error_expired": {
       "title": "Invitation expired",
       "body": "This invitation has expired. Please contact the person who invited you to get a new one."

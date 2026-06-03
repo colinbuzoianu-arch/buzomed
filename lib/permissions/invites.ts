@@ -80,9 +80,13 @@ export function canInvite(
     return { allowed: false, reason: 'cannot_invite_to_other_tenant' }
   }
 
-  // practice_admin can invite practitioner or assistant
+  // practice_admin can invite practitioner, assistant, or company_hr
   if (actor.roles.includes('practice_admin')) {
-    if (target.role === 'practitioner' || target.role === 'assistant') {
+    if (
+      target.role === 'practitioner' ||
+      target.role === 'assistant' ||
+      target.role === 'company_hr'
+    ) {
       return { allowed: true }
     }
     // practice_admin cannot invite another practice_admin. If a tenant
@@ -117,6 +121,7 @@ export function invitableRoles(
     'practice_admin',
     'practitioner',
     'assistant',
+    'company_hr',
   ]
   return allRoles.filter(
     (role) => canInvite(actor, { role, tenantId }).allowed
