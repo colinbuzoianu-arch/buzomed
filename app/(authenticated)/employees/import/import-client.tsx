@@ -523,10 +523,27 @@ export function ImportClient({ companies, locale, labels }: Props) {
               )}
               {commitResult.summary.rowsWithoutWorkplace > 0 && (
                 <StatBox
-                  label="Rânduri fără loc de muncă"
+                  label="Fără loc de muncă"
                   value={commitResult.summary.rowsWithoutWorkplace}
+                  tone="destructive"
                 />
               )}
+            </div>
+          )}
+          {commitResult.summary.rowsWithoutWorkplace > 0 && (
+            <div className="mt-4 border border-amber-200 bg-amber-50 rounded-md p-3 text-sm text-amber-900 space-y-2">
+              <p className="font-medium">
+                ⚠ {commitResult.summary.rowsWithoutWorkplace} angajați importați fără loc de muncă
+              </p>
+              <p className="text-xs">
+                Aceștia nu pot fi programați la examinare până nu li se asignează un loc de muncă.
+              </p>
+              <a
+                href="/employees?wp=no_workplace"
+                className="inline-flex items-center gap-1 text-xs font-medium underline hover:text-amber-700"
+              >
+                → Mergi la lista angajați pentru a asigna în masă
+              </a>
             </div>
           )}
           {commitResult.companiesCreated?.length > 0 && (

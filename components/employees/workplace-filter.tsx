@@ -45,6 +45,7 @@ export function WorkplaceFilter({
       className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-colors max-w-[220px] truncate"
     >
       <option value="">{allLabel}</option>
+      <option value="no_workplace">Fără loc de muncă</option>
       {workplaces.map((w) => (
         <option key={w.id} value={w.id}>
           {w.companyName} — {w.name}

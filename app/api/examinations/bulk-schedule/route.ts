@@ -144,12 +144,14 @@ export async function GET(request: NextRequest) {
         status:              'no_examination' as const,
         daysOverdue:         null,
         hasConflict:         false,
+        hasNoWorkplace:      wp === null,
       }
     })
 
     return NextResponse.json({
       recalls: result,
       total: result.length,
+      employeesWithoutWorkplace: result.filter((r) => r.hasNoWorkplace).length,
       filters: {
         companies:        e_company_filters(filtered),
         workplaces:       Array.from(workplacesMap.entries()).map(([id, name]) => ({ id, name })),

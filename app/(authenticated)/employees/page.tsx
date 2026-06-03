@@ -7,19 +7,10 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { EmployeeSearchInput } from './employee-search-input'
 import { WorkplaceFilter } from '@/components/employees/workplace-filter'
-import { SortHeader } from '@/components/employees/sort-header'
-import { formatDate } from '@/lib/format-date'
 import { EmployeesHeaderActions } from './employees-header-actions'
+import { EmployeesBulkTable } from './employees-bulk-table'
 
 interface PageProps {
   searchParams: Promise<{
@@ -91,17 +82,11 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
               ],
             }
           : {}),
-        ...(wpFilter
-          ? {
-              workplaceAssignments: {
-                some: {
-                  workplaceId: wpFilter,
-                  isCurrent: true,
-                  endDate: null,
-                },
-              },
-            }
-          : {}),
+        ...(wpFilter === 'no_workplace'
+          ? { workplaceAssignments: { none: { isCurrent: true } } }
+          : wpFilter
+            ? { workplaceAssignments: { some: { workplaceId: wpFilter, isCurrent: true, endDate: null } } }
+            : {}),
       },
       orderBy,
       select: {
@@ -187,6 +172,21 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
     sortedEmployees = employees
   }
 
+  // Serialize dates so the client component receives plain strings (RSC serialization requirement)
+  const serializedEmployees = sortedEmployees.map((e) => ({
+    ...e,
+    archivedAt:   e.archivedAt   ? e.archivedAt.toISOString()   : null,
+    examinations: e.examinations.map((ex) => ({
+      completedAt: ex.completedAt ? ex.completedAt.toISOString() : null,
+      signedAt:    ex.signedAt    ? ex.signedAt.toISOString()    : null,
+      status:      ex.status,
+    })),
+    recalls: e.recalls.map((r) => ({
+      dueDate: r.dueDate instanceof Date ? r.dueDate.toISOString().slice(0, 10) : String(r.dueDate),
+      status:  r.status,
+    })),
+  }))
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -260,7 +260,9 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-[hsl(var(--surface-tinted))] px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             <span>
-              {workplacesForFilter.find((w) => w.id === wpFilter)?.name ?? t('employees.search.workplacePlaceholder')}
+              {wpFilter === 'no_workplace'
+                ? 'Fără loc de muncă'
+                : workplacesForFilter.find((w) => w.id === wpFilter)?.name ?? t('employees.search.workplacePlaceholder')}
             </span>
             <span aria-hidden className="ml-0.5">×</span>
           </Link>
@@ -276,264 +278,14 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
           secondaryAction={caps.canWriteAdministrative && !showArchived ? { label: t('employees.importButton'), href: '/employees/import', variant: 'outline' } : undefined}
         />
       ) : (
-        <>
-          {/* Desktop table */}
-          <div className="hidden md:block border rounded-lg overflow-hidden">
-            <Table>
-              <colgroup>
-                <col style={{ width: '22%' }} />
-                <col style={{ width: '17%' }} />
-                <col style={{ width: '15%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '18%' }} />
-              </colgroup>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-4">
-                    <SortHeader
-                      label={t('common.name')}
-                      sortAsc="name_asc"
-                      sortDesc="name_desc"
-                      currentSort={sort}
-                    />
-                  </TableHead>
-                  <TableHead>
-                    <SortHeader
-                      label={t('employees.columns.company')}
-                      sortAsc="company_asc"
-                      sortDesc="company_desc"
-                      currentSort={sort}
-                    />
-                  </TableHead>
-                  <TableHead>
-                    <SortHeader
-                      label={t('employees.columns.jobTitle')}
-                      sortAsc="jobTitle_asc"
-                      sortDesc="jobTitle_desc"
-                      currentSort={sort}
-                    />
-                  </TableHead>
-                  <TableHead>
-                    <SortHeader
-                      label={t('employees.columns.lastExam')}
-                      sortAsc="lastExam_asc"
-                      sortDesc="lastExam_desc"
-                      currentSort={sort}
-                    />
-                  </TableHead>
-                  <TableHead>
-                    <SortHeader
-                      label={t('employees.columns.nextRecall')}
-                      sortAsc="recall_asc"
-                      sortDesc="recall_desc"
-                      currentSort={sort}
-                    />
-                  </TableHead>
-                  <TableHead className="pr-4">
-                    <SortHeader
-                      label={t('employees.columns.workplace')}
-                      sortAsc="workplace_asc"
-                      sortDesc="workplace_desc"
-                      currentSort={sort}
-                    />
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedEmployees.map((e) => {
-                  const lastExam = e.examinations[0]
-                  const lastExamDate = lastExam?.signedAt ?? lastExam?.completedAt ?? null
-                  const recall = e.recalls[0]
-                  const wp = e.workplaceAssignments[0]?.workplace
-
-                  let recallUrgency: 'overdue' | 'soon' | 'ok' | null = null
-                  if (recall) {
-                    const diffDays = Math.floor(
-                      (new Date(recall.dueDate).getTime() - Date.now()) / 86400000
-                    )
-                    if (recall.status === 'overdue' || diffDays < 0) recallUrgency = 'overdue'
-                    else if (diffDays <= 30) recallUrgency = 'soon'
-                    else recallUrgency = 'ok'
-                  }
-
-                  return (
-                    <TableRow key={e.id} className="group">
-                      {/* Nume + matricolă */}
-                      <TableCell className="pl-4 py-3">
-                        <Link
-                          href={`/employees/${e.id}`}
-                          className="font-medium text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors"
-                        >
-                          <span className="block truncate max-w-[160px]">
-                            {e.lastName} {e.firstName}
-                          </span>
-                        </Link>
-                        {e.companyEmployeeId && (
-                          <span className="text-[10px] text-[hsl(var(--text-faint))] font-mono tabular-nums">
-                            #{e.companyEmployeeId}
-                          </span>
-                        )}
-                      </TableCell>
-
-                      {/* Companie */}
-                      <TableCell className="py-3">
-                        <span className="block truncate max-w-[130px] text-sm text-[hsl(var(--text-muted))]">
-                          {e.company?.name ?? '—'}
-                        </span>
-                      </TableCell>
-
-                      {/* Funcție */}
-                      <TableCell className="py-3">
-                        <span className="block truncate max-w-[120px] text-sm text-[hsl(var(--text-muted))]">
-                          {e.jobTitle ?? '—'}
-                        </span>
-                      </TableCell>
-
-                      {/* Ultima examinare */}
-                      <TableCell className="py-3">
-                        {lastExamDate ? (
-                          <span className="text-sm tabular-nums text-[hsl(var(--text-muted))]">
-                            {formatDate(lastExamDate, 'short', locale === 'ro' ? 'ro' : 'en')}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-[hsl(var(--text-faint))]">—</span>
-                        )}
-                      </TableCell>
-
-                      {/* Scadență recall */}
-                      <TableCell className="py-3">
-                        {recall ? (
-                          recallUrgency === 'overdue' ? (
-                            <span className="inline-flex items-center gap-1.5 rounded border border-red-200/70 bg-red-50/70 px-2 py-0.5 text-[11px] font-medium tabular-nums text-red-900">
-                              <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" aria-hidden />
-                              {formatDate(recall.dueDate, 'short', locale === 'ro' ? 'ro' : 'en')}
-                            </span>
-                          ) : recallUrgency === 'soon' ? (
-                            <span className="inline-flex items-center gap-1.5 rounded border border-amber-200/70 bg-amber-50/70 px-2 py-0.5 text-[11px] font-medium tabular-nums text-amber-900">
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden />
-                              {formatDate(recall.dueDate, 'short', locale === 'ro' ? 'ro' : 'en')}
-                            </span>
-                          ) : (
-                            <span className="text-sm tabular-nums text-[hsl(var(--text-muted))]">
-                              {formatDate(recall.dueDate, 'short', locale === 'ro' ? 'ro' : 'en')}
-                            </span>
-                          )
-                        ) : (
-                          <span className="text-sm text-[hsl(var(--text-faint))]">—</span>
-                        )}
-                      </TableCell>
-
-                      {/* Loc de muncă */}
-                      <TableCell className="py-3 pr-4">
-                        {wp ? (
-                          <span className="block truncate max-w-[120px] text-sm text-[hsl(var(--text-muted))]">
-                            {wp.name}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded border border-amber-200/70 bg-amber-50/70 px-2 py-0.5 text-[11px] font-medium text-amber-900">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden />
-                            {t('employees.noWorkplace')}
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-2">
-            {sortedEmployees.map((e) => {
-              const lastExam = e.examinations[0]
-              const lastExamDate = lastExam?.signedAt ?? lastExam?.completedAt ?? null
-              const recall = e.recalls[0]
-              const wp = e.workplaceAssignments[0]?.workplace
-
-              let recallUrgency: 'overdue' | 'soon' | 'ok' | null = null
-              if (recall) {
-                const diffDays = Math.floor(
-                  (new Date(recall.dueDate).getTime() - Date.now()) / 86400000
-                )
-                if (recall.status === 'overdue' || diffDays < 0) recallUrgency = 'overdue'
-                else if (diffDays <= 30) recallUrgency = 'soon'
-                else recallUrgency = 'ok'
-              }
-
-              return (
-                <Link
-                  key={e.id}
-                  href={`/employees/${e.id}`}
-                  className="block border rounded-lg p-4 hover:bg-[hsl(var(--surface-tinted))] transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-foreground truncate">
-                        {e.lastName} {e.firstName}
-                      </div>
-                      {e.companyEmployeeId && (
-                        <div className="text-[10px] text-[hsl(var(--text-faint))] font-mono tabular-nums">
-                          #{e.companyEmployeeId}
-                        </div>
-                      )}
-                      <div className="mt-1 space-y-0.5">
-                        {e.company?.name && (
-                          <div className="text-xs text-[hsl(var(--text-muted))] truncate">
-                            {e.company.name}
-                          </div>
-                        )}
-                        {e.jobTitle && (
-                          <div className="text-xs text-[hsl(var(--text-muted))] truncate">
-                            {e.jobTitle}
-                          </div>
-                        )}
-                        {wp ? (
-                          <div className="text-xs text-[hsl(var(--text-muted))] truncate">
-                            📍 {wp.name}
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-800 mt-0.5">
-                            <span className="h-1 w-1 rounded-full bg-amber-500" aria-hidden />
-                            {t('employees.noWorkplace')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {/* Right side — dates */}
-                    <div className="shrink-0 text-right space-y-1.5">
-                      {showArchived ? (
-                        <div className="text-xs text-[hsl(var(--text-muted))] tabular-nums">
-                          {e.archivedAt
-                            ? formatDate(e.archivedAt, 'short', locale === 'ro' ? 'ro' : 'en')
-                            : '—'}
-                        </div>
-                      ) : (
-                        <>
-                          {lastExamDate && (
-                            <div className="text-[10px] text-[hsl(var(--text-faint))] tabular-nums">
-                              {formatDate(lastExamDate, 'short', locale === 'ro' ? 'ro' : 'en')}
-                            </div>
-                          )}
-                          {recall ? (
-                            <div className={`text-[11px] font-medium tabular-nums ${
-                              recallUrgency === 'overdue' ? 'text-red-700'
-                              : recallUrgency === 'soon' ? 'text-amber-700'
-                              : 'text-[hsl(var(--text-muted))]'
-                            }`}>
-                              ⏱ {formatDate(recall.dueDate, 'short', locale === 'ro' ? 'ro' : 'en')}
-                            </div>
-                          ) : null}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        </>
+        <EmployeesBulkTable
+          employees={serializedEmployees}
+          workplaces={workplacesForFilter}
+          locale={locale === 'ro' ? 'ro' : 'en'}
+          sort={sort}
+          showArchived={showArchived}
+          canWrite={caps.canWriteAdministrative}
+        />
       )}
     </div>
   )

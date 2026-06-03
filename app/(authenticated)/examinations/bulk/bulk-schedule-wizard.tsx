@@ -27,6 +27,7 @@ interface RecallItem {
   status: 'pending' | 'overdue' | 'no_examination'
   daysOverdue: number | null
   hasConflict: boolean
+  hasNoWorkplace?: boolean
 }
 
 interface FilterOptions {
@@ -86,6 +87,7 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
   const [items, setItems]         = useState<RecallItem[]>([])
   const [itemsLoading, setItemsLoading] = useState(false)
   const [itemsError, setItemsError]     = useState<string | null>(null)
+  const [employeesWithoutWorkplace, setEmployeesWithoutWorkplace] = useState(0)
 
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -136,8 +138,9 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
 
     fetch(`/api/examinations/bulk-schedule?${params}`)
       .then((r) => r.json())
-      .then((data: { recalls: RecallItem[]; total: number }) => {
+      .then((data: { recalls: RecallItem[]; total: number; employeesWithoutWorkplace?: number }) => {
         setItems(data.recalls)
+        setEmployeesWithoutWorkplace(data.employeesWithoutWorkplace ?? 0)
         setItemsLoading(false)
       })
       .catch(() => {
@@ -162,16 +165,27 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
 
   // ─── Selection helpers ──────────────────────────────────────────────────────
 
-  const selectedItems = useMemo(
-    () => items.filter((r) => selectedIds.has(r.id)),
-    [items, selectedIds]
-  )
+  const selectableItems = useMemo(() => items.filter((r) => !r.hasNoWorkplace), [items])
+  const selectedItems   = useMemo(() => selectableItems.filter((r) => selectedIds.has(r.id)), [selectableItems, selectedIds])
+
+  // Map itemId → employeeName for failure display in step 3
+  const itemNameMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const item of items) m.set(item.id, item.employeeName)
+    return m
+  }, [items])
 
   function toggleAll() {
-    setSelectedIds(selectedIds.size === items.length ? new Set() : new Set(items.map((r) => r.id)))
+    setSelectedIds(
+      selectedIds.size === selectableItems.length && selectableItems.length > 0
+        ? new Set()
+        : new Set(selectableItems.map((r) => r.id))
+    )
   }
 
   function toggleOne(id: string) {
+    const item = items.find((r) => r.id === id)
+    if (item?.hasNoWorkplace) return
     const next = new Set(selectedIds)
     if (next.has(id)) next.delete(id); else next.add(id)
     setSelectedIds(next)
@@ -445,10 +459,16 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm text-muted-foreground">
                     <span className="font-medium text-foreground">{selectedIds.size}</span> din{' '}
-                    {items.length} selectați
+                    {selectableItems.length} selectați
+                    {employeesWithoutWorkplace > 0 && mode === 'employees' && (
+                      <span className="text-amber-700 ml-1">
+                        ({employeesWithoutWorkplace} fără loc de muncă)
+                      </span>
+                    )}
                   </span>
                   <Button variant="outline" size="sm" onClick={toggleAll}>
-                    {selectedIds.size === items.length ? 'Deselectează tot' : 'Selectează tot'}
+                    {selectedIds.size === selectableItems.length && selectableItems.length > 0
+                      ? 'Deselectează tot' : 'Selectează tot'}
                   </Button>
                 </div>
               )}
@@ -470,7 +490,7 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
                           <th className="px-3 py-2 w-8">
                             <input
                               type="checkbox"
-                              checked={selectedIds.size === items.length && items.length > 0}
+                              checked={selectedIds.size === selectableItems.length && selectableItems.length > 0}
                               onChange={toggleAll}
                               className="rounded"
                             />
@@ -495,23 +515,30 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
                         {items.map((r) => (
                           <tr
                             key={r.id}
-                            className={`hover:bg-muted/20 cursor-pointer ${
+                            className={`${r.hasNoWorkplace ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/20 cursor-pointer'} ${
                               r.status === 'overdue' ? 'bg-destructive/5' : ''
                             }`}
-                            onClick={() => toggleOne(r.id)}
+                            onClick={() => !r.hasNoWorkplace && toggleOne(r.id)}
                           >
                             <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                               <input
                                 type="checkbox"
                                 checked={selectedIds.has(r.id)}
                                 onChange={() => toggleOne(r.id)}
-                                className="rounded"
+                                disabled={r.hasNoWorkplace}
+                                className="rounded disabled:opacity-50"
                               />
                             </td>
                             <td className="px-3 py-2 font-medium whitespace-nowrap">
                               {r.employeeName}
                             </td>
-                            <td className="px-3 py-2 text-muted-foreground">{r.workplaceName ?? '—'}</td>
+                            <td className="px-3 py-2 text-muted-foreground">
+                              {r.hasNoWorkplace ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                  Fără loc de muncă
+                                </span>
+                              ) : (r.workplaceName ?? '—')}
+                            </td>
                             <td className="px-3 py-2 text-muted-foreground">{r.department ?? '—'}</td>
                             {mode === 'employees' && (
                               <td className="px-3 py-2 text-muted-foreground">{r.jobTitle ?? '—'}</td>
@@ -553,6 +580,18 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
                   <div className="px-3 py-2 border-t text-xs text-muted-foreground bg-muted/20">
                     {items.length} {mode === 'employees' ? 'angajați' : 'scadențe'}
                   </div>
+                </div>
+              )}
+
+              {mode === 'employees' && employeesWithoutWorkplace > 0 && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <span className="shrink-0">⚠</span>
+                  <span>
+                    <strong>{employeesWithoutWorkplace}</strong> angajați nu pot fi programați deoarece nu au un loc de muncă asignat.
+                    Asignați-le un loc de muncă din fișa angajatului sau folosiți asignarea în masă din{' '}
+                    <a href="/employees?wp=no_workplace" className="underline hover:text-amber-700">lista angajați</a>,
+                    apoi reveniți aici.
+                  </span>
                 </div>
               )}
 
@@ -770,8 +809,12 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
               <div className="divide-y text-sm">
                 {submitResult.failures.map((f) => (
                   <div key={f.itemId} className="px-3 py-2 flex justify-between gap-4">
-                    <span className="text-muted-foreground font-mono text-xs">{f.itemId}</span>
-                    <span className="text-destructive text-xs">{f.reason ?? 'eroare'}</span>
+                    <span className="font-medium text-sm">
+                      {itemNameMap.get(f.itemId) ?? f.itemId}
+                    </span>
+                    <span className="text-destructive text-xs shrink-0">
+                      {translateFailureReason(f.reason)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -785,6 +828,20 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
       )}
     </div>
   )
+}
+
+// ─── Failure reason translations ─────────────────────────────────────────────
+
+function translateFailureReason(reason: string | undefined): string {
+  switch (reason) {
+    case 'no_workplace':         return 'Fără loc de muncă asignat'
+    case 'employee_unavailable': return 'Angajat inactiv sau arhivat'
+    case 'workplace_unavailable':return 'Loc de muncă inactiv'
+    case 'exam_type_inactive':   return 'Tip examinare inactiv'
+    case 'already_scheduled':    return 'Are deja o examinare programată'
+    case 'unexpected_error':     return 'Eroare neașteptată'
+    default:                     return reason ?? 'eroare'
+  }
 }
 
 // ─── ModeOption ───────────────────────────────────────────────────────────────
