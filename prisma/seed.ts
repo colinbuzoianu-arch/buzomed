@@ -135,9 +135,12 @@ async function main() {
   // Seed subscription plans
   console.log('\nSeeding subscription plans...')
   const planDefs = [
-    { name: 'Starter',    tier: 'starter'    as const, monthlyPrice: 79,  maxEmployees: 100,  isPublic: true,  stripePriceId: 'price_1Tc9hKQi3J3l1LWuRBf0Lztz' },
-    { name: 'Growth',     tier: 'growth'     as const, monthlyPrice: 199, maxEmployees: 500,  isPublic: true,  stripePriceId: 'price_1Tc9kJQi3J3l1LWuoRE95wAZ' },
-    { name: 'Pro',        tier: 'pro'        as const, monthlyPrice: 449, maxEmployees: 2000, isPublic: true,  stripePriceId: 'price_1Tc9lkQi3J3l1LWuDHGrDLlK' },
+    // TODO: create new Stripe recurring price for Starter (99 RON/month, currency RON) and update stripePriceId
+    { name: 'Starter',    tier: 'starter'    as const, monthlyPrice: 99,  maxEmployees: 100,  isPublic: true,  stripePriceId: 'price_1TeG2vQi3J3l1LWun2U5Mlgx' },
+    // TODO: create new Stripe recurring price for Growth (299 RON/month, currency RON) and update stripePriceId
+    { name: 'Growth',     tier: 'growth'     as const, monthlyPrice: 299, maxEmployees: 500,  isPublic: true,  stripePriceId: 'price_1TeG3cQi3J3l1LWugF8XF51o' },
+    // TODO: create new Stripe recurring price for Pro (699 RON/month, currency RON) and update stripePriceId
+    { name: 'Pro',        tier: 'pro'        as const, monthlyPrice: 699, maxEmployees: 2000, isPublic: true,  stripePriceId: 'price_1TeG41Qi3J3l1LWuIPU7DacV' },
     { name: 'Enterprise', tier: 'enterprise' as const, monthlyPrice: 0,   maxEmployees: -1,   isPublic: false, stripePriceId: null },
   ]
   for (const p of planDefs) {

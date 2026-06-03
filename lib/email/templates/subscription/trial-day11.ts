@@ -23,17 +23,17 @@ export function renderTrialDay11Email(params: TrialDay11Params): { subject: stri
   </tr>
   <tr>
     <td style="padding: 8px 12px; font-size: 13px; border-top: 1px solid #e5e7eb;">Starter</td>
-    <td style="padding: 8px 12px; font-size: 13px; text-align: right; border-top: 1px solid #e5e7eb;">79 RON</td>
+    <td style="padding: 8px 12px; font-size: 13px; text-align: right; border-top: 1px solid #e5e7eb;">99 RON</td>
     <td style="padding: 8px 12px; font-size: 13px; text-align: right; border-top: 1px solid #e5e7eb;">până la 100</td>
   </tr>
   <tr style="background-color: #f9fafb;">
     <td style="padding: 8px 12px; font-size: 13px; border-top: 1px solid #e5e7eb;">Growth</td>
-    <td style="padding: 8px 12px; font-size: 13px; text-align: right; border-top: 1px solid #e5e7eb;">199 RON</td>
+    <td style="padding: 8px 12px; font-size: 13px; text-align: right; border-top: 1px solid #e5e7eb;">299 RON</td>
     <td style="padding: 8px 12px; font-size: 13px; text-align: right; border-top: 1px solid #e5e7eb;">până la 500</td>
   </tr>
   <tr>
     <td style="padding: 8px 12px; font-size: 13px; border-top: 1px solid #e5e7eb;">Pro</td>
-    <td style="padding: 8px 12px; font-size: 13px; text-align: right; border-top: 1px solid #e5e7eb;">449 RON</td>
+    <td style="padding: 8px 12px; font-size: 13px; text-align: right; border-top: 1px solid #e5e7eb;">699 RON</td>
     <td style="padding: 8px 12px; font-size: 13px; text-align: right; border-top: 1px solid #e5e7eb;">până la 2000</td>
   </tr>
 </table>
@@ -47,7 +47,7 @@ ${renderButton('Activează subscripția acum', params.billingUrl)}
     footerText: 'Buzomed · Medicină a muncii · hello@buzomed.com',
   })
 
-  const text = `Bună, ${params.adminName},\n\nTrial-ul pentru ${params.cabinetName} expiră pe ${endDate} (3 zile rămase).\n\nPlanuri disponibile:\n- Starter: 79 RON/lună — până la 100 angajați\n- Growth: 199 RON/lună — până la 500 angajați\n- Pro: 449 RON/lună — până la 2000 angajați\n\nActivează: ${params.billingUrl}\n\nBuzomed`
+  const text = `Bună, ${params.adminName},\n\nTrial-ul pentru ${params.cabinetName} expiră pe ${endDate} (3 zile rămase).\n\nPlanuri disponibile:\n- Starter: 99 RON/lună — până la 100 angajați\n- Growth: 299 RON/lună — până la 500 angajați\n- Pro: 699 RON/lună — până la 2000 angajați\n\nActivează: ${params.billingUrl}\n\nBuzomed`
 
   return { subject, html, text }
 }
