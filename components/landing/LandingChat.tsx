@@ -14,8 +14,8 @@ const GREETING: Message = {
 }
 
 const SUGGESTED = [
-  'Cât timp economisesc?',
-  'Cum sunt protejate datele?',
+  'Ce face Buzomed?',
+  'Cum sunt protejate datele medicale?',
   'Care este prețul?',
 ]
 

@@ -66,7 +66,7 @@ function Icon06() {
 function Icon07() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={22} height={22}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
     </svg>
   )
 }
@@ -86,49 +86,49 @@ const workflowCards = [
     num: '01',
     Icon: Icon01,
     title: 'Importați angajații',
-    body: 'Încărcați un fișier Excel sau CSV. Detectarea coloanelor este automată.',
+    body: 'Încărcați un fișier Excel sau CSV exportat din sistemul vostru HR. Detectarea coloanelor este automată — inclusiv pentru denumiri românești ambigue.',
   },
   {
     num: '02',
     Icon: Icon02,
     title: 'Structurați companiile',
-    body: 'Adăugați locuri de muncă și alocați angajații pe posturi cu riscuri specifice.',
+    body: 'Adăugați locuri de muncă, alocați angajații pe posturi și definiți profilul de riscuri per loc de muncă (fizice, chimice, biologice, ergonomice, psihosociale) cu sugestii automate pe cod CAEN.',
   },
   {
     num: '03',
     Icon: Icon03,
     title: 'Programați examinările',
-    body: 'Sistemul calculează automat scadențele în funcție de periodicitate.',
+    body: 'Sistemul calculează automat scadențele în funcție de periodicitate și tipul examinării. Programarea în masă permite selectarea mai multor angajați și setarea datei o singură dată.',
   },
   {
     num: '04',
     Icon: Icon04,
     title: 'Efectuați examinarea',
-    body: 'Completați fișa medicală direct în platformă, inclusiv teste și parametri vitali.',
+    body: 'Completați verdictul (apt / apt condiționat / inapt temporar / inapt), restricțiile, contraindicațiile și intervalul de reexaminare direct în platformă.',
   },
   {
     num: '05',
     Icon: Icon05,
     title: 'Generați fișa de aptitudine',
-    body: 'Documentul PDF se generează instant după semnarea examinării.',
+    body: 'Fișa se completează automat cu datele angajatului, companiei, locului de muncă și medicului. Format A4, conform HG 355/2007, gata de tipărit sau arhivat.',
   },
   {
     num: '06',
-    Icon: Icon06,
-    title: 'Facturați contractele',
-    body: 'Facturile se generează direct din contractul firmei și examinările efectuate, fără să reintroduceți datele. TVA-exempt gestionat automat.',
+    Icon: Icon07,
+    title: 'Evidența vaccinărilor și evenimentelor',
+    body: 'Înregistrați vaccinările cu numărul de lot și calea de administrare. Documentați accidentele de muncă și evenimentele medicale cu urmărirea evoluției.',
   },
   {
     num: '07',
-    Icon: Icon07,
-    title: 'Notificări automate',
-    body: 'Angajatorii primesc alerte înainte de expirarea perioadelor de valabilitate.',
+    Icon: Icon06,
+    title: 'Contracte și facturi',
+    body: 'Gestionați contractele per companie clientă și emiteți facturi cu numerotare automată. Datele emitentului se configurează o singură dată.',
   },
   {
     num: '08',
     Icon: Icon08,
-    title: 'Rapoarte și statistici',
-    body: 'Vizualizați situația întregului cabinet dintr-o singură pagină, oricând.',
+    title: 'Rapoarte și scadențe',
+    body: 'Vizualizați volumul de examinări, prognoza scadențelor și încărcarea per medic. Exportați în CSV. Raportul anual per companie se redactează direct în platformă.',
   },
 ]
 
