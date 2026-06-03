@@ -6,23 +6,174 @@ import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { asObject, optionalDateTime } from '@/lib/validation'
 import { ensurePrimaryLocation } from '@/lib/examinations/auto-location'
 
-/**
- * Bulk-schedule examinations from a list of recalls.
- *
- * Each item maps one recall → one new Examination. The practitioner is
- * shared across all items (a batch is always one practitioner's session).
- * The scheduledAt per item may differ — the client sends pre-computed
- * slot times (startDate + 20-min intervals) so users can review before
- * confirming.
- *
- * Failure is per-item: if one recall is invalid (archived employee,
- * already completed, etc.) the rest still proceed. The caller receives
- * a per-item outcome report.
- *
- * Max 100 items per call to keep response times reasonable.
- */
+const MAX_BATCH = 200
 
-const MAX_BATCH = 100
+// ─── GET: list recalls available for bulk scheduling ─────────────────────────
+
+const BULK_HORIZONS = ['overdue', 'thisWeek', 'thisMonth', 'next30', 'next60', 'next90', 'all'] as const
+type BulkHorizon = typeof BULK_HORIZONS[number]
+
+function horizonDateRange(h: BulkHorizon): { from: Date | null; to: Date | null } {
+  const today = new Date()
+  today.setUTCHours(0, 0, 0, 0)
+  const addDays = (d: number) => {
+    const t = new Date(today)
+    t.setUTCDate(today.getUTCDate() + d)
+    return t
+  }
+  switch (h) {
+    case 'overdue':   return { from: null,        to: today      }
+    case 'thisWeek':  return { from: today,        to: addDays(7) }
+    case 'thisMonth':
+    case 'next30':    return { from: today,        to: addDays(30) }
+    case 'next60':    return { from: today,        to: addDays(60) }
+    case 'next90':    return { from: today,        to: addDays(90) }
+    case 'all':       return { from: null,         to: null       }
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const auth = await getApiUser()
+  if (!auth.user) return NextResponse.json({ error: 'unauthorized', reason: auth.reason }, { status: 401 })
+  if (!auth.user.tenantId || !canWriteAdministrative(auth.user, auth.user.tenantId))
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+
+  const sp = request.nextUrl.searchParams
+  const companyId         = sp.get('companyId')         || null
+  const workplaceId       = sp.get('workplaceId')        || null
+  const department        = sp.get('department')         || null
+  const examinationTypeId = sp.get('examinationTypeId')  || null
+  const horizonRaw        = sp.get('horizon') ?? 'all'
+  const horizon           = (BULK_HORIZONS as readonly string[]).includes(horizonRaw)
+    ? (horizonRaw as BulkHorizon) : 'all'
+
+  const today = new Date()
+  today.setUTCHours(0, 0, 0, 0)
+
+  const { from, to } = horizonDateRange(horizon)
+  const dueDateWhere: Prisma.RecallWhereInput =
+    from && to  ? { dueDate: { gte: from, lt: to } } :
+    from        ? { dueDate: { gte: from } } :
+    to          ? { dueDate: { lt: to } }    : {}
+
+  const workplaceWhere: Prisma.WorkplaceWhereInput = { deletedAt: null }
+  if (companyId)   workplaceWhere.companyId  = companyId
+  if (department)  workplaceWhere.department = department
+
+  const statusWhere: Prisma.RecallWhereInput =
+    horizon === 'overdue'
+      ? { status: 'overdue' }
+      : { status: { in: ['pending', 'overdue'] } }
+
+  const rawRecalls = await prisma.recall.findMany({
+    where: {
+      tenantId: auth.user.tenantId,
+      deletedAt: null,
+      ...statusWhere,
+      ...dueDateWhere,
+      ...(workplaceId       ? { workplaceId }       : {}),
+      ...(examinationTypeId ? { examinationTypeId } : {}),
+      workplace: workplaceWhere,
+      OR: [
+        { createdFromExaminationId: null },
+        { createdFromExamination: { deletedAt: null } },
+      ],
+    },
+    orderBy: [{ status: 'asc' }, { dueDate: 'asc' }],
+    take: 2000,
+    select: {
+      id: true,
+      status: true,
+      dueDate: true,
+      examinationTypeId: true,
+      workplaceId: true,
+      employeeId: true,
+      employee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          companyEmployeeId: true,
+          jobTitle: true,
+          archivedAt: true,
+        },
+      },
+      workplace: {
+        select: {
+          id: true,
+          name: true,
+          department: true,
+          company: { select: { id: true, name: true } },
+        },
+      },
+      examinationType: { select: { id: true, nameRo: true } },
+    },
+  })
+
+  // Drop archived employees
+  const recalls = rawRecalls.filter((r) => r.employee.archivedAt === null)
+
+  // Single batch conflict query
+  const employeeIds = [...new Set(recalls.map((r) => r.employee.id))]
+  const conflictSet = new Set<string>()
+  if (employeeIds.length > 0) {
+    const conflicts = await prisma.examination.findMany({
+      where: {
+        tenantId: auth.user.tenantId,
+        employeeId: { in: employeeIds },
+        status: { in: ['scheduled', 'in_progress'] },
+        deletedAt: null,
+      },
+      select: { employeeId: true },
+    })
+    for (const c of conflicts) conflictSet.add(c.employeeId)
+  }
+
+  // Derive filter metadata from result set
+  const companiesMap    = new Map<string, string>()
+  const workplacesMap   = new Map<string, string>()
+  const departmentsSet  = new Set<string>()
+  const examTypesMap    = new Map<string, string>()
+  for (const r of recalls) {
+    companiesMap.set(r.workplace.company.id, r.workplace.company.name)
+    workplacesMap.set(r.workplace.id, r.workplace.name)
+    if (r.workplace.department) departmentsSet.add(r.workplace.department)
+    examTypesMap.set(r.examinationType.id, r.examinationType.nameRo)
+  }
+
+  const todayMs = today.getTime()
+  const result = recalls.map((r) => ({
+    id: r.id,
+    employeeId: r.employee.id,
+    employeeName: `${r.employee.lastName} ${r.employee.firstName}`,
+    companyEmployeeId: r.employee.companyEmployeeId,
+    jobTitle: r.employee.jobTitle,
+    companyId: r.workplace.company.id,
+    companyName: r.workplace.company.name,
+    workplaceId: r.workplace.id,
+    workplaceName: r.workplace.name,
+    department: r.workplace.department,
+    examinationTypeId: r.examinationType.id,
+    examinationTypeName: r.examinationType.nameRo,
+    dueDate: r.dueDate.toISOString().slice(0, 10),
+    status: r.status as 'pending' | 'overdue',
+    daysOverdue: r.dueDate.getTime() < todayMs
+      ? Math.round((todayMs - r.dueDate.getTime()) / 86_400_000)
+      : null,
+    hasConflict: conflictSet.has(r.employee.id),
+  }))
+
+  return NextResponse.json({
+    recalls: result,
+    total: result.length,
+    filters: {
+      companies:        Array.from(companiesMap.entries()).map(([id, name]) => ({ id, name })),
+      workplaces:       Array.from(workplacesMap.entries()).map(([id, name]) => ({ id, name })),
+      departments:      Array.from(departmentsSet).sort(),
+      examinationTypes: Array.from(examTypesMap.entries()).map(([id, name]) => ({ id, name })),
+    },
+  })
+}
 
 export async function POST(request: NextRequest) {
   const auth = await getApiUser()

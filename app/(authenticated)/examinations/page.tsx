@@ -575,48 +575,57 @@ async function ScadenteView(props: {
         </div>
       )}
 
-      {/* Bulk schedule button — shown when a company filter is active */}
-      {props.companyIdFilter && props.canWrite && visibleRecalls.length > 0 && (
+      {/* Bulk schedule controls — shown when recalls are visible and user can write */}
+      {props.canWrite && visibleRecalls.length > 0 && (
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm text-muted-foreground">
             {visibleRecalls.length} {t('recalls.companyTotalCount').replace('{count}', '').trim()}
           </span>
-          <BulkScheduleButton
-            recalls={visibleRecalls.map((r) => ({
-              id: r.id,
-              employeeName: `${r.employee.lastName} ${r.employee.firstName}`,
-              workplaceName: r.workplace.name,
-              examTypeName:
-                props.locale === 'en'
-                  ? (r.examinationType.nameEn ?? r.examinationType.nameRo)
-                  : r.examinationType.nameRo,
-              dueDate: r.dueDate.toISOString(),
-            }))}
-            practitioners={practitioners.map((p) => ({
-              id: p.id,
-              label: `${p.lastName} ${p.firstName}${p.professionalTitle ? ` (${p.professionalTitle})` : ''}`,
-            }))}
-            companyName={companies.find((c) => c.id === props.companyIdFilter)?.name ?? ''}
-            defaultPractitionerId={props.isPractitioner ? props.userId : undefined}
-            labels={{
-              batchButton: t('recalls.batchButton'),
-              batchModalTitle: t('recalls.batchModalTitle'),
-              batchModalSubtitle: t('recalls.batchModalSubtitle'),
-              batchPractitioner: t('recalls.batchPractitioner'),
-              batchStartDate: t('recalls.batchStartDate'),
-              batchStartTime: t('recalls.batchStartTime'),
-              batchStartTimeHelp: t('recalls.batchStartTimeHelp'),
-              batchPreviewTitle: t('recalls.batchPreviewTitle'),
-              batchColWorker: t('recalls.colWorker'),
-              batchColWorkplace: t('recalls.colWorkplace'),
-              batchColExamType: t('recalls.colExamType'),
-              batchColTime: t('recalls.batchColTime'),
-              batchSubmit: t('recalls.batchSubmit'),
-              batchSubmitting: t('recalls.batchSubmitting'),
-              batchCancel: t('recalls.batchCancel'),
-              batchError: t('recalls.errorMessage'),
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={props.companyIdFilter ? `/examinations/bulk?companyId=${props.companyIdFilter}` : '/examinations/bulk'}>
+                Programare în masă ›
+              </Link>
+            </Button>
+            {props.companyIdFilter && (
+              <BulkScheduleButton
+                recalls={visibleRecalls.map((r) => ({
+                  id: r.id,
+                  employeeName: `${r.employee.lastName} ${r.employee.firstName}`,
+                  workplaceName: r.workplace.name,
+                  examTypeName:
+                    props.locale === 'en'
+                      ? (r.examinationType.nameEn ?? r.examinationType.nameRo)
+                      : r.examinationType.nameRo,
+                  dueDate: r.dueDate.toISOString(),
+                }))}
+                practitioners={practitioners.map((p) => ({
+                  id: p.id,
+                  label: `${p.lastName} ${p.firstName}${p.professionalTitle ? ` (${p.professionalTitle})` : ''}`,
+                }))}
+                companyName={companies.find((c) => c.id === props.companyIdFilter)?.name ?? ''}
+                defaultPractitionerId={props.isPractitioner ? props.userId : undefined}
+                labels={{
+                  batchButton: t('recalls.batchButton'),
+                  batchModalTitle: t('recalls.batchModalTitle'),
+                  batchModalSubtitle: t('recalls.batchModalSubtitle'),
+                  batchPractitioner: t('recalls.batchPractitioner'),
+                  batchStartDate: t('recalls.batchStartDate'),
+                  batchStartTime: t('recalls.batchStartTime'),
+                  batchStartTimeHelp: t('recalls.batchStartTimeHelp'),
+                  batchPreviewTitle: t('recalls.batchPreviewTitle'),
+                  batchColWorker: t('recalls.colWorker'),
+                  batchColWorkplace: t('recalls.colWorkplace'),
+                  batchColExamType: t('recalls.colExamType'),
+                  batchColTime: t('recalls.batchColTime'),
+                  batchSubmit: t('recalls.batchSubmit'),
+                  batchSubmitting: t('recalls.batchSubmitting'),
+                  batchCancel: t('recalls.batchCancel'),
+                  batchError: t('recalls.errorMessage'),
+                }}
+              />
+            )}
+          </div>
         </div>
       )}
 
