@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { HrExportButton } from '@/components/hr-export/HrExportButton'
 
 type Status = 'valid' | 'expiringSoon' | 'expired' | 'noExamination'
 
@@ -127,13 +128,30 @@ export function HrDashboardClient({ rows, summary, companies }: Props) {
     [rows, selectedCompanyId, statusFilter]
   )
 
+  // For export: use the selected company, or the only company if "all" with one assigned
+  const exportCompanyId =
+    selectedCompanyId !== 'all'
+      ? selectedCompanyId
+      : companies.length === 1
+        ? companies[0].id
+        : null
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Situație angajați</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Status examene medicale · doar date operaționale, fără informații medicale
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Situație angajați</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Status examene medicale · doar date operaționale, fără informații medicale
+          </p>
+        </div>
+        {exportCompanyId ? (
+          <HrExportButton companyId={exportCompanyId} apiBase="hr-portal" />
+        ) : (
+          <p className="text-xs text-muted-foreground self-center">
+            Selectați o companie pentru export
+          </p>
+        )}
       </div>
 
       {/* Summary cards */}

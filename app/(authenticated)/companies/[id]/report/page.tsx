@@ -15,6 +15,7 @@ import { PrintButton } from './print-button'
 import { VerdictBadge } from '@/components/ui/verdict-badge'
 import { formatDate } from '@/lib/format-date'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { HrExportButton } from '@/components/hr-export/HrExportButton'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -159,6 +160,7 @@ export default async function CompanyReportPage({
             >
               PDF {t('companyReport.exportPdf')}
             </a>
+            <HrExportButton companyId={company.id} apiBase="practitioner" />
             <PrintButton label={t('companyReport.print')} />
           </div>
         </div>

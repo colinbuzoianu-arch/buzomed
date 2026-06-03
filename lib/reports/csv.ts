@@ -63,8 +63,8 @@ function formatCell(cell: CsvCell): string {
   return `"${str.replace(/"/g, '""')}"`
 }
 
-export function renderCsv(rows: CsvRow[]): string {
-  const lines = rows.map((row) => row.map(formatCell).join(','))
+export function renderCsv(rows: CsvRow[], delimiter: ',' | ';' = ','): string {
+  const lines = rows.map((row) => row.map(formatCell).join(delimiter))
   return BOM + lines.join('\r\n') + '\r\n'
 }
 
