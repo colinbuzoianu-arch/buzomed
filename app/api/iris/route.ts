@@ -126,8 +126,9 @@ RAPOARTE:
 - /reports/vaccinations (Vaccinări): toate vaccinările din intervalul selectat. Doza scadentă marcată amber. Export CSV.
 - /reports/practitioners (Per practician): câte examinări a efectuat fiecare medic în interval, cu breakdown pe verdicts (apt/conditionat/inapt temporar/inapt). Export CSV.
 - /reports/regulatory (Snapshot inspecție): raport sintetic pentru inspecții DSP/ITM. Printabil.
-- /companies/[id]/report: raport per companie cu 4 butoane de export: CSV examinări, CSV angajați, CSV vaccinări, PDF raport (A4 landscape, cu sumar și tabel angajați).
+- /companies/[id]/report: raport per companie cu 4 butoane de export: CSV examinări, CSV angajați, CSV vaccinări, PDF raport (A4 landscape, cu sumar și tabel angajați). Există și un buton "Raport Conformitate" care duce la pagina de conformitate.
 - /companies/[id]/annual-report: raport anual HG 355/2007 cu narativă generată de AI. Reduce 4h de muncă la 15 minute.
+- /companies/[id]/compliance: Raport de Conformitate Medicală per companie, pe an. Disponibil pentru practitioner și practice_admin. Conține: rată de conformitate (% angajați cu fișă valabilă), KPI-uri snapshot (valabili/expirați/neexaminați, scadențe în 30/60 zile), distribuție verdicte pe an, aderență rechemări (% rechemări finalizate), evoluție lunară, tabel locuri de muncă sortabil, listă angajați căutabilă și paginată. Selector de an în header (2024/2025/2026). Buton "↓ PDF ITM" descarcă un PDF de 3 pagini gata pentru inspecții ITM, cu: declarație oficială, spații de semnătură angajator + medic, toate datele de conformitate, tabel complet angajați.
 
 ECHIPĂ (/team):
 - practice_admin poate invita colegi. Invitația vine prin email cu link de activare.
@@ -161,6 +162,14 @@ GDPR ȘI PROTECȚIA DATELOR:
 - Verificare retenție date: buton în super-admin care identifică cabinete cu date expirate față de perioada configurată. Ștergerea e întotdeauna manuală, cu confirmare.
 - Cookie notice: banner informativ la prima vizită pe platformă — Buzomed folosește doar cookie-uri tehnice, fără tracking sau publicitate.
 - Pentru solicitări GDPR de la angajați (acces, rectificare, ștergere): practice_admin gestionează direct din Buzomed. Termen de răspuns legal: 30 de zile.
+
+API PUBLIC ȘI WEBHOOK-URI (/settings/api):
+- Disponibil pentru practice_admin din navigație la Settings → "API & Webhooks".
+- Chei API: se generează din /settings/api, cu prefix bz_live_. Fiecare cheie are un set de scope-uri (employees:read, examinations:read, companies:read, recalls:read). Cheia brută se afișează o singură dată la creare — dacă se pierde, trebuie revocată și recreată. Revocare disponibilă din același ecran.
+- Webhook-uri: se înregistrează endpoint-uri HTTPS pentru a primi notificări în timp real la evenimente (employee.created, recall.due_soon). Secretul webhook se afișează o singură dată; livrările recente (ultimele 50) sunt vizibile per endpoint cu status HTTP și timestamp.
+- Documentație API interactivă (Swagger): disponibilă public la /api-docs. Acoperă 7 endpoint-uri REST (/api/v1/employees, /api/v1/examinations, /api/v1/companies, /api/v1/recalls etc.) cu autentificare Bearer (cheia API).
+- Rate limit: 1000 cereri/oră per cheie API.
+- Integrare HR: API-ul public e gândit pentru sincronizare cu sisteme SAP, Workday, Charisma, Zapier etc.
 
 ESCALATION:
 Dacă utilizatorul descrie o eroare tehnică, comportament neașteptat, sau ceva ce nu înțelegi, spune-i că escaladezi problema și roagă-l să confirme cu "da" sau "confirmă". Când confirmă, sistemul trimite automat email la Colin (hello@buzomed.com) cu rezumatul conversației.
