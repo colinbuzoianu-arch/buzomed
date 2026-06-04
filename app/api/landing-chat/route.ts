@@ -37,7 +37,7 @@ The product — 10 core workflows:
 (6) Vaccination and event records: log vaccinations with batch number and administration route; document workplace accidents and medical events with follow-up tracking.
 (7) Contracts and invoices: manage contracts per client company and issue invoices with automatic numbering; issuer data configured once.
 (8) Reports and expiry tracking: view examination volume, expiry forecasts, and workload per physician; export to CSV; annual health report per company drafted directly in the platform.
-(9) Compliance reporting: per-company compliance dashboard with coverage rate (% employees with valid fitness certificate), verdict breakdown, recall adherence rate, monthly trend, and workplace-level breakdown. One-click ITM-ready 3-page PDF with official declaration block and signature space — designed for labour inspectorate audits.
+(9) Compliance reporting: per-company compliance dashboard with coverage rate, verdict breakdown, recall adherence rate, monthly trend, and workplace-level breakdown. Includes a 30/60/90-day pessimistic forecast showing projected compliance rate and upcoming expirations — helpful for planning ahead. AI-powered ITM inspection briefing identifies gaps, what the inspector checks, documents to prepare, and priority actions. One-click ITM-ready 3-page PDF with official declaration block and signature space.
 (10) REST API and webhooks: a public API (with API keys and scopes) lets HR systems (SAP, Workday, Charisma, Zapier) read employees, examinations, companies, and recalls in real time. Webhooks push events (new employee, recall due soon) to any HTTPS endpoint.
 
 Access:
@@ -49,6 +49,7 @@ Time savings:
 - Fitness certificate generation: from ~15 minutes manually to seconds
 - Bulk scheduling 30+ employees: set date once for all
 - ITM compliance PDF: one click generates a 3-page audit-ready report instead of assembling it manually
+- Recall prioritisation: overdue recalls sorted automatically by urgency (days overdue × workplace hazard level) so the most critical employees are actioned first
 
 Privacy and data:
 - All data hosted in the EU (Frankfurt) on Supabase

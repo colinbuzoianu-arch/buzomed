@@ -114,9 +114,11 @@ EXAMINĂRI:
 - Pre-completare AI: pentru examinările de tip control medical periodic sau angajare, formularul poate fi pre-completat cu datele din ultima examinare semnată a angajatului. Un banner apare în formular cu opțiunea de a aplica sugestiile.
 
 SCADENȚE (Recalls/Programări):
-- Vizibile în /recalls. Afișează examinările care expiră în intervalul ales.
+- Vizibile în /examinations?tab=scadente. Afișează examinările care expiră în intervalul ales.
 - Un recall "overdue" înseamnă că data examinării periodice a trecut fără o examinare nouă.
 - Se poate programa direct din lista de scadențe cu butonul de programare rapidă.
+- Scadențele restante sunt sortate automat după prioritate: cele mai urgente apar primele. Scorul = zile restante × multiplicator risc (profil de risc ridicat → ×3, mediu → ×2, scăzut → ×1.5, fără profil → ×1).
+- Fiecare recall afișează un badge de prioritate: Critică (roșu), Ridicată (portocaliu), Medie (galben), Scăzută (galben deschis), sau "Risc ↑" (albastru) pentru recalls pendente la locuri de muncă cu risc ridicat.
 
 RAPOARTE:
 - Secțiunea /reports are 6 tab-uri în nav: Activitate cabinet | Scadențe | Expuneri la noxe | Vaccinări | Per practician | Snapshot inspecție.
@@ -128,7 +130,12 @@ RAPOARTE:
 - /reports/regulatory (Snapshot inspecție): raport sintetic pentru inspecții DSP/ITM. Printabil.
 - /companies/[id]/report: raport per companie cu 4 butoane de export: CSV examinări, CSV angajați, CSV vaccinări, PDF raport (A4 landscape, cu sumar și tabel angajați). Există și un buton "Raport Conformitate" care duce la pagina de conformitate.
 - /companies/[id]/annual-report: raport anual HG 355/2007 cu narativă generată de AI. Reduce 4h de muncă la 15 minute.
-- /companies/[id]/compliance: Raport de Conformitate Medicală per companie, pe an. Disponibil pentru practitioner și practice_admin. Conține: rată de conformitate (% angajați cu fișă valabilă), KPI-uri snapshot (valabili/expirați/neexaminați, scadențe în 30/60 zile), distribuție verdicte pe an, aderență rechemări (% rechemări finalizate), evoluție lunară, tabel locuri de muncă sortabil, listă angajați căutabilă și paginată. Selector de an în header (2024/2025/2026). Buton "↓ PDF ITM" descarcă un PDF de 3 pagini gata pentru inspecții ITM, cu: declarație oficială, spații de semnătură angajator + medic, toate datele de conformitate, tabel complet angajați.
+- /companies/[id]/compliance: Raport de Conformitate Medicală per companie, pe an. Disponibil pentru practitioner și practice_admin. Conține:
+  • Rată de conformitate snapshot (% angajați cu fișă valabilă), KPI-uri (valabili/expirați/neexaminați, scadențe în 30/60/90 zile).
+  • Previziune conformitate (scenariul fără reînnoiri): pentru 30, 60 și 90 de zile — rată proiectată, câte fișe expiră, câte rechemări sunt programate. Ajută la planificarea timpurie.
+  • Buton "Pregătire inspecție ITM" (AI): generează un briefing orientativ cu evaluare generală (Conformă / Risc moderat / Neconformă), puncte slabe identificate, ce verifică inspectorul ITM, documente de pregătit și acțiuni prioritare. Generat de Claude AI pe baza datelor agregate (fără date personale). Rezultatul este afișat inline, cu cache de 30 minute.
+  • Distribuție verdicte pe an, aderență rechemări (% rechemări finalizate), evoluție lunară, tabel locuri de muncă sortabil, listă angajați căutabilă și paginată.
+  • Selector de an în header (2024/2025/2026). Buton "↓ PDF ITM" descarcă un PDF de 3 pagini gata pentru inspecții ITM, cu: declarație oficială, spații de semnătură angajator + medic, toate datele de conformitate, tabel complet angajați.
 
 ECHIPĂ (/team):
 - practice_admin poate invita colegi. Invitația vine prin email cu link de activare.
