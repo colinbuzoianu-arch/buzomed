@@ -10,6 +10,7 @@ import { RecallActions } from '../recalls/recall-actions'
 import { BulkScheduleButton } from '../recalls/bulk-schedule-modal'
 import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
 import { formatDate } from '@/lib/format-date'
+import { parseRiskProfile, RISK_PROFILE_SCHEMA } from '@/lib/workplaces/risk-profile'
 
 /**
  * Merged examinations page (after session 10 fixup).
@@ -332,6 +333,41 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
   )
 }
 
+// ─── Priority scoring helpers ─────────────────────────────────────────
+
+function getHazardMultiplier(riskProfileJson: unknown): number {
+  const profile = parseRiskProfile(riskProfileJson)
+  let hasHigh = false
+  let hasMedium = false
+  let hasAny = false
+  for (const { category, hazards } of RISK_PROFILE_SCHEMA) {
+    for (const hazard of hazards) {
+      const entry = (profile[category] as Record<string, { present: boolean; severity?: string }>)[hazard]
+      if (entry?.present) {
+        hasAny = true
+        if (entry.severity === 'high') hasHigh = true
+        else if (entry.severity === 'medium') hasMedium = true
+      }
+    }
+  }
+  if (hasHigh) return 3
+  if (hasMedium) return 2
+  if (hasAny) return 1.5
+  return 1
+}
+
+function recallPriorityBadge(daysOverdue: number, multiplier: number): { label: string; className: string } | null {
+  if (daysOverdue <= 0) {
+    if (multiplier >= 3) return { label: 'Risc ↑', className: 'text-blue-700 bg-blue-50 border-blue-200' }
+    return null
+  }
+  const score = daysOverdue * multiplier
+  if (score >= 30) return { label: 'Critică', className: 'text-red-700 bg-red-50 border-red-200' }
+  if (score >= 10) return { label: 'Ridicată', className: 'text-orange-700 bg-orange-50 border-orange-200' }
+  if (score >= 3) return { label: 'Medie', className: 'text-amber-700 bg-amber-50 border-amber-200' }
+  return { label: 'Scăzută', className: 'text-yellow-700 bg-yellow-50 border-yellow-200' }
+}
+
 // ─── Scadențe view ────────────────────────────────────────────────────
 
 async function ScadenteView(props: {
@@ -393,6 +429,7 @@ async function ScadenteView(props: {
               id: true,
               name: true,
               department: true,
+              riskProfile: true,
               company: { select: { id: true, name: true } },
             },
           },
@@ -449,6 +486,18 @@ async function ScadenteView(props: {
     ])
 
   const visibleRecalls = recalls.filter((r) => r.employee.archivedAt === null)
+  visibleRecalls.sort((a, b) => {
+    const aOverdue = a.status === 'overdue'
+    const bOverdue = b.status === 'overdue'
+    if (aOverdue !== bOverdue) return aOverdue ? -1 : 1
+    if (aOverdue) {
+      const todayMs = props.today.getTime()
+      const aScore = Math.round((todayMs - a.dueDate.getTime()) / 86_400_000) * getHazardMultiplier(a.workplace.riskProfile)
+      const bScore = Math.round((todayMs - b.dueDate.getTime()) / 86_400_000) * getHazardMultiplier(b.workplace.riskProfile)
+      if (bScore !== aScore) return bScore - aScore
+    }
+    return a.dueDate.getTime() - b.dueDate.getTime()
+  })
   const countsMap = Object.fromEntries(allHorizonCounts)
 
   // Group visible recalls by company for the overview cards
@@ -679,6 +728,7 @@ async function ScadenteView(props: {
                 <th className="text-left px-4 py-2 whitespace-nowrap">
                   {t('recalls.colDaysUntil')}
                 </th>
+                <th className="text-left px-4 py-2">Prioritate</th>
                 {props.canWrite && (
                   <th className="text-right px-4 py-2">
                     {t('recalls.colActions')}
@@ -748,6 +798,19 @@ async function ScadenteView(props: {
                               String(days)
                             )}
                     </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const badge = recallPriorityBadge(
+                          isOverdue ? Math.abs(days) : 0,
+                          getHazardMultiplier(r.workplace.riskProfile)
+                        )
+                        return badge ? (
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border whitespace-nowrap ${badge.className}`}>
+                            {badge.label}
+                          </span>
+                        ) : null
+                      })()}
+                    </td>
                     {props.canWrite && (
                       <td className="px-4 py-3 text-right">
                         <RecallActions
@@ -789,14 +852,27 @@ async function ScadenteView(props: {
                   className={`border rounded-lg p-3 space-y-2 ${isOverdue ? 'border-destructive/40 bg-destructive/5' : ''}`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <Link
-                      href={`/employees/${r.employee.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {r.employee.lastName} {r.employee.firstName}
-                    </Link>
+                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                      <Link
+                        href={`/employees/${r.employee.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {r.employee.lastName} {r.employee.firstName}
+                      </Link>
+                      {(() => {
+                        const badge = recallPriorityBadge(
+                          isOverdue ? Math.abs(days) : 0,
+                          getHazardMultiplier(r.workplace.riskProfile)
+                        )
+                        return badge ? (
+                          <span className={`text-[10px] font-semibold px-1 py-0.5 rounded border flex-shrink-0 ${badge.className}`}>
+                            {badge.label}
+                          </span>
+                        ) : null
+                      })()}
+                    </div>
                     <span
-                      className={`text-sm font-semibold whitespace-nowrap tabular-nums ${
+                      className={`text-sm font-semibold whitespace-nowrap tabular-nums flex-shrink-0 ${
                         isOverdue
                           ? 'text-destructive'
                           : days <= 7

@@ -28,6 +28,12 @@ export interface ComplianceData {
     coverageRate: number | null
     expiringIn30Days: number
     expiringIn60Days: number
+    expiringIn90Days: number
+  }
+  forecast: {
+    in30Days: { projectedValid: number; projectedRate: number | null; expiringCount: number; recallsDue: number }
+    in60Days: { projectedValid: number; projectedRate: number | null; expiringCount: number; recallsDue: number }
+    in90Days: { projectedValid: number; projectedRate: number | null; expiringCount: number; recallsDue: number }
   }
   annual: {
     totalExaminationsYear: number
@@ -73,8 +79,9 @@ export async function computeComplianceData(params: {
   today.setUTCHours(0, 0, 0, 0)
   const todayPlus30 = new Date(today.getTime() + 30 * 86_400_000)
   const todayPlus60 = new Date(today.getTime() + 60 * 86_400_000)
+  const todayPlus90 = new Date(today.getTime() + 90 * 86_400_000)
 
-  const [company, tenant, employees, yearExams, yearRecalls, overdueRecalls, workplaces] =
+  const [company, tenant, employees, yearExams, yearRecalls, overdueRecalls, workplaces, upcomingRecalls] =
     await Promise.all([
       prisma.company.findFirst({
         where: { id: companyId, tenantId, deletedAt: null },
@@ -155,6 +162,16 @@ export async function computeComplianceData(params: {
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
       }),
+      prisma.recall.findMany({
+        where: {
+          tenantId,
+          deletedAt: null,
+          status: { in: ['pending', 'scheduled'] },
+          dueDate: { gte: today, lte: todayPlus90 },
+          workplace: { companyId, deletedAt: null },
+        },
+        select: { dueDate: true },
+      }),
     ])
 
   if (!company) return null
@@ -166,6 +183,7 @@ export async function computeComplianceData(params: {
   let employeesNeverExamined = 0
   let expiringIn30Days = 0
   let expiringIn60Days = 0
+  let expiringIn90Days = 0
 
   for (const emp of employees) {
     const latestExam = emp.examinations[0] ?? null
@@ -177,6 +195,7 @@ export async function computeComplianceData(params: {
         employeesWithValidFisa++
         if (due <= todayPlus30) expiringIn30Days++
         if (due <= todayPlus60) expiringIn60Days++
+        if (due <= todayPlus90) expiringIn90Days++
       } else {
         employeesWithExpiredFisa++
       }
@@ -317,6 +336,21 @@ export async function computeComplianceData(params: {
       return wpCmp !== 0 ? wpCmp : a.lastName.localeCompare(b.lastName, 'ro')
     })
 
+  // ── F. Forecast (pessimistic: no renewals) ──────────────────────────────────
+
+  const recallsDueIn30 = upcomingRecalls.filter((r) => r.dueDate <= todayPlus30).length
+  const recallsDueIn60 = upcomingRecalls.filter((r) => r.dueDate <= todayPlus60).length
+  const projRate = (valid: number): number | null =>
+    totalActiveEmployees > 0 ? Math.round((valid / totalActiveEmployees) * 1000) / 10 : null
+  const pv30 = Math.max(0, employeesWithValidFisa - expiringIn30Days)
+  const pv60 = Math.max(0, employeesWithValidFisa - expiringIn60Days)
+  const pv90 = Math.max(0, employeesWithValidFisa - expiringIn90Days)
+  const forecast = {
+    in30Days: { projectedValid: pv30, projectedRate: projRate(pv30), expiringCount: expiringIn30Days, recallsDue: recallsDueIn30 },
+    in60Days: { projectedValid: pv60, projectedRate: projRate(pv60), expiringCount: expiringIn60Days, recallsDue: recallsDueIn60 },
+    in90Days: { projectedValid: pv90, projectedRate: projRate(pv90), expiringCount: expiringIn90Days, recallsDue: upcomingRecalls.length },
+  }
+
   return {
     company: { id: company.id, name: company.name, cui: company.cui },
     tenant: { name: tenant?.legalName ?? tenant?.name ?? 'Cabinet' },
@@ -330,6 +364,7 @@ export async function computeComplianceData(params: {
       coverageRate,
       expiringIn30Days,
       expiringIn60Days,
+      expiringIn90Days,
     },
     annual: {
       totalExaminationsYear: yearExams.length,
@@ -346,5 +381,6 @@ export async function computeComplianceData(params: {
     monthlyTrend,
     workplaceBreakdown,
     employeeList,
+    forecast,
   }
 }

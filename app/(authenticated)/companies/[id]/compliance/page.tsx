@@ -54,7 +54,7 @@ export default async function CompliancePage({ params, searchParams }: PageProps
   const data = await computeComplianceData({ companyId: id, tenantId: user.tenantId, year })
   if (!data) notFound()
 
-  const { snapshot, annual, adherence, monthlyTrend, workplaceBreakdown, employeeList } = data
+  const { snapshot, annual, adherence, monthlyTrend, workplaceBreakdown, employeeList, forecast } = data
 
   const MONTH_NAMES = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -129,6 +129,32 @@ export default async function CompliancePage({ params, searchParams }: PageProps
           <p className="text-3xl font-bold text-amber-600">{snapshot.employeesNeverExamined}</p>
           <p className="text-xs text-muted-foreground mt-1">Neexaminați</p>
         </div>
+      </div>
+
+      {/* Compliance forecast */}
+      <div>
+        <h3 className="text-sm font-semibold mb-3">Previziune conformitate — scenariul fără reînnoiri</h3>
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: 'În 30 zile', d: forecast.in30Days },
+            { label: 'În 60 zile', d: forecast.in60Days },
+            { label: 'În 90 zile', d: forecast.in90Days },
+          ].map(({ label, d }) => (
+            <div key={label} className="border rounded-lg p-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{label}</p>
+              <p className={`text-2xl font-bold ${coverageClass(d.projectedRate)}`}>
+                {fmtPct(d.projectedRate)}
+              </p>
+              <div className="text-xs text-muted-foreground mt-1.5 space-y-0.5">
+                <p>Expiră: <span className="font-medium text-amber-600">{d.expiringCount}</span></p>
+                <p>Rechemări: <span className="font-medium">{d.recallsDue}</span></p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-2">
+          Proiecție pesimistă — presupune că nicio examinare nu este reînnoită înainte de expirare.
+        </p>
       </div>
 
       {/* Verdict + Adherence */}
