@@ -33,7 +33,7 @@ Verify: \`sha256=\` + HMAC-SHA256(secret, rawBody).
 Clinical and medical fields are never returned by this API (no CNP, birth date, diagnoses, anamnesis, vital signs, etc.).`,
   },
   servers: [
-    { url: 'https://app.buzomed.com/api/v1', description: 'Production' },
+    { url: 'https://buzomed.com/api/v1', description: 'Production' },
   ],
   security: [{ BearerAuth: [] }],
   components: {
