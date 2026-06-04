@@ -5,6 +5,7 @@ import { computeComplianceData } from '@/lib/reports/compliance-data'
 import { prisma } from '@/lib/prisma'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { YearSelector, WorkplaceTable, EmployeeList } from './compliance-client'
+import { ItmBriefingButton } from './itm-briefing-button'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -85,6 +86,9 @@ export default async function CompliancePage({ params, searchParams }: PageProps
           </a>
         </div>
       </div>
+
+      {/* ITM briefing */}
+      <ItmBriefingButton companyId={company.id} year={year} />
 
       {/* Coverage banner */}
       <div className={`rounded-lg border p-4 ${
