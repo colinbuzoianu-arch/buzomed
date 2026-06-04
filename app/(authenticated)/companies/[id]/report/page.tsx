@@ -161,6 +161,12 @@ export default async function CompanyReportPage({
               PDF {t('companyReport.exportPdf')}
             </a>
             <HrExportButton companyId={company.id} apiBase="practitioner" />
+            <Link
+              href={`/companies/${company.id}/compliance`}
+              className="text-sm border rounded-md px-3 py-1 hover:bg-muted"
+            >
+              Raport Conformitate
+            </Link>
             <PrintButton label={t('companyReport.print')} />
           </div>
         </div>
