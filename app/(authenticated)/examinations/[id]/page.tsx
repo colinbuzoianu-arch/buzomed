@@ -12,6 +12,7 @@ import { DocumentsSection } from '@/app/(authenticated)/_components/documents-se
 import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
 import { getSectionsForExamType } from '@/lib/examinations/document-templates'
 import { ExaminationHistorySummary } from '@/components/ai/ExaminationHistorySummary'
+import { InvestigationRecommender } from '@/components/ai/InvestigationRecommender'
 import { VerdictBadge } from '@/components/ui/verdict-badge'
 import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
 import { formatDate } from '@/lib/format-date'
@@ -552,6 +553,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
 
       {/* Sidebar */}
       <aside className="space-y-4 lg:sticky lg:top-6">
+        <InvestigationRecommender examinationId={examination.id} />
         <ExaminationHistorySummary
           currentExaminationId={examination.id}
           employeeId={examination.employeeId}
