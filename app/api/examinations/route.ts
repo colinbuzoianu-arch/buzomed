@@ -14,6 +14,7 @@ import { asObject, optionalString } from '@/lib/validation'
 import { canTenantDo } from '@/lib/subscription'
 import { ensurePrimaryLocation } from '@/lib/examinations/auto-location'
 import { createExaminationWithNumber } from '@/lib/examinations/numbering'
+import { deliverWebhook } from '@/lib/webhooks/deliver'
 
 /**
  * Examinations live at the tenant level (not nested under employee or
@@ -342,6 +343,11 @@ export async function POST(request: NextRequest) {
       }),
       (created) => created
     )
+    void deliverWebhook(auth.user!.tenantId!, 'examination.scheduled', {
+      examinationId: examination.id,
+      employeeId: examination.employeeId,
+      scheduledAt: examination.scheduledAt,
+    })
     return NextResponse.json({ examination }, { status: 201 })
   } catch (err) {
     console.error('[examinations/POST]', err)

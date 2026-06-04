@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
+import { deliverWebhook } from '@/lib/webhooks/deliver'
 
 /**
  * POST /api/cron/recall-notifications
@@ -162,6 +163,13 @@ export async function POST(request: NextRequest) {
           notificationCount: { increment: 1 },
         },
       })
+      for (const recall of recalls.filter(r => group.recallIds.includes(r.id))) {
+        void deliverWebhook(recall.tenantId, 'recall.due_soon', {
+          recallId: recall.id,
+          employeeId: recall.employeeId,
+          dueDate: recall.dueDate,
+        })
+      }
       sent++
     } else {
       console.error('[recall-notifications] failed to send to', group.emailTo, result.error)

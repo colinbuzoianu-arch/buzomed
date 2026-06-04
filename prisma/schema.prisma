@@ -277,6 +277,8 @@ model Tenant {
   platformInvoices    PlatformInvoice[]
   subscriptions       Subscription[]
   companyHrAssignments CompanyHrAssignment[]
+  apiKeys             ApiKey[]
+  webhookEndpoints    WebhookEndpoint[]
 
   @@map("tenants")
   @@index([slug])
@@ -365,6 +367,7 @@ model User {
   invitationsAccepted     Invitation[]                  @relation("InvitationAcceptor")
   invitationsRevoked      Invitation[]                  @relation("InvitationRevoker")
   hrAssignments           CompanyHrAssignment[]
+  apiKeys                 ApiKey[]
 
   @@map("users")
   @@index([tenantId])
@@ -1207,4 +1210,64 @@ model RegisterRequest {
   @@index([email])
   @@index([status])
   @@index([createdAt])
+}
+
+// ============================================================================
+// PUBLIC API — API KEYS & WEBHOOKS
+// ============================================================================
+
+model ApiKey {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  name            String
+  keyHash         String    @unique @map("key_hash")
+  keyPrefix       String    @map("key_prefix")
+  scopes          String[]
+  lastUsedAt      DateTime? @map("last_used_at") @db.Timestamptz
+  expiresAt       DateTime? @map("expires_at") @db.Timestamptz
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdBy       User      @relation(fields: [createdByUserId], references: [id])
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+model WebhookEndpoint {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  url             String
+  description     String?
+  events          String[]
+  secretEncrypted String    @map("secret_encrypted")
+  secretPrefix    String    @map("secret_prefix")
+  isActive        Boolean   @default(true) @map("is_active")
+  lastTriggeredAt DateTime? @map("last_triggered_at") @db.Timestamptz
+  failureCount    Int       @default(0) @map("failure_count")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  deliveries      WebhookDelivery[]
+
+  @@index([tenantId])
+  @@map("webhook_endpoints")
+}
+
+model WebhookDelivery {
+  id             String          @id @default(uuid()) @db.Uuid
+  endpointId     String          @map("endpoint_id") @db.Uuid
+  endpoint       WebhookEndpoint @relation(fields: [endpointId], references: [id])
+  event          String
+  payload        Json
+  responseStatus Int?            @map("response_status")
+  responseBody   String?         @map("response_body")
+  durationMs     Int?            @map("duration_ms")
+  success        Boolean
+  attemptedAt    DateTime        @default(now()) @map("attempted_at") @db.Timestamptz
+
+  @@index([endpointId])
+  @@index([attemptedAt])
+  @@map("webhook_deliveries")
 }

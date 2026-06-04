@@ -47,6 +47,8 @@ const isPublicRoute =
     pathname.startsWith('/api/landing-chat') ||
     pathname.startsWith('/api/register-request') ||
     pathname.startsWith('/api/contact') ||
+    pathname.startsWith('/api/v1') ||
+    pathname.startsWith('/api-docs') ||
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico' ||
     pathname === '/suspended'

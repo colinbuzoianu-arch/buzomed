@@ -5,6 +5,7 @@ import { canWriteTenantData } from '@/lib/permissions/tenant-data'
 import { computeNextExaminationDueDate } from '@/lib/examinations/recall'
 import { upsertRecallFromExamination } from '@/lib/recalls/upsert-from-examination'
 import { writeAuditLog, getClientIp } from '@/lib/audit/log'
+import { deliverWebhook } from '@/lib/webhooks/deliver'
 
 /**
  * Sign an examination. This is the legal commitment point — fișa de
@@ -146,6 +147,16 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     entityId: id,
     entitySummary: `Semnare fișă aptitudine — examinare ${existing.examinationNumber ?? id}`,
     ipAddress: getClientIp(request),
+  })
+
+  void deliverWebhook(auth.user.tenantId, 'examination.signed', {
+    examinationId: id,
+    examinationNumber: updated.examinationNumber,
+    employeeId: updated.employeeId,
+    employeeName: `${updated.employee.firstName} ${updated.employee.lastName}`,
+    verdict: updated.verdict,
+    signedAt: updated.signedAt,
+    nextExaminationDueDate: updated.nextExaminationDueDate,
   })
 
   return NextResponse.json({ examination: updated })

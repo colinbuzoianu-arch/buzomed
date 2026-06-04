@@ -80,6 +80,7 @@ export default async function AuthenticatedLayout({
       navItems.push({ href: '/settings/practice', label: t('nav.settings') })
       navItems.push({ href: '/settings/audit-log', label: 'Jurnal acces' })
       navItems.push({ href: '/settings/billing', label: 'Abonament' })
+      navItems.push({ href: '/settings/api', label: 'API & Webhooks' })
     }
   }
 

@@ -16,6 +16,7 @@ import {
   requireString,
 } from '@/lib/validation'
 import { canTenantDo } from '@/lib/subscription'
+import { deliverWebhook } from '@/lib/webhooks/deliver'
 import {
   encryptCnp,
   isCnpEncryptionConfigured,
@@ -354,6 +355,13 @@ export async function POST(request: NextRequest) {
       console.error('[employees/POST] workplace assignment failed', err)
     }
   }
+
+  void deliverWebhook(auth.user!.tenantId!, 'employee.created', {
+    employeeId: employee.id,
+    firstName: employee.firstName,
+    lastName: employee.lastName,
+    companyId: data.companyId ?? null,
+  })
 
   return NextResponse.json({ employee }, { status: 201 })
 }
