@@ -117,6 +117,38 @@
       "successMessage": "Demo cabinet created and invitation sent!",
       "errorMessage": "Something went wrong. Please try again.",
       "errorEmailExists": "A user with this email already exists."
+    },
+    "probeInvite": {
+      "button": "+ Probe",
+      "dialogTitle": "Send probe invitation",
+      "dialogDescription": "Creates a blank Solo (comp) cabinet and sends an invitation to the practitioner.",
+      "fieldFirstName": "First name",
+      "fieldLastName": "Last name",
+      "fieldCabinetName": "Cabinet name (optional)",
+      "fieldCabinetNameHelp": "Leave empty for \"Cabinet Probă [Last name]\".",
+      "fieldLocale": "Email language",
+      "submit": "Create and send invitation",
+      "submitting": "Creating…",
+      "successMessage": "Cabinet created and invitation sent!",
+      "errorMessage": "Something went wrong. Please try again.",
+      "errorEmailExists": "A user with this email already exists."
+    },
+    "enterpriseInvite": {
+      "button": "+ Enterprise",
+      "dialogTitle": "Send Enterprise invitation",
+      "dialogDescription": "Creates a blank Enterprise (comp) cabinet and sends an invitation to the practitioner.",
+      "fieldFirstName": "First name",
+      "fieldLastName": "Last name",
+      "fieldCabinetName": "Cabinet name (optional)",
+      "fieldCabinetNameHelp": "Leave empty for \"Cabinet Enterprise [Last name]\".",
+      "fieldLocale": "Email language",
+      "fieldNotes": "Internal notes (optional)",
+      "fieldNotesPlaceholder": "e.g. Large company, pharma sector, LinkedIn contact…",
+      "submit": "Create and send invitation",
+      "submitting": "Creating…",
+      "successMessage": "Enterprise cabinet created and invitation sent!",
+      "errorMessage": "Something went wrong. Please try again.",
+      "errorEmailExists": "A user with this email already exists."
     }
   },
   "createTenant": {

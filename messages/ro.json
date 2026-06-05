@@ -117,6 +117,38 @@
       "successMessage": "Cabinet demo creat și invitație trimisă!",
       "errorMessage": "A apărut o eroare. Încearcă din nou.",
       "errorEmailExists": "Există deja un utilizator cu această adresă de email."
+    },
+    "probeInvite": {
+      "button": "+ Probă",
+      "dialogTitle": "Trimite invitație probă",
+      "dialogDescription": "Creează un cabinet Solo (comp) fără date pre-populate și trimite o invitație practicianului.",
+      "fieldFirstName": "Prenume",
+      "fieldLastName": "Nume",
+      "fieldCabinetName": "Nume cabinet (opțional)",
+      "fieldCabinetNameHelp": "Lasă gol pentru \"Cabinet Probă [Nume]\".",
+      "fieldLocale": "Limbă email",
+      "submit": "Creează și trimite invitația",
+      "submitting": "Se creează…",
+      "successMessage": "Cabinet creat și invitație trimisă!",
+      "errorMessage": "A apărut o eroare. Încearcă din nou.",
+      "errorEmailExists": "Există deja un utilizator cu această adresă de email."
+    },
+    "enterpriseInvite": {
+      "button": "+ Enterprise",
+      "dialogTitle": "Trimite invitație Enterprise",
+      "dialogDescription": "Creează un cabinet Enterprise (comp) fără date pre-populate și trimite o invitație practicianului.",
+      "fieldFirstName": "Prenume",
+      "fieldLastName": "Nume",
+      "fieldCabinetName": "Nume cabinet (opțional)",
+      "fieldCabinetNameHelp": "Lasă gol pentru \"Cabinet Enterprise [Nume]\".",
+      "fieldLocale": "Limbă email",
+      "fieldNotes": "Note interne (opțional)",
+      "fieldNotesPlaceholder": "Ex: Companie mare, sector pharma, contact prin LinkedIn…",
+      "submit": "Creează și trimite invitația",
+      "submitting": "Se creează…",
+      "successMessage": "Cabinet Enterprise creat și invitație trimisă!",
+      "errorMessage": "A apărut o eroare. Încearcă din nou.",
+      "errorEmailExists": "Există deja un utilizator cu această adresă de email."
     }
   },
   "createTenant": {
