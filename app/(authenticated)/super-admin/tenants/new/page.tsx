@@ -2,10 +2,16 @@ import { requireRole } from '@/lib/auth'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { CreateTenantForm } from './create-tenant-form'
 
-export default async function NewTenantPage() {
+interface PageProps {
+  searchParams: Promise<{ tier?: string }>
+}
+
+export default async function NewTenantPage({ searchParams }: PageProps) {
   await requireRole('super_admin')
   const locale = await getLocale()
   const t = getTranslator(locale)
+  const params = await searchParams
+  const defaultTier = params.tier === 'enterprise' ? 'enterprise' : undefined
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -15,6 +21,7 @@ export default async function NewTenantPage() {
       </div>
 
       <CreateTenantForm
+        defaultTier={defaultTier}
         labels={{
           tenantInfo: t('createTenant.tenantInfo'),
           nameLabel: t('createTenant.nameLabel'),

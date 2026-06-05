@@ -6,7 +6,6 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { DemoInviteButton } from './demo-invite-button'
 import { ProbeInviteButton } from './probe-invite-button'
-import { EnterpriseInviteButton } from './enterprise-invite-button'
 import { RecallNotificationsButton } from './recall-notifications-button'
 import { RetentionCheckButton } from '@/components/super-admin/retention-check-button'
 import { formatDate } from '@/lib/format-date'
@@ -201,26 +200,6 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
     cancel: t('common.cancel'),
   }
 
-  const enterpriseInviteLabels = {
-    buttonLabel: t('superAdmin.enterpriseInvite.button'),
-    dialogTitle: t('superAdmin.enterpriseInvite.dialogTitle'),
-    dialogDescription: t('superAdmin.enterpriseInvite.dialogDescription'),
-    fieldEmail: t('common.email'),
-    fieldFirstName: t('superAdmin.enterpriseInvite.fieldFirstName'),
-    fieldLastName: t('superAdmin.enterpriseInvite.fieldLastName'),
-    fieldCabinetName: t('superAdmin.enterpriseInvite.fieldCabinetName'),
-    fieldCabinetNameHelp: t('superAdmin.enterpriseInvite.fieldCabinetNameHelp'),
-    fieldLocale: t('superAdmin.enterpriseInvite.fieldLocale'),
-    fieldNotes: t('superAdmin.enterpriseInvite.fieldNotes'),
-    fieldNotesPlaceholder: t('superAdmin.enterpriseInvite.fieldNotesPlaceholder'),
-    submit: t('superAdmin.enterpriseInvite.submit'),
-    submitting: t('superAdmin.enterpriseInvite.submitting'),
-    successMessage: t('superAdmin.enterpriseInvite.successMessage'),
-    errorMessage: t('superAdmin.enterpriseInvite.errorMessage'),
-    errorEmailExists: t('superAdmin.enterpriseInvite.errorEmailExists'),
-    cancel: t('common.cancel'),
-  }
-
   const demoInviteLabels = {
     buttonLabel: t('superAdmin.demoInvite.button'),
     dialogTitle: t('superAdmin.demoInvite.dialogTitle'),
@@ -250,7 +229,11 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
         <div className="flex gap-2">
           <RecallNotificationsButton />
           <ProbeInviteButton labels={probeInviteLabels} />
-          <EnterpriseInviteButton labels={enterpriseInviteLabels} />
+          <Button asChild variant="outline">
+            <Link href="/super-admin/tenants/new?tier=enterprise">
+              {t('superAdmin.enterpriseInvite.button')}
+            </Link>
+          </Button>
           <DemoInviteButton labels={demoInviteLabels} />
           <Button asChild>
             <Link href="/super-admin/tenants/new">

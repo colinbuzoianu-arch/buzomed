@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 
 type Labels = Record<string, string>
 
-export function CreateTenantForm({ labels }: { labels: Labels }) {
+export function CreateTenantForm({ labels, defaultTier }: { labels: Labels; defaultTier?: string }) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +28,7 @@ export function CreateTenantForm({ labels }: { labels: Labels }) {
     adminEmail: '',
     adminFirstName: '',
     adminLastName: '',
-    subscriptionTier: 'trial' as 'trial' | 'solo' | 'practice' | 'enterprise',
+    subscriptionTier: (defaultTier === 'enterprise' ? 'enterprise' : 'trial') as 'trial' | 'solo' | 'practice' | 'enterprise',
   })
 
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -269,6 +269,11 @@ export function CreateTenantForm({ labels }: { labels: Labels }) {
               <option value="practice">{labels.subscriptionPractice}</option>
               <option value="enterprise">{labels.subscriptionEnterprise}</option>
             </select>
+            {form.subscriptionTier === 'enterprise' && (
+              <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+                Cabinet creat ca Enterprise — facturare negociată separat.
+              </p>
+            )}
           </div>
         </div>
       </section>
