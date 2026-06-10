@@ -51,7 +51,7 @@ export default function TermsPage() {
         <h1 style={{ fontSize: 32, fontWeight: 700, color: '#0F1F3A', marginBottom: 8 }}>
           Termeni și Condiții
         </h1>
-        <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 48 }}>Ultima actualizare: Mai 2026</p>
+        <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 48 }}>Ultima actualizare: Iunie 2026</p>
 
         <P>
           Acesta reprezintă contractul propus de Prestator. Orice comandă confirmată de Client/Utilizator prin
@@ -119,9 +119,9 @@ export default function TermsPage() {
           condițiile&rdquo; la înregistrare.
         </P>
         <P>
-          Buzomed este o platformă SaaS de gestiune pentru cabinete de medicină a muncii. Serviciile pot fi
-          accesate printr-un browser web de pe sisteme de operare Windows, macOS și Linux, precum și prin
-          aplicații mobile pentru iOS și Android.
+          Buzomed este o platformă SaaS de gestiune pentru cabinete de medicină a muncii, accesibilă
+          printr-un browser web de pe orice sistem de operare (Windows, macOS, Linux) și de pe dispozitive
+          mobile prin browser.
         </P>
 
         <H2>4. Durata contractului</H2>
@@ -130,19 +130,19 @@ export default function TermsPage() {
           obligațiile părților intră în vigoare de la această dată.
         </P>
         <P>
-          Prestatorul oferă o perioadă de testare gratuită de <strong>30 de zile</strong> de la crearea contului.
+          Prestatorul oferă o perioadă de testare gratuită de <strong>14 zile</strong> de la crearea contului.
           După expirarea perioadei de testare, Clientul poate opta pentru un abonament plătit. În cazul în care
           nu optează pentru un abonament, accesul va fi întrerupt.
         </P>
         <P>
-          În cazul în care Clientul nu notifică renunțarea la abonament cu minimum <strong>30 de zile
-          calendaristice</strong> înainte de expirarea perioadei curente, abonamentul se prelungește automat
-          fără nicio altă formalitate.
+          Abonamentul poate fi anulat oricând de către Client din platformă. La anulare, abonamentul rămâne
+          activ până la sfârșitul perioadei plătite curente și nu se reînnoiește automat. Nu este necesară
+          nicio notificare prealabilă scrisă pentru anulare.
         </P>
         <P>
           Contul utilizatorului va fi șters automat după <strong>2 ani</strong> de la expirarea abonamentului
           sau, în cazul perioadei de testare neconvertite, după 2 ani de la expirarea perioadei de testare.
-          Clientul va fi notificat în prealabil.
+          Clientul va fi notificat în prealabil prin email automat trimis la adresa înregistrată în cont.
         </P>
 
         <H2>5. Eligibilitate</H2>
@@ -257,7 +257,7 @@ export default function TermsPage() {
             <a href="mailto:hello@buzomed.com" style={{ color: '#2BA39A' }}>hello@buzomed.com</a>{' '}
             de luni până vineri, în zilele lucrătoare
           </Li>
-          <Li>Notificarea prealabilă în cazul modificărilor semnificative ale serviciului</Li>
+          <Li>Notificarea prealabilă în cazul modificărilor semnificative ale serviciului, prin email automat și/sau notificare în platformă</Li>
           <Li>Notificarea utilizatorilor cu privire la eventualele breșe de securitate care afectează datele lor</Li>
         </ul>
         <P>
@@ -271,8 +271,8 @@ export default function TermsPage() {
 
         <H2>11. Prețuri și facturare</H2>
         <P>
-          Prețurile valabile sunt cele comunicate la înregistrare sau actualizate pe platformă. Facturarea se
-          realizează în conformitate cu pachetul de abonament ales.
+          Prețurile valabile sunt cele afișate pe platformă la momentul alegerii planului de abonament.
+          Facturarea se realizează în conformitate cu pachetul de abonament ales.
         </P>
         <P>
           Serviciile medicale furnizate prin intermediul platformei pot fi scutite de TVA în conformitate cu
@@ -316,13 +316,14 @@ export default function TermsPage() {
         <P>
           Prestatorul își rezervă dreptul de a modifica sau suspenda temporar servicii sau funcționalități ale
           platformei, notificând Clienții cu minimum <strong>14 zile</strong> calendaristice înainte pentru
-          modificările semnificative. Pentru situații de risc iminent tehnic sau de securitate, suspendarea
-          poate interveni fără notificare prealabilă.
+          modificările semnificative, prin email automat și/sau notificare în platformă. Pentru situații de
+          risc iminent tehnic sau de securitate, suspendarea poate interveni fără notificare prealabilă.
         </P>
         <P>
-          Prestatorul își rezervă dreptul de a modifica acești Termeni și Condiții, notificând Clienții prin
-          email sau prin platformă. Versiunea aplicabilă va fi cea publicată pe site. Continuarea utilizării
-          platformei după intrarea în vigoare a modificărilor constituie acceptarea lor.
+          Prestatorul își rezervă dreptul de a modifica acești Termeni și Condiții, notificând Clienții
+          prin email automat și/sau notificare în platformă. Versiunea aplicabilă va fi cea publicată pe
+          site. Continuarea utilizării platformei după intrarea în vigoare a modificărilor constituie
+          acceptarea lor.
         </P>
 
         <H2>15. Proprietate intelectuală</H2>
@@ -377,8 +378,8 @@ export default function TermsPage() {
         <ul style={{ paddingLeft: 24, marginBottom: 12 }}>
           <Li>Prin acordul scris al ambelor părți</Li>
           <Li>
-            Prin decizia unilaterală a oricărei părți, transmisă în scris celeilalte părți cu minimum{' '}
-            <strong>30 de zile calendaristice</strong> înainte de data dorită de încetare
+            Prin anularea abonamentului de către Client din platformă, cu efect la sfârșitul perioadei
+            plătite curente
           </Li>
           <Li>
             De drept, în caz de neîndeplinire sau îndeplinire defectuoasă repetată a obligațiilor contractuale
