@@ -62,7 +62,7 @@ export default function PrivacyPage() {
         <h1 style={{ fontSize: 32, fontWeight: 700, color: '#0F1F3A', marginBottom: 8 }}>
           Politică de Confidențialitate
         </h1>
-        <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 48 }}>Ultima actualizare: Mai 2026</p>
+        <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 48 }}>Ultima actualizare: Iunie 2026</p>
 
         <P>
           Această politică de confidențialitate descrie modul în care Verumsell SRL (&ldquo;noi&rdquo;,
@@ -95,6 +95,8 @@ export default function PrivacyPage() {
             Cabinetul de medicină a muncii (Clientul) este <strong>Operatorul</strong> datelor angajaților firmelor sale cliente.
             Verumsell SRL acționează ca <strong>Procesator</strong> (împuternicit al operatorului) în conformitate cu Art. 28 GDPR,
             prelucrând aceste date exclusiv în baza instrucțiunilor Clientului și în scopul furnizării serviciului contractat.
+            Cabinetul (Clientul), în calitate de Operator, rămâne exclusiv responsabil față de angajații firmelor sale cliente
+            pentru legalitatea prelucrării. Verumsell SRL nu are nicio răspundere față de angajații firmelor cliente ale Cabinetului.
           </p>
         </InfoBox>
         <P>
@@ -143,7 +145,7 @@ export default function PrivacyPage() {
           </Li>
           <Li>
             <strong>Interese legitime</strong> (Art. 6(1)(f) GDPR) — pentru securitatea platformei,
-            prevenirea fraudei și îmbunătățirea serviciului
+            prevenirea fraudei și îmbunătățirea serviciului și apărarea drepturilor Verumsell SRL în caz de litigiu
           </Li>
           <Li>
             <strong>Obligație legală / interes public în domeniul sănătății</strong> (Art. 9(2)(b)(h) GDPR)
@@ -177,23 +179,36 @@ export default function PrivacyPage() {
                 <td style={{ padding: '10px 14px' }}>UE/SEE — fără transfer extra-UE</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+                <td style={{ padding: '10px 14px' }}><strong>Vercel Inc.</strong></td>
+                <td style={{ padding: '10px 14px' }}>Infrastructură aplicație web, hosting, CDN</td>
+                <td style={{ padding: '10px 14px' }}>SUA + noduri EU edge</td>
+                <td style={{ padding: '10px 14px' }}>Clauze Contractuale Standard (SCC) UE-SUA</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
                 <td style={{ padding: '10px 14px' }}><strong>Anthropic PBC</strong></td>
-                <td style={{ padding: '10px 14px' }}>Procesare AI (date anonimizate)</td>
+                <td style={{ padding: '10px 14px' }}>Procesare AI (date anonimizate exclusiv)</td>
                 <td style={{ padding: '10px 14px' }}>SUA</td>
                 <td style={{ padding: '10px 14px' }}>Clauze Contractuale Standard (SCC) UE-SUA</td>
               </tr>
-              <tr>
+              <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
                 <td style={{ padding: '10px 14px' }}><strong>Brevo SAS (Sendinblue)</strong></td>
                 <td style={{ padding: '10px 14px' }}>Trimitere emailuri tranzacționale</td>
                 <td style={{ padding: '10px 14px' }}>Paris, Franța (UE)</td>
                 <td style={{ padding: '10px 14px' }}>UE/SEE — fără transfer extra-UE</td>
               </tr>
+              <tr>
+                <td style={{ padding: '10px 14px' }}><strong>Stripe Inc.</strong></td>
+                <td style={{ padding: '10px 14px' }}>Procesare plăți, facturare</td>
+                <td style={{ padding: '10px 14px' }}>SUA + EU</td>
+                <td style={{ padding: '10px 14px' }}>Clauze Contractuale Standard (SCC) UE-SUA</td>
+              </tr>
             </tbody>
           </table>
         </div>
         <P>
-          Cabinetul (Operatorul) este informat cu privire la sub-procesatorii utilizați. Orice modificare
-          adusă listei de sub-procesatori va fi notificată cu cel puțin 14 zile înainte prin email.
+          Verumsell SRL își rezervă dreptul de a înlocui sau adăuga sub-procesatori, cu notificarea
+          Clientului cu cel puțin 14 zile înainte prin email. Dacă Clientul nu formulează obiecții în
+          acest termen, se consideră că a acceptat modificarea.
         </P>
 
         <H2>7. Funcționalități AI și date personale</H2>
@@ -220,6 +235,8 @@ export default function PrivacyPage() {
           Anthropic procesează aceste date în conformitate cu Clauze Contractuale Standard (SCC) aprobate
           de Comisia Europeană pentru transferuri UE-SUA (Decizia de punere în aplicare 2021/914) și nu
           utilizează datele transmise prin API pentru antrenarea modelelor.
+          Verumsell SRL nu poate fi ținută răspunzătoare pentru prelucrările efectuate de Anthropic în
+          afara scopului contractat.
         </P>
 
         <H2>8. CNP-uri — protecție specială</H2>
@@ -234,6 +251,8 @@ export default function PrivacyPage() {
           Platforma utilizează Row Level Security (RLS) la nivel de bază de date. Datele unui cabinet sunt
           complet izolate de datele altor cabinete — este imposibil tehnic ca un utilizator al unui cabinet
           să acceseze datele altui cabinet.
+          Verumsell SRL nu poate fi ținută răspunzătoare pentru accesul neautorizat rezultat din
+          compromiterea credențialelor de acces ale utilizatorilor Clientului.
         </P>
 
         <H2>10. Unde sunt stocate datele</H2>
@@ -248,7 +267,7 @@ export default function PrivacyPage() {
 
         <H2>11. Cât timp păstrăm datele</H2>
         <ul style={{ paddingLeft: 24, marginBottom: 12 }}>
-          <Li>Date de cont activ: pe durata utilizării platformei + 30 de zile după reziliere</Li>
+          <Li>Date de cont activ: pe durata utilizării platformei + 24 de luni după expirarea sau anularea abonamentului</Li>
           <Li>
             Date despre examinări medicale ocupaționale: minim 7 ani conform HG 355/2007 și Legea 319/2006,
             termen ce poate fi extins prin lege specială pentru anumite expuneri profesionale
@@ -270,8 +289,8 @@ export default function PrivacyPage() {
           <Li><strong>Ștergere (Art. 17)</strong> — &ldquo;dreptul de a fi uitat&rdquo;, în limitele obligațiilor legale de arhivare</Li>
           <Li><strong>Restricționare (Art. 18)</strong> — limitarea temporară a prelucrării</Li>
           <Li><strong>Portabilitate (Art. 20)</strong> — exportul datelor în format structurat, lizibil de mașină (JSON/CSV)</Li>
-          <Li><strong>Opoziție (Art. 21)</strong> — față de prelucrarea bazată pe interese legitime</Li>
-          <Li><strong>Retragerea consimțământului</strong> — acolo unde prelucrarea se bazează pe consimțământ</Li>
+          <Li><strong>Opoziție (Art. 21)</strong> — față de prelucrarea bazată pe interese legitime, cu excepția cazurilor în care Verumsell SRL demonstrează motive legitime imperioase care prevalează</Li>
+          <Li><strong>Retragerea consimțământului</strong> — acolo unde prelucrarea se bazează pe consimțământ, fără a afecta legalitatea prelucrării anterioare retragerii</Li>
         </ul>
         <P>
           Cererile se depun la{' '}
@@ -281,10 +300,11 @@ export default function PrivacyPage() {
           rezolvarea directă și amiabilă a oricărei solicitări.
         </P>
         <P>
-          <em>Notă pentru angajații firmelor cliente:</em> Verumsell SRL acționează ca procesator de date
-          în relația cu cabinetul medical. Solicitările privind datele medicale se adresează Cabinetului
-          (Operatorul datelor), care răspunde față de angajații firmelor sale cliente. Orice solicitare
-          primită direct de Buzomed va fi redirecționată către Cabinetul competent.
+          <em>Notă pentru angajații firmelor cliente:</em> Verumsell SRL acționează exclusiv ca procesator
+          în relația cu cabinetul medical și nu deține un raport juridic direct cu angajații firmelor
+          cliente. Solicitările privind datele medicale trebuie adresate direct Cabinetului. Orice
+          solicitare primită direct de Buzomed va fi redirecționată, fără a ne angaja răspunderea pentru
+          soluționarea ei.
         </P>
 
         <H2>13. Incidente de securitate și notificări (Art. 33-34 GDPR)</H2>
@@ -327,16 +347,19 @@ export default function PrivacyPage() {
         </P>
 
         <H2>15. Cookie-uri</H2>
+        <P><strong>(1) Cookie-uri strict necesare — fără consimțământ</strong></P>
         <P>
           Buzomed utilizează cookie-uri tehnice strict necesare pentru autentificare și funcționarea
           platformei (sesiune, preferințe limbă). Aceste cookie-uri sunt active fără a fi necesară
-          acceptarea dumneavoastră. Nu utilizăm cookie-uri de publicitate.
+          acceptarea dumneavoastră, în temeiul interesului legitim al furnizării serviciului. Nu utilizăm
+          cookie-uri de publicitate.
         </P>
+        <P><strong>(2) Cookie-uri analitice GA4 — numai cu consimțământ explicit</strong></P>
         <P>
-          <strong>Google Analytics (GA4) — cookie-uri analitice, cu consimțământ:</strong>{' '}
-          Site-ul public buzomed.com utilizează Google Analytics pentru măsurarea anonimă a
-          traficului, exclusiv după acordarea consimțământului dumneavoastră explicit. Aceste
-          cookie-uri nu sunt utilizate pentru identificare personală sau publicitate.
+          Site-ul public buzomed.com utilizează Google Analytics (GA4) pentru măsurarea anonimă a
+          traficului. Aceste cookie-uri sunt activate <strong>exclusiv după acordarea consimțământului
+          dumneavoastră explicit</strong> prin bannerul de cookie-uri afișat la prima vizită.
+          Nu sunt utilizate pentru identificare personală sau publicitate.
         </P>
 
         <div style={{ overflowX: 'auto', marginBottom: 16 }}>
@@ -374,8 +397,9 @@ export default function PrivacyPage() {
 
         <P>
           Cookie-urile analitice sunt terțe (setate de Google LLC). Consimțământul poate fi retras
-          oricând prin ștergerea cookie-urilor din setările browserului. Utilizarea platformei nu
-          este condiționată de acceptarea cookie-urilor analitice.
+          oricând prin ștergerea cookie-urilor din setările browserului sau prin selectarea opțiunii
+          &ldquo;Continuă fără analytics&rdquo; din bannerul de cookie-uri. Refuzul cookie-urilor analitice
+          nu afectează accesul la platformă sau la orice funcționalitate a acesteia.
         </P>
 
         <H2>16. Legislație aplicabilă</H2>
@@ -385,20 +409,19 @@ export default function PrivacyPage() {
         <ul style={{ paddingLeft: 24, marginBottom: 12 }}>
           <Li>Regulamentul (UE) 2016/679 (GDPR)</Li>
           <Li>Legea nr. 190/2018 privind măsurile de punere în aplicare a GDPR în România</Li>
-          <Li>Legea nr. 82/2012 privind reținerea datelor (cu modificările ulterioare)</Li>
+          <Li>Legea nr. 506/2004 privind prelucrarea datelor cu caracter personal și protecția vieții private în sectorul comunicațiilor electronice (ePrivacy — cookie-uri)</Li>
           <Li>HG nr. 355/2007 privind supravegherea sănătății lucrătorilor (cu modificările ulterioare)</Li>
           <Li>Legea nr. 319/2006 — Legea securității și sănătății în muncă</Li>
           <Li>Legea nr. 95/2006 — Legea privind reforma în domeniul sănătății</Li>
           <Li>Legea nr. 46/2003 — Drepturile pacientului (confidențialitate medicală)</Li>
-          <Li>Legea nr. 677/2001 (abrogată, înlocuită de GDPR + Legea 190/2018) — menționată pentru referință istorică</Li>
+          <Li>Legea nr. 82/1991 — Legea contabilității (pentru datele de facturare)</Li>
         </ul>
 
         <H2>17. Modificări ale politicii</H2>
         <P>
-          Orice modificare semnificativă a acestei politici va fi comunicată prin email utilizatorilor
-          activi cu cel puțin <strong>14 zile</strong> înainte de intrarea în vigoare, cu indicarea clară
-          a secțiunilor modificate. Utilizarea continuă a platformei după data intrării în vigoare
-          constituie acceptarea politicii actualizate.
+          Verumsell SRL își rezervă dreptul de a modifica prezenta politică oricând, cu notificarea
+          utilizatorilor activi prin email cu cel puțin <strong>14 zile</strong> înainte de intrarea în
+          vigoare a modificărilor semnificative.
         </P>
         <P>
           Versiunile anterioare ale politicii pot fi solicitate la{' '}
