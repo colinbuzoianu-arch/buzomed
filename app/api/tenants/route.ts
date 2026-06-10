@@ -212,19 +212,25 @@ export async function POST(request: Request) {
     appUrl,
   })
 
-  // Send trial welcome email (best-effort, outside transaction)
-  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-  const welcomeContent = renderTrialWelcomeEmail({
-    cabinetName: tenantResult.tenant.name,
-    adminName: `${body.adminFirstName} ${body.adminLastName}`,
-    trialEndsAt,
-    billingUrl: `${appUrl}/settings/billing`,
-  })
-  sendEmail({
-    to: { email: body.adminEmail, name: `${body.adminFirstName} ${body.adminLastName}` },
-    content: welcomeContent,
-    tags: ['trial-welcome'],
-  }).catch((err) => console.error('[tenants] Failed to send welcome email', err))
+  // Send trial welcome email only for trial tenants (best-effort, outside transaction).
+  // Enterprise tenants have billing arranged separately — sending a "choose a plan"
+  // email would be confusing and incorrect. Same for solo/practice (already on a paid
+  // tier) and demo tenants (internal accounts, no marketing emails).
+  const isTrial = !body.subscriptionTier || body.subscriptionTier === 'trial'
+  if (isTrial && !body.isDemo) {
+    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+    const welcomeContent = renderTrialWelcomeEmail({
+      cabinetName: tenantResult.tenant.name,
+      adminName: `${body.adminFirstName} ${body.adminLastName}`,
+      trialEndsAt,
+      billingUrl: `${appUrl}/settings/billing`,
+    })
+    sendEmail({
+      to: { email: body.adminEmail, name: `${body.adminFirstName} ${body.adminLastName}` },
+      content: welcomeContent,
+      tags: ['trial-welcome'],
+    }).catch((err) => console.error('[tenants] Failed to send trial welcome email', err))
+  }
 
   if (!inviteResult.ok) {
     console.error('[tenants] Failed to send initial admin invite', {
