@@ -6,6 +6,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/format-date'
+import { DashboardGreeting } from '@/components/dashboard-greeting'
 
 /**
  * Dashboard — the first thing a cabinet user sees after logging in.
@@ -155,15 +156,6 @@ export default async function DashboardPage() {
     },
   })
 
-  // Greeting: good morning / afternoon / evening
-  const hour = new Date().getHours()
-  const greetingKey =
-    hour < 12
-      ? 'dashboard.goodMorning'
-      : hour < 18
-        ? 'dashboard.goodAfternoon'
-        : 'dashboard.goodEvening'
-
   const firstName = user.firstName
   const cabinetName = tenant?.name ?? ''
 
@@ -171,24 +163,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Greeting */}
-      <div>
-        <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight text-foreground">
-          {t(greetingKey)},{' '}
-          <em className="font-display italic text-primary">{firstName}</em>.
-        </h1>
-        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[hsl(var(--text-muted))]">
-          <span
-            className="inline-block h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent-positive))]"
-            aria-hidden
-          />
-          <span>{cabinetName}</span>
-          <span aria-hidden className="text-[hsl(var(--text-faint))]">·</span>
-          <span className="tabular-nums">
-            {formatDate(new Date(), 'long', locale === 'en' ? 'en' : 'ro')}
-          </span>
-        </p>
-      </div>
+      {/* Greeting — rendered client-side so getHours() uses the browser's local timezone */}
+      <DashboardGreeting
+        firstName={firstName}
+        cabinetName={cabinetName}
+        formattedDate={formatDate(new Date(), 'long', locale === 'en' ? 'en' : 'ro')}
+        morning={t('dashboard.goodMorning')}
+        afternoon={t('dashboard.goodAfternoon')}
+        evening={t('dashboard.goodEvening')}
+      />
 
       {/* Urgent items — the "what needs attention NOW" row */}
       {urgentCount > 0 && (
