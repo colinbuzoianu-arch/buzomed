@@ -622,6 +622,7 @@
     "errorInvalidName": "Vă rugăm să completați prenumele și numele.",
     "errorAlreadyFinalized": "Acest cont a fost deja activat. Vă rugăm să vă autentificați.",
     "errorServiceUnavailable": "Serviciul nu este disponibil momentan. Încercați din nou în câteva minute.",
+    "errorTermsRequired": "Trebuie să acceptați Termenii și Condițiile pentru a putea activa contul.",
     "signInCta": "Mergi la autentificare",
     "homeCta": "Înapoi la pagina principală",
     "role_super_admin": "super-administrator",

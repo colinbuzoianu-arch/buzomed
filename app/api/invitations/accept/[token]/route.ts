@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { acceptInvitation } from '@/lib/invitations/accept-service'
 import { validateInvitationToken } from '@/lib/invitations/service'
+import { prisma } from '@/lib/prisma'
+import { writeAuditLog } from '@/lib/audit/log'
 
 /**
  * GET /api/invitations/accept/[token]
@@ -91,6 +93,11 @@ export async function POST(
     return NextResponse.json({ error: 'invalid_name' }, { status: 400 })
   }
 
+  // Consent to T&C and DPA must be explicit — the checkbox must be checked.
+  if (b.termsAccepted !== true) {
+    return NextResponse.json({ error: 'terms_required' }, { status: 400 })
+  }
+
   const result = await acceptInvitation({
     token,
     password: b.password,
@@ -116,6 +123,33 @@ export async function POST(
       { error: result.error, message: result.message },
       { status }
     )
+  }
+
+  // Record documented consent to T&C, Privacy Policy, and DPA (Art. 28 GDPR).
+  // Outside the acceptInvitation transaction by design (account creation must
+  // not be blocked by a consent write failure), but still logged loudly.
+  try {
+    const consentAt = new Date()
+    const consentedUser = await prisma.user.update({
+      where: { id: result.userId },
+      data: {
+        termsAcceptedAt: consentAt,
+        termsVersion: '2026-05',
+        privacyAcceptedAt: consentAt,
+        dpaAcceptedAt: consentAt,
+        dpaAcceptedBy: `${(b.firstName as string).trim()} ${(b.lastName as string).trim()}`,
+      },
+      select: { tenantId: true },
+    })
+    await writeAuditLog({
+      tenantId: consentedUser.tenantId,
+      userId: result.userId,
+      action: 'create',
+      entityType: 'consent',
+      entitySummary: 'T&C + DPA accepted at invite acceptance — version 2026-05',
+    })
+  } catch (err) {
+    console.error('[invitations] Consent recording failed for userId', result.userId, err)
   }
 
   return NextResponse.json({

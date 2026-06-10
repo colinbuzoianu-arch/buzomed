@@ -34,6 +34,7 @@ interface Labels {
   errorInvalidName: string
   errorAlreadyFinalized: string
   errorServiceUnavailable: string
+  errorTermsRequired: string
   signInCta: string
 }
 
@@ -52,6 +53,7 @@ export function AcceptInviteForm({ token, invitation, labels }: Props) {
     firstName: '',
     lastName: '',
     password: '',
+    termsAccepted: false,
   })
 
   async function handleSubmit(e: React.FormEvent) {
@@ -69,6 +71,7 @@ export function AcceptInviteForm({ token, invitation, labels }: Props) {
             firstName: form.firstName.trim(),
             lastName: form.lastName.trim(),
             password: form.password,
+            termsAccepted: form.termsAccepted,
           }),
         }
       )
@@ -87,6 +90,8 @@ export function AcceptInviteForm({ token, invitation, labels }: Props) {
           setError(labels.errorAlreadyFinalized)
         else if (code === 'service_unavailable')
           setError(labels.errorServiceUnavailable)
+        else if (code === 'terms_required')
+          setError(labels.errorTermsRequired)
         else setError(data.message || labels.errorMessage)
         setSubmitting(false)
         return
@@ -197,6 +202,27 @@ export function AcceptInviteForm({ token, invitation, labels }: Props) {
           <p className="text-xs text-muted-foreground">{labels.passwordHelp}</p>
         </div>
 
+        <div className="flex items-start gap-2 pt-1">
+          <input
+            id="accept-terms"
+            type="checkbox"
+            checked={form.termsAccepted}
+            onChange={(e) => setForm({ ...form, termsAccepted: e.target.checked })}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-primary cursor-pointer"
+          />
+          <label htmlFor="accept-terms" className="text-sm text-foreground leading-relaxed cursor-pointer">
+            Am citit și accept{' '}
+            <a href="/terms" target="_blank" rel="noreferrer" className="underline text-primary hover:text-primary/80">
+              Termenii și Condițiile
+            </a>
+            {' '}și{' '}
+            <a href="/privacy" target="_blank" rel="noreferrer" className="underline text-primary hover:text-primary/80">
+              Politica de Confidențialitate
+            </a>
+            , inclusiv Acordul de Prelucrare a Datelor (Art. 28 GDPR).
+          </label>
+        </div>
+
         {error && (
           <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
             {error}
@@ -210,7 +236,8 @@ export function AcceptInviteForm({ token, invitation, labels }: Props) {
             submitting ||
             !form.firstName.trim() ||
             !form.lastName.trim() ||
-            form.password.length < 8
+            form.password.length < 8 ||
+            !form.termsAccepted
           }
         >
           {submitting ? labels.submitting : labels.submitButton}

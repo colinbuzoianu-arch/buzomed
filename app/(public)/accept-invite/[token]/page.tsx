@@ -104,6 +104,7 @@ export default async function AcceptInvitePage({ params }: PageProps) {
                 errorServiceUnavailable: t(
                   'acceptInvite.errorServiceUnavailable'
                 ),
+                errorTermsRequired: t('acceptInvite.errorTermsRequired'),
                 signInCta: t('acceptInvite.signInCta'),
               }}
             />

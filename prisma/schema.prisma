@@ -343,9 +343,12 @@ model User {
   isActive            Boolean                  @default(true) @map("is_active")
   lastLoginAt         DateTime?                @map("last_login_at") @db.Timestamptz
 
-  // GDPR consent for practitioners
+  // GDPR consent recorded at invite acceptance
   termsAcceptedAt     DateTime?                @map("terms_accepted_at") @db.Timestamptz
   termsVersion        String?                  @map("terms_version")
+  privacyAcceptedAt   DateTime?                @map("privacy_accepted_at") @db.Timestamptz
+  dpaAcceptedAt       DateTime?                @map("dpa_accepted_at") @db.Timestamptz
+  dpaAcceptedBy       String?                  @map("dpa_accepted_by")
 
   createdAt           DateTime                 @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime                 @updatedAt @map("updated_at") @db.Timestamptz

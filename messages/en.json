@@ -622,6 +622,7 @@
     "errorInvalidName": "Please fill in your first and last name.",
     "errorAlreadyFinalized": "This account has already been activated. Please sign in.",
     "errorServiceUnavailable": "The service is temporarily unavailable. Please try again in a few minutes.",
+    "errorTermsRequired": "You must accept the Terms and Conditions to activate your account.",
     "signInCta": "Go to sign in",
     "homeCta": "Back to home",
     "role_super_admin": "super administrator",
