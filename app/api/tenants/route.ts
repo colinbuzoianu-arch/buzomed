@@ -212,11 +212,10 @@ export async function POST(request: Request) {
     appUrl,
   })
 
-  // Send trial welcome email for self-service tenants who need to choose a plan
-  // (trial, solo, practice). Suppress for pre-configured tiers (enterprise and any
-  // future named paid tiers) and for demo accounts (internal, no marketing emails).
+  // Send trial welcome email for self-service tenants (trial/solo/practice).
+  // Suppress for enterprise (billing arranged separately), demo, and probe accounts.
   const suppressTrialWelcome =
-    body.isDemo || ['enterprise', 'starter', 'growth', 'pro'].includes(body.subscriptionTier)
+    body.isDemo || body.isProbe || body.subscriptionTier === 'enterprise'
   if (!suppressTrialWelcome) {
     const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
     const welcomeContent = renderTrialWelcomeEmail({

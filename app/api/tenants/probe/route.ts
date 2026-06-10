@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       name: cabinetName,
       slug,
       isDemo: false,
+      isProbe: true,
       country: 'RO',
       subscriptionTier: 'solo',
       subscriptionStatus: 'comp',

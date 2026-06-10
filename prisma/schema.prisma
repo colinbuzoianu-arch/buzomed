@@ -241,6 +241,7 @@ model Tenant {
   logoUrl             String?             @map("logo_url")
 
   isDemo              Boolean             @default(false) @map("is_demo")
+  isProbe             Boolean             @default(false) @map("is_probe")
 
   // GDPR consent tracking
   termsAcceptedAt     DateTime?           @map("terms_accepted_at") @db.Timestamptz
