@@ -731,7 +731,20 @@
       "caenSuggestionsApplied": "Sugestii aplicate"
     },
     "recentExaminationsTitle": "Examinări recente la acest loc de muncă",
-    "noExaminations": "Niciun examen efectuat la acest loc de muncă."
+    "noExaminations": "Niciun examen efectuat la acest loc de muncă.",
+    "bulkAssign": {
+      "buttonLabel": "Adaugă angajați",
+      "dialogTitle": "Atribuie angajați la loc de muncă",
+      "dialogDescription": "Caută angajații companiei și selectează-i pentru a-i atribui acestui loc de muncă.",
+      "searchPlaceholder": "Caută după nume...",
+      "reasonLabel": "Motivul atribuirii",
+      "confirmButton": "Atribuie ({n})",
+      "noResults": "Niciun angajat găsit.",
+      "searchMinChars": "Introduceți minim 2 caractere pentru căutare.",
+      "successToast": "Angajați atribuiți cu succes.",
+      "partialToast": "{success} atribuiți, {failed} cu erori.",
+      "errorMessage": "A apărut o eroare. Încercați din nou."
+    }
   },
   "examinations": {
     "title": "Examinări medicale",

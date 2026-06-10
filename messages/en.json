@@ -731,7 +731,20 @@
       "caenSuggestionsApplied": "Suggestions applied"
     },
     "recentExaminationsTitle": "Recent examinations at this workplace",
-    "noExaminations": "No examinations conducted at this workplace."
+    "noExaminations": "No examinations conducted at this workplace.",
+    "bulkAssign": {
+      "buttonLabel": "Add employees",
+      "dialogTitle": "Assign employees to workplace",
+      "dialogDescription": "Search employees in the company and select them to assign to this workplace.",
+      "searchPlaceholder": "Search by name...",
+      "reasonLabel": "Reason for assignment",
+      "confirmButton": "Assign ({n})",
+      "noResults": "No employees found.",
+      "searchMinChars": "Enter at least 2 characters to search.",
+      "successToast": "Employees assigned successfully.",
+      "partialToast": "{success} assigned, {failed} with errors.",
+      "errorMessage": "An error occurred. Please try again."
+    }
   },
   "examinations": {
     "title": "Medical examinations",

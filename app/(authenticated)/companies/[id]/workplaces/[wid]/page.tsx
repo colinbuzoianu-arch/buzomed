@@ -8,6 +8,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { WorkplaceDeleteButton } from './workplace-delete-button'
+import { BulkAssignEmployees } from './bulk-assign-employees'
 import {
   parseRiskProfile,
   RISK_PROFILE_SCHEMA,
@@ -270,12 +271,42 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
       )}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">
-          {t('workplaces.currentlyAssignedTitle')}{' '}
-          <span className="text-sm font-normal text-muted-foreground">
-            ({activeAssignments.length})
-          </span>
-        </h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">
+            {t('workplaces.currentlyAssignedTitle')}{' '}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({activeAssignments.length})
+            </span>
+          </h2>
+          {caps.canWriteAdministrative && (
+            <BulkAssignEmployees
+              workplaceId={workplace.id}
+              companyId={id}
+              companyName={workplace.company.name}
+              existingEmployeeIds={activeAssignments.map((a) => a.employee.id)}
+              labels={{
+                buttonLabel: t('workplaces.bulkAssign.buttonLabel'),
+                dialogTitle: t('workplaces.bulkAssign.dialogTitle'),
+                dialogDescription: t('workplaces.bulkAssign.dialogDescription'),
+                searchPlaceholder: t('workplaces.bulkAssign.searchPlaceholder'),
+                reasonLabel: t('workplaces.bulkAssign.reasonLabel'),
+                reasonHired: t('employees.assignments.reason.hired'),
+                reasonPromoted: t('employees.assignments.reason.promoted'),
+                reasonTransferred: t('employees.assignments.reason.transferred'),
+                reasonRoleChange: t('employees.assignments.reason.role_change'),
+                reasonDepartmentChange: t('employees.assignments.reason.department_change'),
+                reasonOther: t('employees.assignments.reason.other'),
+                confirmButton: t('workplaces.bulkAssign.confirmButton'),
+                cancel: t('common.cancel'),
+                noResults: t('workplaces.bulkAssign.noResults'),
+                searchMinChars: t('workplaces.bulkAssign.searchMinChars'),
+                successToast: t('workplaces.bulkAssign.successToast'),
+                partialToast: t('workplaces.bulkAssign.partialToast'),
+                errorMessage: t('workplaces.bulkAssign.errorMessage'),
+              }}
+            />
+          )}
+        </div>
         {activeAssignments.length === 0 ? (
           <EmptyState
             size="compact"
