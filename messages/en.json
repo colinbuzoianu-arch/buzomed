@@ -367,7 +367,7 @@
       "typeMore": "Type at least 2 characters"
     },
     "search": {
-      "placeholder": "Search employee...",
+      "placeholder": "Search by name, job title or company...",
       "workplacePlaceholder": "Workplace",
       "allWorkplaces": "All workplaces"
     },

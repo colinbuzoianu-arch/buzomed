@@ -102,6 +102,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                 { firstName: { contains: q, mode: 'insensitive' } },
                 { lastName: { contains: q, mode: 'insensitive' } },
                 { jobTitle: { contains: q, mode: 'insensitive' } },
+                { company: { name: { contains: q, mode: 'insensitive' } } },
               ],
             }
           : {}),
@@ -276,7 +277,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         />
 
         {/* Filtru workplace — ascuns pe archived tab */}
-        {!showArchived && workplacesForFilter.length > 0 && (
+        {!showArchived && (
           <WorkplaceFilter
             workplaces={workplacesForFilter.map((w) => ({
               id: w.id,

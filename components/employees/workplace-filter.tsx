@@ -35,8 +35,6 @@ export function WorkplaceFilter({
     router.replace(`${pathname}?${params.toString()}`)
   }
 
-  if (workplaces.length === 0) return null
-
   return (
     <select
       value={currentValue}
