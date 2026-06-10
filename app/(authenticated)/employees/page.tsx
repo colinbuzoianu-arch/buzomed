@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { EmployeeSearchInput } from './employee-search-input'
 import { WorkplaceFilter } from '@/components/employees/workplace-filter'
+import { CompanyFilter } from '@/components/employees/company-filter'
+import { RecallFilter } from '@/components/employees/recall-filter'
 import { EmployeesHeaderActions } from './employees-header-actions'
 import { EmployeesBulkTable } from './employees-bulk-table'
 
@@ -17,6 +19,8 @@ interface PageProps {
     archived?: string
     q?: string
     wp?: string
+    company?: string
+    recall?: string
     sort?: string
   }>
 }
@@ -36,6 +40,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   const showArchived = params.archived === '1'
   const q = params.q ?? ''
   const wpFilter = params.wp ?? ''
+  const companyFilter = params.company ?? ''
+  const recallFilter = params.recall ?? ''
   const sortRaw = params.sort ?? 'name_asc'
 
   type DbSortKey = 'name_asc' | 'name_desc' | 'company_asc' | 'company_desc' | 'jobTitle_asc' | 'jobTitle_desc'
@@ -67,7 +73,24 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   const isClientSort = !Object.keys(dbOrderBy).includes(sort)
   const orderBy = isClientSort ? dbOrderBy.name_asc : dbOrderBy[sort as DbSortKey]
 
-  const [employees, workplacesForFilter] = await Promise.all([
+  const now = new Date()
+  const soonThreshold = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+  const recallWhere: Prisma.EmployeeWhereInput =
+    recallFilter === 'overdue'
+      ? { recalls: { some: { deletedAt: null, OR: [
+          { status: 'overdue' },
+          { dueDate: { lt: now }, status: { in: ['pending', 'scheduled'] } },
+        ] } } }
+      : recallFilter === 'soon'
+        ? { recalls: { some: { deletedAt: null, status: { in: ['pending', 'scheduled'] }, dueDate: { gte: now, lte: soonThreshold } } } }
+        : recallFilter === 'ok'
+          ? { recalls: { some: { deletedAt: null, status: { in: ['pending', 'scheduled'] }, dueDate: { gt: soonThreshold } } } }
+          : recallFilter === 'none'
+            ? { recalls: { none: { deletedAt: null, status: { in: ['pending', 'scheduled', 'overdue'] } } } }
+            : {}
+
+  const [employees, workplacesForFilter, companiesForFilter] = await Promise.all([
     prisma.employee.findMany({
       where: {
         tenantId: user.tenantId,
@@ -87,6 +110,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
           : wpFilter
             ? { workplaceAssignments: { some: { workplaceId: wpFilter, isCurrent: true, endDate: null } } }
             : {}),
+        ...(companyFilter ? { companyId: companyFilter } : {}),
+        ...recallWhere,
       },
       orderBy,
       select: {
@@ -135,6 +160,11 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         name: true,
         company: { select: { name: true } },
       },
+    }),
+    prisma.company.findMany({
+      where: { tenantId: user.tenantId, deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
     }),
   ])
 
@@ -239,6 +269,12 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
           placeholder={t('employees.search.placeholder')}
         />
 
+        {/* Filtru companie */}
+        <CompanyFilter
+          companies={companiesForFilter}
+          currentValue={companyFilter}
+        />
+
         {/* Filtru workplace — ascuns pe archived tab */}
         {!showArchived && workplacesForFilter.length > 0 && (
           <WorkplaceFilter
@@ -253,16 +289,62 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
           />
         )}
 
-        {/* Badge filtru activ — click șterge ?wp= */}
+        {/* Filtru scadență recall — ascuns pe archived tab */}
+        {!showArchived && (
+          <RecallFilter currentValue={recallFilter} />
+        )}
+
+        {/* Badge filtre active */}
+        {companyFilter && (
+          <Link
+            href={`/employees?${new URLSearchParams([
+              ...(showArchived ? [['archived', '1']] : []),
+              ...(q ? [['q', q]] : []),
+              ...(wpFilter ? [['wp', wpFilter]] : []),
+              ...(recallFilter ? [['recall', recallFilter]] : []),
+              ...(sortRaw !== 'name_asc' ? [['sort', sortRaw]] : []),
+            ]).toString()}`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-[hsl(var(--surface-tinted))] px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
+          >
+            <span>{companiesForFilter.find((c) => c.id === companyFilter)?.name ?? 'Companie'}</span>
+            <span aria-hidden className="ml-0.5">×</span>
+          </Link>
+        )}
         {wpFilter && (
           <Link
-            href={`/employees${q ? `?q=${encodeURIComponent(q)}` : ''}`}
+            href={`/employees?${new URLSearchParams([
+              ...(showArchived ? [['archived', '1']] : []),
+              ...(q ? [['q', q]] : []),
+              ...(companyFilter ? [['company', companyFilter]] : []),
+              ...(recallFilter ? [['recall', recallFilter]] : []),
+              ...(sortRaw !== 'name_asc' ? [['sort', sortRaw]] : []),
+            ]).toString()}`}
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-[hsl(var(--surface-tinted))] px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             <span>
               {wpFilter === 'no_workplace'
                 ? 'Fără loc de muncă'
                 : workplacesForFilter.find((w) => w.id === wpFilter)?.name ?? t('employees.search.workplacePlaceholder')}
+            </span>
+            <span aria-hidden className="ml-0.5">×</span>
+          </Link>
+        )}
+        {recallFilter && (
+          <Link
+            href={`/employees?${new URLSearchParams([
+              ...(showArchived ? [['archived', '1']] : []),
+              ...(q ? [['q', q]] : []),
+              ...(companyFilter ? [['company', companyFilter]] : []),
+              ...(wpFilter ? [['wp', wpFilter]] : []),
+              ...(sortRaw !== 'name_asc' ? [['sort', sortRaw]] : []),
+            ]).toString()}`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-[hsl(var(--surface-tinted))] px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
+          >
+            <span>
+              {recallFilter === 'overdue' ? 'Depășite'
+                : recallFilter === 'soon' ? 'Scadente în curând'
+                : recallFilter === 'ok' ? 'La zi'
+                : 'Fără scadență'}
             </span>
             <span aria-hidden className="ml-0.5">×</span>
           </Link>
