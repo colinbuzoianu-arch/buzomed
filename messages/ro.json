@@ -746,7 +746,11 @@
       "badgeTransferFrom": "Transferat din: {name}",
       "successToast": "Angajați atribuiți cu succes.",
       "partialToast": "{success} atribuiți, {failed} cu erori.",
-      "errorMessage": "A apărut o eroare. Încercați din nou."
+      "errorMessage": "A apărut o eroare. Încercați din nou.",
+      "tabAll": "Toți angajații companiei",
+      "tabSearch": "Caută",
+      "selectAll": "Selectează toți",
+      "deselectAll": "Deselectează toți"
     }
   },
   "examinations": {

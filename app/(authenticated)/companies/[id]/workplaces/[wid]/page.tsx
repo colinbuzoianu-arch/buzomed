@@ -306,6 +306,10 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
                 successToast: t('workplaces.bulkAssign.successToast'),
                 partialToast: t('workplaces.bulkAssign.partialToast'),
                 errorMessage: t('workplaces.bulkAssign.errorMessage'),
+                tabAll: t('workplaces.bulkAssign.tabAll'),
+                tabSearch: t('workplaces.bulkAssign.tabSearch'),
+                selectAll: t('workplaces.bulkAssign.selectAll'),
+                deselectAll: t('workplaces.bulkAssign.deselectAll'),
               }}
             />
           )}

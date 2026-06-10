@@ -746,7 +746,11 @@
       "badgeTransferFrom": "Transfer from: {name}",
       "successToast": "Employees assigned successfully.",
       "partialToast": "{success} assigned, {failed} with errors.",
-      "errorMessage": "An error occurred. Please try again."
+      "errorMessage": "An error occurred. Please try again.",
+      "tabAll": "All company employees",
+      "tabSearch": "Search",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all"
     }
   },
   "examinations": {

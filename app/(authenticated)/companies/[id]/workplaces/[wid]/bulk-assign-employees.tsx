@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useTransition } from 'react'
+import { useState, useEffect, useRef, useCallback, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -57,6 +57,10 @@ export interface BulkAssignLabels {
   /** Template with {success} and {failed} */
   partialToast: string
   errorMessage: string
+  tabAll: string
+  tabSearch: string
+  selectAll: string
+  deselectAll: string
 }
 
 interface Props {
@@ -70,33 +74,58 @@ interface Props {
 
 export function BulkAssignEmployees({
   workplaceId,
+  companyId,
   companyName,
   labels,
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<'all' | 'search'>('all')
+
+  // all-employees mode state
+  const [allEmployees, setAllEmployees] = useState<EmployeeResult[]>([])
+  const [allLoading, setAllLoading] = useState(false)
+
+  // search mode state
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<EmployeeResult[]>([])
   const [loading, setLoading] = useState(false)
+
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [reason, setReason] = useState<Reason>('transferred')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const selectAllCheckboxRef = useRef<HTMLInputElement | null>(null)
 
   function handleOpen() {
     setQuery('')
     setResults([])
+    setAllEmployees([])
     setSelected(new Set())
     setReason('transferred')
     setError(null)
+    setMode('all')
     setOpen(true)
   }
 
-  // Debounced search — filter to same company client-side (API has no companyId param)
+  // Load all company employees when dialog opens in 'all' mode
   useEffect(() => {
-    if (!open) return
+    if (!open || mode !== 'all') return
+    setAllLoading(true)
+    fetch(`/api/employees/by-company?companyId=${encodeURIComponent(companyId)}`)
+      .then((res) => res.json())
+      .then((data: { employees?: EmployeeResult[] }) => {
+        setAllEmployees(data.employees ?? [])
+      })
+      .catch(() => setAllEmployees([]))
+      .finally(() => setAllLoading(false))
+  }, [open, mode, companyId])
+
+  // Debounced search in 'search' mode
+  useEffect(() => {
+    if (!open || mode !== 'search') return
     if (query.length < 2) {
       setResults([])
       setLoading(false)
@@ -122,7 +151,35 @@ export function BulkAssignEmployees({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [query, open, companyName])
+  }, [query, open, mode, companyName])
+
+  const displayList = mode === 'all' ? allEmployees : results
+  const enabledIds = displayList
+    .filter((e) => e.workplaceId !== workplaceId)
+    .map((e) => e.id)
+  const allEnabled =
+    enabledIds.length > 0 && enabledIds.every((id) => selected.has(id))
+  const someEnabled = enabledIds.some((id) => selected.has(id))
+
+  // Keep the select-all checkbox indeterminate when partially selected
+  const selectAllRef = useCallback((el: HTMLInputElement | null) => {
+    selectAllCheckboxRef.current = el
+    if (el) {
+      el.indeterminate = someEnabled && !allEnabled
+    }
+  }, [someEnabled, allEnabled])
+
+  function toggleAll() {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allEnabled) {
+        enabledIds.forEach((id) => next.delete(id))
+      } else {
+        enabledIds.forEach((id) => next.add(id))
+      }
+      return next
+    })
+  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -192,9 +249,13 @@ export function BulkAssignEmployees({
     other: labels.reasonOther,
   }
 
-  // Confirm button switches label when any selected employee is being transferred
+  // Build a combined lookup from both lists to detect transfers reliably
+  const employeeMap = new Map<string, EmployeeResult>()
+  for (const e of allEmployees) employeeMap.set(e.id, e)
+  for (const e of results) employeeMap.set(e.id, e)
+
   const hasTransfers = Array.from(selected).some((id) => {
-    const emp = results.find((e) => e.id === id)
+    const emp = employeeMap.get(id)
     return emp?.workplaceId !== null && emp?.workplaceId !== workplaceId
   })
   const confirmLabel = (
@@ -223,30 +284,92 @@ export function BulkAssignEmployees({
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <Input
-              placeholder={labels.searchPlaceholder}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              autoFocus
-            />
+            {/* Mode tabs */}
+            <div className="flex rounded-md border overflow-hidden text-sm">
+              <button
+                type="button"
+                className={`flex-1 px-3 py-2 transition-colors ${
+                  mode === 'all'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-foreground hover:bg-muted'
+                }`}
+                onClick={() => setMode('all')}
+              >
+                {labels.tabAll}
+              </button>
+              <button
+                type="button"
+                className={`flex-1 px-3 py-2 transition-colors border-l ${
+                  mode === 'search'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-foreground hover:bg-muted'
+                }`}
+                onClick={() => setMode('search')}
+              >
+                {labels.tabSearch}
+              </button>
+            </div>
 
-            <div className="max-h-60 overflow-y-auto rounded-md border divide-y">
-              {loading && (
+            {mode === 'search' && (
+              <Input
+                placeholder={labels.searchPlaceholder}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                autoFocus
+              />
+            )}
+
+            <div
+              className={`overflow-y-auto rounded-md border divide-y ${
+                mode === 'all' ? 'max-h-[400px]' : 'max-h-60'
+              }`}
+            >
+              {/* Select all header — all mode only */}
+              {mode === 'all' && !allLoading && allEmployees.length > 0 && (
+                <label className="flex items-center gap-3 px-4 py-2 bg-muted/40 cursor-pointer hover:bg-muted/60 sticky top-0 z-10">
+                  <input
+                    type="checkbox"
+                    ref={selectAllRef}
+                    checked={allEnabled}
+                    onChange={toggleAll}
+                  />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {allEnabled ? labels.deselectAll : labels.selectAll}
+                  </span>
+                  {selected.size > 0 && (
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {selected.size}
+                    </span>
+                  )}
+                </label>
+              )}
+
+              {/* Loading state */}
+              {(mode === 'all' ? allLoading : loading) && (
                 <div className="flex items-center justify-center py-6">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
               )}
-              {!loading && query.length < 2 && (
+
+              {/* Search mode hints */}
+              {mode === 'search' && !loading && query.length < 2 && (
                 <p className="px-4 py-3 text-sm text-muted-foreground">
                   {labels.searchMinChars}
                 </p>
               )}
-              {!loading && query.length >= 2 && results.length === 0 && (
+              {mode === 'search' && !loading && query.length >= 2 && results.length === 0 && (
                 <p className="px-4 py-3 text-sm text-muted-foreground">
                   {labels.noResults}
                 </p>
               )}
-              {results.map((emp) => {
+              {mode === 'all' && !allLoading && allEmployees.length === 0 && (
+                <p className="px-4 py-3 text-sm text-muted-foreground">
+                  {labels.noResults}
+                </p>
+              )}
+
+              {/* Employee rows */}
+              {displayList.map((emp) => {
                 const isHere = emp.workplaceId === workplaceId
                 const isElsewhere =
                   emp.workplaceId !== null && emp.workplaceId !== workplaceId
