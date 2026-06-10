@@ -739,8 +739,11 @@
       "searchPlaceholder": "Caută după nume...",
       "reasonLabel": "Motivul atribuirii",
       "confirmButton": "Atribuie ({n})",
+      "confirmButtonTransfer": "Atribuie și transferă ({n})",
       "noResults": "Niciun angajat găsit.",
       "searchMinChars": "Introduceți minim 2 caractere pentru căutare.",
+      "badgeCurrent": "Loc de muncă curent",
+      "badgeTransferFrom": "Transferat din: {name}",
       "successToast": "Angajați atribuiți cu succes.",
       "partialToast": "{success} atribuiți, {failed} cu erori.",
       "errorMessage": "A apărut o eroare. Încercați din nou."

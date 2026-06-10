@@ -26,6 +26,8 @@ interface EmployeeResult {
   lastName: string
   companyEmployeeId: string | null
   companyName: string
+  workplaceId: string | null
+  workplaceName: string
 }
 
 export interface BulkAssignLabels {
@@ -40,13 +42,19 @@ export interface BulkAssignLabels {
   reasonRoleChange: string
   reasonDepartmentChange: string
   reasonOther: string
-  /** Template with {n} placeholder: "Atribuie ({n})" */
+  /** Template with {n}: "Atribuie ({n})" */
   confirmButton: string
+  /** Template with {n}: "Atribuie și transferă ({n})" — used when selection includes transfers */
+  confirmButtonTransfer: string
   cancel: string
   noResults: string
   searchMinChars: string
+  /** Badge for employees already at THIS workplace */
+  badgeCurrent: string
+  /** Template with {name}: "Transferat din: {name}" */
+  badgeTransferFrom: string
   successToast: string
-  /** Template with {success} and {failed} placeholders */
+  /** Template with {success} and {failed} */
   partialToast: string
   errorMessage: string
 }
@@ -54,8 +62,8 @@ export interface BulkAssignLabels {
 interface Props {
   workplaceId: string
   companyId: string
-  /** Used for client-side filtering since the search API doesn't accept companyId */
   companyName: string
+  /** Passed from page; not used for filtering — assignment status shown per-row */
   existingEmployeeIds: string[]
   labels: BulkAssignLabels
 }
@@ -63,7 +71,6 @@ interface Props {
 export function BulkAssignEmployees({
   workplaceId,
   companyName,
-  existingEmployeeIds,
   labels,
 }: Props) {
   const router = useRouter()
@@ -87,7 +94,7 @@ export function BulkAssignEmployees({
     setOpen(true)
   }
 
-  // Debounced search — client-side company filter since the API has no companyId param
+  // Debounced search — filter to same company client-side (API has no companyId param)
   useEffect(() => {
     if (!open) return
     if (query.length < 2) {
@@ -103,12 +110,9 @@ export function BulkAssignEmployees({
           `/api/employees/search?q=${encodeURIComponent(query)}&limit=50`
         )
         const data = (await res.json()) as { employees?: EmployeeResult[] }
-        const filtered = (data.employees ?? []).filter(
-          (e) =>
-            e.companyName === companyName &&
-            !existingEmployeeIds.includes(e.id)
+        setResults(
+          (data.employees ?? []).filter((e) => e.companyName === companyName)
         )
-        setResults(filtered)
       } catch {
         setResults([])
       } finally {
@@ -118,7 +122,7 @@ export function BulkAssignEmployees({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [query, open, companyName, existingEmployeeIds])
+  }, [query, open, companyName])
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -188,6 +192,15 @@ export function BulkAssignEmployees({
     other: labels.reasonOther,
   }
 
+  // Confirm button switches label when any selected employee is being transferred
+  const hasTransfers = Array.from(selected).some((id) => {
+    const emp = results.find((e) => e.id === id)
+    return emp?.workplaceId !== null && emp?.workplaceId !== workplaceId
+  })
+  const confirmLabel = (
+    hasTransfers ? labels.confirmButtonTransfer : labels.confirmButton
+  ).replace('{n}', String(selected.size))
+
   return (
     <>
       <Button variant="outline" size="sm" onClick={handleOpen}>
@@ -233,28 +246,48 @@ export function BulkAssignEmployees({
                   {labels.noResults}
                 </p>
               )}
-              {results.map((emp) => (
-                <label
-                  key={emp.id}
-                  className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-muted/50"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.has(emp.id)}
-                    onChange={() => toggle(emp.id)}
-                  />
-                  <div>
-                    <div className="text-sm font-medium">
-                      {emp.lastName} {emp.firstName}
-                    </div>
-                    {emp.companyEmployeeId && (
-                      <div className="text-xs text-muted-foreground">
-                        {emp.companyEmployeeId}
+              {results.map((emp) => {
+                const isHere = emp.workplaceId === workplaceId
+                const isElsewhere =
+                  emp.workplaceId !== null && emp.workplaceId !== workplaceId
+                return (
+                  <label
+                    key={emp.id}
+                    className={`flex items-center gap-3 px-4 py-3 ${
+                      isHere
+                        ? 'cursor-not-allowed opacity-60'
+                        : 'cursor-pointer hover:bg-muted/50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(emp.id)}
+                      disabled={isHere}
+                      onChange={() => toggle(emp.id)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium">
+                        {emp.lastName} {emp.firstName}
                       </div>
+                      {emp.companyEmployeeId && (
+                        <div className="text-xs text-muted-foreground">
+                          {emp.companyEmployeeId}
+                        </div>
+                      )}
+                    </div>
+                    {isHere && (
+                      <span className="shrink-0 inline-flex items-center rounded border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                        {labels.badgeCurrent}
+                      </span>
                     )}
-                  </div>
-                </label>
-              ))}
+                    {isElsewhere && (
+                      <span className="shrink-0 inline-flex items-center rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
+                        {labels.badgeTransferFrom.replace('{name}', emp.workplaceName)}
+                      </span>
+                    )}
+                  </label>
+                )
+              })}
             </div>
 
             <div className="space-y-2">
@@ -294,7 +327,7 @@ export function BulkAssignEmployees({
               onClick={handleConfirm}
               disabled={submitting || selected.size === 0}
             >
-              {labels.confirmButton.replace('{n}', String(selected.size))}
+              {confirmLabel}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -739,8 +739,11 @@
       "searchPlaceholder": "Search by name...",
       "reasonLabel": "Reason for assignment",
       "confirmButton": "Assign ({n})",
+      "confirmButtonTransfer": "Assign & transfer ({n})",
       "noResults": "No employees found.",
       "searchMinChars": "Enter at least 2 characters to search.",
+      "badgeCurrent": "Current workplace",
+      "badgeTransferFrom": "Transfer from: {name}",
       "successToast": "Employees assigned successfully.",
       "partialToast": "{success} assigned, {failed} with errors.",
       "errorMessage": "An error occurred. Please try again."
