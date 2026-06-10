@@ -163,14 +163,15 @@ export async function POST(request: Request) {
         },
       })
 
-      // Create trial subscription for the new tenant
-      const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+      // Create subscription row. Enterprise tenants are on a manual contract —
+      // no trial period, no Stripe. Everyone else starts on a 14-day trial.
+      const isEnterprise = body.subscriptionTier === 'enterprise'
       await tx.subscription.create({
         data: {
           tenantId: tenant.id,
-          tier: 'starter',
-          status: 'trial_active',
-          trialEndsAt,
+          tier: isEnterprise ? 'enterprise' : 'starter',
+          status: isEnterprise ? 'active' : 'trial_active',
+          trialEndsAt: isEnterprise ? null : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         },
       })
 
