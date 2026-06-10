@@ -212,12 +212,12 @@ export async function POST(request: Request) {
     appUrl,
   })
 
-  // Send trial welcome email only for trial tenants (best-effort, outside transaction).
-  // Enterprise tenants have billing arranged separately — sending a "choose a plan"
-  // email would be confusing and incorrect. Same for solo/practice (already on a paid
-  // tier) and demo tenants (internal accounts, no marketing emails).
-  const isTrial = !body.subscriptionTier || body.subscriptionTier === 'trial'
-  if (isTrial && !body.isDemo) {
+  // Send trial welcome email for self-service tenants who need to choose a plan
+  // (trial, solo, practice). Suppress for pre-configured tiers (enterprise and any
+  // future named paid tiers) and for demo accounts (internal, no marketing emails).
+  const suppressTrialWelcome =
+    body.isDemo || ['enterprise', 'starter', 'growth', 'pro'].includes(body.subscriptionTier)
+  if (!suppressTrialWelcome) {
     const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
     const welcomeContent = renderTrialWelcomeEmail({
       cabinetName: tenantResult.tenant.name,
