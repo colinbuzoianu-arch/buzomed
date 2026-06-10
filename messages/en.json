@@ -670,7 +670,7 @@
       "sectionRiskAssessment": "Risk assessment",
       "sectionStatus": "Status",
       "fieldName": "Name",
-      "fieldNamePlaceholder": "Welder, Production operator, Office...",
+      "fieldNamePlaceholder": "Head office, Cluj work site, Pitești warehouse...",
       "fieldDepartment": "Department",
       "fieldDescription": "Description",
       "fieldExaminationInterval": "Examination interval (months)",
