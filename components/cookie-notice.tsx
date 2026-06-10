@@ -1,17 +1,28 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { loadGA } from './ga-loader'
 
 export function CookieNotice() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const dismissed = localStorage.getItem('cookie-notice-dismissed')
-    if (!dismissed) setVisible(true)
+    const consent = localStorage.getItem('cookie-consent')
+    if (consent === 'granted') {
+      loadGA()
+    } else if (!consent) {
+      setVisible(true)
+    }
   }, [])
 
-  function dismiss() {
-    localStorage.setItem('cookie-notice-dismissed', '1')
+  function accept() {
+    localStorage.setItem('cookie-consent', 'granted')
+    loadGA()
+    setVisible(false)
+  }
+
+  function deny() {
+    localStorage.setItem('cookie-consent', 'denied')
     setVisible(false)
   }
 
@@ -20,23 +31,30 @@ export function CookieNotice() {
   return (
     <div className="fixed bottom-4 left-4 z-50 max-w-sm rounded-xl border bg-card shadow-lg p-4 space-y-3">
       <p className="text-[13px] text-foreground leading-relaxed">
-        Buzomed folosește cookie-uri tehnice strict necesare pentru autentificare și
-        funcționarea platformei. Nu folosim cookie-uri de tracking sau publicitate.
+        Buzomed folosește cookie-uri tehnice strict necesare pentru funcționarea platformei.
+        Folosim și Google Analytics pentru măsurarea anonimă a traficului pe paginile publice,
+        doar cu acordul dumneavoastră.
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2">
         <button
-          onClick={dismiss}
-          className="flex-1 h-8 rounded-md bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
+          onClick={accept}
+          className="h-8 rounded-md bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
         >
-          Am înțeles
+          Accept cookie-uri analitice
         </button>
-        <a
-          href="/privacy"
-          className="flex-1 h-8 rounded-md border text-center flex items-center justify-center text-[13px] text-muted-foreground hover:bg-muted transition-colors"
+        <button
+          onClick={deny}
+          className="h-8 rounded-md border text-[13px] text-muted-foreground hover:bg-muted transition-colors"
         >
-          Mai mult
-        </a>
+          Continuă fără analytics
+        </button>
       </div>
+      <a
+        href="/privacy"
+        className="block text-center text-[13px] text-muted-foreground hover:underline"
+      >
+        Mai mult
+      </a>
     </div>
   )
 }

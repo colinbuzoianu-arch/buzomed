@@ -328,12 +328,54 @@ export default function PrivacyPage() {
 
         <H2>15. Cookie-uri</H2>
         <P>
-          Buzomed utilizează exclusiv cookie-uri funcționale necesare autentificării și funcționării
-          platformei (sesiune, preferințe limbă). Nu utilizăm cookie-uri de tracking, publicitate sau
-          analiză de comportament.
+          Buzomed utilizează cookie-uri tehnice strict necesare pentru autentificare și funcționarea
+          platformei (sesiune, preferințe limbă). Aceste cookie-uri sunt active fără a fi necesară
+          acceptarea dumneavoastră. Nu utilizăm cookie-uri de publicitate.
         </P>
         <P>
-          Nu este necesară acceptarea cookie-urilor de marketing pentru utilizarea platformei.
+          <strong>Google Analytics (GA4) — cookie-uri analitice, cu consimțământ:</strong>{' '}
+          Site-ul public buzomed.com utilizează Google Analytics pentru măsurarea anonimă a
+          traficului, exclusiv după acordarea consimțământului dumneavoastră explicit. Aceste
+          cookie-uri nu sunt utilizate pentru identificare personală sau publicitate.
+        </P>
+
+        <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15, color: '#374151' }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB', borderBottom: '2px solid #E2E8F0' }}>
+                <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 600 }}>Cookie</th>
+                <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 600 }}>Durată</th>
+                <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 600 }}>Furnizor</th>
+                <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 600 }}>Scop</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+                <td style={{ padding: '10px 14px' }}><code>_ga</code></td>
+                <td style={{ padding: '10px 14px' }}>2 ani</td>
+                <td style={{ padding: '10px 14px' }}>Google Analytics (GA4)</td>
+                <td style={{ padding: '10px 14px' }}>Distinge utilizatorii unici; statistici de trafic</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+                <td style={{ padding: '10px 14px' }}><code>_gid</code></td>
+                <td style={{ padding: '10px 14px' }}>24 ore</td>
+                <td style={{ padding: '10px 14px' }}>Google Analytics (GA4)</td>
+                <td style={{ padding: '10px 14px' }}>Distinge utilizatorii unici în cursul zilei</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '10px 14px' }}><code>_gat</code></td>
+                <td style={{ padding: '10px 14px' }}>1 minut</td>
+                <td style={{ padding: '10px 14px' }}>Google Analytics (GA4)</td>
+                <td style={{ padding: '10px 14px' }}>Limitează rata cererilor către Google</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <P>
+          Cookie-urile analitice sunt terțe (setate de Google LLC). Consimțământul poate fi retras
+          oricând prin ștergerea cookie-urilor din setările browserului. Utilizarea platformei nu
+          este condiționată de acceptarea cookie-urilor analitice.
         </P>
 
         <H2>16. Legislație aplicabilă</H2>
