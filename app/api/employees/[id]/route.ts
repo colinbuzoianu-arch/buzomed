@@ -10,6 +10,7 @@ import {
 import { asObject } from '@/lib/validation'
 import { parseEmployeeInput } from '../route'
 import { writeAuditLog } from '@/lib/audit/log'
+import { deliverEmployeeUpdatedWebhook } from '@/lib/webhooks/employee-webhook'
 import {
   encryptCnp,
   decryptCnp,
@@ -399,6 +400,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     entitySummary: `${existing.lastName} ${existing.firstName}`,
     changes: { fields: Object.keys(updateData) },
   })
+
+  void deliverEmployeeUpdatedWebhook(id, auth.user.tenantId)
 
   return NextResponse.json({ employee })
 }

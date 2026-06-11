@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
         companyId: true,
         isActive: true,
         createdAt: true,
+        updatedAt: true,
         company: { select: { name: true } },
         workplaceAssignments: {
           where: { isCurrent: true },
@@ -77,6 +78,7 @@ export async function GET(request: NextRequest) {
     workplaceName: e.workplaceAssignments[0]?.workplace?.name ?? null,
     isActive: e.isActive,
     createdAt: e.createdAt,
+    updatedAt: e.updatedAt,
   }))
 
   return NextResponse.json({ data, total, page, limit }, { headers: rlHeaders })

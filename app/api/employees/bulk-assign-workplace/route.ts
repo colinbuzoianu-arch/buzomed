@@ -4,6 +4,7 @@ import { getApiUser } from '@/lib/auth'
 import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { asObject } from '@/lib/validation'
 import type { WorkAssignmentReason } from '@prisma/client'
+import { deliverEmployeeUpdatedWebhook } from '@/lib/webhooks/employee-webhook'
 
 const VALID_REASONS: WorkAssignmentReason[] = [
   'hired', 'promoted', 'transferred', 'role_change', 'department_change', 'other',
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
       })
       results.push({ employeeId, outcome: 'assigned' })
       success++
+      void deliverEmployeeUpdatedWebhook(employeeId, auth.user!.tenantId!)
     } catch (err) {
       const msg = (err as Error).message
       results.push({

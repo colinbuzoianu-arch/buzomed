@@ -29,6 +29,8 @@ X-Buzomed-Signature: sha256=<hex>
 \`\`\`
 Verify: \`sha256=\` + HMAC-SHA256(secret, rawBody).
 
+The \`employee.updated\` event fires on **any** employee change — whether made via this API (PATCH /employees/{id}) or through the Buzomed dashboard UI — enabling bidirectional sync with external HR systems.
+
 ## Privacy
 Clinical and medical fields are never returned by this API (no CNP, birth date, diagnoses, anamnesis, vital signs, etc.).`,
   },
@@ -61,6 +63,7 @@ Clinical and medical fields are never returned by this API (no CNP, birth date, 
           workplaceName: { type: 'string', nullable: true },
           isActive: { type: 'boolean' },
           createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
         },
       },
       Examination: {
@@ -183,10 +186,87 @@ Clinical and medical fields are never returned by this API (no CNP, birth date, 
         tags: ['Employees'],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         responses: {
-          '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: { employee: { $ref: '#/components/schemas/Employee' } } } } } },
+          '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/Employee' } } } },
           '401': { description: 'Unauthorized' },
           '403': { description: 'Forbidden' },
           '404': { description: 'Not found' },
+        },
+      },
+      patch: {
+        summary: 'Update employee',
+        description: `Partially updates an employee. All body fields are optional — only include what you want to change. Requires scope \`employees:write\`.
+
+**Writable fields**: \`companyEmployeeId\`, \`firstName\`, \`lastName\`, \`jobTitle\`, \`email\`, \`phone\`, \`isActive\`, \`workplaceId\`.
+
+**workplaceId**: set to a workplace UUID to assign or transfer the employee; set to \`null\` to remove the current assignment. The workplace must belong to the same company as the employee.
+
+**Forbidden clinical fields**: sending any of \`cnp\`, \`dateOfBirth\`, \`birthDate\`, \`gender\`, \`idDocumentType\`, \`idDocumentNumber\`, \`nationality\`, \`addressLine1\`–\`postalCode\`, \`bloodType\`, \`emergencyContact*\`, \`vitalSigns\`, \`diagnoses\`, \`anamnesis\`, \`notes\`, or any other medical/PII field returns HTTP 400 \`forbidden_field\`. These fields require elevated permissions and must be managed through the Buzomed dashboard.
+
+**Optimistic concurrency**: include \`expectedUpdatedAt\` (ISO string from a previous GET or PATCH response \`updatedAt\` field) to detect concurrent modifications. If the record was changed since your last read, the request returns HTTP 409 with the current employee data so you can reconcile before retrying.
+
+A successful update fires the \`employee.updated\` webhook to all registered endpoints.`,
+        operationId: 'updateEmployee',
+        tags: ['Employees'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  companyEmployeeId: { type: 'string', nullable: true, description: 'Internal HR badge / matricola number' },
+                  firstName: { type: 'string', minLength: 1 },
+                  lastName: { type: 'string', minLength: 1 },
+                  jobTitle: { type: 'string', nullable: true },
+                  email: { type: 'string', nullable: true },
+                  phone: { type: 'string', nullable: true },
+                  isActive: { type: 'boolean' },
+                  workplaceId: { type: 'string', format: 'uuid', nullable: true, description: 'Set to a workplace UUID to assign/transfer; null to remove current assignment' },
+                  expectedUpdatedAt: { type: 'string', format: 'date-time', description: 'ISO timestamp from a previous read; triggers optimistic concurrency check' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Employee updated successfully',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Employee' } } },
+          },
+          '400': {
+            description: 'Validation error or forbidden field',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    error: { type: 'string', enum: ['validation_failed', 'forbidden_field', 'invalid_json'] },
+                    issues: { type: 'array', items: { type: 'string' }, description: 'Present on validation_failed' },
+                    fields: { type: 'array', items: { type: 'string' }, description: 'Present on forbidden_field — lists which fields were rejected' },
+                  },
+                },
+              },
+            },
+          },
+          '401': { description: 'Unauthorized — missing or invalid API key' },
+          '403': { description: 'Forbidden — key lacks the employees:write scope' },
+          '404': { description: 'Employee not found, or workplace not found / not in same company' },
+          '409': {
+            description: 'Conflict — record was modified since expectedUpdatedAt; current employee data is returned so the caller can reconcile',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    error: { type: 'string', enum: ['conflict'] },
+                    employee: { $ref: '#/components/schemas/Employee' },
+                  },
+                },
+              },
+            },
+          },
+          '429': { description: 'Rate limit exceeded' },
         },
       },
     },
