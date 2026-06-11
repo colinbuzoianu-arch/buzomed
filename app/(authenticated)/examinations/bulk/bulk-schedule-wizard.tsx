@@ -272,8 +272,8 @@ export function BulkScheduleWizard({ initialCompanyId }: { initialCompanyId: str
           return { recallId: r.id, scheduledAt } satisfies RecallsPostItem
         })
         const chunks: SessionBatch[] = []
-        for (let i = 0; i < postItems.length; i += 200) {
-          chunks.push({ practitionerId: sa.session.practitionerId, mode, items: postItems.slice(i, i + 200) })
+        for (let i = 0; i < postItems.length; i += 25) {
+          chunks.push({ practitionerId: sa.session.practitionerId, mode, items: postItems.slice(i, i + 25) })
         }
         return chunks
       })

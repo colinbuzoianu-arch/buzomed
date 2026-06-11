@@ -398,56 +398,68 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'validation_failed', issues: parseIssues }, { status: 400 })
     }
 
+    // ── Bulk pre-fetch all validation data (replaces 4 per-item queries) ─────
+    const allEmployeeIds   = empItems.map(i => i.employeeId)
+    const allExamTypeIds   = [...new Set(empItems.map(i => i.examinationTypeId))]
+
+    const [employeeRows, assignmentRows, examTypeRows] = await Promise.all([
+      prisma.employee.findMany({
+        where: {
+          id: { in: allEmployeeIds },
+          tenantId: auth.user.tenantId,
+          isActive: true,
+          deletedAt: null,
+          archivedAt: null,
+        },
+        select: { id: true },
+      }),
+      prisma.employeeWorkplaceAssignment.findMany({
+        where: { employeeId: { in: allEmployeeIds }, tenantId: auth.user.tenantId, isCurrent: true },
+        select: { employeeId: true, workplaceId: true },
+      }),
+      prisma.examinationType.findMany({
+        where: { id: { in: allExamTypeIds }, isActive: true },
+        select: { id: true },
+      }),
+    ])
+
+    const validEmployeeIds  = new Set(employeeRows.map(e => e.id))
+    const wpByEmployee      = new Map(assignmentRows.map(a => [a.employeeId, a.workplaceId]))
+    const validExamTypeIds  = new Set(examTypeRows.map(e => e.id))
+
+    // Resolve all workplace IDs needed, then validate them in one query
+    const neededWorkplaceIds = new Set<string>()
+    for (const item of empItems) {
+      const wpId = item.workplaceId ?? wpByEmployee.get(item.employeeId) ?? null
+      if (wpId) neededWorkplaceIds.add(wpId)
+    }
+    const workplaceRows = await prisma.workplace.findMany({
+      where: { id: { in: [...neededWorkplaceIds] }, tenantId: auth.user.tenantId, isActive: true, deletedAt: null },
+      select: { id: true },
+    })
+    const validWorkplaceIds = new Set(workplaceRows.map(w => w.id))
+
+    // ── Process items ─────────────────────────────────────────────────────
     const results: Array<{ itemId: string; outcome: 'created' | 'failed'; examinationId?: string; reason?: string }> = []
     let created = 0
     let failed = 0
 
     for (const item of empItems) {
       try {
-        const employee = await prisma.employee.findFirst({
-          where: {
-            id: item.employeeId,
-            tenantId: auth.user.tenantId,
-            isActive: true,
-            deletedAt: null,
-            archivedAt: null,
-          },
-          select: { id: true },
-        })
-        if (!employee) {
+        if (!validEmployeeIds.has(item.employeeId)) {
           results.push({ itemId: item.employeeId, outcome: 'failed', reason: 'employee_not_found' })
           failed++; continue
         }
-
-        const examType = await prisma.examinationType.findFirst({
-          where: { id: item.examinationTypeId, isActive: true },
-          select: { id: true },
-        })
-        if (!examType) {
+        if (!validExamTypeIds.has(item.examinationTypeId)) {
           results.push({ itemId: item.employeeId, outcome: 'failed', reason: 'exam_type_inactive' })
           failed++; continue
         }
-
-        // Resolve workplace: use provided, or fall back to current assignment
-        let resolvedWorkplaceId: string | null = item.workplaceId
-        if (!resolvedWorkplaceId) {
-          const assignment = await prisma.employeeWorkplaceAssignment.findFirst({
-            where: { employeeId: item.employeeId, tenantId: auth.user.tenantId, isCurrent: true },
-            orderBy: { startDate: 'desc' },
-            select: { workplaceId: true },
-          })
-          resolvedWorkplaceId = assignment?.workplaceId ?? null
-        }
+        const resolvedWorkplaceId = item.workplaceId ?? wpByEmployee.get(item.employeeId) ?? null
         if (!resolvedWorkplaceId) {
           results.push({ itemId: item.employeeId, outcome: 'failed', reason: 'no_workplace' })
           failed++; continue
         }
-
-        const workplace = await prisma.workplace.findFirst({
-          where: { id: resolvedWorkplaceId, tenantId: auth.user.tenantId, isActive: true, deletedAt: null },
-          select: { id: true },
-        })
-        if (!workplace) {
+        if (!validWorkplaceIds.has(resolvedWorkplaceId)) {
           results.push({ itemId: item.employeeId, outcome: 'failed', reason: 'workplace_unavailable' })
           failed++; continue
         }
@@ -456,8 +468,8 @@ export async function POST(request: NextRequest) {
           createExaminationWithNumberInTx(tx, auth.user!.tenantId!, (n) => ({
             tenant:          { connect: { id: auth.user!.tenantId! } },
             employee:        { connect: { id: item.employeeId } },
-            workplace:       { connect: { id: workplace.id } },
-            examinationType: { connect: { id: examType.id } },
+            workplace:       { connect: { id: resolvedWorkplaceId } },
+            examinationType: { connect: { id: item.examinationTypeId } },
             practitioner:    { connect: { id: practitioner.id } },
             location:        { connect: { id: locationId } },
             examinationNumber:   n.number,
@@ -508,6 +520,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'validation_failed', issues: parseIssues }, { status: 400 })
   }
 
+  // ── Bulk pre-fetch all recalls (replaces N per-item findFirst queries) ──
+  const allRecallIds = items.map(i => i.recallId)
+  const recallRows = await prisma.recall.findMany({
+    where: { id: { in: allRecallIds }, tenantId: auth.user.tenantId, deletedAt: null },
+    include: {
+      employee:        { select: { id: true, archivedAt: true, deletedAt: true } },
+      workplace:       { select: { id: true, isActive: true, deletedAt: true } },
+      examinationType: { select: { id: true, isActive: true } },
+    },
+  })
+  const recallById = new Map(recallRows.map(r => [r.id, r]))
+
   const results: Array<{
     itemId: string
     recallId: string  // kept for backward compat
@@ -520,14 +544,7 @@ export async function POST(request: NextRequest) {
 
   for (const item of items) {
     try {
-      const recall = await prisma.recall.findFirst({
-        where: { id: item.recallId, tenantId: auth.user.tenantId, deletedAt: null },
-        include: {
-          employee:        { select: { id: true, archivedAt: true, deletedAt: true } },
-          workplace:       { select: { id: true, isActive: true, deletedAt: true } },
-          examinationType: { select: { id: true, isActive: true } },
-        },
-      })
+      const recall = recallById.get(item.recallId) ?? null
 
       if (!recall) {
         results.push({ itemId: item.recallId, recallId: item.recallId, outcome: 'failed', reason: 'recall_not_found' })
