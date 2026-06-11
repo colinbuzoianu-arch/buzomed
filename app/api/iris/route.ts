@@ -72,6 +72,7 @@ ANGAJAȚI:
 - Pe pagina de profil a angajatului (/employees/[id]) există un panou lateral "Profil clinic" generat de AI, bazat pe istoricul examinărilor semnate. Apare doar dacă există examinări. Este orientativ — nu înlocuiește dosarul medical.
 - Profilul angajatului are 4 tab-uri selectabile prin URL: Examinări (implicit), Vaccinări, Evenimente medicale, Documente. Atribuirile la loc de muncă sunt întotdeauna vizibile, indiferent de tab.
 - Pe lista /employees există butonul "+ Vaccinare nouă" (lângă "+ Angajat nou") care deschide un modal cu autocomplete angajat — permite înregistrarea rapidă a unei vaccinări fără a naviga la profilul angajatului.
+- Atribuire în masă la loc de muncă: din pagina unui loc de muncă există dialogul "Atribuie angajați". Are două moduri: "Toți angajații companiei" (încarcă imediat toată lista cu checkbox select-all) și "Caută" (search by name). Modul implicit e "Toți angajații" — util când vrei să atribui un set mare dintr-o dată.
 
 IMPORT ANGAJAȚI — TEMPLATE EXTINS:
 - /employees/import acceptă două formate: template simplu (5 coloane: prenume, nume, id_angajat, email, departament) și template extins (10 coloane, adaugă: functie, nume_companie, cui_companie, adresa_companie, loc_de_munca).
@@ -172,9 +173,9 @@ GDPR ȘI PROTECȚIA DATELOR:
 
 API PUBLIC ȘI WEBHOOK-URI (/settings/api):
 - Disponibil pentru practice_admin din navigație la Settings → "API & Webhooks".
-- Chei API: se generează din /settings/api, cu prefix bz_live_. Fiecare cheie are un set de scope-uri (employees:read, examinations:read, companies:read, recalls:read). Cheia brută se afișează o singură dată la creare — dacă se pierde, trebuie revocată și recreată. Revocare disponibilă din același ecran.
-- Webhook-uri: se înregistrează endpoint-uri HTTPS pentru a primi notificări în timp real la evenimente (employee.created, recall.due_soon). Secretul webhook se afișează o singură dată; livrările recente (ultimele 50) sunt vizibile per endpoint cu status HTTP și timestamp.
-- Documentație API interactivă (Swagger): disponibilă public la /api-docs. Acoperă 7 endpoint-uri REST (/api/v1/employees, /api/v1/examinations, /api/v1/companies, /api/v1/recalls etc.) cu autentificare Bearer (cheia API).
+- Chei API: se generează din /settings/api, cu prefix bz_live_. Fiecare cheie are un set de scope-uri (employees:read, employees:write, examinations:read, companies:read, recalls:read). Cheia brută se afișează o singură dată la creare — dacă se pierde, trebuie revocată și recreată. Revocare disponibilă din același ecran.
+- Webhook-uri: se înregistrează endpoint-uri HTTPS pentru a primi notificări în timp real la evenimente (employee.created, employee.updated, recall.due_soon). employee.updated se declanșează la orice modificare a unui angajat — din interfață sau prin API. Secretul webhook se afișează o singură dată; livrările recente (ultimele 50) sunt vizibile per endpoint cu status HTTP și timestamp.
+- Documentație API interactivă (Swagger): disponibilă public la /api-docs. Acoperă 7 endpoint-uri REST (/api/v1/employees, /api/v1/examinations, /api/v1/companies, /api/v1/recalls etc.) cu autentificare Bearer (cheia API). PATCH /api/v1/employees/{id} (scope employees:write) permite actualizarea numelui, funcției, emailului, telefonului, stării active și locului de muncă al unui angajat. Suportă concurență optimistă: dacă trimiți câmpul expectedUpdatedAt și înregistrarea a fost modificată între timp, primești 409 Conflict cu starea curentă a angajatului.
 - Rate limit: 1000 cereri/oră per cheie API.
 - Integrare HR: API-ul public e gândit pentru sincronizare cu sisteme SAP, Workday, Charisma, Zapier etc.
 
