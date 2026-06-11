@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUserFromKey } from '@/lib/api-keys/auth'
 import { checkApiRateLimit } from '@/lib/api-keys/rate-limit'
 import { deliverWebhook } from '@/lib/webhooks/deliver'
+import { logSystemError } from '@/lib/system-log/error-log'
 
 // Fields that are never writable through the public API — clinical data,
 // system fields, and PII that requires elevated internal permissions.
@@ -143,6 +144,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   // Load employee — need companyId for workplace tenant+company check
+  try {
   const existing = await prisma.employee.findFirst({
     where: { id, tenantId, deletedAt: null },
     select: { companyId: true, updatedAt: true },
@@ -225,4 +227,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   void deliverWebhook(tenantId, 'employee.updated', updated as Record<string, unknown>)
 
   return NextResponse.json(updated, { headers: rlHeaders })
+  } catch (err) {
+    void logSystemError({
+      tenantId,
+      route: '/api/v1/employees/[id]',
+      method: 'PATCH',
+      error: err,
+      context: { employeeId: id },
+    })
+    return NextResponse.json({ error: 'internal_error' }, { status: 500, headers: rlHeaders })
+  }
 }

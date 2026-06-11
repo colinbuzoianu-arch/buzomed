@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { asObject } from '@/lib/validation'
+import { logSystemError } from '@/lib/system-log/error-log'
 
 /**
  * Roster diff endpoint.
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'companyId required' }, { status: 400 })
   }
 
+  try {
   const company = await prisma.company.findFirst({
     where: { id: companyId, tenantId: auth.user.tenantId, deletedAt: null },
     select: {
@@ -216,11 +218,20 @@ export async function POST(request: NextRequest) {
       workplace: a.workplace.name,
     }))
 
-  return NextResponse.json({
-    currentCount: currentAssignments.length,
-    new: newEmployees,
-    leaving: leavingEmployees,
-    moved: movedEmployees,
-    unchanged,
-  })
+    return NextResponse.json({
+      currentCount: currentAssignments.length,
+      new: newEmployees,
+      leaving: leavingEmployees,
+      moved: movedEmployees,
+      unchanged,
+    })
+  } catch (err) {
+    void logSystemError({
+      tenantId: auth.user.tenantId,
+      route: '/api/employees/import/diff',
+      method: 'POST',
+      error: err,
+    })
+    return NextResponse.json({ error: 'internal_error' }, { status: 500 })
+  }
 }

@@ -227,6 +227,9 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
           <p className="text-muted-foreground mt-1">{t('superAdmin.subtitle')}</p>
         </div>
         <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href="/super-admin/system-health">System Health</Link>
+          </Button>
           <RecallNotificationsButton />
           <ProbeInviteButton labels={probeInviteLabels} />
           <Button asChild variant="outline">

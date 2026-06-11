@@ -6,6 +6,7 @@ import { computeNextExaminationDueDate } from '@/lib/examinations/recall'
 import { upsertRecallFromExamination } from '@/lib/recalls/upsert-from-examination'
 import { writeAuditLog, getClientIp } from '@/lib/audit/log'
 import { deliverWebhook } from '@/lib/webhooks/deliver'
+import { logSystemError } from '@/lib/system-log/error-log'
 
 /**
  * Sign an examination. This is the legal commitment point — fișa de
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
 
   const { id } = await ctx.params
 
+  try {
   const existing = await prisma.examination.findFirst({
     where: { id, tenantId: auth.user.tenantId, deletedAt: null },
     include: {
@@ -160,4 +162,14 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
   })
 
   return NextResponse.json({ examination: updated })
+  } catch (err) {
+    void logSystemError({
+      tenantId: auth.user.tenantId,
+      route: '/api/examinations/[id]/sign',
+      method: 'POST',
+      error: err,
+      context: { examinationId: id },
+    })
+    return NextResponse.json({ error: 'internal_error' }, { status: 500 })
+  }
 }

@@ -197,5 +197,8 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+  await prisma.systemErrorLog.deleteMany({ where: { createdAt: { lt: cutoff } } })
+
   return NextResponse.json({ processed })
 }

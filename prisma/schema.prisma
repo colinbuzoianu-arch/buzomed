@@ -1275,3 +1275,51 @@ model WebhookDelivery {
   @@index([attemptedAt])
   @@map("webhook_deliveries")
 }
+
+// ============================================================================
+// SYSTEM OBSERVABILITY
+// ============================================================================
+
+// Structured error log for API/server exceptions.
+// Retention: rows older than 90 days are purged by the subscription-check cron.
+model SystemErrorLog {
+  id         String   @id @default(cuid())
+  tenantId   String?  @map("tenant_id")
+  route      String
+  method     String
+  errorType  String   @map("error_type")
+  message    String
+  stackTrace String?  @map("stack_trace") @db.Text
+  // PRIVACY: context must only contain IDs, enums, or counts — never names,
+  // emails, CNPs, dates of birth, addresses, or any other PII/clinical data.
+  context    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([tenantId])
+  @@map("system_error_logs")
+}
+
+// Audit trail for bulk employee import jobs.
+model ImportJob {
+  id                   String   @id @default(cuid())
+  tenantId             String   @map("tenant_id")
+  initiatedByUserId    String   @map("initiated_by_user_id")
+  fallbackCompanyId    String?  @map("fallback_company_id")
+  totalRows            Int      @map("total_rows")
+  created              Int
+  skipped              Int
+  failed               Int
+  companiesCreated     Int      @map("companies_created")
+  workplacesCreated    Int      @map("workplaces_created")
+  rowsWithoutCompany   Int      @map("rows_without_company")
+  rowsWithoutWorkplace Int      @map("rows_without_workplace")
+  // Anomaly flags computed at write time. Example values:
+  //   workplace_data_present_but_unassigned, zero_rows_created,
+  //   high_failure_rate, unexpected_company_creation
+  flags                Json?
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@map("import_jobs")
+}

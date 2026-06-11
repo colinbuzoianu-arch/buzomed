@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { asObject } from '@/lib/validation'
+import { logSystemError } from '@/lib/system-log/error-log'
 
 /**
  * Bulk employee import — commit endpoint.
@@ -185,12 +186,14 @@ export async function POST(request: NextRequest) {
   let created = 0, skipped = 0, failed = 0
   let companiesCreated = 0, workplacesCreated = 0
   let rowsWithoutCompany = 0, rowsWithoutWorkplace = 0
+  let anyRowHadWorkplaceName = false
   const newCompanyList: Array<{ id: string; name: string; cui: string }> = []
   const results: RowOutcome[] = []
 
   const tenantId = auth.user.tenantId
 
   for (const row of rows) {
+    if (row.workplaceName) anyRowHadWorkplaceName = true
     try {
       // ── 1. Resolve company ────────────────────────────────────────────
       let resolvedCompanyId: string | null = null
@@ -343,6 +346,13 @@ export async function POST(request: NextRequest) {
       created++
     } catch (err) {
       console.error('[employees.import] row failed', { rowNumber: row.rowNumber, error: (err as Error).message })
+      void logSystemError({
+        tenantId,
+        route: '/api/employees/import/commit',
+        method: 'POST',
+        error: err,
+        context: { rowNumber: row.rowNumber, rowCount: rows.length },
+      })
       const code = (err as { code?: string }).code
       results.push({
         rowNumber: row.rowNumber,
@@ -352,6 +362,34 @@ export async function POST(request: NextRequest) {
       failed++
     }
   }
+
+  // Compute anomaly flags before persisting the job audit record
+  const flags: string[] = []
+  if (rowsWithoutWorkplace > 0 && anyRowHadWorkplaceName)
+    flags.push('workplace_data_present_but_unassigned')
+  if (created === 0 && rows.length > 0)
+    flags.push('zero_rows_created')
+  if (failed > rows.length * 0.5)
+    flags.push('high_failure_rate')
+  if (companiesCreated > 0 && fallbackCompanyId)
+    flags.push('unexpected_company_creation')
+
+  void prisma.importJob.create({
+    data: {
+      tenantId,
+      initiatedByUserId: auth.user.id,
+      fallbackCompanyId,
+      totalRows: rows.length,
+      created,
+      skipped,
+      failed,
+      companiesCreated,
+      workplacesCreated,
+      rowsWithoutCompany,
+      rowsWithoutWorkplace,
+      flags: flags.length > 0 ? flags : undefined,
+    },
+  }).catch((err) => console.error('[import] Failed to write ImportJob:', err))
 
   return NextResponse.json({
     summary: { total: rows.length, created, skipped, failed, companiesCreated, workplacesCreated, rowsWithoutCompany, rowsWithoutWorkplace },

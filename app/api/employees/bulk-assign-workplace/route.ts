@@ -5,6 +5,7 @@ import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { asObject } from '@/lib/validation'
 import type { WorkAssignmentReason } from '@prisma/client'
 import { deliverEmployeeUpdatedWebhook } from '@/lib/webhooks/employee-webhook'
+import { logSystemError } from '@/lib/system-log/error-log'
 
 const VALID_REASONS: WorkAssignmentReason[] = [
   'hired', 'promoted', 'transferred', 'role_change', 'department_change', 'other',
@@ -88,6 +89,15 @@ export async function POST(request: NextRequest) {
       void deliverEmployeeUpdatedWebhook(employeeId, auth.user!.tenantId!)
     } catch (err) {
       const msg = (err as Error).message
+      if (msg !== 'employee_not_found') {
+        void logSystemError({
+          tenantId: auth.user!.tenantId,
+          route: '/api/employees/bulk-assign-workplace',
+          method: 'POST',
+          error: err,
+          context: { employeeId },
+        })
+      }
       results.push({
         employeeId,
         outcome: 'failed',

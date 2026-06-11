@@ -15,6 +15,7 @@ import { canTenantDo } from '@/lib/subscription'
 import { ensurePrimaryLocation } from '@/lib/examinations/auto-location'
 import { createExaminationWithNumber } from '@/lib/examinations/numbering'
 import { deliverWebhook } from '@/lib/webhooks/deliver'
+import { logSystemError } from '@/lib/system-log/error-log'
 
 /**
  * Examinations live at the tenant level (not nested under employee or
@@ -351,6 +352,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ examination }, { status: 201 })
   } catch (err) {
     console.error('[examinations/POST]', err)
+    void logSystemError({
+      tenantId: auth.user?.tenantId,
+      route: '/api/examinations',
+      method: 'POST',
+      error: err,
+    })
     return NextResponse.json({ error: 'internal_error' }, { status: 500 })
   }
 }

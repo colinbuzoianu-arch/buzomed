@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { decryptWebhookSecret } from './secret'
 import type { WebhookEvent, WebhookPayload } from './events'
+import { logSystemError } from '@/lib/system-log/error-log'
 
 export async function deliverWebhook(
   tenantId: string,
@@ -50,8 +51,14 @@ export async function deliverWebhook(
       responseStatus = res.status
       responseBody = (await res.text().catch(() => null))?.slice(0, 1000) ?? null
       success = res.ok
-    } catch {
+    } catch (fetchErr) {
       success = false
+      void logSystemError({
+        route: endpoint.url,
+        method: 'WEBHOOK',
+        error: fetchErr,
+        context: { endpointId: endpoint.id },
+      })
     }
 
     const durationMs = Date.now() - start
@@ -92,8 +99,8 @@ export async function deliverWebhook(
           })
         }
       })
-    } catch {
-      // delivery log failure is non-fatal
+    } catch (dbErr) {
+      console.error('[webhook] delivery log DB write failed:', dbErr)
     }
   }
 }
