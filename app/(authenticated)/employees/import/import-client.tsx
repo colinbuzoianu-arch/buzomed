@@ -119,6 +119,12 @@ function reapplyMapping(originalRows: RawRow[], newMapping: ColumnMapping): RawR
       companyEmployeeId: get('companyEmployeeId'),
       email: get('email'),
       department: get('department'),
+      jobTitle: get('jobTitle'),
+      city: get('city'),
+      companyName: get('companyName'),
+      cui: get('cui'),
+      companyAddress: get('companyAddress'),
+      workplaceName: get('workplaceName'),
     }
   })
 }
