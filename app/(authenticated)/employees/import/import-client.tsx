@@ -83,9 +83,9 @@ function colKeyLabel(key: ColumnKey, labels: Record<string, string>): string {
   }
 }
 
-function matchWorkplace(company: Company, dept: string | null): Workplace | null {
-  if (!dept) return null
-  const key = dept.toLowerCase().trim()
+function matchWorkplace(company: Company, label: string | null): Workplace | null {
+  if (!label) return null
+  const key = label.toLowerCase().trim()
   for (const w of company.workplaces) {
     if (w.department && w.department.toLowerCase() === key) return w
   }
@@ -134,7 +134,9 @@ function annotateRows(remappedRows: RawRow[], company: Company | null | undefine
   const seenEmails = new Set<string>()
   return remappedRows.map((row) => {
     const v = validateRow(row)
-    const wp = company ? matchWorkplace(company, row.department) : null
+    const wp = company
+      ? (matchWorkplace(company, row.workplaceName) ?? matchWorkplace(company, row.department))
+      : null
     const issues = [...v.issues]
     const warnings = [...v.warnings]
 

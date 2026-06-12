@@ -130,9 +130,6 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
     'sectia',
     'compartiment',
     'birou',
-    'workplace',
-    'loc de munca',
-    'locul de munca',
     'post',
     'post de lucru',
     'unit',
@@ -207,6 +204,7 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
     'work location',
     'work site',
     'locatie munca',
+    'workplace',
   ],
 }
 

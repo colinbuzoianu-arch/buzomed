@@ -180,8 +180,9 @@ export async function POST(request: NextRequest) {
   }
 
   // Per-import caches for company/workplace resolution
-  const companiesCache = new Map<string, string>()  // normalizedCui → companyId
-  const workplacesCache = new Map<string, string>() // `${companyId}:${lowerName}` → workplaceId
+  const companiesCache = new Map<string, string>()      // normalizedCui → companyId
+  const companiesByName = new Map<string, string | null>() // lowerName → companyId (null = not found)
+  const workplacesCache = new Map<string, string>()     // `${companyId}:${lowerName}` → workplaceId
 
   let created = 0, skipped = 0, failed = 0
   let companiesCreated = 0, workplacesCreated = 0
@@ -237,8 +238,22 @@ export async function POST(request: NextRequest) {
             }
           }
         }
-      } else if (row.cui || row.companyName) {
-        // One column present without the other
+      } else if (row.companyName) {
+        // companyName present but no CUI — try name-based lookup before falling back to UI selection
+        const coNameKey = row.companyName.toLowerCase()
+        if (companiesByName.has(coNameKey)) {
+          resolvedCompanyId = companiesByName.get(coNameKey) ?? fallbackCompanyId
+        } else {
+          const byName = await prisma.company.findFirst({
+            where: { tenantId, deletedAt: null, name: { equals: row.companyName, mode: 'insensitive' } },
+            select: { id: true },
+          })
+          companiesByName.set(coNameKey, byName?.id ?? null)
+          resolvedCompanyId = byName?.id ?? fallbackCompanyId
+        }
+        if (!resolvedCompanyId) rowWarning = 'incomplete_company_columns'
+      } else if (row.cui) {
+        // CUI present but no company name
         rowWarning = 'incomplete_company_columns'
         resolvedCompanyId = fallbackCompanyId
       } else {
