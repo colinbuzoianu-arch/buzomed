@@ -314,7 +314,29 @@ export async function POST(request: NextRequest) {
       const dupByEmail = row.email ? existingByEmail.get(row.email) : undefined
       const duplicate = dupByName ?? dupByEmail
       if (duplicate && row.skipIfDuplicate) {
-        results.push({ rowNumber: row.rowNumber, outcome: 'skipped', reason: 'duplicate_employee', duplicateEmployeeId: duplicate })
+        // If the existing employee has no current workplace and we resolved one, patch it now.
+        // This handles re-imports after a failed first run (e.g. the workplace bug fixed above).
+        let skipWarning: string | undefined = rowWarning
+        if (resolvedWorkplaceId) {
+          const hasAssignment = await prisma.employeeWorkplaceAssignment.findFirst({
+            where: { employeeId: duplicate, isCurrent: true },
+            select: { id: true },
+          })
+          if (!hasAssignment) {
+            await prisma.employeeWorkplaceAssignment.create({
+              data: {
+                tenantId,
+                employeeId: duplicate,
+                workplaceId: resolvedWorkplaceId,
+                startDate: new Date(),
+                isCurrent: true,
+                reasonForChange: 'hired',
+              },
+            })
+            skipWarning = 'workplace_assigned_on_skip'
+          }
+        }
+        results.push({ rowNumber: row.rowNumber, outcome: 'skipped', reason: 'duplicate_employee', duplicateEmployeeId: duplicate, warning: skipWarning })
         skipped++
         continue
       }
