@@ -280,6 +280,7 @@ model Tenant {
   companyHrAssignments CompanyHrAssignment[]
   apiKeys             ApiKey[]
   webhookEndpoints    WebhookEndpoint[]
+  importStagedFiles   ImportStagedFile[]
 
   @@map("tenants")
   @@index([slug])
@@ -372,6 +373,7 @@ model User {
   invitationsRevoked      Invitation[]                  @relation("InvitationRevoker")
   hrAssignments           CompanyHrAssignment[]
   apiKeys                 ApiKey[]
+  importStagedFiles       ImportStagedFile[]
 
   @@map("users")
   @@index([tenantId])
@@ -1322,4 +1324,22 @@ model ImportJob {
 
   @@index([tenantId, createdAt])
   @@map("import_jobs")
+}
+
+// Staged file waiting to be processed by an authorised user.
+// TODO: purge processed/discarded rows + storage objects older than 30 days (future cron).
+model ImportStagedFile {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+  storagePath       String    @map("storage_path")
+  originalFilename  String    @map("original_filename")
+  uploadedByUserId  String    @map("uploaded_by_user_id") @db.Uuid
+  uploadedBy        User      @relation(fields: [uploadedByUserId], references: [id])
+  status            String    @default("pending") // pending | processed | discarded
+  processedAt       DateTime? @map("processed_at") @db.Timestamptz
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([tenantId])
+  @@map("import_staged_files")
 }

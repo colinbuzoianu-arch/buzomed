@@ -2,7 +2,7 @@
 
 import { TOAST } from '@/lib/toast'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,6 +52,13 @@ interface DiffResult {
 }
 
 type Phase = 'idle' | 'previewing' | 'committing' | 'done'
+
+interface StagedFile {
+  id: string
+  originalFilename: string
+  uploadedAt: string
+  uploadedByName: string
+}
 
 const COLUMN_KEYS: ColumnKey[] = [
   'firstName',
@@ -220,7 +227,71 @@ export function ImportClient({ companies, locale, labels }: Props) {
     companiesCreated: Array<{ id: string; name: string; cui: string }>
   } | null>(null)
 
+  const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([])
+  const [stagedFilesLoading, setStagedFilesLoading] = useState(false)
+  const [stagingFile, setStagingFile] = useState(false)
+  const [activeStagedFileId, setActiveStagedFileId] = useState<string | null>(null)
+  const stageInputRef = useRef<HTMLInputElement>(null)
+
   const selectedCompany = companies.find((c) => c.id === companyId)
+
+  const loadStagedFiles = useCallback(() => {
+    setStagedFilesLoading(true)
+    fetch('/api/employees/import/staged')
+      .then((res) => (res.ok ? res.json() : { files: [] }))
+      .then((data: { files: StagedFile[] }) => setStagedFiles(data.files))
+      .catch(() => {})
+      .finally(() => setStagedFilesLoading(false))
+  }, [])
+
+  useEffect(() => { loadStagedFiles() }, [loadStagedFiles])
+
+  async function handleStageUpload(file: File) {
+    setStagingFile(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    try {
+      const res = await fetch('/api/employees/import/stage', { method: 'POST', body: fd })
+      if (res.ok) {
+        const data: StagedFile = await res.json()
+        setStagedFiles((prev) => [data, ...prev])
+        TOAST.saved()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        setError(err.error === 'file_too_large' ? 'Fișierul depășește 10 MB.' : 'Încărcarea a eșuat.')
+      }
+    } catch {
+      setError('Eroare de rețea la încărcare.')
+    } finally {
+      setStagingFile(false)
+      if (stageInputRef.current) stageInputRef.current.value = ''
+    }
+  }
+
+  async function handleProcessStaged(stagedFile: StagedFile) {
+    setError(null)
+    try {
+      const res = await fetch(`/api/employees/import/staged/${stagedFile.id}/download`)
+      if (!res.ok) { setError('Nu s-a putut genera link-ul de descărcare.'); return }
+      const { signedUrl, filename } = await res.json() as { signedUrl: string; filename: string }
+
+      const fileRes = await fetch(signedUrl)
+      if (!fileRes.ok) { setError('Descărcarea fișierului a eșuat.'); return }
+      const blob = await fileRes.blob()
+      const mimeType = filename.toLowerCase().endsWith('.csv') ? 'text/csv'
+        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      const file = new File([blob], filename, { type: mimeType })
+      setActiveStagedFileId(stagedFile.id)
+      await handleFileSelect(file)
+    } catch {
+      setError('Eroare la procesarea fișierului staged.')
+    }
+  }
+
+  async function handleDeleteStaged(id: string) {
+    const res = await fetch(`/api/employees/import/staged/${id}`, { method: 'DELETE' })
+    if (res.ok) setStagedFiles((prev) => prev.filter((f) => f.id !== id))
+  }
 
   function runDiff(cid: string, annotated: AnnotatedRow[]) {
     const validForDiff = annotated.filter(
@@ -419,6 +490,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyId: companyId || null,
+          stagedFileId: activeStagedFileId,
           rows: validRows.map((r) => ({
             rowNumber: r.rowNumber,
             firstName: r.firstName!,
@@ -444,6 +516,10 @@ export function ImportClient({ companies, locale, labels }: Props) {
       }
       setCommitResult(data)
       TOAST.importSuccess(data.summary?.created ?? 0)
+      if (activeStagedFileId) {
+        setStagedFiles((prev) => prev.filter((f) => f.id !== activeStagedFileId))
+        setActiveStagedFileId(null)
+      }
       setPhase('done')
     } catch (err) {
       console.error('Commit error', err)
@@ -470,6 +546,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
     setAiUsed(false)
     setAiConfidence({})
     if (fileInputRef.current) fileInputRef.current.value = ''
+    setActiveStagedFileId(null)
   }
 
   // ─── Results screen ─────────────────────────────────────────────
@@ -590,6 +667,85 @@ export function ImportClient({ companies, locale, labels }: Props) {
   // ─── Setup + preview ────────────────────────────────────────────
   return (
     <div className="space-y-6">
+
+      {/* ── Staged files panel ──────────────────────────────────── */}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b">
+          <div>
+            <span className="font-medium text-sm">Fișiere încărcate pentru procesare ulterioară</span>
+            {stagedFiles.length > 0 && (
+              <span className="ml-2 text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5 font-medium">
+                {stagedFiles.length}
+              </span>
+            )}
+          </div>
+          <div>
+            <input
+              ref={stageInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleStageUpload(f) }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={stagingFile || phase === 'committing'}
+              onClick={() => stageInputRef.current?.click()}
+            >
+              {stagingFile ? 'Se încarcă…' : 'Încarcă pentru procesare ulterioară'}
+            </Button>
+          </div>
+        </div>
+
+        {stagedFilesLoading ? (
+          <div className="px-4 py-3 text-sm text-muted-foreground animate-pulse">Se încarcă…</div>
+        ) : stagedFiles.length === 0 ? (
+          <div className="px-4 py-3 text-sm text-muted-foreground">
+            Niciun fișier în așteptare. Folosește butonul de mai sus pentru a încărca un Excel
+            ce va putea fi procesat ulterior de un alt utilizator autorizat.
+          </div>
+        ) : (
+          <ul className="divide-y">
+            {stagedFiles.map((sf) => (
+              <li key={sf.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{sf.originalFilename}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {sf.uploadedByName} · {new Date(sf.uploadedAt).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    onClick={() => handleProcessStaged(sf)}
+                    disabled={phase === 'committing'}
+                  >
+                    Procesează
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDeleteStaged(sf.id)}
+                    disabled={phase === 'committing'}
+                  >
+                    Șterge
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Divider between staged section and direct import flow */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">sau importă direct</span>
+        </div>
+      </div>
+
       {/* Step 1: pick company */}
       <div className="space-y-2">
         <Label htmlFor="company">

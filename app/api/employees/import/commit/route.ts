@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
 
   const body = asObject(raw) ?? {}
   const fallbackCompanyId = typeof body.companyId === 'string' && body.companyId ? body.companyId : null
+  const stagedFileId = typeof body.stagedFileId === 'string' && body.stagedFileId ? body.stagedFileId : null
   const rowsInput = Array.isArray(body.rows) ? body.rows : []
 
   if (rowsInput.length === 0) {
@@ -427,6 +428,14 @@ export async function POST(request: NextRequest) {
       flags: flags.length > 0 ? flags : undefined,
     },
   }).catch((err) => console.error('[import] Failed to write ImportJob:', err))
+
+  // Mark the staged file as processed if this commit originated from one.
+  if (stagedFileId) {
+    void prisma.importStagedFile.updateMany({
+      where: { id: stagedFileId, tenantId, status: 'pending' },
+      data: { status: 'processed', processedAt: new Date() },
+    }).catch((err) => console.error('[import] Failed to mark staged file processed:', err))
+  }
 
   return NextResponse.json({
     summary: { total: rows.length, created, skipped, failed, companiesCreated, workplacesCreated, rowsWithoutCompany, rowsWithoutWorkplace },
