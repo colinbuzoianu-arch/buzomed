@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getApiUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logSystemError } from '@/lib/system-log/error-log'
 
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY
@@ -32,7 +33,13 @@ export async function POST() {
   let stripe: Stripe
   try {
     stripe = getStripe()
-  } catch {
+  } catch (err) {
+    await logSystemError({
+      tenantId: auth.user.tenantId,
+      route: '/api/billing/portal',
+      method: 'POST',
+      error: err,
+    })
     return NextResponse.json({ error: 'stripe_not_configured' }, { status: 503 })
   }
 
@@ -44,9 +51,13 @@ export async function POST() {
       return_url: `${appUrl}/settings/billing`,
     })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'unknown error'
-    console.error('[billing/portal] Stripe error:', msg)
-    return NextResponse.json({ error: 'stripe_portal_error', detail: msg }, { status: 502 })
+    await logSystemError({
+      tenantId: auth.user.tenantId,
+      route: '/api/billing/portal',
+      method: 'POST',
+      error: err,
+    })
+    return NextResponse.json({ error: 'stripe_portal_error' }, { status: 502 })
   }
 
   return NextResponse.json({ url: session.url })
