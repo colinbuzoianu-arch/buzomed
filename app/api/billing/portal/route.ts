@@ -37,10 +37,17 @@ export async function POST() {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  const session = await stripe.billingPortal.sessions.create({
-    customer: sub.stripeCustomerId,
-    return_url: `${appUrl}/settings/billing`,
-  })
+  let session: Stripe.BillingPortal.Session
+  try {
+    session = await stripe.billingPortal.sessions.create({
+      customer: sub.stripeCustomerId,
+      return_url: `${appUrl}/settings/billing`,
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown error'
+    console.error('[billing/portal] Stripe error:', msg)
+    return NextResponse.json({ error: 'stripe_portal_error', detail: msg }, { status: 502 })
+  }
 
   return NextResponse.json({ url: session.url })
 }
