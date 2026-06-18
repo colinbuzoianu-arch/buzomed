@@ -21,6 +21,7 @@ interface BillingClientProps {
   plans: SerializedPlan[]
   employeeCount: number
   invoices: StripeInvoice[]
+  hasStripeCustomer: boolean
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -45,7 +46,7 @@ const STATUS_COLORS: Record<string, string> = {
   comp: 'bg-violet-100 text-violet-800',
 }
 
-export function BillingClient({ subscription, plans, employeeCount, invoices }: BillingClientProps) {
+export function BillingClient({ subscription, plans, employeeCount, invoices, hasStripeCustomer }: BillingClientProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [portalLoading, setPortalLoading] = useState(false)
 
@@ -149,7 +150,7 @@ export function BillingClient({ subscription, plans, employeeCount, invoices }: 
               <div className="text-[13px] text-muted-foreground">Angajați activi</div>
               <div className="text-2xl font-bold">{employeeCount}</div>
             </div>
-            {isActive && (
+            {isActive && hasStripeCustomer && (
               <button
                 onClick={handlePortal}
                 disabled={portalLoading}

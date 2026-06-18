@@ -75,6 +75,7 @@ export default async function BillingPage() {
         plans={plans}
         employeeCount={employeeCount}
         invoices={invoices}
+        hasStripeCustomer={!!subscription?.stripeCustomerId}
       />
     </div>
   )
