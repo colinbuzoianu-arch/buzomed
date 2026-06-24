@@ -99,8 +99,10 @@ export async function POST(request: Request) {
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice
       const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id
+      const rawSub = invoice.parent?.subscription_details?.subscription
+      const invoiceSubId = !rawSub ? null : typeof rawSub === 'string' ? rawSub : rawSub.id
 
-      if (!customerId) break
+      if (!customerId || !invoiceSubId) break
 
       const sub = await prisma.subscription.findFirst({
         where: { stripeCustomerId: customerId },
@@ -117,7 +119,7 @@ export async function POST(request: Request) {
         },
       })
 
-      if (!sub) break
+      if (!sub || invoiceSubId !== sub.stripeSubscriptionId) break
 
       await prisma.subscription.update({
         where: { id: sub.id },
@@ -144,13 +146,15 @@ export async function POST(request: Request) {
     case 'invoice.payment_succeeded': {
       const invoice = event.data.object as Stripe.Invoice
       const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id
+      const rawSub = invoice.parent?.subscription_details?.subscription
+      const invoiceSubId = !rawSub ? null : typeof rawSub === 'string' ? rawSub : rawSub.id
 
-      if (!customerId) break
+      if (!customerId || !invoiceSubId) break
 
       const sub = await prisma.subscription.findFirst({
         where: { stripeCustomerId: customerId },
       })
-      if (!sub) break
+      if (!sub || invoiceSubId !== sub.stripeSubscriptionId) break
 
       // Refresh period end from the linked Stripe subscription if we have one stored
       let periodEnd: Date | null = sub.currentPeriodEnd
