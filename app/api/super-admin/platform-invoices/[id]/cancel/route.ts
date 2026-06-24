@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
+import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -23,5 +24,19 @@ export async function POST(_req: NextRequest, ctx: Ctx) {
     where: { id },
     data: { status: 'cancelled' },
   })
+
+  const { ipAddress, userAgent } = getRequestMeta(_req)
+  void writeAuditLog({
+    tenantId: null,
+    userId: auth.user.id,
+    action: 'update',
+    entityType: 'platform_invoice',
+    entityId: id,
+    entitySummary: updated.invoiceNumber,
+    changes: { status: { from: invoice.status, to: 'cancelled' } },
+    ipAddress,
+    userAgent,
+  })
+
   return NextResponse.json({ invoice: updated })
 }

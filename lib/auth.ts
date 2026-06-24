@@ -2,6 +2,8 @@ import { createClient } from './supabase/server'
 import { prisma } from './prisma'
 import { redirect } from 'next/navigation'
 import type { User as AppUser } from '@prisma/client'
+import { createHash } from 'node:crypto'
+import { writeAuditLog } from './audit/log'
 
 /**
  * Returns the currently logged-in app User, or null if not authenticated.
@@ -24,17 +26,36 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   if (appUser.deletedAt || !appUser.isActive) return null
 
   // Update lastLoginAt lazily — at most once per 5 minutes to avoid
-  // hammering the DB on every page navigation. We check the existing
-  // value first so most requests skip the UPDATE entirely.
+  // hammering the DB on every page navigation. Piggyback a login audit
+  // event on the same gate so sign-ins are tracked without extra queries.
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
   if (!appUser.lastLoginAt || appUser.lastLoginAt < fiveMinutesAgo) {
+    const now = new Date()
+    // Stable session ID for grouping audit events within one login window:
+    // hash(supabaseUserId + rounded-minute) so the same minute produces the
+    // same bucket without storing any sensitive value.
+    const sessionId = createHash('sha256')
+      .update(`${authUser.id}:${Math.floor(now.getTime() / 60000)}`)
+      .digest('hex')
+      .slice(0, 32)
+
     // Fire and forget — don't await so it doesn't add latency to the
     // page render. If it fails, the stale value is harmless.
-    prisma.user.update({
-      where: { id: appUser.id },
-      data: { lastLoginAt: new Date() },
-    }).catch((err) => {
-      console.warn('[auth] lastLoginAt update failed:', err)
+    Promise.all([
+      prisma.user.update({
+        where: { id: appUser.id },
+        data: { lastLoginAt: now },
+      }),
+      writeAuditLog({
+        tenantId: appUser.tenantId,
+        userId: appUser.id,
+        action: 'login',
+        entityType: 'user',
+        entityId: appUser.id,
+        sessionId,
+      }),
+    ]).catch((err) => {
+      console.warn('[auth] lastLoginAt/login-audit update failed:', err)
     })
   }
 

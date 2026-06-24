@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
+import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -34,6 +35,18 @@ export async function POST(_req: NextRequest, ctx: Ctx) {
     prisma.user.updateMany({ where: { tenantId: id, deletedAt: null }, data: { deletedAt: now } }),
     prisma.tenant.update({ where: { id }, data: { deletedAt: now } }),
   ])
+
+  const { ipAddress, userAgent } = getRequestMeta(_req)
+  void writeAuditLog({
+    tenantId: null,
+    userId: auth.user.id,
+    action: 'delete',
+    entityType: 'tenant',
+    entityId: id,
+    entitySummary: tenant.name,
+    ipAddress,
+    userAgent,
+  })
 
   return NextResponse.json({ ok: true, deleted: tenant.name })
 }

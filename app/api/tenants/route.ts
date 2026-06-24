@@ -10,6 +10,7 @@ import {
 import { isCnpEncryptionConfigured } from '@/lib/crypto/cnp-cipher'
 import { sendEmail } from '@/lib/email'
 import { renderTrialWelcomeEmail } from '@/lib/email/templates/subscription/trial-welcome'
+import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 
 export async function POST(request: Request) {
   // Only super admins can create tenants
@@ -184,6 +185,18 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
+
+  const { ipAddress, userAgent } = getRequestMeta(request)
+  void writeAuditLog({
+    tenantId: null,
+    userId: actor.id,
+    action: 'create',
+    entityType: 'tenant',
+    entityId: tenantResult.tenant.id,
+    entitySummary: tenantResult.tenant.name,
+    ipAddress,
+    userAgent,
+  })
 
   // Send the invitation email. This happens OUTSIDE the transaction
   // because:

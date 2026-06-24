@@ -82,6 +82,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     entityType: 'employee',
     entityId: employee.id,
     entitySummary: `${employee.lastName} ${employee.firstName}`,
+    ...(cnpPlaintext !== null ? { changes: { cnpDecrypted: true } } : {}),
   })
 
   // Strip the raw encrypted blob and hash before returning; they're

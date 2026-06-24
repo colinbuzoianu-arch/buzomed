@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
+import { writeAuditLog } from '@/lib/audit/log'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -25,7 +26,7 @@ interface PageProps {
 }
 
 export default async function TenantDetailPage({ params }: PageProps) {
-  await requireRole('super_admin')
+  const actor = await requireRole('super_admin')
   const { id } = await params
   const locale = await getLocale()
   const t = getTranslator(locale)
@@ -55,6 +56,15 @@ export default async function TenantDetailPage({ params }: PageProps) {
   })
 
   if (!tenant) notFound()
+
+  void writeAuditLog({
+    tenantId: null,
+    userId: actor.id,
+    action: 'read',
+    entityType: 'tenant',
+    entityId: tenant.id,
+    entitySummary: tenant.name,
+  })
 
   // Activity metrics
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)

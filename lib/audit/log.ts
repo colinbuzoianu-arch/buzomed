@@ -10,6 +10,8 @@ interface AuditParams {
   entitySummary?: string
   changes?: object
   ipAddress?: string
+  userAgent?: string
+  sessionId?: string
 }
 
 /**
@@ -28,6 +30,8 @@ export async function writeAuditLog(params: AuditParams): Promise<void> {
         entitySummary: params.entitySummary ?? null,
         changes: params.changes ?? undefined,
         ipAddress: params.ipAddress ?? null,
+        userAgent: params.userAgent ?? null,
+        sessionId: params.sessionId ?? null,
       },
     })
   } catch (err) {
@@ -36,11 +40,17 @@ export async function writeAuditLog(params: AuditParams): Promise<void> {
 }
 
 /**
- * Extract client IP from Next.js request headers.
- * Handles X-Forwarded-For (proxy/Vercel) and falls back to undefined.
+ * Extract client IP and User-Agent from Next.js request headers.
+ * Handles X-Forwarded-For (proxy/Vercel).
  */
-export function getClientIp(request: Request): string | undefined {
+export function getRequestMeta(request: Request): { ipAddress?: string; userAgent?: string } {
   const forwarded = request.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0].trim()
-  return undefined
+  const ipAddress = forwarded ? forwarded.split(',')[0].trim() : undefined
+  const userAgent = request.headers.get('user-agent') ?? undefined
+  return { ipAddress, userAgent }
+}
+
+/** @deprecated Use getRequestMeta instead */
+export function getClientIp(request: Request): string | undefined {
+  return getRequestMeta(request).ipAddress
 }

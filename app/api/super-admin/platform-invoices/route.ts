@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { asObject, optionalString, optionalDate } from '@/lib/validation'
 import { createPlatformInvoiceWithNumber } from '@/lib/platform/invoice-numbering'
+import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 
 const VAT_EXEMPT_REASON =
   'Scutit de TVA conform Art. 292 alin. (1) lit. a) pct. 1 din Codul Fiscal (servicii software medical)'
@@ -106,6 +107,18 @@ export async function POST(request: NextRequest) {
     }),
     (created) => created
   )
+
+  const { ipAddress, userAgent } = getRequestMeta(request)
+  void writeAuditLog({
+    tenantId: null,
+    userId: check.user.id,
+    action: 'create',
+    entityType: 'platform_invoice',
+    entityId: invoice.id,
+    entitySummary: `${invoice.invoiceNumber} — ${tenant.name}`,
+    ipAddress,
+    userAgent,
+  })
 
   return NextResponse.json({ invoice }, { status: 201 })
 }

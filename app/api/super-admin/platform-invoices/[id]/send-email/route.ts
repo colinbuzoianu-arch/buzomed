@@ -7,6 +7,7 @@ import { sendEmailWithAttachment } from '@/lib/email'
 import { getPlatformIssuer } from '@/lib/platform/issuer'
 import { PlatformInvoicePdfDocument } from '../pdf/platform-invoice-pdf-document'
 import type { PlatformInvoicePdfData } from '../pdf/platform-invoice-pdf-document'
+import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -108,6 +109,19 @@ export async function POST(_req: NextRequest, ctx: Ctx) {
     console.error('[platform-invoice-email] send failed:', result.error)
     return NextResponse.json({ error: 'email_failed', message: 'Emailul nu a putut fi trimis.' }, { status: 500 })
   }
+
+  const { ipAddress, userAgent } = getRequestMeta(_req)
+  void writeAuditLog({
+    tenantId: invoice.tenantId,
+    userId: auth.user.id,
+    action: 'update',
+    entityType: 'platform_invoice',
+    entityId: id,
+    entitySummary: invoice.invoiceNumber,
+    changes: { emailSent: true, recipient: recipientEmail },
+    ipAddress,
+    userAgent,
+  })
 
   return NextResponse.json({ ok: true, messageId: result.messageId })
 }

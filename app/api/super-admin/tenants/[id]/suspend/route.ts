@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
+import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 
 interface Ctx { params: Promise<{ id: string }> }
 
@@ -27,6 +28,19 @@ export async function POST(request: NextRequest, ctx: Ctx) {
   await prisma.tenant.update({
     where: { id },
     data: { subscriptionStatus: 'suspended' },
+  })
+
+  const { ipAddress, userAgent } = getRequestMeta(request)
+  void writeAuditLog({
+    tenantId: null,
+    userId: auth.user.id,
+    action: 'update',
+    entityType: 'tenant',
+    entityId: id,
+    entitySummary: tenant.name,
+    changes: { subscriptionStatus: { from: tenant.subscriptionStatus, to: 'suspended' }, reason },
+    ipAddress,
+    userAgent,
   })
 
   if (tenant.email) {
