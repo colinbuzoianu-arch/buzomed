@@ -37,7 +37,7 @@ export function GaLoader() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const w = window as any
         w.dataLayer = w.dataLayer || []
-        w.gtag = w.gtag || function (...a: unknown[]) { w.dataLayer.push(a) }
+        w.gtag = w.gtag || ((...a: unknown[]) => { w.dataLayer.push(a) })
         w.gtag('js', new Date())
         w.gtag('config', GA_ID)
       }}

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'

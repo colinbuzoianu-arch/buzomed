@@ -12,7 +12,7 @@
  *   { recommendations: [], reason: 'no_hazards' | 'no_examination' | 'ai_unavailable' ... }
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getApiUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'

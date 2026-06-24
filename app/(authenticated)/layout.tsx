@@ -177,10 +177,10 @@ export default async function AuthenticatedLayout({
               <span>· {new Date().getFullYear()}</span>
             </div>
             <div className="flex items-center gap-3">
-              <a href="/terms" target="_blank" className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors">
+              <a href="/terms" target="_blank" className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors" rel="noopener">
                 Termeni
               </a>
-              <a href="/privacy" target="_blank" className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors">
+              <a href="/privacy" target="_blank" className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors" rel="noopener">
                 Confidențialitate
               </a>
               <a href="mailto:hello@buzomed.com" className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors">

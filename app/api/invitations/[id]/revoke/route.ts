@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { getApiUser } from '@/lib/auth'
 import { revokeInvitation } from '@/lib/invitations/service'
 

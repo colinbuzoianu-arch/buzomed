@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { ContractStatus, Prisma } from '@prisma/client'
+import { type NextRequest, NextResponse } from 'next/server'
+import { type ContractStatus, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import {

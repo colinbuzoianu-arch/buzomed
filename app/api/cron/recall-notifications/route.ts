@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { sendDueRecallNotifications } from '@/lib/recalls/send-due-notifications'
 import { logSystemError } from '@/lib/system-log/error-log'
 

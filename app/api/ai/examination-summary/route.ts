@@ -11,7 +11,7 @@
  * - Verify the prompt logged in dev contains no names, CNPs, or actual dates
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { getApiUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'

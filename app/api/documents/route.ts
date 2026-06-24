@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import type { DocumentEntityType, DocumentType, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'

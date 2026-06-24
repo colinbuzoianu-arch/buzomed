@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { acceptInvitation } from '@/lib/invitations/accept-service'
 import { validateInvitationToken } from '@/lib/invitations/service'
 import { prisma } from '@/lib/prisma'
