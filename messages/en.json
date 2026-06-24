@@ -523,6 +523,7 @@
       "revealButton": "Show",
       "hideButton": "Hide",
       "noPermission": "(requires practitioner role)",
+      "decryptError": "CNP is stored but cannot be read. Please re-enter the CNP.",
       "errorDuplicate": "Another employee with the same CNP already exists in this cabinet."
     },
     "cnpError": {

@@ -523,6 +523,7 @@
       "revealButton": "Afișează",
       "hideButton": "Ascunde",
       "noPermission": "(necesită rol de medic)",
+      "decryptError": "CNP stocat, dar nu poate fi citit. Re-introduceți CNP-ul.",
       "errorDuplicate": "Un alt angajat cu același CNP există deja în cabinet."
     },
     "cnpError": {

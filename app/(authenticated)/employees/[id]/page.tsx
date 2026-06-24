@@ -116,6 +116,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
   // Otherwise we only ever surface the masked placeholder.
   let cnpPlaintext: string | null = null
   let cnpMaskedDisplay: string | null = null
+  let cnpDecryptError = false
   if (employee.idDocumentType === 'cnp' && employee.cnpEncrypted) {
     if (caps.canViewSensitivePii) {
       try {
@@ -123,10 +124,12 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
         cnpMaskedDisplay = maskCnp(cnpPlaintext)
       } catch (err) {
         console.error('[employees.detail] CNP decrypt failed', err)
-        cnpMaskedDisplay = '*************'
+        cnpDecryptError = true
+        // cnpMaskedDisplay left null — the error banner renders instead
       }
     } else {
-      cnpMaskedDisplay = '*************'
+      // Assistant or similar — confirm only that a CNP is stored
+      cnpMaskedDisplay = '•••'
     }
   }
 
@@ -383,11 +386,13 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
               const displayValue: React.ReactNode =
                 isCnpRow ? (
                   <CnpReveal
-                    masked={cnpMaskedDisplay ?? '*************'}
+                    masked={cnpMaskedDisplay ?? '•••'}
                     plaintext={cnpPlaintext}
+                    decryptError={cnpDecryptError}
                     revealLabel={t('employees.cnp.revealButton')}
                     hideLabel={t('employees.cnp.hideButton')}
                     noPermissionLabel={t('employees.cnp.noPermission')}
+                    decryptErrorLabel={t('employees.cnp.decryptError')}
                   />
                 ) : isPlainIdNumberRow ? (
                   employee.idDocumentNumber || '—'

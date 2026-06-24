@@ -54,6 +54,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
   // For employees with a non-CNP document type, both fields are null.
   let cnpPlaintext: string | null = null
   let cnpMasked: string | null = null
+  let cnpDecryptError = false
   if (employee.cnpEncrypted) {
     if (canViewSensitivePii(auth.user, auth.user.tenantId)) {
       try {
@@ -64,12 +65,13 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
           employeeId: id,
           error: (err as Error).message,
         })
-        // Don't leak the failure to the caller — present as masked-only.
-        cnpMasked = '*************'
+        cnpDecryptError = true
+        // cnpMasked left null — callers check cnpDecryptError to distinguish
+        // "broken ciphertext" from "no permission".
       }
     } else {
-      // Assistant or similar — show only that *some* CNP is stored.
-      cnpMasked = '*************'
+      // Assistant or similar — confirm only that a CNP is stored.
+      cnpMasked = '•••'
     }
   }
 
@@ -91,6 +93,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
       ...safeFields,
       cnp: cnpPlaintext,
       cnpMasked,
+      cnpDecryptError,
     },
   })
 }
