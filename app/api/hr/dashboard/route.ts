@@ -26,6 +26,13 @@ export async function GET() {
     return NextResponse.json({ employees: [], summary: emptySummary() })
   }
 
+  // Fail loudly if assignments span multiple tenants — silent data-drop is worse than an error.
+  const tenantIds = new Set(assignments.map((a) => a.tenantId))
+  if (tenantIds.size > 1) {
+    console.error('[hr/dashboard] multi-tenant HR user detected', { userId, tenantIds: [...tenantIds] })
+    return NextResponse.json({ error: 'multi_tenant_hr_not_supported' }, { status: 500 })
+  }
+
   const companyIds = assignments.map((a) => a.companyId)
   const tenantId = assignments[0].tenantId
 
