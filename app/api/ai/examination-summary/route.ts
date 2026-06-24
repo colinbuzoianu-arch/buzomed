@@ -13,6 +13,8 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { getApiUser } from '@/lib/auth'
+import { canWriteClinical } from '@/lib/permissions/tenant-data'
+import { checkAiRateLimit } from '@/lib/ai/rate-limit'
 import { prisma } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'
 import type { ExaminationVerdict } from '@prisma/client'
@@ -203,8 +205,11 @@ export async function POST(request: NextRequest) {
     if (!auth.user) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     }
-    if (!auth.user.tenantId) {
-      return NextResponse.json({ summary: null, reason: 'no_tenant', examinationCount: 0 })
+    if (!auth.user.tenantId || !canWriteClinical(auth.user, auth.user.tenantId)) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
+    if (!checkAiRateLimit(auth.user.id)) {
+      return NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 })
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {

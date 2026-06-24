@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getApiUser } from '@/lib/auth'
+import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
+import { checkAiRateLimit } from '@/lib/ai/rate-limit'
 import Anthropic from '@anthropic-ai/sdk'
 
 const VALID_COLUMN_KEYS = [
@@ -23,6 +25,12 @@ function looksLikeData(header: string): boolean {
 export async function POST(request: NextRequest) {
   const auth = await getApiUser()
   if (!auth.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  if (!auth.user.tenantId || !canWriteAdministrative(auth.user, auth.user.tenantId)) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
+  if (!checkAiRateLimit(auth.user.id)) {
+    return NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 })
+  }
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'api_key_missing' }, { status: 503 })
@@ -74,7 +82,7 @@ Confidence: "high" = obvious match, "medium" = probable, "low" = guessed.`
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 300,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],

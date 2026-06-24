@@ -12,6 +12,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
+import { checkAiRateLimit } from '@/lib/ai/rate-limit'
 import { computeComplianceData } from '@/lib/reports/compliance-data'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -86,6 +87,9 @@ export async function POST(request: NextRequest) {
       (r) => r === 'practitioner' || r === 'practice_admin'
     )
     if (!hasReportingRole) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    if (!checkAiRateLimit(auth.user.id)) {
+      return NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 })
+    }
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({ briefing: null, reason: 'ai_unavailable' })

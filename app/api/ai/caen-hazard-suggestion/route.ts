@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getApiUser } from '@/lib/auth'
+import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
+import { checkAiRateLimit } from '@/lib/ai/rate-limit'
 import Anthropic from '@anthropic-ai/sdk'
 
 // Valid hazard keys from the RiskProfile schema — sent to the model so it
@@ -31,6 +33,12 @@ const VALID_EXAM_TYPES = [
 export async function POST(request: NextRequest) {
   const auth = await getApiUser()
   if (!auth.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  if (!auth.user.tenantId || !canWriteAdministrative(auth.user, auth.user.tenantId)) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
+  if (!checkAiRateLimit(auth.user.id)) {
+    return NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 })
+  }
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'api_key_missing' }, { status: 503 })
@@ -75,7 +83,7 @@ Reguli obligatorii:
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 500,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],

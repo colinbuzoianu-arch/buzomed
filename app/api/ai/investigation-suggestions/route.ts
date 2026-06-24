@@ -15,6 +15,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getApiUser } from '@/lib/auth'
+import { canWriteClinical } from '@/lib/permissions/tenant-data'
+import { checkAiRateLimit } from '@/lib/ai/rate-limit'
 import { prisma } from '@/lib/prisma'
 import { parseRiskProfile, RISK_PROFILE_SCHEMA } from '@/lib/workplaces/risk-profile'
 
@@ -126,7 +128,12 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await getApiUser()
     if (!auth.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-    if (!auth.user.tenantId) return empty('no_tenant')
+    if (!auth.user.tenantId || !canWriteClinical(auth.user, auth.user.tenantId)) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
+    if (!checkAiRateLimit(auth.user.id)) {
+      return NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 })
+    }
 
     if (!process.env.ANTHROPIC_API_KEY) return empty('ai_unavailable')
 
