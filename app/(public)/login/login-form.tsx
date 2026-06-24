@@ -18,6 +18,8 @@ type LoginFormProps = {
     errorGeneric: string
     /** Banner shown when arriving from accept-invite flow */
     acceptedBanner?: string
+    /** Banner shown when redirected here because the account was deactivated */
+    inactiveBanner?: string
     /** Link text for "forgot password". Optional — if absent, link is hidden. */
     forgotPasswordLink?: string
   }
@@ -31,16 +33,20 @@ export function LoginForm({ labels }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showAcceptedBanner, setShowAcceptedBanner] = useState(false)
+  const [showInactiveBanner, setShowInactiveBanner] = useState(false)
 
-  // On mount: read email + accepted flag from query params (set by the
-  // accept-invite redirect). We only set initial state once — subsequent
-  // edits by the user shouldn't be overwritten.
+  // On mount: read email + status flags from query params.
+  // We only set initial state once — subsequent edits by the user shouldn't be overwritten.
   useEffect(() => {
     const emailParam = searchParams.get('email')
     const acceptedParam = searchParams.get('accepted')
+    const reasonParam = searchParams.get('reason')
     if (emailParam) setEmail(emailParam)
     if (acceptedParam === '1' && labels.acceptedBanner) {
       setShowAcceptedBanner(true)
+    }
+    if (reasonParam === 'inactive' && labels.inactiveBanner) {
+      setShowInactiveBanner(true)
     }
     // Intentionally only depend on labels, not searchParams — we want
     // this to run once on mount, not whenever query params change.
@@ -83,6 +89,11 @@ export function LoginForm({ labels }: LoginFormProps) {
       {showAcceptedBanner && labels.acceptedBanner && (
         <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-md p-3">
           {labels.acceptedBanner}
+        </div>
+      )}
+      {showInactiveBanner && labels.inactiveBanner && (
+        <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3">
+          {labels.inactiveBanner}
         </div>
       )}
 

@@ -21,6 +21,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   })
 
   if (!appUser) return null
+  if (appUser.deletedAt || !appUser.isActive) return null
 
   // Update lastLoginAt lazily — at most once per 5 minutes to avoid
   // hammering the DB on every page navigation. We check the existing
@@ -46,7 +47,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
  */
 export async function requireUser(): Promise<AppUser> {
   const user = await getCurrentUser()
-  if (!user) redirect('/login')
+  if (!user) redirect('/login?reason=inactive')
   return user
 }
 

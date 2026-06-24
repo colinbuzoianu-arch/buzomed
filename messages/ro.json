@@ -43,7 +43,9 @@
     "submitting": "Se autentifică...",
     "errorInvalid": "Email sau parolă incorectă",
     "errorGeneric": "A apărut o eroare. Vă rugăm să încercați din nou.",
-    "forgotPasswordLink": "Ai uitat parola?"
+    "forgotPasswordLink": "Ai uitat parola?",
+    "acceptedBanner": "Contul a fost creat cu succes. Vă puteți autentifica.",
+    "inactiveBanner": "Contul dvs. a fost dezactivat. Contactați administratorul cabinetului."
   },
   "nav": {
     "dashboard": "Rezumat",

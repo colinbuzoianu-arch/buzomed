@@ -39,6 +39,7 @@ export default async function LoginPage() {
                 errorInvalid: t('login.errorInvalid'),
                 errorGeneric: t('login.errorGeneric'),
                 acceptedBanner: t('login.acceptedBanner'),
+                inactiveBanner: t('login.inactiveBanner'),
                 forgotPasswordLink: t('login.forgotPasswordLink'),
               }}
             />

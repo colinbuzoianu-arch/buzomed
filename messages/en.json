@@ -43,7 +43,9 @@
     "submitting": "Signing in...",
     "errorInvalid": "Invalid email or password",
     "errorGeneric": "Something went wrong. Please try again.",
-    "forgotPasswordLink": "Forgot your password?"
+    "forgotPasswordLink": "Forgot your password?",
+    "acceptedBanner": "Account created successfully. You can now sign in.",
+    "inactiveBanner": "Your account has been deactivated. Please contact your practice administrator."
   },
   "nav": {
     "dashboard": "Dashboard",
