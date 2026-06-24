@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getApiUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logSystemError } from '@/lib/system-log/error-log'
 
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY
@@ -60,7 +61,30 @@ export async function POST(request: Request) {
     orderBy: { createdAt: 'desc' },
   })
 
-  let stripeCustomerId = sub?.stripeCustomerId ?? null
+  // Every tenant gets a Subscription row at signup (tenants/route.ts).
+  // A missing row means something went wrong during tenant creation.
+  if (!sub) {
+    void logSystemError({
+      tenantId: auth.user.tenantId,
+      route: '/api/billing/checkout',
+      method: 'POST',
+      error: new Error('no_subscription_row'),
+      context: { userId: auth.user.id },
+    })
+    return NextResponse.json({ error: 'no_subscription_row' }, { status: 500 })
+  }
+
+  // Block double-checkout: if an active Stripe subscription already exists,
+  // the tenant should use the customer portal to change plans, not open a
+  // new checkout session (which would create a second Stripe subscription).
+  if (sub.stripeSubscriptionId && sub.status === 'active') {
+    return NextResponse.json(
+      { error: 'already_subscribed', message: 'You already have an active subscription. Use the billing portal to change your plan.' },
+      { status: 409 }
+    )
+  }
+
+  let stripeCustomerId = sub.stripeCustomerId ?? null
   if (!stripeCustomerId) {
     const customer = await stripe.customers.create({
       name: tenant.name,
@@ -68,12 +92,10 @@ export async function POST(request: Request) {
       metadata: { tenantId: auth.user.tenantId },
     })
     stripeCustomerId = customer.id
-    if (sub) {
-      await prisma.subscription.update({
-        where: { id: sub.id },
-        data: { stripeCustomerId },
-      })
-    }
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: { stripeCustomerId },
+    })
   }
 
   const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = plan.stripePriceId
