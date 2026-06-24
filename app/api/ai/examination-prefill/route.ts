@@ -58,8 +58,6 @@ export async function POST(request: NextRequest) {
         employee: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
             birthDate: true,
             gender: true,
             jobTitle: true,
@@ -106,7 +104,6 @@ export async function POST(request: NextRequest) {
 
     const context: Record<string, unknown> = {
       pacient: {
-        nume: `${employee.firstName} ${employee.lastName}`,
         varsta: patientAge,
         sex: employee.gender,
         functie: employee.jobTitle ?? null,
@@ -188,7 +185,7 @@ Format răspuns:
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }],

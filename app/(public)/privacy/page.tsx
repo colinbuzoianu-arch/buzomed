@@ -185,8 +185,11 @@ export default function PrivacyPage() {
                 <td style={{ padding: '10px 14px' }}>Clauze Contractuale Standard (SCC) UE-SUA</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
-                <td style={{ padding: '10px 14px' }}><strong>Anthropic PBC</strong></td>
-                <td style={{ padding: '10px 14px' }}>Procesare AI (date anonimizate exclusiv)</td>
+                <td style={{ padding: '10px 14px' }}>
+                  <strong>Anthropic PBC</strong><br />
+                  <a href="https://www.anthropic.com/legal/dpa" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#2BA39A' }}>Data Processing Addendum</a>
+                </td>
+                <td style={{ padding: '10px 14px' }}>Procesare AI (date anonimizate exclusiv — fără nume, CNP sau identificatori direcți)</td>
                 <td style={{ padding: '10px 14px' }}>SUA</td>
                 <td style={{ padding: '10px 14px' }}>Clauze Contractuale Standard (SCC) UE-SUA</td>
               </tr>
@@ -227,14 +230,19 @@ export default function PrivacyPage() {
         <P><strong>Ce trimitem la AI (exclusiv date anonimizate/pseudonimizate):</strong></P>
         <ul style={{ paddingLeft: 24, marginBottom: 12 }}>
           <Li>Cod CAEN al firmei (pentru sugestii de profil de risc)</Li>
-          <Li>Valori medicale anonimizate (vârstă aproximativă, gen, valori numerice) fără identificatori</Li>
+          <Li>Vârstă aproximativă, gen și funcție — fără nume, CNP sau identificatori direcți</Li>
+          <Li>Valori medicale istorice anonimizate (semne vitale, spirometrie, verdict) — fără identificatori</Li>
           <Li>Statistici agregate per firmă — pentru generarea narativei raportului anual</Li>
           <Li>Header-uri de coloane Excel — pentru maparea automată la import (nu datele efective)</Li>
         </ul>
         <P>
-          Anthropic procesează aceste date în conformitate cu Clauze Contractuale Standard (SCC) aprobate
-          de Comisia Europeană pentru transferuri UE-SUA (Decizia de punere în aplicare 2021/914) și nu
-          utilizează datele transmise prin API pentru antrenarea modelelor.
+          Anthropic procesează aceste date în conformitate cu{' '}
+          <a href="https://www.anthropic.com/legal/dpa" target="_blank" rel="noopener noreferrer" style={{ color: '#2BA39A' }}>
+            Data Processing Addendum
+          </a>{' '}
+          și Clauze Contractuale Standard (SCC) aprobate de Comisia Europeană pentru transferuri
+          UE-SUA (Decizia de punere în aplicare 2021/914). Anthropic nu utilizează datele transmise
+          prin API pentru antrenarea modelelor.
           Verumsell SRL nu poate fi ținută răspunzătoare pentru prelucrările efectuate de Anthropic în
           afara scopului contractat.
         </P>
