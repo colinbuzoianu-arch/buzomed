@@ -723,7 +723,10 @@ model Employee {
   emergencyContactName         String?              @map("emergency_contact_name")
   emergencyContactPhone        String?              @map("emergency_contact_phone")
   emergencyContactRelationship String?              @map("emergency_contact_relationship")
-  
+
+  medicCurantName              String?              @map("medic_curant_name") @db.VarChar(200)
+  medicCurantPhone             String?              @map("medic_curant_phone") @db.VarChar(40)
+
   // Medical summary (the "always visible" stuff)
   medicalHistorySummary       String?               @map("medical_history_summary")
   chronicConditions           Json                  @default("[]") @map("chronic_conditions")

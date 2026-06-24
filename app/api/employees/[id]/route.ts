@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import {
@@ -162,6 +162,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     'emergencyContactName',
     'emergencyContactPhone',
     'emergencyContactRelationship',
+    'medicCurantName',
+    'medicCurantPhone',
     'bloodType',
     'notes',
   ] as const

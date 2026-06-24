@@ -149,6 +149,89 @@ async function main() {
   }
   console.log(`Seeded ${planDefs.length} plans.`)
 
+  // Seed demo employees for "Exemplu Cabinet" tenant
+  console.log('\nSeeding demo employees...')
+  const exempluTenantId = '3b59e85f-1246-44ea-8034-a1602f412d4e'
+  const exempluTenant = await prisma.tenant.findUnique({ where: { id: exempluTenantId } })
+  if (exempluTenant) {
+    const demoEmployees = [
+      {
+        id: 'a1000001-0000-4000-8000-000000000001',
+        firstName: 'Andrei',
+        lastName: 'Popescu',
+        jobTitle: 'Sudor',
+        nationality: 'RO',
+        phone: '+40722111222',
+        medicCurantName: 'Dr. Maria Ionescu',
+        medicCurantPhone: '+40731555666',
+      },
+      {
+        id: 'a1000002-0000-4000-8000-000000000002',
+        firstName: 'Elena',
+        lastName: 'Dumitrescu',
+        jobTitle: 'Contabilă',
+        nationality: 'RO',
+        phone: '+40744333444',
+        medicCurantName: 'Dr. Gheorghe Popa',
+        medicCurantPhone: '+40756777888',
+      },
+      {
+        id: 'a1000003-0000-4000-8000-000000000003',
+        firstName: 'Mihai',
+        lastName: 'Constantin',
+        jobTitle: 'Operator utilaj',
+        nationality: 'RO',
+        phone: '+40768999000',
+        medicCurantName: null,
+        medicCurantPhone: null,
+      },
+      {
+        id: 'a1000004-0000-4000-8000-000000000004',
+        firstName: 'Ioana',
+        lastName: 'Gheorghe',
+        jobTitle: 'Inginer',
+        nationality: 'RO',
+        phone: '+40712345678',
+        medicCurantName: 'Dr. Radu Munteanu',
+        medicCurantPhone: '+40723456789',
+      },
+      {
+        id: 'a1000005-0000-4000-8000-000000000005',
+        firstName: 'Cristian',
+        lastName: 'Stanescu',
+        jobTitle: 'Electrician',
+        nationality: 'RO',
+        phone: '+40734567890',
+        medicCurantName: null,
+        medicCurantPhone: null,
+      },
+    ]
+
+    for (const emp of demoEmployees) {
+      await prisma.employee.upsert({
+        where: { id: emp.id },
+        update: {
+          medicCurantName: emp.medicCurantName,
+          medicCurantPhone: emp.medicCurantPhone,
+        },
+        create: {
+          id: emp.id,
+          tenantId: exempluTenantId,
+          firstName: emp.firstName,
+          lastName: emp.lastName,
+          jobTitle: emp.jobTitle,
+          nationality: emp.nationality,
+          phone: emp.phone,
+          medicCurantName: emp.medicCurantName,
+          medicCurantPhone: emp.medicCurantPhone,
+        },
+      })
+    }
+    console.log(`Seeded ${demoEmployees.length} demo employees (${demoEmployees.filter(e => e.medicCurantName).length} with medic curant).`)
+  } else {
+    console.log('Exemplu Cabinet tenant not found — skipping demo employees.')
+  }
+
   // Create comp Subscription for all existing tenants that don't have one
   console.log('\nCreating comp subscriptions for existing tenants...')
   const tenants = await prisma.tenant.findMany({ where: { deletedAt: null } })

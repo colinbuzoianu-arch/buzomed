@@ -43,6 +43,10 @@ export function buildEmployeeFormLabels(t: Translator): EmployeeFormLabels {
     fieldEmergencyRelationship: t(
       'employees.form.fieldEmergencyRelationship'
     ),
+    sectionMedicCurant: t('employees.form.sectionMedicCurant'),
+    fieldMedicCurantName: t('employees.form.fieldMedicCurantName'),
+    fieldMedicCurantPhone: t('employees.form.fieldMedicCurantPhone'),
+    medicCurantHelper: t('employees.form.medicCurantHelper'),
     fieldBloodType: t('employees.form.fieldBloodType'),
     fieldNotes: t('employees.form.fieldNotes'),
     fieldJobTitle: t('employees.form.fieldJobTitle'),

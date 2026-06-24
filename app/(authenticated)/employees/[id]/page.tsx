@@ -415,6 +415,29 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
         </section>
       ))}
 
+      {/* Medic curant — only rendered when at least one field is set */}
+      {(employee.medicCurantName || employee.medicCurantPhone) && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Medic curant</h2>
+          <div className="border rounded-lg px-4 py-3">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
+              Medic curant
+            </div>
+            {employee.medicCurantName && (
+              <div className="text-sm">{employee.medicCurantName}</div>
+            )}
+            {employee.medicCurantPhone && (
+              <a
+                href={`tel:${employee.medicCurantPhone}`}
+                className="text-sm text-primary hover:underline"
+              >
+                {employee.medicCurantPhone}
+              </a>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Data retention override */}
       {caps.canWriteAdministrative && (
         <section className="space-y-3">

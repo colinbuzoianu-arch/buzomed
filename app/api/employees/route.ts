@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
+import { type NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import type { IdDocumentType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
@@ -311,6 +311,8 @@ export async function POST(request: NextRequest) {
         emergencyContactName: data.emergencyContactName,
         emergencyContactPhone: data.emergencyContactPhone,
         emergencyContactRelationship: data.emergencyContactRelationship,
+        medicCurantName: data.medicCurantName,
+        medicCurantPhone: data.medicCurantPhone,
         bloodType: data.bloodType,
         notes: data.notes,
         isActive: data.isActive ?? true,
@@ -387,6 +389,8 @@ export interface ParsedEmployeeInput {
   emergencyContactName?: string
   emergencyContactPhone?: string
   emergencyContactRelationship?: string
+  medicCurantName?: string
+  medicCurantPhone?: string
   bloodType?: string
   notes?: string
   isActive?: boolean
@@ -504,6 +508,19 @@ export function parseEmployeeInput(
     body.emergencyContactRelationship,
     issues,
     { maxLength: 100 }
+  )
+
+  result.medicCurantName = optionalString(
+    'medicCurantName',
+    body.medicCurantName,
+    issues,
+    { maxLength: 200 }
+  )
+  result.medicCurantPhone = optionalString(
+    'medicCurantPhone',
+    body.medicCurantPhone,
+    issues,
+    { maxLength: 40 }
   )
 
   result.bloodType = optionalString('bloodType', body.bloodType, issues, {

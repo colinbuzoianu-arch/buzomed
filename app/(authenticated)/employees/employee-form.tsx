@@ -1,13 +1,12 @@
 'use client'
 
-import { TOAST } from '@/lib/toast'
-
-import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TOAST } from '@/lib/toast'
 
 /**
  * Shared form for create + edit of an Employee.
@@ -25,7 +24,6 @@ import { Label } from '@/components/ui/label'
 
 const ID_DOCUMENT_TYPES = ['cnp', 'passport', 'eu_id_card', 'other'] as const
 type IdDocumentType = (typeof ID_DOCUMENT_TYPES)[number]
-
 
 export interface EmployeeFormValues {
   firstName: string
@@ -47,6 +45,8 @@ export interface EmployeeFormValues {
   emergencyContactName: string
   emergencyContactPhone: string
   emergencyContactRelationship: string
+  medicCurantName: string
+  medicCurantPhone: string
   bloodType: string
   notes: string
   isActive: boolean
@@ -72,6 +72,8 @@ export const emptyEmployeeFormValues: EmployeeFormValues = {
   emergencyContactName: '',
   emergencyContactPhone: '',
   emergencyContactRelationship: '',
+  medicCurantName: '',
+  medicCurantPhone: '',
   bloodType: '',
   notes: '',
   isActive: true,
@@ -112,6 +114,10 @@ export interface EmployeeFormLabels {
   fieldEmergencyName: string
   fieldEmergencyPhone: string
   fieldEmergencyRelationship: string
+  sectionMedicCurant: string
+  fieldMedicCurantName: string
+  fieldMedicCurantPhone: string
+  medicCurantHelper: string
   fieldBloodType: string
   fieldNotes: string
   fieldJobTitle: string
@@ -167,17 +173,12 @@ export function EmployeeForm({
   )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(
-    currentCompanyId ?? ''
-  )
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(currentCompanyId ?? '')
   const [selectedWorkplaceId, setSelectedWorkplaceId] = useState<string>('')
 
   const isEdit = !!employeeId
 
-  function update<K extends keyof EmployeeFormValues>(
-    key: K,
-    value: EmployeeFormValues[K]
-  ) {
+  function update<K extends keyof EmployeeFormValues>(key: K, value: EmployeeFormValues[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -216,6 +217,8 @@ export function EmployeeForm({
       'emergencyContactName',
       'emergencyContactPhone',
       'emergencyContactRelationship',
+      'medicCurantName',
+      'medicCurantPhone',
       'bloodType',
       'notes',
     ]
@@ -304,7 +307,9 @@ export function EmployeeForm({
               >
                 <option value="">{labels.companyNone}</option>
                 {companies.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -323,11 +328,14 @@ export function EmployeeForm({
                       ? labels.workplaceNone
                       : labels.workplaceSelectCompanyFirst}
                   </option>
-                  {(companies.find((c) => c.id === selectedCompanyId)?.workplaces ?? []).map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}{w.department ? ` (${w.department})` : ''}
-                    </option>
-                  ))}
+                  {(companies.find((c) => c.id === selectedCompanyId)?.workplaces ?? []).map(
+                    (w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name}
+                        {w.department ? ` (${w.department})` : ''}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
             )}
@@ -385,8 +393,7 @@ export function EmployeeForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="firstName">
-              {labels.fieldFirstName}{' '}
-              <span className="text-destructive">*</span>
+              {labels.fieldFirstName} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="firstName"
@@ -400,20 +407,12 @@ export function EmployeeForm({
             <select
               id="idDocumentType"
               value={form.idDocumentType}
-              onChange={(e) =>
-                update('idDocumentType', e.target.value as IdDocumentType)
-              }
+              onChange={(e) => update('idDocumentType', e.target.value as IdDocumentType)}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
-              <option value="cnp">
-                {labels.fieldIdDocumentTypeCnp}
-              </option>
-              <option value="passport">
-                {labels.fieldIdDocumentTypePassport}
-              </option>
-              <option value="eu_id_card">
-                {labels.fieldIdDocumentTypeEuId}
-              </option>
+              <option value="cnp">{labels.fieldIdDocumentTypeCnp}</option>
+              <option value="passport">{labels.fieldIdDocumentTypePassport}</option>
+              <option value="eu_id_card">{labels.fieldIdDocumentTypeEuId}</option>
               <option value="other">{labels.fieldIdDocumentTypeOther}</option>
             </select>
             {form.idDocumentType === 'cnp' && (
@@ -424,9 +423,7 @@ export function EmployeeForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="idDocumentNumber">
-              {form.idDocumentType === 'cnp'
-                ? labels.fieldCnp
-                : labels.fieldIdDocumentNumber}
+              {form.idDocumentType === 'cnp' ? labels.fieldCnp : labels.fieldIdDocumentNumber}
             </Label>
             <Input
               id="idDocumentNumber"
@@ -435,9 +432,7 @@ export function EmployeeForm({
               maxLength={form.idDocumentType === 'cnp' ? 13 : undefined}
               inputMode={form.idDocumentType === 'cnp' ? 'numeric' : undefined}
               pattern={form.idDocumentType === 'cnp' ? '\\d{13}' : undefined}
-              placeholder={
-                form.idDocumentType === 'cnp' ? '1234567890123' : undefined
-              }
+              placeholder={form.idDocumentType === 'cnp' ? '1234567890123' : undefined}
             />
             {form.idDocumentType === 'cnp' && form.idDocumentNumber && (
               <CnpBirthDateMismatchHint
@@ -539,12 +534,36 @@ export function EmployeeForm({
       </section>
 
       <section className="space-y-4">
+        <h2 className="text-xl font-semibold">{labels.sectionMedicCurant}</h2>
+        <p className="text-sm text-muted-foreground -mt-2">{labels.medicCurantHelper}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="medicCurantName">{labels.fieldMedicCurantName}</Label>
+            <Input
+              id="medicCurantName"
+              value={form.medicCurantName}
+              onChange={(e) => update('medicCurantName', e.target.value)}
+              maxLength={200}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="medicCurantPhone">{labels.fieldMedicCurantPhone}</Label>
+            <Input
+              id="medicCurantPhone"
+              type="tel"
+              value={form.medicCurantPhone}
+              onChange={(e) => update('medicCurantPhone', e.target.value)}
+              maxLength={40}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold">{labels.sectionEmergency}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="emergencyContactName">
-              {labels.fieldEmergencyName}
-            </Label>
+            <Label htmlFor="emergencyContactName">{labels.fieldEmergencyName}</Label>
             <Input
               id="emergencyContactName"
               value={form.emergencyContactName}
@@ -552,9 +571,7 @@ export function EmployeeForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="emergencyContactPhone">
-              {labels.fieldEmergencyPhone}
-            </Label>
+            <Label htmlFor="emergencyContactPhone">{labels.fieldEmergencyPhone}</Label>
             <Input
               id="emergencyContactPhone"
               value={form.emergencyContactPhone}
@@ -568,9 +585,7 @@ export function EmployeeForm({
             <Input
               id="emergencyContactRelationship"
               value={form.emergencyContactRelationship}
-              onChange={(e) =>
-                update('emergencyContactRelationship', e.target.value)
-              }
+              onChange={(e) => update('emergencyContactRelationship', e.target.value)}
             />
           </div>
         </div>
@@ -620,16 +635,10 @@ export function EmployeeForm({
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={submitting || !canSubmit}>
-          {submitting
-            ? labels.submitting
-            : isEdit
-              ? labels.submitUpdate
-              : labels.submitCreate}
+          {submitting ? labels.submitting : isEdit ? labels.submitUpdate : labels.submitCreate}
         </Button>
         <Button type="button" variant="outline" asChild disabled={submitting}>
-          <Link
-            href={isEdit ? `/employees/${employeeId}` : '/employees'}
-          >
+          <Link href={isEdit ? `/employees/${employeeId}` : '/employees'}>
             {labels.cancel}
           </Link>
         </Button>

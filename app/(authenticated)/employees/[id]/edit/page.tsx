@@ -98,6 +98,8 @@ export default async function EditEmployeePage({ params }: PageProps) {
     emergencyContactName: employee.emergencyContactName ?? '',
     emergencyContactPhone: employee.emergencyContactPhone ?? '',
     emergencyContactRelationship: employee.emergencyContactRelationship ?? '',
+    medicCurantName: employee.medicCurantName ?? '',
+    medicCurantPhone: employee.medicCurantPhone ?? '',
     bloodType: employee.bloodType ?? '',
     notes: employee.notes ?? '',
     isActive: employee.isActive,
