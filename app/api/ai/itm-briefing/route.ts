@@ -36,6 +36,28 @@ export interface ItmBriefingResult {
   reason?: string
 }
 
+// ─── Response shape validation ────────────────────────────────────────────────
+
+const VALID_SEVERITIES = ['ok', 'warning', 'critical'] as const
+const VALID_STATUS = ['compliant', 'at_risk', 'non_compliant'] as const
+
+function validateSection(s: unknown): BriefingSection | null {
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return null
+  const sec = s as Record<string, unknown>
+  if (typeof sec.title !== 'string' || sec.title.trim().length === 0) return null
+  if (!VALID_SEVERITIES.includes(sec.severity as typeof VALID_SEVERITIES[number])) return null
+  if (!Array.isArray(sec.items)) return null
+  const items = (sec.items as unknown[]).filter(
+    (i): i is string => typeof i === 'string' && i.trim().length > 0
+  )
+  if (items.length === 0) return null
+  return {
+    title: sec.title.slice(0, 200),
+    severity: sec.severity as BriefingSectionSeverity,
+    items: items.slice(0, 6).map((i) => i.slice(0, 500)),
+  }
+}
+
 // ─── In-memory cache (30-minute TTL, keyed by companyId:year) ────────────────
 
 const cache = new Map<string, { result: ItmBriefingResult; expiresAt: number }>()
@@ -200,10 +222,30 @@ Reguli:
       return NextResponse.json(result)
     }
 
+    const validSections = parsed.sections
+      .map(validateSection)
+      .filter((s): s is BriefingSection => s !== null)
+    if (validSections.length === 0) {
+      const result: ItmBriefingResult = { briefing: null, reason: 'parse_error' }
+      setCache(cacheKey, result)
+      return NextResponse.json(result)
+    }
+
+    const status: ItmBriefing['overallStatus'] = VALID_STATUS.includes(
+      parsed.overallStatus as typeof VALID_STATUS[number]
+    )
+      ? (parsed.overallStatus as ItmBriefing['overallStatus'])
+      : 'at_risk'
+
+    const assessment =
+      typeof parsed.overallAssessment === 'string'
+        ? parsed.overallAssessment.slice(0, 1000)
+        : ''
+
     const briefing: ItmBriefing = {
-      overallStatus: parsed.overallStatus ?? 'at_risk',
-      overallAssessment: parsed.overallAssessment ?? '',
-      sections: parsed.sections,
+      overallStatus: status,
+      overallAssessment: assessment,
+      sections: validSections,
       generatedAt: new Date().toISOString(),
     }
 

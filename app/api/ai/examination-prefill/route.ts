@@ -194,11 +194,23 @@ Format răspuns:
     const rawText =
       message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 
+    const VALID_CONFIDENCES = ['high', 'med', 'low'] as const
+    const targetFieldSet = new Set(targetFields)
+
     let suggestions: Record<string, { value: unknown; confidence: 'high' | 'med' | 'low' }> = {}
     try {
       const parsed = JSON.parse(rawText)
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        suggestions = parsed
+        for (const [key, entry] of Object.entries(parsed)) {
+          if (!targetFieldSet.has(key)) continue
+          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue
+          const e = entry as Record<string, unknown>
+          if (!VALID_CONFIDENCES.includes(e.confidence as typeof VALID_CONFIDENCES[number])) continue
+          suggestions[key] = {
+            value: e.value,
+            confidence: e.confidence as 'high' | 'med' | 'low',
+          }
+        }
       }
     } catch {
       // Unparseable response — return empty suggestions, not a 500

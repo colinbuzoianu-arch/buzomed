@@ -27,6 +27,25 @@ export interface InvestigationRecommendation {
   formSection: 'hearing' | 'lung' | 'vision' | 'additional' | null
 }
 
+const VALID_PRIORITIES = ['obligatorie', 'recomandata'] as const
+const VALID_FORM_SECTIONS = ['hearing', 'lung', 'vision', 'additional', null] as const
+
+function validateRecommendation(r: unknown): InvestigationRecommendation | null {
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return null
+  const rec = r as Record<string, unknown>
+  if (typeof rec.investigation !== 'string' || rec.investigation.trim().length === 0) return null
+  if (typeof rec.basis !== 'string') return null
+  if (!VALID_PRIORITIES.includes(rec.priority as typeof VALID_PRIORITIES[number])) return null
+  const fs = rec.formSection === undefined ? null : rec.formSection
+  if (!VALID_FORM_SECTIONS.includes(fs as typeof VALID_FORM_SECTIONS[number])) return null
+  return {
+    investigation: rec.investigation.slice(0, 300),
+    basis: typeof rec.basis === 'string' ? rec.basis.slice(0, 300) : '',
+    priority: rec.priority as InvestigationRecommendation['priority'],
+    formSection: fs as InvestigationRecommendation['formSection'],
+  }
+}
+
 export interface InvestigationSuggestionsResult {
   recommendations: InvestigationRecommendation[]
   summary: string | null
@@ -246,9 +265,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result)
     }
 
+    const validRecommendations = parsed.recommendations
+      .map(validateRecommendation)
+      .filter((r): r is InvestigationRecommendation => r !== null)
+      .slice(0, 8)
+
+    if (validRecommendations.length === 0) {
+      const result = empty_result('parse_error')
+      setCache(examinationId, result)
+      return NextResponse.json(result)
+    }
+
     const result: InvestigationSuggestionsResult = {
-      recommendations: parsed.recommendations.slice(0, 8),
-      summary: typeof parsed.summary === 'string' ? parsed.summary.trim() : null,
+      recommendations: validRecommendations,
+      summary: typeof parsed.summary === 'string' ? parsed.summary.slice(0, 500).trim() : null,
       hazardCount: activeHazards.length,
     }
     setCache(examinationId, result)
