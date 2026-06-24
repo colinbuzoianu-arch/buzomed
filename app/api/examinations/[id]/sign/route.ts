@@ -110,9 +110,13 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
   // Sign + create recall in a single transaction so the Recall row is
   // guaranteed to exist alongside any signed examination that warrants
   // one. Failures in either roll back together.
+  //
+  // updateMany with signedAt: null in WHERE makes the sign atomic:
+  // if two requests race, only one will match the row (the other sees
+  // count=0 and throws CONCURRENT_SIGN → caught below → 409).
   const updated = await prisma.$transaction(async (tx) => {
-    const exam = await tx.examination.update({
-      where: { id },
+    const signResult = await tx.examination.updateMany({
+      where: { id, signedAt: null, deletedAt: null, tenantId: existing.tenantId },
       data: {
         signedAt: now,
         signedByUserId: auth.user!.id,
@@ -120,11 +124,19 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
         completedAt: existing.completedAt ?? now,
         nextExaminationDueDate: nextDue,
       },
+    })
+    if (signResult.count === 0) {
+      throw new Error('CONCURRENT_SIGN')
+    }
+
+    const exam = await tx.examination.findFirst({
+      where: { id },
       include: {
         employee: { select: { id: true, firstName: true, lastName: true } },
         examinationType: { select: { id: true, nameRo: true } },
       },
     })
+    if (!exam) throw new Error('CONCURRENT_SIGN')
 
     // Recall side-effect. Idempotent — safe to re-run on duplicate signs
     // (though signedAt being set above prevents that anyway).
@@ -163,6 +175,12 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
 
   return NextResponse.json({ examination: updated })
   } catch (err) {
+    if ((err as Error).message === 'CONCURRENT_SIGN') {
+      return NextResponse.json(
+        { error: 'already_signed', message: 'This examination was signed by a concurrent request.' },
+        { status: 409 }
+      )
+    }
     void logSystemError({
       tenantId: auth.user.tenantId,
       route: '/api/examinations/[id]/sign',

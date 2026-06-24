@@ -249,11 +249,21 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
   // expected (but not strictly required at the PATCH level — sign step
   // will enforce). Don't block here.
 
-  const updated = await prisma.examination.update({
-    where: { id },
+  // Include signedAt: null in WHERE so a concurrent sign that lands
+  // between the check above and this update causes count=0 → 409 instead
+  // of silently overwriting a signed (immutable) record.
+  const patchResult = await prisma.examination.updateMany({
+    where: { id, signedAt: null, deletedAt: null, tenantId: auth.user.tenantId },
     data: updateData,
   })
+  if (patchResult.count === 0) {
+    return NextResponse.json(
+      { error: 'already_signed', message: 'This examination was signed by a concurrent request and is now immutable.' },
+      { status: 409 }
+    )
+  }
 
+  const updated = await prisma.examination.findFirst({ where: { id } })
   return NextResponse.json({ examination: updated })
 }
 

@@ -143,6 +143,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: 'validation_failed', issues }, { status: 400, headers: rlHeaders })
   }
 
+  // Parse expectedUpdatedAt up front — used inside the transaction
+  const expectedDate = 'expectedUpdatedAt' in body && body.expectedUpdatedAt
+    ? new Date(body.expectedUpdatedAt as string)
+    : undefined
+
   // Load employee — need companyId for workplace tenant+company check
   try {
   const existing = await prisma.employee.findFirst({
@@ -150,17 +155,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     select: { companyId: true, updatedAt: true },
   })
   if (!existing) return NextResponse.json({ error: 'not_found' }, { status: 404, headers: rlHeaders })
-
-  // Optimistic concurrency — skip check when expectedUpdatedAt is absent
-  if ('expectedUpdatedAt' in body) {
-    if (existing.updatedAt.toISOString() !== (body.expectedUpdatedAt as string)) {
-      const current = await buildEmployeeResponse(id, tenantId)
-      return NextResponse.json(
-        { error: 'conflict', employee: current },
-        { status: 409, headers: rlHeaders }
-      )
-    }
-  }
 
   // Workplace validation
   const workplaceInBody = 'workplaceId' in body
@@ -195,9 +189,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const today = new Date()
     today.setUTCHours(0, 0, 0, 0)
 
+    // Atomically enforce optimistic concurrency: include updatedAt in WHERE
+    // so two requests with the same expectedUpdatedAt can't both succeed.
+    // The @updatedAt directive means Prisma auto-sets updated_at even when
+    // data:{} is empty, making this safe as a concurrency-check-only call.
+    let conflicted = false
+
     await prisma.$transaction(async (tx) => {
-      if (Object.keys(updateData).length > 0) {
-        await tx.employee.update({ where: { id }, data: updateData })
+      if (Object.keys(updateData).length > 0 || expectedDate) {
+        const result = await tx.employee.updateMany({
+          where: {
+            id,
+            tenantId,
+            deletedAt: null,
+            ...(expectedDate ? { updatedAt: expectedDate } : {}),
+          },
+          data: updateData,
+        })
+        if (result.count === 0 && expectedDate) {
+          conflicted = true
+          return
+        }
       }
       if (workplaceInBody) {
         // End all current assignments
@@ -219,6 +231,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         }
       }
     })
+
+    if (conflicted) {
+      const current = await buildEmployeeResponse(id, tenantId)
+      return NextResponse.json({ error: 'conflict', employee: current }, { status: 409, headers: rlHeaders })
+    }
   }
 
   const updated = await buildEmployeeResponse(id, tenantId)
