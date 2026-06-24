@@ -134,25 +134,36 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     )
   }
 
-  const workplace = await prisma.workplace.create({
-    data: {
-      tenantId: auth.user.tenantId,
-      companyId,
-      createdByUserId: auth.user.id,
-      name: data.name!,
-      department: data.department,
-      description: data.description,
-      examinationIntervalMonths: data.examinationIntervalMonths ?? 12,
-      riskAssessmentSignedByCompany:
-        data.riskAssessmentSignedByCompany ?? false,
-      riskAssessmentSignedAt: data.riskAssessmentSignedAt,
-      isActive: data.isActive ?? true,
-      ...(data.riskProfile !== undefined ? { riskProfile: data.riskProfile as Prisma.InputJsonValue } : {}),
-      ...(data.requiredExaminationTypeIds !== undefined
-        ? { requiredExaminationTypeIds: data.requiredExaminationTypeIds }
-        : {}),
-    },
-  })
+  let workplace: Awaited<ReturnType<typeof prisma.workplace.create>>
+  try {
+    workplace = await prisma.workplace.create({
+      data: {
+        tenantId: auth.user.tenantId,
+        companyId,
+        createdByUserId: auth.user.id,
+        name: data.name!,
+        department: data.department,
+        description: data.description,
+        examinationIntervalMonths: data.examinationIntervalMonths ?? 12,
+        riskAssessmentSignedByCompany:
+          data.riskAssessmentSignedByCompany ?? false,
+        riskAssessmentSignedAt: data.riskAssessmentSignedAt,
+        isActive: data.isActive ?? true,
+        ...(data.riskProfile !== undefined ? { riskProfile: data.riskProfile as Prisma.InputJsonValue } : {}),
+        ...(data.requiredExaminationTypeIds !== undefined
+          ? { requiredExaminationTypeIds: data.requiredExaminationTypeIds }
+          : {}),
+      },
+    })
+  } catch (err) {
+    if ((err as { code?: string }).code === 'P2002') {
+      return NextResponse.json(
+        { error: 'conflict', message: 'A workplace with this name already exists in this company.' },
+        { status: 409 }
+      )
+    }
+    throw err
+  }
 
   return NextResponse.json({ workplace }, { status: 201 })
 }

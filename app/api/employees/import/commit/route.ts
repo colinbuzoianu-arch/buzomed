@@ -222,20 +222,32 @@ export async function POST(request: NextRequest) {
               companiesCache.set(normalized, existing.id)
               resolvedCompanyId = existing.id
             } else {
-              const created = await prisma.company.create({
-                data: {
-                  tenantId,
-                  name: row.companyName,
-                  cui: normalized,
-                  addressLine1: row.companyAddress ?? null,
-                  createdFromImport: true,
-                },
-                select: { id: true },
-              })
-              companiesCache.set(normalized, created.id)
-              resolvedCompanyId = created.id
-              newCompanyList.push({ id: created.id, name: row.companyName, cui: normalized })
-              companiesCreated++
+              let newCo: { id: string }
+              try {
+                newCo = await prisma.company.create({
+                  data: {
+                    tenantId,
+                    name: row.companyName,
+                    cui: normalized,
+                    addressLine1: row.companyAddress ?? null,
+                    createdFromImport: true,
+                  },
+                  select: { id: true },
+                })
+                newCompanyList.push({ id: newCo.id, name: row.companyName, cui: normalized })
+                companiesCreated++
+              } catch (createErr) {
+                if ((createErr as { code?: string }).code !== 'P2002') throw createErr
+                // Race: another request created the same CUI between our findFirst and create
+                const winner = await prisma.company.findFirst({
+                  where: { tenantId, deletedAt: null, cui: { in: [normalized, `RO${normalized}`] } },
+                  select: { id: true },
+                })
+                if (!winner) throw createErr
+                newCo = winner
+              }
+              companiesCache.set(normalized, newCo.id)
+              resolvedCompanyId = newCo.id
             }
           }
         }
@@ -284,13 +296,25 @@ export async function POST(request: NextRequest) {
             workplacesCache.set(cacheKey, existingWp.id)
             resolvedWorkplaceId = existingWp.id
           } else {
-            const newWp = await prisma.workplace.create({
-              data: { companyId: resolvedCompanyId, tenantId, name: row.workplaceName, isActive: true },
-              select: { id: true },
-            })
+            let newWp: { id: string }
+            try {
+              newWp = await prisma.workplace.create({
+                data: { companyId: resolvedCompanyId, tenantId, name: row.workplaceName, isActive: true },
+                select: { id: true },
+              })
+              workplacesCreated++
+            } catch (createErr) {
+              if ((createErr as { code?: string }).code !== 'P2002') throw createErr
+              // Race: another request created the same workplace name between our findFirst and create
+              const winner = await prisma.workplace.findFirst({
+                where: { companyId: resolvedCompanyId, tenantId, deletedAt: null, name: { equals: row.workplaceName, mode: 'insensitive' } },
+                select: { id: true },
+              })
+              if (!winner) throw createErr
+              newWp = winner
+            }
             workplacesCache.set(cacheKey, newWp.id)
             resolvedWorkplaceId = newWp.id
-            workplacesCreated++
           }
         }
       } else if (row.department && resolvedCompanyId) {

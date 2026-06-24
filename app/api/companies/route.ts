@@ -117,34 +117,45 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const company = await prisma.company.create({
-    data: {
-      tenantId: auth.user.tenantId,
-      // `name` is required on create — parseCompanyInput will have pushed
-      // an issue otherwise, so the non-null assertion is safe here.
-      name: data.name!,
-      cui: data.cui,
-      registrationNumber: data.registrationNumber,
-      caenCode: data.caenCode,
-      addressLine1: data.addressLine1,
-      addressLine2: data.addressLine2,
-      city: data.city,
-      county: data.county,
-      postalCode: data.postalCode,
-      phone: data.phone,
-      email: data.email,
-      website: data.website,
-      contactPersonName: data.contactPersonName,
-      contactPersonRole: data.contactPersonRole,
-      contactPersonPhone: data.contactPersonPhone,
-      contactPersonEmail: data.contactPersonEmail,
-      recallNotificationEmail: data.recallNotificationEmail,
-      contractStartDate: data.contractStartDate,
-      contractEndDate: data.contractEndDate,
-      notes: data.notes,
-      isActive: data.isActive ?? true,
-    },
-  })
+  let company: Awaited<ReturnType<typeof prisma.company.create>>
+  try {
+    company = await prisma.company.create({
+      data: {
+        tenantId: auth.user.tenantId,
+        // `name` is required on create — parseCompanyInput will have pushed
+        // an issue otherwise, so the non-null assertion is safe here.
+        name: data.name!,
+        cui: data.cui,
+        registrationNumber: data.registrationNumber,
+        caenCode: data.caenCode,
+        addressLine1: data.addressLine1,
+        addressLine2: data.addressLine2,
+        city: data.city,
+        county: data.county,
+        postalCode: data.postalCode,
+        phone: data.phone,
+        email: data.email,
+        website: data.website,
+        contactPersonName: data.contactPersonName,
+        contactPersonRole: data.contactPersonRole,
+        contactPersonPhone: data.contactPersonPhone,
+        contactPersonEmail: data.contactPersonEmail,
+        recallNotificationEmail: data.recallNotificationEmail,
+        contractStartDate: data.contractStartDate,
+        contractEndDate: data.contractEndDate,
+        notes: data.notes,
+        isActive: data.isActive ?? true,
+      },
+    })
+  } catch (err) {
+    if ((err as { code?: string }).code === 'P2002') {
+      return NextResponse.json(
+        { error: 'conflict', message: 'A company with this CUI already exists in your tenant.' },
+        { status: 409 }
+      )
+    }
+    throw err
+  }
 
   return NextResponse.json({ company }, { status: 201 })
 }
