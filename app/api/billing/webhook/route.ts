@@ -38,6 +38,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'invalid_signature' }, { status: 400 })
   }
 
+  // Deduplicate: Stripe retries aggressively and occasionally double-delivers.
+  // A unique-constraint violation (P2002) on event_id means we already handled
+  // this event — return 200 so Stripe stops retrying without re-processing.
+  try {
+    await prisma.processedStripeEvent.create({
+      data: { eventId: event.id, eventType: event.type },
+    })
+  } catch (err) {
+    if ((err as { code?: string }).code === 'P2002') {
+      return NextResponse.json({ received: true, deduplicated: true })
+    }
+    throw err
+  }
+
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session

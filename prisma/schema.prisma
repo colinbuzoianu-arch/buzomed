@@ -1312,6 +1312,19 @@ model WebhookDelivery {
 }
 
 // ============================================================================
+// STRIPE WEBHOOK IDEMPOTENCY
+// ============================================================================
+
+model ProcessedStripeEvent {
+  eventId     String   @id @map("event_id")
+  eventType   String   @map("event_type")
+  processedAt DateTime @default(now()) @map("processed_at") @db.Timestamptz
+
+  @@map("processed_stripe_events")
+  @@index([processedAt])
+}
+
+// ============================================================================
 // SYSTEM OBSERVABILITY
 // ============================================================================
 
