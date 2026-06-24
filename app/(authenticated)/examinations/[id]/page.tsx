@@ -271,6 +271,8 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         referringDocumentNumber={examination.referringDocumentNumber}
         workplaceName={examination.workplace.name}
         priorVerdict={priorExam?.verdict ?? null}
+        medicCurantName={examination.employee.medicCurantName}
+        medicCurantPhone={examination.employee.medicCurantPhone}
       />
       <RiskProfileGlanceCard
         workplace={examination.workplace}

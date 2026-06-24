@@ -8,6 +8,7 @@ import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { CompanyDeleteButton } from './company-delete-button'
+import { CompanyContactsSection } from './contacts/company-contacts-section'
 import { InvoiceStatusBadge } from '@/components/ui/invoice-status-badge'
 import { formatDate } from '@/lib/format-date'
 
@@ -37,6 +38,9 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const company = await prisma.company.findFirst({
     where: { id, tenantId: user.tenantId, deletedAt: null },
     include: {
+      contacts: {
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+      },
       workplaces: {
         where: { deletedAt: null },
         orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
@@ -227,6 +231,18 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           </div>
         </section>
       ))}
+
+      {/* Contacts — interactive section managed client-side.
+          Dates serialized to ISO strings to satisfy the client component boundary. */}
+      <CompanyContactsSection
+        companyId={company.id}
+        initialContacts={company.contacts.map((c) => ({
+          ...c,
+          createdAt: c.createdAt.toISOString(),
+          updatedAt: c.updatedAt.toISOString(),
+        }))}
+        canWrite={caps.canWriteAdministrative}
+      />
 
       {/* Workplaces — inline section. */}
       <section className="space-y-3">

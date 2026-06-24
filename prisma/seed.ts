@@ -228,6 +228,79 @@ async function main() {
       })
     }
     console.log(`Seeded ${demoEmployees.length} demo employees (${demoEmployees.filter(e => e.medicCurantName).length} with medic curant).`)
+
+    // Seed demo companies and contacts for "Exemplu Cabinet"
+    console.log('\nSeeding demo companies and contacts...')
+    const demoCompanies = [
+      {
+        id: 'c1000001-0000-4000-8000-000000000001',
+        name: 'SC Metalotehnica SRL',
+        cui: '12345001',
+        city: 'Cluj-Napoca',
+        county: 'Cluj',
+      },
+      {
+        id: 'c1000002-0000-4000-8000-000000000002',
+        name: 'Fabrica de Utilaje SA',
+        cui: '12345002',
+        city: 'Turda',
+        county: 'Cluj',
+      },
+      {
+        id: 'c1000003-0000-4000-8000-000000000003',
+        name: 'Construcții Moderne SRL',
+        cui: '12345003',
+        city: 'Cluj-Napoca',
+        county: 'Cluj',
+      },
+    ]
+
+    for (const comp of demoCompanies) {
+      await prisma.company.upsert({
+        where: { id: comp.id },
+        update: {},
+        create: {
+          id: comp.id,
+          tenantId: exempluTenantId,
+          name: comp.name,
+          cui: comp.cui,
+          city: comp.city,
+          county: comp.county,
+          isActive: true,
+        },
+      })
+    }
+
+    // Contacts per company — idempotent: only create if none exist yet
+    const demoContacts: Array<{
+      companyId: string
+      name: string
+      role: 'hr' | 'ssm' | 'plant_manager'
+      phone: string
+      isPrimary: boolean
+    }> = [
+      // Metalotehnica
+      { companyId: 'c1000001-0000-4000-8000-000000000001', name: 'Ioana Neagu', role: 'hr', phone: '+40721100001', isPrimary: true },
+      { companyId: 'c1000001-0000-4000-8000-000000000001', name: 'Dan Rusu', role: 'ssm', phone: '+40721100002', isPrimary: false },
+      { companyId: 'c1000001-0000-4000-8000-000000000001', name: 'Vlad Marinescu', role: 'plant_manager', phone: '+40721100003', isPrimary: false },
+      // Fabrica de Utilaje
+      { companyId: 'c1000002-0000-4000-8000-000000000002', name: 'Rodica Stan', role: 'hr', phone: '+40722200001', isPrimary: true },
+      { companyId: 'c1000002-0000-4000-8000-000000000002', name: 'Mihai Drăghici', role: 'ssm', phone: '+40722200002', isPrimary: false },
+      // Construcții Moderne
+      { companyId: 'c1000003-0000-4000-8000-000000000003', name: 'Andrei Florescu', role: 'hr', phone: '+40723300001', isPrimary: true },
+      { companyId: 'c1000003-0000-4000-8000-000000000003', name: 'Simona Lupu', role: 'ssm', phone: '+40723300002', isPrimary: false },
+    ]
+
+    for (const companyId of demoCompanies.map((c) => c.id)) {
+      const existingCount = await prisma.companyContact.count({ where: { companyId } })
+      if (existingCount === 0) {
+        const contacts = demoContacts.filter((c) => c.companyId === companyId)
+        for (const contact of contacts) {
+          await prisma.companyContact.create({ data: contact })
+        }
+      }
+    }
+    console.log(`Seeded ${demoCompanies.length} demo companies with contacts.`)
   } else {
     console.log('Exemplu Cabinet tenant not found — skipping demo employees.')
   }

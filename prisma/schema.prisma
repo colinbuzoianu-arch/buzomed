@@ -170,6 +170,16 @@ enum RecallStatus {
   cancelled
 }
 
+enum CompanyContactRole {
+  hr
+  ssm
+  plant_manager
+  shift_supervisor
+  lab
+  billing
+  other
+}
+
 enum ContractStatus {
   draft
   active
@@ -439,6 +449,7 @@ model Company {
 
   tenant              Tenant          @relation(fields: [tenantId], references: [id])
   workplaces          Workplace[]
+  contacts            CompanyContact[]
   contracts           Contract[]
   invoices            Invoice[]
   medicalEvents       MedicalEvent[]
@@ -449,6 +460,25 @@ model Company {
   @@index([tenantId])
   @@index([tenantId, name])
   @@index([cui])
+}
+
+model CompanyContact {
+  id          String             @id @default(cuid())
+  companyId   String             @map("company_id") @db.Uuid
+  company     Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String             @db.VarChar(200)
+  role        CompanyContactRole
+  roleNote    String?            @map("role_note") @db.VarChar(100)
+  phone       String?            @db.VarChar(40)
+  email       String?            @db.VarChar(200)
+  isPrimary   Boolean            @default(false) @map("is_primary")
+  notes       String?            @db.VarChar(500)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([companyId])
+  @@index([companyId, isPrimary])
+  @@map("company_contacts")
 }
 
 model Contract {
