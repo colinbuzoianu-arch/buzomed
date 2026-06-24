@@ -161,6 +161,35 @@ export function parseRiskProfile(raw: unknown): RiskProfile {
   return base
 }
 
+/**
+ * Returns which investigation-hint keys are triggered by a given risk profile.
+ * Extracts the conditional logic from the exam detail page so it can be reused
+ * by the RiskProfileGlanceCard footer.
+ */
+export function getHazardHintKeys(
+  profile: RiskProfile
+): Array<'hearing' | 'lung' | 'additional'> {
+  const keys: Array<'hearing' | 'lung' | 'additional'> = []
+  if (profile.physical.noise.present) {
+    keys.push('hearing')
+  }
+  if (
+    profile.chemical.dust.present ||
+    profile.chemical.fumes.present ||
+    profile.chemical.vapors.present ||
+    profile.chemical.solvents.present
+  ) {
+    keys.push('lung')
+  }
+  if (
+    Object.values(profile.chemical).some((h) => h.present) ||
+    Object.values(profile.biological).some((h) => h.present)
+  ) {
+    keys.push('additional')
+  }
+  return keys
+}
+
 /** Count how many hazards are present across all categories. */
 export function countActiveHazards(profile: RiskProfile): number {
   let count = 0

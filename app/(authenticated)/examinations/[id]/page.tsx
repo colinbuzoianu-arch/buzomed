@@ -17,6 +17,8 @@ import { VerdictBadge } from '@/components/ui/verdict-badge'
 import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
 import { formatDate } from '@/lib/format-date'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { PatientContextPanel } from '@/components/examinations/patient-context-panel'
+import { RiskProfileGlanceCard } from '@/components/examinations/risk-profile-glance-card'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -262,6 +264,18 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      <PatientContextPanel
+        requestSource={examination.requestSource}
+        examinationTypeName={examTypeName}
+        referringDocumentNumber={examination.referringDocumentNumber}
+        workplaceName={examination.workplace.name}
+        priorVerdict={priorExam?.verdict ?? null}
+      />
+      <RiskProfileGlanceCard
+        workplace={examination.workplace}
+        hazardHintLabels={hazardHintLabels}
+      />
 
       {/* Two-column layout: main content + AI history sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-6 items-start">
