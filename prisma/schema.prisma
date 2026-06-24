@@ -261,6 +261,10 @@ model Tenant {
   dpaAcceptedAt       DateTime?           @map("dpa_accepted_at") @db.Timestamptz
   dpaAcceptedBy       String?             @map("dpa_accepted_by")      // full name of person who accepted DPA
 
+  // GDPR erase — set when super_admin triggers anonymisation
+  anonymizedAt        DateTime?           @map("anonymized_at") @db.Timestamptz
+  anonymizedBy        String?             @map("anonymized_by") @db.Uuid
+
   // Data retention (default: 7 years per HG 355/2007)
   dataRetentionYears  Int                 @default(7) @map("data_retention_years")
 
