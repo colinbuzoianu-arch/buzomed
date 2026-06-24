@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email'
+import { esc } from '@/lib/email/escape'
 import { asObject, requireString } from '@/lib/validation'
 
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
@@ -91,11 +92,11 @@ export async function POST(request: NextRequest) {
       subject: `[Buzomed Contact] ${safeSubject} — ${safeName}`,
       html: `
 <h2>Mesaj nou prin formularul de contact</h2>
-<p><strong>Nume:</strong> ${safeName}</p>
-<p><strong>Email:</strong> ${safeEmail}</p>
-<p><strong>Subiect:</strong> ${safeSubject}</p>
+<p><strong>Nume:</strong> ${esc(safeName)}</p>
+<p><strong>Email:</strong> ${esc(safeEmail)}</p>
+<p><strong>Subiect:</strong> ${esc(safeSubject)}</p>
 <hr>
-<p>${safeMessage.replace(/\n/g, '<br>')}</p>
+<p>${esc(safeMessage).replace(/\n/g, '<br>')}</p>
 <hr>
 <p><small>Trimis de pe buzomed.com/contact</small></p>
       `.trim(),
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
     content: {
       subject: 'Am primit mesajul dumneavoastră — Buzomed',
       html: `
-<p>Bună ziua, ${safeName},</p>
+<p>Bună ziua, ${esc(safeName)},</p>
 <p>Am primit mesajul dumneavoastră și vă vom răspunde în 24-48 de ore lucrătoare.</p>
 <p>Dacă aveți o urgență, scrieți direct la <a href="mailto:hello@buzomed.com">hello@buzomed.com</a>.</p>
 <br>

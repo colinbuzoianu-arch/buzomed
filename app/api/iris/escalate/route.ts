@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { getApiUser } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
+import { esc } from '@/lib/email/escape'
 
 export async function POST(request: NextRequest) {
   const auth = await getApiUser()
@@ -15,19 +16,16 @@ export async function POST(request: NextRequest) {
 
   const summary: string = typeof body.summary === 'string' ? body.summary.slice(0, 2000) : ''
   const currentPage: string = typeof body.currentPage === 'string' ? body.currentPage : '/'
-  const cabinetName: string = typeof body.cabinetName === 'string' ? body.cabinetName : '—'
-
-  const esc = (s: string) =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const cabinetName: string = typeof body.cabinetName === 'string' ? body.cabinetName.slice(0, 100) : '—'
 
   const result = await sendEmail({
     to: { email: 'hello@buzomed.com', name: 'Colin Buzomed' },
     content: {
       subject: `[Iris Escalation] ${auth.user.firstName} ${auth.user.lastName} — ${cabinetName}`,
       html: `
-        <p><strong>Utilizator:</strong> ${auth.user.firstName} ${auth.user.lastName} (${auth.user.email})</p>
-        <p><strong>Cabinet:</strong> ${cabinetName}</p>
-        <p><strong>Rol:</strong> ${auth.user.roles.join(', ')}</p>
+        <p><strong>Utilizator:</strong> ${esc(auth.user.firstName)} ${esc(auth.user.lastName)} (${esc(auth.user.email)})</p>
+        <p><strong>Cabinet:</strong> ${esc(cabinetName)}</p>
+        <p><strong>Rol:</strong> ${esc(auth.user.roles.join(', '))}</p>
         <p><strong>Pagina:</strong> ${esc(currentPage)}</p>
         <hr />
         <p><strong>Rezumat conversație:</strong></p>
