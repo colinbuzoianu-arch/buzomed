@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { decryptWebhookSecret } from './secret'
 import type { WebhookEvent, WebhookPayload } from './events'
 import { logSystemError } from '@/lib/system-log/error-log'
+import { assertSafeWebhookUrl, SSRF_BLOCK_MESSAGES } from './url-guard'
 
 export async function deliverWebhook(
   tenantId: string,
@@ -34,6 +35,11 @@ export async function deliverWebhook(
       const secret = decryptWebhookSecret(endpoint.secretEncrypted)
       const signature = 'sha256=' + createHmac('sha256', secret).update(body).digest('hex')
 
+      // Re-validate at delivery time to defeat DNS rebinding attacks:
+      // the hostname may have resolved to a public IP at registration but
+      // been re-pointed to an internal address before this delivery fires.
+      await assertSafeWebhookUrl(endpoint.url)
+
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), 10_000)
 
@@ -46,19 +52,34 @@ export async function deliverWebhook(
         },
         body,
         signal: controller.signal,
+        redirect: 'manual', // never follow redirects — they can bypass the URL guard
       }).finally(() => clearTimeout(timer))
 
       responseStatus = res.status
-      responseBody = (await res.text().catch(() => null))?.slice(0, 1000) ?? null
-      success = res.ok
+      // Opaque redirect responses (status 0 from undici with redirect:'manual')
+      // and any explicit 3xx both indicate a redirect attempt — block and log.
+      const isRedirect = res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)
+      if (isRedirect) {
+        responseBody = 'blocked: redirect_response'
+        success = false
+      } else {
+        responseBody = (await res.text().catch(() => null))?.slice(0, 500) ?? null
+        success = res.ok
+      }
     } catch (fetchErr) {
       success = false
-      void logSystemError({
-        route: endpoint.url,
-        method: 'WEBHOOK',
-        error: fetchErr,
-        context: { endpointId: endpoint.id },
-      })
+      const msg = (fetchErr as Error).message
+      if (SSRF_BLOCK_MESSAGES.has(msg)) {
+        // Expected SSRF block — record reason, don't noise up system error log
+        responseBody = `blocked: ${msg}`
+      } else {
+        void logSystemError({
+          route: endpoint.url,
+          method: 'WEBHOOK',
+          error: fetchErr,
+          context: { endpointId: endpoint.id },
+        })
+      }
     }
 
     const durationMs = Date.now() - start

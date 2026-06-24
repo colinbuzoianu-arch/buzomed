@@ -5,6 +5,7 @@ import { getApiUser } from '@/lib/auth'
 import { encryptWebhookSecret } from '@/lib/webhooks/secret'
 import type { WebhookEvent } from '@/lib/webhooks/events'
 import { asObject, optionalString } from '@/lib/validation'
+import { assertSafeWebhookUrl } from '@/lib/webhooks/url-guard'
 
 const VALID_EVENTS: WebhookEvent[] = [
   'examination.signed',
@@ -72,9 +73,14 @@ export async function POST(request: NextRequest) {
   const issues: string[] = []
 
   const url = optionalString('url', body.url, issues, { maxLength: 2048 })
-  if (!url) issues.push('url is required')
-  if (url && !url.startsWith('https://')) {
-    issues.push('url must start with https://')
+  if (!url) {
+    issues.push('url is required')
+  } else {
+    try {
+      await assertSafeWebhookUrl(url)
+    } catch (err) {
+      issues.push(`url rejected: ${(err as Error).message}`)
+    }
   }
 
   const description = optionalString('description', body.description, issues, { maxLength: 500 })
