@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { sendDueRecallNotifications } from '@/lib/recalls/send-due-notifications'
 import { logSystemError } from '@/lib/system-log/error-log'
+import { startCronRun, finishCronRun } from '@/lib/cron/run-log'
 
 /**
  * POST /api/cron/recall-notifications
@@ -20,10 +21,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
+  const runId = await startCronRun('recall-notifications')
   try {
     const result = await sendDueRecallNotifications()
+    await finishCronRun(runId, {
+      status: 'success',
+      itemsProcessed: result.sent + result.skipped,
+      summary: result,
+    })
     return NextResponse.json(result)
   } catch (err) {
+    await finishCronRun(runId, {
+      status: 'failed',
+      errorMessage: (err as Error).message,
+    })
     void logSystemError({
       route: '/api/cron/recall-notifications',
       method: 'POST',

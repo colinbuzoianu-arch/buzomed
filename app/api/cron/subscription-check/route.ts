@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
+import { logSystemError } from '@/lib/system-log/error-log'
+import { startCronRun, finishCronRun } from '@/lib/cron/run-log'
 import { renderTrialDay7Email } from '@/lib/email/templates/subscription/trial-day7'
 import { renderTrialDay11Email } from '@/lib/email/templates/subscription/trial-day11'
 import { renderTrialExpiredEmail } from '@/lib/email/templates/subscription/trial-expired'
@@ -34,6 +36,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
+  const runId = await startCronRun('subscription-check')
+  try {
   const now = new Date()
   let processed = 0
 
@@ -200,5 +204,22 @@ export async function POST(request: NextRequest) {
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
   await prisma.systemErrorLog.deleteMany({ where: { createdAt: { lt: cutoff } } })
 
+  await finishCronRun(runId, {
+    status: 'success',
+    itemsProcessed: processed,
+    summary: { processed },
+  })
   return NextResponse.json({ processed })
+  } catch (err) {
+    await finishCronRun(runId, {
+      status: 'failed',
+      errorMessage: (err as Error).message,
+    })
+    void logSystemError({
+      route: '/api/cron/subscription-check',
+      method: 'POST',
+      error: err,
+    })
+    return NextResponse.json({ error: 'internal_error' }, { status: 500 })
+  }
 }

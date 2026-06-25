@@ -1394,6 +1394,22 @@ model ImportStagedFile {
   @@map("import_staged_files")
 }
 
+model CronRun {
+  id             String    @id @default(cuid())
+  jobName        String    @map("job_name")
+  startedAt      DateTime  @default(now()) @map("started_at") @db.Timestamptz
+  finishedAt     DateTime? @map("finished_at") @db.Timestamptz
+  status         String    // 'running' | 'success' | 'failed'
+  itemsProcessed Int       @default(0) @map("items_processed")
+  errorCount     Int       @default(0) @map("error_count")
+  summary        Json?
+  errorMessage   String?   @map("error_message")
+
+  @@map("cron_runs")
+  @@index([jobName, startedAt])
+  @@index([startedAt])
+}
+
 model AiUsageLog {
   id              String   @id @default(cuid())
   tenantId        String?  @map("tenant_id") @db.Uuid
