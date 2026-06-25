@@ -1393,3 +1393,23 @@ model ImportStagedFile {
   @@index([tenantId])
   @@map("import_staged_files")
 }
+
+model AiUsageLog {
+  id              String   @id @default(cuid())
+  tenantId        String?  @map("tenant_id") @db.Uuid
+  userId          String?  @map("user_id") @db.Uuid
+  route           String
+  model           String
+  inputTokens     Int      @default(0) @map("input_tokens")
+  outputTokens    Int      @default(0) @map("output_tokens")
+  cacheReadTokens Int      @default(0) @map("cache_read_tokens")
+  durationMs      Int      @map("duration_ms")
+  success         Boolean
+  errorMessage    String?  @map("error_message")
+  occurredAt      DateTime @default(now()) @map("occurred_at") @db.Timestamptz
+
+  @@map("ai_usage_logs")
+  @@index([tenantId, occurredAt])
+  @@index([route, occurredAt])
+  @@index([occurredAt])
+}

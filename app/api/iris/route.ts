@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getApiUser } from '@/lib/auth'
+import { logAiUsage } from '@/lib/ai/usage-log'
 
 // ─── Rate limiter (per userId, 60 messages/hour) ─────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
@@ -243,18 +244,40 @@ export async function POST(request: NextRequest) {
     locale,
   })
 
+  const MODEL = 'claude-haiku-4-5-20251001'
+  const start = Date.now()
+  let aiResponse: Anthropic.Message | undefined
+  let aiSuccess = false
+  let aiError: string | undefined
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
-      system: systemPrompt,
-      messages: messages as { role: 'user' | 'assistant'; content: string }[],
-    })
+    try {
+      aiResponse = await client.messages.create({
+        model: MODEL,
+        max_tokens: 400,
+        system: systemPrompt,
+        messages: messages as { role: 'user' | 'assistant'; content: string }[],
+      })
+      aiSuccess = true
+    } catch (err) {
+      aiError = (err as Error).message
+      throw err
+    } finally {
+      void logAiUsage({
+        tenantId: auth.user.tenantId,
+        userId: auth.user.id,
+        route: '/api/iris',
+        model: MODEL,
+        usage: aiResponse?.usage ?? null,
+        durationMs: Date.now() - start,
+        success: aiSuccess,
+        errorMessage: aiError,
+      })
+    }
 
     const reply =
-      response.content[0].type === 'text'
-        ? response.content[0].text.trim()
+      aiResponse.content[0].type === 'text'
+        ? aiResponse.content[0].text.trim()
         : ''
 
     return NextResponse.json({ reply })

@@ -3,6 +3,7 @@ import { getApiUser } from '@/lib/auth'
 import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { checkAiRateLimit } from '@/lib/ai/rate-limit'
 import Anthropic from '@anthropic-ai/sdk'
+import { logAiUsage } from '@/lib/ai/usage-log'
 
 const VALID_COLUMN_KEYS = [
   'firstName',
@@ -79,14 +80,37 @@ Return ONLY this JSON (no other text):
 Include every header. Use null when unknown or not relevant.
 Confidence: "high" = obvious match, "medium" = probable, "low" = guessed.`
 
+  const MODEL = 'claude-haiku-4-5-20251001'
+  const start = Date.now()
+  let aiMessage: Anthropic.Message | undefined
+  let aiSuccess = false
+  let aiError: string | undefined
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    })
+    try {
+      aiMessage = await client.messages.create({
+        model: MODEL,
+        max_tokens: 300,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      })
+      aiSuccess = true
+    } catch (err) {
+      aiError = (err as Error).message
+      throw err
+    } finally {
+      void logAiUsage({
+        tenantId: auth.user.tenantId,
+        userId: auth.user.id,
+        route: '/api/ai/column-mapping',
+        model: MODEL,
+        usage: aiMessage?.usage ?? null,
+        durationMs: Date.now() - start,
+        success: aiSuccess,
+        errorMessage: aiError,
+      })
+    }
+    const message = aiMessage
 
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
     const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()

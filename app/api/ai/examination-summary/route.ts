@@ -18,6 +18,7 @@ import { checkAiRateLimit } from '@/lib/ai/rate-limit'
 import { prisma } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'
 import type { ExaminationVerdict } from '@prisma/client'
+import { logAiUsage } from '@/lib/ai/usage-log'
 
 // ─── In-memory cache (per process, 10-minute TTL) ──────────────────────────
 const summaryCache = new Map<string, {
@@ -312,13 +313,36 @@ Reguli obligatorii:
 - Dacă datele sunt incomplete, descrie doar ceea ce era disponibil
 - Maxim 4 propoziții, fiecare clară și concisă`
 
+    const MODEL = 'claude-sonnet-4-6'
+    const start = Date.now()
+    let aiMessage: Anthropic.Message | undefined
+    let aiSuccess = false
+    let aiError: string | undefined
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 400,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: promptContent }],
-    })
+    try {
+      aiMessage = await client.messages.create({
+        model: MODEL,
+        max_tokens: 400,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: promptContent }],
+      })
+      aiSuccess = true
+    } catch (err) {
+      aiError = (err as Error).message
+      throw err
+    } finally {
+      void logAiUsage({
+        tenantId: auth.user.tenantId,
+        userId: auth.user.id,
+        route: '/api/ai/examination-summary',
+        model: MODEL,
+        usage: aiMessage?.usage ?? null,
+        durationMs: Date.now() - start,
+        success: aiSuccess,
+        errorMessage: aiError,
+      })
+    }
+    const message = aiMessage
 
     const summary =
       message.content[0].type === 'text' ? message.content[0].text.trim() : null

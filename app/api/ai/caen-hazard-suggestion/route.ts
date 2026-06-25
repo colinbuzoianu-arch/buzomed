@@ -3,6 +3,7 @@ import { getApiUser } from '@/lib/auth'
 import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { checkAiRateLimit } from '@/lib/ai/rate-limit'
 import Anthropic from '@anthropic-ai/sdk'
+import { logAiUsage } from '@/lib/ai/usage-log'
 
 // Valid hazard keys from the RiskProfile schema — sent to the model so it
 // can only return keys that exist in our data model.
@@ -80,14 +81,37 @@ Reguli obligatorii:
 - "rationale": o frază scurtă (maxim 40 de cuvinte) în română explicând principalele riscuri.
 - NU include date despre angajați, NU menționa persoane specifice.`
 
+  const MODEL = 'claude-sonnet-4-6'
+  const start = Date.now()
+  let aiMessage: Anthropic.Message | undefined
+  let aiSuccess = false
+  let aiError: string | undefined
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 500,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    })
+    try {
+      aiMessage = await client.messages.create({
+        model: MODEL,
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      })
+      aiSuccess = true
+    } catch (err) {
+      aiError = (err as Error).message
+      throw err
+    } finally {
+      void logAiUsage({
+        tenantId: auth.user.tenantId,
+        userId: auth.user.id,
+        route: '/api/ai/caen-hazard-suggestion',
+        model: MODEL,
+        usage: aiMessage?.usage ?? null,
+        durationMs: Date.now() - start,
+        success: aiSuccess,
+        errorMessage: aiError,
+      })
+    }
+    const message = aiMessage
 
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 

@@ -15,6 +15,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getApiUser } from '@/lib/auth'
+import { logAiUsage } from '@/lib/ai/usage-log'
 import { canWriteClinical } from '@/lib/permissions/tenant-data'
 import { checkAiRateLimit } from '@/lib/ai/rate-limit'
 import { prisma } from '@/lib/prisma'
@@ -242,13 +243,36 @@ export async function POST(request: NextRequest) {
       console.log('[investigation-suggestions] prompt:\n', promptContent)
     }
 
+    const MODEL = 'claude-sonnet-4-6'
+    const start = Date.now()
+    let aiMessage: Anthropic.Message | undefined
+    let aiSuccess = false
+    let aiError: string | undefined
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 600,
-      system: `Ești expert în medicina muncii din România, cu cunoștințe aprofundate despre HG 355/2007 și normele aplicabile. Răspunde EXCLUSIV cu JSON valid, fără niciun text în afara JSON-ului.`,
-      messages: [{ role: 'user', content: promptContent }],
-    })
+    try {
+      aiMessage = await client.messages.create({
+        model: MODEL,
+        max_tokens: 600,
+        system: `Ești expert în medicina muncii din România, cu cunoștințe aprofundate despre HG 355/2007 și normele aplicabile. Răspunde EXCLUSIV cu JSON valid, fără niciun text în afara JSON-ului.`,
+        messages: [{ role: 'user', content: promptContent }],
+      })
+      aiSuccess = true
+    } catch (err) {
+      aiError = (err as Error).message
+      throw err
+    } finally {
+      void logAiUsage({
+        tenantId: auth.user.tenantId,
+        userId: auth.user.id,
+        route: '/api/ai/investigation-suggestions',
+        model: MODEL,
+        usage: aiMessage?.usage ?? null,
+        durationMs: Date.now() - start,
+        success: aiSuccess,
+        errorMessage: aiError,
+      })
+    }
+    const message = aiMessage
 
     const rawText = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 
