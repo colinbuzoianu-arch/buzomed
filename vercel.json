@@ -1,12 +1,7 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/recall-notifications",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/subscription-check",
-      "schedule": "0 7 * * *"
-    }
+    { "path": "/api/cron/recall-notifications", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/subscription-check", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/log-retention", "schedule": "0 3 * * 0" }
   ]
 }

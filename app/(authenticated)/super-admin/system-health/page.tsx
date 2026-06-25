@@ -223,6 +223,7 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
     auditEntries,
     imports,
     failedWebhooks,
+    retentionRuns,
   ] = await Promise.all([
     // Header aggregates (24h)
     prisma.systemErrorLog.count({ where: { createdAt: { gte: since24h } } }),
@@ -295,6 +296,12 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
         attemptedAt: true,
         endpoint: { select: { url: true, tenantId: true } },
       },
+    }),
+    // Retention runs (last 20, any log-retention job)
+    prisma.cronRun.findMany({
+      where: { jobName: { in: ['log-retention', 'log-retention-dryrun'] } },
+      orderBy: { startedAt: 'desc' },
+      take: 20,
     }),
   ])
 
@@ -1035,6 +1042,89 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
               ))}
             </TableBody>
           </Table>
+        )}
+      </section>
+
+      {/* ── Section 8: Retention runs ──────────────────────────────────────── */}
+      <section className="space-y-3 rounded-lg border p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">
+            Log retention{' '}
+            <span className="text-sm font-normal text-muted-foreground">(ultimele 20 rulări)</span>
+          </h2>
+          <a
+            href="/api/admin/trigger-log-retention?dryRun=true"
+            className="rounded border border-input bg-background px-3 py-1 text-xs hover:bg-accent"
+          >
+            Dry-run manual
+          </a>
+        </div>
+        {retentionRuns.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nicio rulare retention înregistrată. Prima rulare va fi duminică la 03:00 UTC.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {retentionRuns.map((r) => {
+              const durationMs = r.finishedAt
+                ? r.finishedAt.getTime() - r.startedAt.getTime()
+                : null
+              type RetentionSummary = {
+                dryRun?: boolean
+                results?: { stream: string; deleted: number; skipped: number; error?: string }[]
+              }
+              const summary = (r.summary ?? {}) as RetentionSummary
+              const streamResults = summary.results ?? []
+              const hasErrors = streamResults.some((s) => s.error)
+              return (
+                <div key={r.id} className="rounded border p-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
+                      {ts(r.startedAt)}
+                    </span>
+                    {summary.dryRun && (
+                      <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
+                        dry-run
+                      </span>
+                    )}
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-xs ${
+                        r.status === 'success'
+                          ? 'bg-green-100 text-green-700'
+                          : r.status === 'failed'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                    {durationMs != null && (
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {(durationMs / 1000).toFixed(1)}s
+                      </span>
+                    )}
+                    {hasErrors && (
+                      <span className="text-xs text-red-600">{r.errorCount} stream error(s)</span>
+                    )}
+                  </div>
+                  {streamResults.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                      {streamResults.map((s) => (
+                        <span
+                          key={s.stream}
+                          className={`text-xs ${s.error ? 'text-red-600' : 'text-muted-foreground'}`}
+                          title={s.error}
+                        >
+                          <span className="font-medium">{s.stream}</span>:{' '}
+                          {s.error ? `ERR: ${s.error.slice(0, 60)}` : `${s.deleted} deleted`}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         )}
       </section>
     </div>

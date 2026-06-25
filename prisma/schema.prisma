@@ -1447,3 +1447,28 @@ model AiUsageLog {
   @@index([route, occurredAt])
   @@index([occurredAt])
 }
+
+// Compressed monthly aggregate of ai_usage_logs. Raw rows are deleted after the
+// retention window (see lib/retention/config.ts); this table keeps forever.
+// BigInt because per-tenant monthly totals can exceed 32-bit on heavy AI tenants.
+// The unique constraint uses NULLS NOT DISTINCT (see migration) so that NULL
+// tenantId (system-level calls) is treated as equal for conflict detection.
+model AiUsageMonthlySummary {
+  id                   String   @id @default(cuid())
+  tenantId             String?  @map("tenant_id") @db.Uuid
+  route                String
+  model                String
+  yearMonth            String   @map("year_month") // 'YYYY-MM'
+  callCount            Int      @map("call_count")
+  successCount         Int      @map("success_count")
+  totalInputTokens     BigInt   @map("total_input_tokens")
+  totalOutputTokens    BigInt   @map("total_output_tokens")
+  totalCacheReadTokens BigInt   @map("total_cache_read_tokens")
+  totalDurationMs      BigInt   @map("total_duration_ms")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([tenantId, route, model, yearMonth])
+  @@map("ai_usage_monthly_summaries")
+  @@index([yearMonth])
+  @@index([tenantId, yearMonth])
+}
