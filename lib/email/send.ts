@@ -1,6 +1,7 @@
 import * as brevo from '@getbrevo/brevo'
 import { getBrevoClient, getDefaultSender } from './client'
 import type { SendEmailParams, SendEmailResult } from './types'
+import { prisma } from '@/lib/prisma'
 
 /**
  * Send a transactional email via Brevo.
@@ -53,6 +54,17 @@ export async function sendEmail(
 
   try {
     const result = await sendWithRetry(client, message)
+    await prisma.emailDelivery.create({
+      data: {
+        tenantId: params.tenantId ?? null,
+        toEmail: params.to.email,
+        subject: params.content.subject,
+        tags: params.tags ?? [],
+        success: true,
+        messageId: result.messageId ?? null,
+        hadAttachment: false,
+      },
+    }).catch((err) => console.error('[email-delivery] log write failed:', err))
     return {
       success: true,
       messageId: result.messageId,
@@ -64,6 +76,17 @@ export async function sendEmail(
       subject: params.content.subject,
       error: errorMessage,
     })
+    await prisma.emailDelivery.create({
+      data: {
+        tenantId: params.tenantId ?? null,
+        toEmail: params.to.email,
+        subject: params.content.subject,
+        tags: params.tags ?? [],
+        success: false,
+        errorMessage,
+        hadAttachment: false,
+      },
+    }).catch((e) => console.error('[email-delivery] log write failed:', e))
     return {
       success: false,
       error: errorMessage,
@@ -178,6 +201,17 @@ export async function sendEmailWithAttachment(
 
   try {
     const result = await sendWithRetry(client, message)
+    await prisma.emailDelivery.create({
+      data: {
+        tenantId: params.tenantId ?? null,
+        toEmail: params.to.email,
+        subject: params.content.subject,
+        tags: params.tags ?? [],
+        success: true,
+        messageId: result.messageId ?? null,
+        hadAttachment: true,
+      },
+    }).catch((err) => console.error('[email-delivery] log write failed:', err))
     return { success: true, messageId: result.messageId }
   } catch (err) {
     const errorMessage = extractErrorMessage(err)
@@ -186,6 +220,17 @@ export async function sendEmailWithAttachment(
       subject: params.content.subject,
       error: errorMessage,
     })
+    await prisma.emailDelivery.create({
+      data: {
+        tenantId: params.tenantId ?? null,
+        toEmail: params.to.email,
+        subject: params.content.subject,
+        tags: params.tags ?? [],
+        success: false,
+        errorMessage,
+        hadAttachment: true,
+      },
+    }).catch((e) => console.error('[email-delivery] log write failed:', e))
     return { success: false, error: errorMessage }
   }
 }

@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
 
   const result = await sendEmail({
     to: { email: 'hello@buzomed.com', name: 'Colin Buzomed' },
+    tenantId: auth.user.tenantId,
     content: {
       subject: `[Iris Escalation] ${auth.user.firstName} ${auth.user.lastName} — ${cabinetName}`,
       html: `

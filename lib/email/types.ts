@@ -24,6 +24,11 @@ export interface SendEmailParams {
   to: EmailRecipient
   content: EmailContent
   /**
+   * Tenant this email belongs to — used for delivery log attribution.
+   * Pass null for pre-signup / cross-tenant sends (contact form, etc.).
+   */
+  tenantId?: string | null
+  /**
    * Optional override for the From address. Defaults to the
    * BREVO_SENDER_EMAIL / BREVO_SENDER_NAME env vars.
    */

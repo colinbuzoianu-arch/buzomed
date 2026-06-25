@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
           adminName,
           billingUrl: BILLING_URL,
         })
-        await sendEmail({ to: { email: adminEmail, name: adminName }, content, tags: ['trial-expired'] })
+        await sendEmail({ to: { email: adminEmail, name: adminName }, content, tenantId: sub.tenantId, tags: ['trial-expired'] })
         processed++
       } else if (daysUntilExpiry <= 3) {
         // Day 11 email (3 days left)
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
           trialEndsAt: sub.trialEndsAt,
           billingUrl: BILLING_URL,
         })
-        await sendEmail({ to: { email: adminEmail, name: adminName }, content, tags: ['trial-day11'] })
+        await sendEmail({ to: { email: adminEmail, name: adminName }, content, tenantId: sub.tenantId, tags: ['trial-day11'] })
         processed++
       } else if (daysUntilExpiry <= 7) {
         // Day 7 email — variant based on active employee count
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
           billingUrl: BILLING_URL,
           employeeCount: sub.activeEmployeeCount,
         })
-        await sendEmail({ to: { email: adminEmail, name: adminName }, content, tags: ['trial-day7'] })
+        await sendEmail({ to: { email: adminEmail, name: adminName }, content, tenantId: sub.tenantId, tags: ['trial-day7'] })
         processed++
       }
     }
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
           deletionDate,
           billingUrl: BILLING_URL,
         })
-        await sendEmail({ to: { email: adminEmail, name: adminName }, content, tags: ['trial-deletion-warning'] })
+        await sendEmail({ to: { email: adminEmail, name: adminName }, content, tenantId: sub.tenantId, tags: ['trial-deletion-warning'] })
         processed++
       }
     }
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
         activeEmployeeCount: sub.activeEmployeeCount,
         superAdminUrl: `${SUPER_ADMIN_BASE}/${tenant.id}`,
       })
-      await sendEmail({ to: { email: ADMIN_EMAIL, name: ADMIN_NAME }, content, tags: ['admin-enterprise-alert'] })
+      await sendEmail({ to: { email: ADMIN_EMAIL, name: ADMIN_NAME }, content, tenantId: sub.tenantId, tags: ['admin-enterprise-alert'] })
       await prisma.subscription.update({ where: { id: sub.id }, data: { enterpriseAlertSent: true } })
       processed++
     } else if (sub.activeEmployeeCount <= 2000 && sub.enterpriseAlertSent) {
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
           daysPastDue,
           superAdminUrl: `${SUPER_ADMIN_BASE}/${tenant.id}`,
         })
-        await sendEmail({ to: { email: ADMIN_EMAIL, name: ADMIN_NAME }, content, tags: ['admin-past-due-alert'] })
+        await sendEmail({ to: { email: ADMIN_EMAIL, name: ADMIN_NAME }, content, tenantId: sub.tenantId, tags: ['admin-past-due-alert'] })
         await prisma.subscription.update({ where: { id: sub.id }, data: { pastDueAlertSent: true } })
         processed++
       }
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
           trialExpiredAt: sub.trialEndsAt,
           superAdminUrl: `${SUPER_ADMIN_BASE}/${tenant.id}`,
         })
-        await sendEmail({ to: { email: ADMIN_EMAIL, name: ADMIN_NAME }, content, tags: ['admin-trial-unconverted'] })
+        await sendEmail({ to: { email: ADMIN_EMAIL, name: ADMIN_NAME }, content, tenantId: sub.tenantId, tags: ['admin-trial-unconverted'] })
         processed++
       }
     }

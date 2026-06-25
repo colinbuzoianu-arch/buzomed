@@ -1394,6 +1394,24 @@ model ImportStagedFile {
   @@map("import_staged_files")
 }
 
+model EmailDelivery {
+  id            String   @id @default(cuid())
+  tenantId      String?  @map("tenant_id") @db.Uuid
+  toEmail       String   @map("to_email")
+  subject       String
+  tags          String[] @default([])
+  success       Boolean
+  messageId     String?  @map("message_id")
+  errorMessage  String?  @map("error_message")
+  hadAttachment Boolean  @default(false) @map("had_attachment")
+  attemptedAt   DateTime @default(now()) @map("attempted_at") @db.Timestamptz
+
+  @@map("email_deliveries")
+  @@index([tenantId, attemptedAt])
+  @@index([success, attemptedAt])
+  @@index([attemptedAt])
+}
+
 model CronRun {
   id             String    @id @default(cuid())
   jobName        String    @map("job_name")

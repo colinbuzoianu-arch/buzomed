@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
   // Send notification to hello@buzomed.com
   const notifyResult = await sendEmail({
     to: { email: 'hello@buzomed.com', name: 'Buzomed' },
+    tenantId: null,
     content: {
       subject: `[Buzomed Contact] ${safeSubject} — ${safeName}`,
       html: `
@@ -117,6 +118,7 @@ export async function POST(request: NextRequest) {
   // Send auto-reply to sender (non-fatal if it fails)
   const autoReplyResult = await sendEmail({
     to: { email: safeEmail, name: safeName },
+    tenantId: null,
     content: {
       subject: 'Am primit mesajul dumneavoastră — Buzomed',
       html: `

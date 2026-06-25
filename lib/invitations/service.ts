@@ -241,6 +241,7 @@ export async function createInvitation(
   const sendResult = await sendEmail({
     to: { email, name: input.recipientName },
     content: emailContent,
+    tenantId: input.tenantId,
     tags: ['invitation', `role:${input.role}`],
     headers: {
       'X-Buzomed-Template': 'invite',

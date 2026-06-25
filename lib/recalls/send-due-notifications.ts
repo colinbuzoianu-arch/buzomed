@@ -42,6 +42,7 @@ export async function sendDueRecallNotifications(): Promise<{ sent: number; skip
   type RecallEntry = {
     companyId: string
     companyName: string
+    tenantId: string
     emailTo: string
     recallIds: string[]
     employeeNames: string[]
@@ -65,6 +66,7 @@ export async function sendDueRecallNotifications(): Promise<{ sent: number; skip
       byCompany.set(company.id, {
         companyId: company.id,
         companyName: company.name,
+        tenantId: recall.tenantId,
         emailTo,
         recallIds: [recall.id],
         employeeNames: [employeeName],
@@ -135,6 +137,7 @@ export async function sendDueRecallNotifications(): Promise<{ sent: number; skip
         html,
         text,
       },
+      tenantId: group.tenantId,
       tags: ['recall-notification'],
     })
 
