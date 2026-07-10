@@ -23,11 +23,19 @@ async function loadInvoice(id: string) {
 }
 
 export async function GET(_req: NextRequest, ctx: Ctx) {
-  const check = await requireSuperAdmin()
-  if ('error' in check) return check.error
+  const auth = await getApiUser()
+  if (!auth.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
   const { id } = await ctx.params
   const invoice = await loadInvoice(id)
   if (!invoice) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+
+  const isSuperAdmin = auth.user.roles.includes('super_admin')
+  const isOwnTenantAdmin = auth.user.roles.includes('practice_admin') && auth.user.tenantId === invoice.tenantId
+  if (!isSuperAdmin && !isOwnTenantAdmin) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
+
   return NextResponse.json({ invoice })
 }
 

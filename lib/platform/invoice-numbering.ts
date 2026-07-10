@@ -48,3 +48,77 @@ export async function createPlatformInvoiceWithNumber<T>(
   }
   throw new Error('Failed to generate unique platform invoice number after max retries')
 }
+
+export const PLATFORM_INVOICE_VAT_EXEMPT_REASON =
+  'Scutit de TVA conform Art. 292 alin. (1) lit. a) pct. 1 din Codul Fiscal (servicii software medical)'
+
+export interface PlatformInvoiceLineItemInput {
+  description: string
+  quantity: number
+  unitPrice: number
+  lineTotal: number
+}
+
+export interface PlatformInvoiceTenantSnapshotInput {
+  id: string
+  name: string
+  cui: string | null
+  addressLine1: string | null
+  city: string | null
+  email: string | null
+}
+
+export interface CreatePlatformInvoiceForTenantParams {
+  tenant: PlatformInvoiceTenantSnapshotInput
+  items: PlatformInvoiceLineItemInput[]
+  vatRate?: number
+  notes?: string | null
+  dueDate?: Date | null
+  billingPeriod?: string | null
+}
+
+// Shared invoice-creation body-building, used by both the manual "New invoice"
+// endpoint and the flat/usage "Generate invoice" endpoint, so number sequencing,
+// VAT handling, and tenant snapshot fields stay identical across both paths.
+export async function createPlatformInvoiceForTenant(
+  params: CreatePlatformInvoiceForTenantParams
+) {
+  const vatRate = Math.max(0, Math.min(params.vatRate ?? 0, 1))
+  const subtotal = params.items.reduce((sum, item) => sum + item.lineTotal, 0)
+  const vatAmount = subtotal * vatRate
+  const total = subtotal + vatAmount
+
+  return createPlatformInvoiceWithNumber(
+    (n) => ({
+      invoiceNumber: n.number,
+      invoiceYear: n.year,
+      invoiceSequence: n.sequence,
+      status: 'draft',
+      subtotal,
+      vatRate,
+      vatAmount,
+      total,
+      currency: 'RON',
+      vatExemptReason: vatRate === 0 ? PLATFORM_INVOICE_VAT_EXEMPT_REASON : null,
+      notes: params.notes ?? null,
+      dueDate: params.dueDate ?? null,
+      billingPeriod: params.billingPeriod ?? null,
+      snapshotTenantName: params.tenant.name,
+      snapshotTenantCui: params.tenant.cui ?? null,
+      snapshotTenantAddress:
+        [params.tenant.addressLine1, params.tenant.city].filter(Boolean).join(', ') || null,
+      snapshotTenantEmail: params.tenant.email ?? null,
+      tenant: { connect: { id: params.tenant.id } },
+      items: {
+        create: params.items.map((item, idx) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          lineTotal: item.lineTotal,
+          sortOrder: idx,
+        })),
+      },
+    }),
+    (created) => created
+  )
+}

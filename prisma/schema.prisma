@@ -57,6 +57,11 @@ enum SubscriptionStatus {
   comp
 }
 
+enum BillingMode {
+  flat   // billed via Plan.monthlyPrice (planId must be set to one of the 4 tiers)
+  usage  // billed via platformPricePerExam × completed examinations that month (planId must be null)
+}
+
 enum IdDocumentType {
   cnp
   passport
@@ -604,6 +609,10 @@ model PlatformInvoice {
   snapshotTenantCui     String?               @map("snapshot_tenant_cui")
   snapshotTenantAddress String?               @map("snapshot_tenant_address")
   snapshotTenantEmail   String?               @map("snapshot_tenant_email")
+  billingPeriod         String?               @map("billing_period") // e.g. "2026-06" — dedup key for generated invoices
+  dueSoonReminderSentAt DateTime?             @map("due_soon_reminder_sent_at")
+  overdueReminderCount  Int                   @default(0) @map("overdue_reminder_count")
+  lastOverdueReminderAt DateTime?             @map("last_overdue_reminder_at")
   createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt             DateTime?             @map("deleted_at") @db.Timestamptz
@@ -612,6 +621,7 @@ model PlatformInvoice {
 
   @@map("platform_invoices")
   @@unique([invoiceYear, invoiceSequence])
+  @@unique([tenantId, billingPeriod])
   @@index([tenantId])
   @@index([status])
   @@index([deletedAt])
@@ -642,8 +652,6 @@ model Plan {
   monthlyPrice     Decimal       @map("monthly_price") @db.Decimal(10, 2)
   maxEmployees     Int           @map("max_employees")  // -1 = unlimited
   isPublic         Boolean       @default(true) @map("is_public")
-  stripeProductId  String?       @map("stripe_product_id")
-  stripePriceId    String?       @map("stripe_price_id")
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -658,16 +666,17 @@ model Subscription {
   planId               String?            @map("plan_id")
   tier                 PlanTier           @default(starter)
   status               SubscriptionStatus @default(trial_active)
+  billingMode          BillingMode        @default(flat) @map("billing_mode")
+  platformPricePerExam Decimal?           @map("platform_price_per_exam") @db.Decimal(10, 2)
   trialEndsAt          DateTime?          @map("trial_ends_at") @db.Timestamptz
   currentPeriodStart   DateTime?          @map("current_period_start") @db.Timestamptz
   currentPeriodEnd     DateTime?          @map("current_period_end") @db.Timestamptz
   canceledAt           DateTime?          @map("canceled_at") @db.Timestamptz
-  stripeCustomerId     String?            @map("stripe_customer_id")
-  stripeSubscriptionId String?            @map("stripe_subscription_id")
   activeEmployeeCount  Int                @default(0) @map("active_employee_count")
   trialExtendedDays    Int                @default(0) @map("trial_extended_days")
   enterpriseAlertSent  Boolean            @default(false) @map("enterprise_alert_sent")
   pastDueAlertSent     Boolean            @default(false) @map("past_due_alert_sent")
+  trialReminderSentAt  DateTime?          @map("trial_reminder_sent_at")
   notes                String?
   createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz
@@ -1316,19 +1325,6 @@ model WebhookDelivery {
 }
 
 // ============================================================================
-// STRIPE WEBHOOK IDEMPOTENCY
-// ============================================================================
-
-model ProcessedStripeEvent {
-  eventId     String   @id @map("event_id")
-  eventType   String   @map("event_type")
-  processedAt DateTime @default(now()) @map("processed_at") @db.Timestamptz
-
-  @@map("processed_stripe_events")
-  @@index([processedAt])
-}
-
-// ============================================================================
 // SYSTEM OBSERVABILITY
 // ============================================================================
 
@@ -1410,6 +1406,17 @@ model EmailDelivery {
   @@index([tenantId, attemptedAt])
   @@index([success, attemptedAt])
   @@index([attemptedAt])
+}
+
+// GDPR unsubscribe suppression list. Not a field on User — recipients of
+// invoice/trial emails may not have a User row (billing email only).
+model EmailSuppression {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  reason       String? // free text, e.g. "user-initiated", "bounce"
+  suppressedAt DateTime @default(now()) @map("suppressed_at") @db.Timestamptz
+
+  @@map("email_suppressions")
 }
 
 model CronRun {

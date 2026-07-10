@@ -2,6 +2,50 @@ import * as brevo from '@getbrevo/brevo'
 import { getBrevoClient, getDefaultSender } from './client'
 import type { SendEmailParams, SendEmailResult } from './types'
 import { prisma } from '@/lib/prisma'
+import { isSuppressed, generateUnsubscribeUrl } from './suppression'
+
+const SKIPPED_SUPPRESSED = 'skipped_suppressed'
+
+/**
+ * Checks the GDPR suppression list for a suppressible send, and builds the
+ * List-Unsubscribe headers for one that isn't. Shared by sendEmail and
+ * sendEmailWithAttachment so both respect opt-outs identically.
+ */
+async function resolveSuppression(
+  params: SendEmailParams
+): Promise<{ suppressed: boolean; headers?: Record<string, string> }> {
+  if (params.suppressible === false) {
+    return { suppressed: false, headers: params.headers }
+  }
+  if (await isSuppressed(params.to.email)) {
+    return { suppressed: true }
+  }
+  const unsubscribeUrl = generateUnsubscribeUrl(params.to.email)
+  return {
+    suppressed: false,
+    headers: {
+      ...params.headers,
+      'List-Unsubscribe': `<${unsubscribeUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  }
+}
+
+async function logSkippedDelivery(params: SendEmailParams, hadAttachment: boolean): Promise<void> {
+  await prisma.emailDelivery
+    .create({
+      data: {
+        tenantId: params.tenantId ?? null,
+        toEmail: params.to.email,
+        subject: params.content.subject,
+        tags: params.tags ?? [],
+        success: true,
+        errorMessage: SKIPPED_SUPPRESSED,
+        hadAttachment,
+      },
+    })
+    .catch((err) => console.error('[email-delivery] log write failed:', err))
+}
 
 /**
  * Send a transactional email via Brevo.
@@ -17,6 +61,12 @@ import { prisma } from '@/lib/prisma'
 export async function sendEmail(
   params: SendEmailParams
 ): Promise<SendEmailResult> {
+  const { suppressed, headers } = await resolveSuppression(params)
+  if (suppressed) {
+    await logSkippedDelivery(params, false)
+    return { success: true }
+  }
+
   const client = getBrevoClient()
   const defaultSender = getDefaultSender()
 
@@ -44,8 +94,8 @@ export async function sendEmail(
     }
   }
 
-  if (params.headers) {
-    message.headers = params.headers
+  if (headers) {
+    message.headers = headers
   }
 
   if (params.tags && params.tags.length > 0) {
@@ -157,6 +207,12 @@ function sleep(ms: number): Promise<void> {
 export async function sendEmailWithAttachment(
   params: SendEmailParams
 ): Promise<SendEmailResult> {
+  const { suppressed, headers } = await resolveSuppression(params)
+  if (suppressed) {
+    await logSkippedDelivery(params, true)
+    return { success: true }
+  }
+
   const client = getBrevoClient()
   const defaultSender = getDefaultSender()
 
@@ -182,6 +238,10 @@ export async function sendEmailWithAttachment(
       email: params.replyTo.email,
       ...(params.replyTo.name && { name: params.replyTo.name }),
     }
+  }
+
+  if (headers) {
+    message.headers = headers
   }
 
   if (params.tags?.length) {

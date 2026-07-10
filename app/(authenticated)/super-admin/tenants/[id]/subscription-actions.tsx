@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { toastSuccess, toastError } from '@/lib/toast'
-import type { PlanTier, SubscriptionStatus } from '@prisma/client'
+import type { BillingMode, PlanTier, SubscriptionStatus } from '@prisma/client'
 
 interface Props {
   tenantId: string
@@ -15,6 +16,8 @@ interface Props {
     tier: PlanTier
     trialEndsAt: Date | null
     notes: string | null
+    billingMode: BillingMode
+    platformPricePerExam: number | null
   } | null
 }
 
@@ -36,6 +39,10 @@ export function SubscriptionActions({ tenantId, tenantName, subscription }: Prop
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
   const [selectedTier, setSelectedTier] = useState<PlanTier>(subscription?.tier ?? 'starter')
+  const [billingMode, setBillingMode] = useState<BillingMode>(subscription?.billingMode ?? 'flat')
+  const [pricePerExam, setPricePerExam] = useState<number>(
+    subscription?.platformPricePerExam ?? 5
+  )
 
   const base = `/api/admin/subscriptions/${tenantId}`
 
@@ -173,6 +180,55 @@ export function SubscriptionActions({ tenantId, tenantName, subscription }: Prop
         >
           Schimbă plan
         </Button>
+      </div>
+
+      {/* Billing mode */}
+      <div className="rounded-md border p-3 space-y-2">
+        <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          Mod de facturare
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={billingMode}
+            onChange={(e) => setBillingMode(e.target.value as BillingMode)}
+            className="h-8 rounded-md border bg-background px-2 text-[13px]"
+          >
+            <option value="flat">Flat (abonament)</option>
+            <option value="usage">Usage (per consultație)</option>
+          </select>
+          {billingMode === 'usage' && (
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={pricePerExam}
+                onChange={(e) => setPricePerExam(Number(e.target.value))}
+                className="h-8 w-24 text-[13px]"
+              />
+              <span className="text-[12px] text-muted-foreground">RON / consultație</span>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() =>
+              doAction(
+                'set_billing_mode',
+                { billingMode, platformPricePerExam: pricePerExam },
+                `Schimbă modul de facturare la "${billingMode}" pentru "${tenantName}"?`
+              )
+            }
+          >
+            Salvează mod facturare
+          </Button>
+        </div>
+        <p className="text-[12px] text-muted-foreground">
+          {subscription.billingMode === 'usage'
+            ? `Curent: usage — ${subscription.platformPricePerExam ?? 5} RON / consultație`
+            : 'Curent: flat (abonament pe planul curent)'}
+        </p>
       </div>
 
       {/* Add note */}

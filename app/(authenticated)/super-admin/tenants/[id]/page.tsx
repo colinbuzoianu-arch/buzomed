@@ -19,6 +19,7 @@ import { PlatformInvoicesTab } from './platform-invoices-tab'
 import { TenantManagementActions } from './tenant-management-actions'
 import { SubscriptionActions } from './subscription-actions'
 import { formatDate } from '@/lib/format-date'
+import { formatBillingLabel } from '@/lib/subscription'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
 interface PageProps {
@@ -113,11 +114,27 @@ export default async function TenantDetailPage({ params }: PageProps) {
 
   const now = new Date()
 
-  const subscription = await prisma.subscription.findFirst({
+  const rawSubscription = await prisma.subscription.findFirst({
     where: { tenantId: tenant.id },
     orderBy: { createdAt: 'desc' },
-    select: { id: true, status: true, tier: true, trialEndsAt: true, notes: true },
+    select: {
+      id: true,
+      status: true,
+      tier: true,
+      trialEndsAt: true,
+      notes: true,
+      billingMode: true,
+      platformPricePerExam: true,
+    },
   })
+  const subscription = rawSubscription
+    ? {
+        ...rawSubscription,
+        platformPricePerExam: rawSubscription.platformPricePerExam
+          ? Number(rawSubscription.platformPricePerExam)
+          : null,
+      }
+    : null
 
   const pendingInvitations = await prisma.invitation.findMany({
     where: {
@@ -183,7 +200,7 @@ export default async function TenantDetailPage({ params }: PageProps) {
         </div>
         <div className="flex flex-col items-end gap-1">
           <span className="text-sm text-muted-foreground">
-            {t(`superAdmin.subscription.${tenant.subscriptionTier}`)}
+            {formatBillingLabel(subscription)}
           </span>
           <span
             className={`inline-flex items-center gap-1.5 text-sm ${

@@ -159,7 +159,10 @@ SETĂRI MEDIC (/settings/practitioners/[userId]):
 
 ABONAMENT ȘI FACTURARE (/settings/billing):
 - Trial 14 zile automat la crearea cabinetului, fără card. Banner dashboard cu zile rămase.
-- /settings/billing (doar practice_admin): plan curent, status, bară progres trial, istoric facturi Stripe, buton portal Stripe (disponibil doar la abonament activ/plătit).
+- Facturare manuală prin transfer bancar (fără card, fără Stripe) — factura se emite de Buzomed super-admin în platformă (PlatformInvoice), nu automat.
+- Două moduri de facturare, alese de super-admin per cabinet: flat (abonament pe unul din cele 4 planuri) sau usage (preț per consultație finalizată, implicit 5 RON).
+- /settings/billing (doar practice_admin): plan curent/status, sau — dacă e pe usage — tariful per consultație, plus istoric facturi (PDF descărcabil). Fără schimbare de plan din self-service.
+- Planurile (Starter/Growth/Pro/Enterprise) și tabelul de prețuri se afișează doar înainte de conversie (trial); după ce cabinetul devine client plătitor, nu mai vede prețurile celorlalte planuri — doar planul propriu.
 - Planuri: Starter (până la 100 angajați), Growth (până la 500), Pro (până la 2000), Enterprise (la cerere). Pentru prețuri exacte: /settings/billing sau hello@buzomed.com.
 - La atingerea limitei: eroare clară la adăugarea angajat sau examinare.
 

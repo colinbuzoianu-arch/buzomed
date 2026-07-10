@@ -4,6 +4,7 @@ interface TrialExpiredParams {
   cabinetName: string
   adminName: string
   billingUrl: string
+  unsubscribeUrl: string
 }
 
 export function renderTrialExpiredEmail(params: TrialExpiredParams): { subject: string; html: string; text: string } {
@@ -21,9 +22,10 @@ ${renderButton('Activează subscripția', params.billingUrl)}
     preheader: `Trial-ul pentru ${params.cabinetName} a expirat. Activează un plan.`,
     body,
     footerText: 'Buzomed · Medicină a muncii · hello@buzomed.com',
+    unsubscribeUrl: params.unsubscribeUrl,
   })
 
-  const text = `Bună, ${params.adminName},\n\nTrial-ul pentru ${params.cabinetName} a expirat. Datele tale sunt salvate.\n\nActivează subscripția: ${params.billingUrl}\n\nBuzomed`
+  const text = `Bună, ${params.adminName},\n\nTrial-ul pentru ${params.cabinetName} a expirat. Datele tale sunt salvate.\n\nActivează subscripția: ${params.billingUrl}\n\nDezabonează-te: ${params.unsubscribeUrl}\n\nBuzomed`
 
   return { subject, html, text }
 }

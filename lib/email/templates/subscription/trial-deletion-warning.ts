@@ -5,6 +5,7 @@ interface TrialDeletionWarningParams {
   adminName: string
   deletionDate: Date
   billingUrl: string
+  unsubscribeUrl: string
 }
 
 export function renderTrialDeletionWarningEmail(params: TrialDeletionWarningParams): { subject: string; html: string; text: string } {
@@ -24,9 +25,10 @@ ${renderButton('Activează contul acum', params.billingUrl)}
     preheader: `Datele cabinetului ${params.cabinetName} vor fi șterse pe ${deletionDateStr}.`,
     body,
     footerText: 'Buzomed · Medicină a muncii · hello@buzomed.com',
+    unsubscribeUrl: params.unsubscribeUrl,
   })
 
-  const text = `Bună, ${params.adminName},\n\nAvertizare: datele cabinetului ${params.cabinetName} vor fi șterse pe ${deletionDateStr}.\n\nActivează contul: ${params.billingUrl}\n\nBuzomed`
+  const text = `Bună, ${params.adminName},\n\nAvertizare: datele cabinetului ${params.cabinetName} vor fi șterse pe ${deletionDateStr}.\n\nActivează contul: ${params.billingUrl}\n\nDezabonează-te: ${params.unsubscribeUrl}\n\nBuzomed`
 
   return { subject, html, text }
 }

@@ -247,6 +247,9 @@ export async function createInvitation(
       'X-Buzomed-Template': 'invite',
       'X-Buzomed-Invitation-Id': invitation.id,
     },
+    // Transactional/security email — must arrive even for a suppressed
+    // address (recipient needs it to activate their account).
+    suppressible: false,
   })
 
   if (!sendResult.success) {

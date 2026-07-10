@@ -1,7 +1,22 @@
 import { prisma } from '@/lib/prisma'
-import type { Plan, Subscription } from '@prisma/client'
+import type { BillingMode, Plan, PlanTier, Subscription } from '@prisma/client'
 
 export type SubscriptionWithPlan = Subscription & { plan: Plan | null }
+
+/**
+ * Human-readable billing label for tenant list/detail badges — the real
+ * Subscription-based state, not the vestigial Tenant.subscriptionTier enum.
+ */
+export function formatBillingLabel(
+  sub: { tier: PlanTier; billingMode: BillingMode; platformPricePerExam: unknown } | null
+): string {
+  if (!sub) return '—'
+  if (sub.billingMode === 'usage') {
+    const price = sub.platformPricePerExam != null ? Number(sub.platformPricePerExam) : 5
+    return `Usage-based (${price} RON/examinare)`
+  }
+  return sub.tier.charAt(0).toUpperCase() + sub.tier.slice(1)
+}
 
 export async function getTenantSubscription(tenantId: string): Promise<SubscriptionWithPlan | null> {
   return prisma.subscription.findFirst({

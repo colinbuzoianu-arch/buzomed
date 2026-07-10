@@ -708,7 +708,7 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
             label="Tag"
             name="emailTag"
             value={params.emailTag}
-            placeholder="trial-day7…"
+            placeholder="trial-reminder…"
           />
           <FilterField
             label="Tenant ID"

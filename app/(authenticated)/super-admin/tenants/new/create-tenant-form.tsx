@@ -28,7 +28,10 @@ export function CreateTenantForm({ labels, defaultTier }: { labels: Labels; defa
     adminEmail: '',
     adminFirstName: '',
     adminLastName: '',
-    subscriptionTier: (defaultTier === 'enterprise' ? 'enterprise' : 'trial') as 'trial' | 'solo' | 'practice' | 'enterprise',
+    planTier: (defaultTier === 'enterprise' ? undefined : 'starter') as 'starter' | 'growth' | 'pro' | undefined,
+    billingMode: 'flat' as 'flat' | 'usage',
+    platformPricePerExam: 5, // default, only relevant/sent when billingMode === 'usage'
+    isEnterprise: defaultTier === 'enterprise',
   })
 
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -258,21 +261,44 @@ export function CreateTenantForm({ labels, defaultTier }: { labels: Labels; defa
 
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="subscriptionTier">{labels.subscriptionLabel}</Label>
-            <select
-              id="subscriptionTier"
-              value={form.subscriptionTier}
-              onChange={(e) => update('subscriptionTier', e.target.value as typeof form.subscriptionTier)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="trial">{labels.subscriptionTrial}</option>
-              <option value="solo">{labels.subscriptionSolo}</option>
-              <option value="practice">{labels.subscriptionPractice}</option>
-              <option value="enterprise">{labels.subscriptionEnterprise}</option>
-            </select>
-            {form.subscriptionTier === 'enterprise' && (
+            {form.isEnterprise ? (
               <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
                 Cabinet creat ca Enterprise — facturare negociată separat.
               </p>
+            ) : (
+              <>
+                <select
+                  id="subscriptionTier"
+                  value={form.billingMode === 'usage' ? 'usage' : (form.planTier ?? 'starter')}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (value === 'usage') {
+                      setForm({ ...form, billingMode: 'usage', planTier: undefined })
+                    } else {
+                      setForm({ ...form, billingMode: 'flat', planTier: value as 'starter' | 'growth' | 'pro' })
+                    }
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="starter">Starter</option>
+                  <option value="growth">Growth</option>
+                  <option value="pro">Pro</option>
+                  <option value="usage">Usage-based (preț per consultație)</option>
+                </select>
+                {form.billingMode === 'usage' && (
+                  <div className="space-y-2 pt-1">
+                    <Label htmlFor="platformPricePerExam">Preț per examinare (RON)</Label>
+                    <Input
+                      id="platformPricePerExam"
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={form.platformPricePerExam}
+                      onChange={(e) => update('platformPricePerExam', Number(e.target.value))}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

@@ -227,19 +227,6 @@ export async function runRetention(dryRun: boolean): Promise<StreamResult[]> {
     ['aiUsageLog', () => pruneAiUsageLog(dryRun)],
     ['cronRun', () => pruneCronRun(dryRun)],
     ['emailDelivery', () => pruneEmailDelivery(dryRun)],
-    [
-      'processedStripeEvent',
-      () =>
-        pruneSimple(
-          'processedStripeEvent',
-          async (c) =>
-            (await prisma.processedStripeEvent.deleteMany({ where: { processedAt: { lt: c } } }))
-              .count,
-          (c) => prisma.processedStripeEvent.count({ where: { processedAt: { lt: c } } }),
-          RETENTION_POLICY.processedStripeEvent.defaultDays,
-          dryRun
-        ),
-    ],
   ]
 
   for (const [streamName, run] of streamTasks) {

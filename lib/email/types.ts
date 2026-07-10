@@ -56,6 +56,13 @@ export interface SendEmailParams {
     /** Filename with extension, e.g. "factura_2025-001.pdf" */
     name: string
   }
+  /**
+   * Whether this send respects the GDPR unsubscribe list and gets a
+   * List-Unsubscribe header. Defaults to true. Set to false only for
+   * transactional/security emails a user must receive regardless of
+   * marketing opt-out (invite emails, password reset).
+   */
+  suppressible?: boolean
 }
 
 export interface SendEmailResult {

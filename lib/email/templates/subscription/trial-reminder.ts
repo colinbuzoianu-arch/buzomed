@@ -1,13 +1,14 @@
 import { renderEmailLayout, renderButton, escapeHtml } from '../layout'
 
-interface TrialDay11Params {
+interface TrialReminderParams {
   cabinetName: string
   adminName: string
   trialEndsAt: Date
   billingUrl: string
+  unsubscribeUrl: string
 }
 
-export function renderTrialDay11Email(params: TrialDay11Params): { subject: string; html: string; text: string } {
+export function renderTrialReminderEmail(params: TrialReminderParams): { subject: string; html: string; text: string } {
   const subject = 'Ultimele 3 zile — alege planul tău Buzomed'
   const endDate = params.trialEndsAt.toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -45,9 +46,10 @@ ${renderButton('Activează subscripția acum', params.billingUrl)}
     preheader: `Ultimele 3 zile din trial-ul Buzomed pentru ${params.cabinetName}.`,
     body,
     footerText: 'Buzomed · Medicină a muncii · hello@buzomed.com',
+    unsubscribeUrl: params.unsubscribeUrl,
   })
 
-  const text = `Bună, ${params.adminName},\n\nTrial-ul pentru ${params.cabinetName} expiră pe ${endDate} (3 zile rămase).\n\nPlanuri disponibile:\n- Starter: 99 RON/lună — până la 100 angajați\n- Growth: 299 RON/lună — până la 500 angajați\n- Pro: 699 RON/lună — până la 2000 angajați\n\nActivează: ${params.billingUrl}\n\nBuzomed`
+  const text = `Bună, ${params.adminName},\n\nTrial-ul pentru ${params.cabinetName} expiră pe ${endDate} (3 zile rămase).\n\nPlanuri disponibile:\n- Starter: 99 RON/lună — până la 100 angajați\n- Growth: 299 RON/lună — până la 500 angajați\n- Pro: 699 RON/lună — până la 2000 angajați\n\nActivează: ${params.billingUrl}\n\nDezabonează-te: ${params.unsubscribeUrl}\n\nBuzomed`
 
   return { subject, html, text }
 }

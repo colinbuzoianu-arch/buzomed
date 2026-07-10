@@ -9,6 +9,7 @@ import { ProbeInviteButton } from './probe-invite-button'
 import { RecallNotificationsButton } from './recall-notifications-button'
 import { RetentionCheckButton } from '@/components/super-admin/retention-check-button'
 import { formatDate } from '@/lib/format-date'
+import { formatBillingLabel } from '@/lib/subscription'
 
 /**
  * Super-admin index — tenant list with activity metrics and sorting.
@@ -117,8 +118,24 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
   // Subscription stats from the new Subscription model
   const allSubs = await prisma.subscription.findMany({
     where: { tenant: { deletedAt: null } },
-    select: { status: true, plan: { select: { monthlyPrice: true } } },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      tenantId: true,
+      status: true,
+      tier: true,
+      billingMode: true,
+      platformPricePerExam: true,
+      plan: { select: { monthlyPrice: true } },
+    },
   })
+
+  // Latest subscription per tenant, for the billing badge in the table below
+  // (real Subscription-based tier/billing mode, not the vestigial
+  // Tenant.subscriptionTier enum).
+  const subByTenant = new Map<string, (typeof allSubs)[number]>()
+  for (const s of allSubs) {
+    if (!subByTenant.has(s.tenantId)) subByTenant.set(s.tenantId, s)
+  }
 
   const subsByStatus = allSubs.reduce<Record<string, number>>((acc, s) => {
     acc[s.status] = (acc[s.status] ?? 0) + 1
@@ -374,7 +391,7 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
                             : 'bg-gray-400'
                         }`}
                       />
-                      {t(`superAdmin.subscription.${tenant.subscriptionTier}`)}
+                      {formatBillingLabel(subByTenant.get(tenant.id) ?? null)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right text-muted-foreground">

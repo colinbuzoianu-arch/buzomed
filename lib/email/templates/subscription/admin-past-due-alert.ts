@@ -14,10 +14,10 @@ export function renderAdminPastDueAlertEmail(
 
   const body = `
 <p>Alertă automată Buzomed:</p>
-<p>Cabinetul <strong>${escapeHtml(params.cabinetName)}</strong> nu a efectuat plata de
+<p>Cabinetul <strong>${escapeHtml(params.cabinetName)}</strong> are o factură restantă de
 <strong>${params.daysPastDue} zile</strong>. Statusul abonamentului este <code>past_due</code>.</p>
-<p>Stripe încearcă automat reîncasarea, dar este posibil să fie necesară intervenție manuală
-(actualizarea cardului sau contactarea clientului).</p>
+<p>Facturarea se face prin transfer bancar — este necesară intervenție manuală
+(contactarea clientului sau confirmarea plății).</p>
 ${renderButton('Deschide în Super-Admin', params.superAdminUrl)}
 <p style="font-size: 13px; color: #6b7280;">Tenant ID: ${escapeHtml(params.tenantId)}</p>
 `

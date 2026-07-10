@@ -25,6 +25,12 @@ interface LayoutProps {
   footerText: string
   /** Preheader text — first line of preview shown in inbox lists */
   preheader: string
+  /**
+   * GDPR unsubscribe link. Omit for internal alerts (sent to hello@buzomed.com,
+   * not to a data subject exercising GDPR rights) — everything else sent to a
+   * cabinet admin or invoice recipient should pass this.
+   */
+  unsubscribeUrl?: string
 }
 
 const COLORS = {
@@ -41,6 +47,7 @@ export function renderEmailLayout({
   body,
   footerText,
   preheader,
+  unsubscribeUrl,
 }: LayoutProps): string {
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -87,6 +94,7 @@ ${body}
         <tr>
           <td style="padding: 24px 32px; border-top: 1px solid ${COLORS.border}; font-size: 12px; line-height: 1.5; color: ${COLORS.textMuted};">
 ${escapeHtml(footerText)}
+${unsubscribeUrl ? `<br/><br/>Nu mai vrei să primești acest tip de email? <a href="${escapeHtml(unsubscribeUrl)}" style="color: ${COLORS.textMuted}; text-decoration: underline;">Dezabonează-te</a>` : ''}
           </td>
         </tr>
 

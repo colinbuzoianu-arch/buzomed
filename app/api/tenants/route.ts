@@ -9,6 +9,7 @@ import {
 } from '@/lib/crypto/cnp-hash'
 import { isCnpEncryptionConfigured } from '@/lib/crypto/cnp-cipher'
 import { sendEmail } from '@/lib/email'
+import { generateUnsubscribeUrl } from '@/lib/email/suppression'
 import { renderTrialWelcomeEmail } from '@/lib/email/templates/subscription/trial-welcome'
 import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 
@@ -95,6 +96,11 @@ export async function POST(request: Request) {
   const CURRENT_TERMS_VERSION = '2026-05'
   const CURRENT_PRIVACY_VERSION = '2026-05'
 
+  // Enterprise tenants arrive via the dedicated "?tier=enterprise" link and
+  // skip the normal 4-option dropdown entirely — the form sends isEnterprise
+  // directly rather than the old subscriptionTier field.
+  const isEnterprise = body.isEnterprise === true
+
   // Create tenant + admin user in a transaction
   let tenantResult
   try {
@@ -113,7 +119,9 @@ export async function POST(request: Request) {
           country: 'RO',
           phone: body.phone || null,
           email: body.email || null,
-          subscriptionTier: body.subscriptionTier || 'trial',
+          // Tenant.subscriptionTier is vestigial now that Subscription is the
+          // source of truth for billing — kept non-null for schema consistency.
+          subscriptionTier: isEnterprise ? 'enterprise' : 'trial',
           subscriptionStatus: 'active',
           trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           featureFlags: {
@@ -165,16 +173,54 @@ export async function POST(request: Request) {
       })
 
       // Create subscription row. Enterprise tenants are on a manual contract —
-      // no trial period, no Stripe. Everyone else starts on a 14-day trial.
-      const isEnterprise = body.subscriptionTier === 'enterprise'
-      await tx.subscription.create({
-        data: {
-          tenantId: tenant.id,
-          tier: isEnterprise ? 'enterprise' : 'starter',
-          status: isEnterprise ? 'active' : 'trial_active',
-          trialEndsAt: isEnterprise ? null : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        },
-      })
+      // no trial period. Everyone else starts on a 14-day trial, regardless
+      // of which of the 4 dropdown options was picked — tier/billingMode only
+      // determines what they're billed as once the trial ends or converts.
+      const isUsageBased = !isEnterprise && body.billingMode === 'usage'
+      const VALID_PLAN_TIERS = ['starter', 'growth', 'pro'] as const
+
+      if (isEnterprise) {
+        const enterprisePlan = await tx.plan.findFirst({ where: { tier: 'enterprise' } })
+        await tx.subscription.create({
+          data: {
+            tenantId: tenant.id,
+            tier: 'enterprise',
+            billingMode: 'flat',
+            planId: enterprisePlan?.id ?? null,
+            status: 'active',
+            trialEndsAt: null,
+          },
+        })
+      } else if (isUsageBased) {
+        const price = typeof body.platformPricePerExam === 'number' ? body.platformPricePerExam : 5
+        await tx.subscription.create({
+          data: {
+            tenantId: tenant.id,
+            // tier stays non-nullable on the Subscription model; this value
+            // is a placeholder never used for billing while billingMode is
+            // 'usage' (billing reads platformPricePerExam instead).
+            tier: 'starter',
+            billingMode: 'usage',
+            planId: null,
+            platformPricePerExam: price,
+            status: 'trial_active',
+            trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          },
+        })
+      } else {
+        const tier = VALID_PLAN_TIERS.includes(body.planTier) ? body.planTier : 'starter'
+        const plan = await tx.plan.findFirst({ where: { tier } })
+        await tx.subscription.create({
+          data: {
+            tenantId: tenant.id,
+            tier,
+            billingMode: 'flat',
+            planId: plan?.id ?? null,
+            status: 'trial_active',
+            trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          },
+        })
+      }
 
       return { tenant, adminUser }
     })
@@ -226,10 +272,9 @@ export async function POST(request: Request) {
     appUrl,
   })
 
-  // Send trial welcome email for self-service tenants (trial/solo/practice).
+  // Send trial welcome email for self-service tenants.
   // Suppress for enterprise (billing arranged separately), demo, and probe accounts.
-  const suppressTrialWelcome =
-    body.isDemo || body.isProbe || body.subscriptionTier === 'enterprise'
+  const suppressTrialWelcome = body.isDemo || body.isProbe || isEnterprise
   if (!suppressTrialWelcome) {
     const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
     const welcomeContent = renderTrialWelcomeEmail({
@@ -237,6 +282,7 @@ export async function POST(request: Request) {
       adminName: `${body.adminFirstName} ${body.adminLastName}`,
       trialEndsAt,
       billingUrl: `${appUrl}/settings/billing`,
+      unsubscribeUrl: generateUnsubscribeUrl(body.adminEmail),
     })
     sendEmail({
       to: { email: body.adminEmail, name: `${body.adminFirstName} ${body.adminLastName}` },

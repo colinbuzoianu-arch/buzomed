@@ -21,7 +21,14 @@ export async function POST(
     return NextResponse.json({ error: 'tenant_not_found' }, { status: 404 })
   }
 
-  let body: { action: string; days?: number; tier?: PlanTier; note?: string }
+  let body: {
+    action: string
+    days?: number
+    tier?: PlanTier
+    note?: string
+    billingMode?: 'flat' | 'usage'
+    platformPricePerExam?: number
+  }
   try {
     body = await request.json()
   } catch {
@@ -38,7 +45,7 @@ export async function POST(
       const newEnd = new Date(base.getTime() + days * 24 * 60 * 60 * 1000)
       await prisma.subscription.update({
         where: { id: sub.id },
-        data: { trialEndsAt: newEnd, status: 'trial_active' },
+        data: { trialEndsAt: newEnd, status: 'trial_active', trialReminderSentAt: null },
       })
       return NextResponse.json({ message: `Trial extins cu ${days} zile.` })
     }
@@ -102,6 +109,28 @@ export async function POST(
         data: { tenantId, tier: 'starter', status: 'trial_active', trialEndsAt },
       })
       return NextResponse.json({ message: 'Trial creat (14 zile).' })
+    }
+
+    case 'set_billing_mode': {
+      if (!sub) return NextResponse.json({ error: 'no_subscription' }, { status: 404 })
+      const mode = body.billingMode as 'flat' | 'usage'
+      if (mode !== 'flat' && mode !== 'usage') {
+        return NextResponse.json({ error: 'invalid_billing_mode' }, { status: 400 })
+      }
+      if (mode === 'flat') {
+        const plan = await prisma.plan.findFirst({ where: { tier: sub.tier } })
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: { billingMode: 'flat', planId: plan?.id ?? null, platformPricePerExam: null },
+        })
+      } else {
+        const price = typeof body.platformPricePerExam === 'number' ? body.platformPricePerExam : 5
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: { billingMode: 'usage', planId: null, platformPricePerExam: price },
+        })
+      }
+      return NextResponse.json({ message: 'Mod de facturare actualizat.' })
     }
 
     default:

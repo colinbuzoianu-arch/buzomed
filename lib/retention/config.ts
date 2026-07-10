@@ -54,5 +54,4 @@ export const RETENTION_POLICY = {
     defaultDays: 180,
     carveOuts: { failedDays: 365 },
   },
-  processedStripeEvent: { defaultDays: 60 }, // Stripe retry window is much shorter; 60d is bulletproof
 } as const

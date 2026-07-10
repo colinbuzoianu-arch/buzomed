@@ -2,11 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { asObject, optionalString, optionalDate } from '@/lib/validation'
-import { createPlatformInvoiceWithNumber } from '@/lib/platform/invoice-numbering'
+import { createPlatformInvoiceForTenant } from '@/lib/platform/invoice-numbering'
 import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
-
-const VAT_EXEMPT_REASON =
-  'Scutit de TVA conform Art. 292 alin. (1) lit. a) pct. 1 din Codul Fiscal (servicii software medical)'
 
 async function requireSuperAdmin(request: NextRequest) {
   const auth = await getApiUser()
@@ -16,12 +13,19 @@ async function requireSuperAdmin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const check = await requireSuperAdmin(request)
-  if ('error' in check) return check.error
+  const auth = await getApiUser()
+  if (!auth.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const tenantId = searchParams.get('tenantId')
   const status = searchParams.get('status')
+
+  const isSuperAdmin = auth.user.roles.includes('super_admin')
+  const isOwnTenantAdmin =
+    auth.user.roles.includes('practice_admin') && !!tenantId && auth.user.tenantId === tenantId
+  if (!isSuperAdmin && !isOwnTenantAdmin) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
 
   const invoices = await prisma.platformInvoice.findMany({
     where: {
@@ -67,46 +71,22 @@ export async function POST(request: NextRequest) {
     return Number.isFinite(n) ? n : fallback
   }
 
-  const subtotal = items.reduce((sum, item) => sum + toFinite(item.lineTotal), 0)
-  const vatRate = Math.max(0, Math.min(toFinite(body.vatRate), 1))
-  const vatAmount = subtotal * vatRate
-  const total = subtotal + vatAmount
-
   const issues: string[] = []
   const notes = optionalString('notes', body.notes, issues)
   const dueDate = optionalDate('dueDate', body.dueDate, issues)
 
-  const invoice = await createPlatformInvoiceWithNumber(
-    (n) => ({
-      invoiceNumber: n.number,
-      invoiceYear: n.year,
-      invoiceSequence: n.sequence,
-      status: 'draft',
-      subtotal,
-      vatRate,
-      vatAmount,
-      total,
-      currency: 'RON',
-      vatExemptReason: vatRate === 0 ? VAT_EXEMPT_REASON : null,
-      notes: notes ?? null,
-      dueDate: dueDate ?? null,
-      snapshotTenantName: tenant.name,
-      snapshotTenantCui: tenant.cui ?? null,
-      snapshotTenantAddress: [tenant.addressLine1, tenant.city].filter(Boolean).join(', ') || null,
-      snapshotTenantEmail: tenant.email ?? null,
-      tenant: { connect: { id: tenantId } },
-      items: {
-        create: items.map((item, idx) => ({
-          description: String(item.description ?? ''),
-          quantity: Number(item.quantity ?? 1),
-          unitPrice: Number(item.unitPrice ?? 0),
-          lineTotal: Number(item.lineTotal ?? 0),
-          sortOrder: idx,
-        })),
-      },
-    }),
-    (created) => created
-  )
+  const invoice = await createPlatformInvoiceForTenant({
+    tenant,
+    vatRate: toFinite(body.vatRate),
+    notes: notes ?? null,
+    dueDate: dueDate ?? null,
+    items: items.map((item) => ({
+      description: String(item.description ?? ''),
+      quantity: Number(item.quantity ?? 1),
+      unitPrice: Number(item.unitPrice ?? 0),
+      lineTotal: toFinite(item.lineTotal),
+    })),
+  })
 
   const { ipAddress, userAgent } = getRequestMeta(request)
   void writeAuditLog({

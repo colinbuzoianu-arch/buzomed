@@ -11,7 +11,6 @@ interface Ctx { params: Promise<{ id: string }> }
 export async function GET(_req: NextRequest, ctx: Ctx) {
   const auth = await getApiUser()
   if (!auth.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  if (!auth.user.roles.includes('super_admin')) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
 
   const { id } = await ctx.params
   const invoice = await prisma.platformInvoice.findFirst({
@@ -22,6 +21,12 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
     },
   })
   if (!invoice) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+
+  const isSuperAdmin = auth.user.roles.includes('super_admin')
+  const isOwnTenantAdmin = auth.user.roles.includes('practice_admin') && auth.user.tenantId === invoice.tenantId
+  if (!isSuperAdmin && !isOwnTenantAdmin) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
 
   const data: PlatformInvoicePdfData = {
     invoiceNumber: invoice.invoiceNumber,

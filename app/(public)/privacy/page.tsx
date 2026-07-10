@@ -199,12 +199,6 @@ export default function PrivacyPage() {
                 <td style={{ padding: '10px 14px' }}>Paris, Franța (UE)</td>
                 <td style={{ padding: '10px 14px' }}>UE/SEE — fără transfer extra-UE</td>
               </tr>
-              <tr>
-                <td style={{ padding: '10px 14px' }}><strong>Stripe Inc.</strong></td>
-                <td style={{ padding: '10px 14px' }}>Procesare plăți, facturare</td>
-                <td style={{ padding: '10px 14px' }}>SUA + EU</td>
-                <td style={{ padding: '10px 14px' }}>Clauze Contractuale Standard (SCC) UE-SUA</td>
-              </tr>
             </tbody>
           </table>
         </div>

@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { toastError, toastSuccess } from '@/lib/toast'
 
 const PRESETS = [
   { label: 'Solo · 1 lună', description: 'Abonament Buzomed Solo', unitPrice: 150 },
@@ -26,6 +27,13 @@ const MONTHS_RO = [
 function currentMonthLabel() {
   const d = new Date()
   return `${MONTHS_RO[d.getMonth()]} ${d.getFullYear()}`
+}
+
+function previousMonthValue() {
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() - 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 type InvoiceStatus = 'draft' | 'issued' | 'paid' | 'overdue' | 'cancelled'
@@ -70,6 +78,11 @@ export function PlatformInvoicesTab({ tenantId, tenantName }: { tenantId: string
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  // Generate invoice (flat or usage, based on tenant's current billing mode)
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
+  const [generateMonth, setGenerateMonth] = useState(previousMonthValue())
+  const [generateLoading, setGenerateLoading] = useState(false)
 
   // Form state
   const [selectedPreset, setSelectedPreset] = useState(1) // Cabinet by default
@@ -176,6 +189,30 @@ export function PlatformInvoicesTab({ tenantId, tenantName }: { tenantId: string
     window.open(`/api/super-admin/platform-invoices/${invoiceId}/pdf`, '_blank')
   }
 
+  async function handleGenerate() {
+    const [yearStr, monthStr] = generateMonth.split('-')
+    const year = Number(yearStr)
+    const month = Number(monthStr)
+    setGenerateLoading(true)
+    try {
+      const res = await fetch('/api/super-admin/platform-invoices/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, year, month }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toastError(data.message ?? data.error ?? 'Eroare la generarea facturii.')
+        return
+      }
+      toastSuccess(`Factură generată: ${data.invoice?.invoiceNumber ?? ''}`)
+      setGenerateDialogOpen(false)
+      await fetchInvoices()
+    } finally {
+      setGenerateLoading(false)
+    }
+  }
+
   const isActing = (id: string, action: string) => actionLoading === `${id}-${action}`
 
   return (
@@ -184,9 +221,14 @@ export function PlatformInvoicesTab({ tenantId, tenantName }: { tenantId: string
         <p className="text-sm text-muted-foreground">
           {invoices.length === 0 && !loading ? 'Nicio factură emisă încă.' : `${invoices.length} factură(i)`}
         </p>
-        <Button size="sm" onClick={() => { resetForm(); setDialogOpen(true) }}>
-          + Factură nouă
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setGenerateDialogOpen(true)}>
+            Generează factură
+          </Button>
+          <Button size="sm" onClick={() => { resetForm(); setDialogOpen(true) }}>
+            + Factură nouă
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -350,6 +392,38 @@ export function PlatformInvoicesTab({ tenantId, tenantName }: { tenantId: string
             </Button>
             <Button onClick={handleCreate} disabled={formLoading}>
               {formLoading ? 'Se salvează...' : 'Salvează Draft'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate invoice dialog */}
+      <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Generează factură — {tenantName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-[13px] text-muted-foreground">
+              Generează automat linia de facturare pentru luna selectată, pe baza modului de
+              facturare curent al cabinetului (flat sau usage).
+            </p>
+            <div>
+              <Label htmlFor="pi-gen-month">Lună</Label>
+              <Input
+                id="pi-gen-month"
+                type="month"
+                value={generateMonth}
+                onChange={(e) => setGenerateMonth(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGenerateDialogOpen(false)} disabled={generateLoading}>
+              Anulează
+            </Button>
+            <Button onClick={handleGenerate} disabled={generateLoading || !generateMonth}>
+              {generateLoading ? 'Se generează...' : 'Generează'}
             </Button>
           </DialogFooter>
         </DialogContent>

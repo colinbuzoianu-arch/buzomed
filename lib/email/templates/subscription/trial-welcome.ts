@@ -5,6 +5,7 @@ interface TrialWelcomeParams {
   adminName: string
   trialEndsAt: Date
   billingUrl: string
+  unsubscribeUrl: string
 }
 
 export function renderTrialWelcomeEmail(params: TrialWelcomeParams): { subject: string; html: string; text: string } {
@@ -23,16 +24,17 @@ export function renderTrialWelcomeEmail(params: TrialWelcomeParams): { subject: 
 </ul>
 <p>La finalul trial-ului, alege planul potrivit pentru a continua.</p>
 ${renderButton('Alege un plan', params.billingUrl)}
-<p style="font-size: 13px; color: #6b7280;">Dacă ai întrebări, răspunde la acest email — suntem here to help.</p>
+<p style="font-size: 13px; color: #6b7280;">Dacă ai întrebări, răspunde la acest email — suntem aici să te ajutăm.</p>
 `
 
   const html = renderEmailLayout({
     preheader: `Bun venit, ${params.adminName}! Trial-ul tău Buzomed a început.`,
     body,
     footerText: 'Buzomed · Medicină a muncii · hello@buzomed.com',
+    unsubscribeUrl: params.unsubscribeUrl,
   })
 
-  const text = `Bună, ${params.adminName},\n\nContul cabinetului ${params.cabinetName} a fost creat. Ai 14 zile trial gratuit până pe ${endDate}.\n\nAlege un plan: ${params.billingUrl}\n\nBuzomed`
+  const text = `Bună, ${params.adminName},\n\nContul cabinetului ${params.cabinetName} a fost creat. Ai 14 zile trial gratuit până pe ${endDate}.\n\nAlege un plan: ${params.billingUrl}\n\nDezabonează-te: ${params.unsubscribeUrl}\n\nBuzomed`
 
   return { subject, html, text }
 }
