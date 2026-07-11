@@ -1,4 +1,4 @@
-import { renderEmailLayout, escapeHtml } from '../layout'
+import { renderEmailLayout, escapeHtml, unsubscribeTextFooter } from '../layout'
 
 interface PaymentConfirmedParams {
   tenantName: string
@@ -6,7 +6,7 @@ interface PaymentConfirmedParams {
   total: string
   currency: string
   paidAt: Date
-  unsubscribeUrl: string
+  unsubscribeUrl?: string
 }
 
 // Short confirmation only — no PDF attached, the recipient already got the
@@ -29,7 +29,7 @@ export function renderPaymentConfirmedEmail(params: PaymentConfirmedParams): { s
     unsubscribeUrl: params.unsubscribeUrl,
   })
 
-  const text = `Bună ziua,\n\nConfirmăm primirea plății pentru factura ${params.invoiceNumber} (${params.tenantName}), ${amount}, încasată pe ${paidAtStr}.\n\nÎți mulțumim!\n\nDezabonează-te: ${params.unsubscribeUrl}\n\nBuzomed`
+  const text = `Bună ziua,\n\nConfirmăm primirea plății pentru factura ${params.invoiceNumber} (${params.tenantName}), ${amount}, încasată pe ${paidAtStr}.\n\nÎți mulțumim!${unsubscribeTextFooter(params.unsubscribeUrl)}\n\nBuzomed`
 
   return { subject, html, text }
 }

@@ -220,22 +220,26 @@ export async function POST(request: NextRequest) {
     include: { tenant: { select: { id: true, name: true, email: true } } },
   })
 
-  for (const invoice of dueSoonInvoices) {
-    const recipientEmail = invoice.snapshotTenantEmail ?? invoice.tenant.email
-    if (!recipientEmail || !invoice.dueDate) continue
-    const content = renderInvoiceDueSoonEmail({
-      tenantName: invoice.snapshotTenantName ?? invoice.tenant.name,
-      invoiceNumber: invoice.invoiceNumber,
-      total: invoice.total.toString(),
-      currency: invoice.currency,
-      dueDate: invoice.dueDate,
-      billingUrl: BILLING_URL,
-      unsubscribeUrl: generateUnsubscribeUrl(recipientEmail),
+  // Independent per-invoice work (different rows, no shared state) — send in
+  // parallel instead of one round trip at a time.
+  await Promise.all(
+    dueSoonInvoices.map(async (invoice) => {
+      const recipientEmail = invoice.snapshotTenantEmail ?? invoice.tenant.email
+      if (!recipientEmail || !invoice.dueDate) return
+      const content = renderInvoiceDueSoonEmail({
+        tenantName: invoice.snapshotTenantName ?? invoice.tenant.name,
+        invoiceNumber: invoice.invoiceNumber,
+        total: invoice.total.toString(),
+        currency: invoice.currency,
+        dueDate: invoice.dueDate,
+        billingUrl: BILLING_URL,
+        unsubscribeUrl: generateUnsubscribeUrl(recipientEmail),
+      })
+      await sendEmail({ to: { email: recipientEmail, name: invoice.tenant.name }, content, tenantId: invoice.tenantId, tags: ['invoice-due-soon'] })
+      await prisma.platformInvoice.update({ where: { id: invoice.id }, data: { dueSoonReminderSentAt: now } })
+      processed++
     })
-    await sendEmail({ to: { email: recipientEmail, name: invoice.tenant.name }, content, tenantId: invoice.tenantId, tags: ['invoice-due-soon'] })
-    await prisma.platformInvoice.update({ where: { id: invoice.id }, data: { dueSoonReminderSentAt: now } })
-    processed++
-  }
+  )
 
   // ── Overdue reminder: customer-facing, day 0 then every ~7 days, capped at 3 ──
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -249,29 +253,31 @@ export async function POST(request: NextRequest) {
     include: { tenant: { select: { id: true, name: true, email: true } } },
   })
 
-  for (const invoice of overdueForReminder) {
-    const recipientEmail = invoice.snapshotTenantEmail ?? invoice.tenant.email
-    if (!recipientEmail) continue
-    const daysPastDue = invoice.dueDate
-      ? Math.floor((now.getTime() - invoice.dueDate.getTime()) / (1000 * 60 * 60 * 24))
-      : 0
-    const content = renderInvoiceOverdueEmail({
-      tenantName: invoice.snapshotTenantName ?? invoice.tenant.name,
-      invoiceNumber: invoice.invoiceNumber,
-      total: invoice.total.toString(),
-      currency: invoice.currency,
-      dueDate: invoice.dueDate,
-      daysPastDue,
-      billingUrl: BILLING_URL,
-      unsubscribeUrl: generateUnsubscribeUrl(recipientEmail),
+  await Promise.all(
+    overdueForReminder.map(async (invoice) => {
+      const recipientEmail = invoice.snapshotTenantEmail ?? invoice.tenant.email
+      if (!recipientEmail) return
+      const daysPastDue = invoice.dueDate
+        ? Math.floor((now.getTime() - invoice.dueDate.getTime()) / (1000 * 60 * 60 * 24))
+        : 0
+      const content = renderInvoiceOverdueEmail({
+        tenantName: invoice.snapshotTenantName ?? invoice.tenant.name,
+        invoiceNumber: invoice.invoiceNumber,
+        total: invoice.total.toString(),
+        currency: invoice.currency,
+        dueDate: invoice.dueDate,
+        daysPastDue,
+        billingUrl: BILLING_URL,
+        unsubscribeUrl: generateUnsubscribeUrl(recipientEmail),
+      })
+      await sendEmail({ to: { email: recipientEmail, name: invoice.tenant.name }, content, tenantId: invoice.tenantId, tags: ['invoice-overdue'] })
+      await prisma.platformInvoice.update({
+        where: { id: invoice.id },
+        data: { overdueReminderCount: { increment: 1 }, lastOverdueReminderAt: now },
+      })
+      processed++
     })
-    await sendEmail({ to: { email: recipientEmail, name: invoice.tenant.name }, content, tenantId: invoice.tenantId, tags: ['invoice-overdue'] })
-    await prisma.platformInvoice.update({
-      where: { id: invoice.id },
-      data: { overdueReminderCount: { increment: 1 }, lastOverdueReminderAt: now },
-    })
-    processed++
-  }
+  )
 
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
   await prisma.systemErrorLog.deleteMany({ where: { createdAt: { lt: cutoff } } })

@@ -13,6 +13,10 @@ import { CompanyFilter } from '@/components/employees/company-filter'
 import { RecallFilter } from '@/components/employees/recall-filter'
 import { EmployeesHeaderActions } from './employees-header-actions'
 import { EmployeesBulkTable } from './employees-bulk-table'
+import { Pagination } from '@/components/ui/pagination'
+
+const EMPLOYEES_PATH = '/employees'
+const PAGE_SIZE = 100
 
 interface PageProps {
   searchParams: Promise<{
@@ -22,6 +26,7 @@ interface PageProps {
     company?: string
     recall?: string
     sort?: string
+    page?: string
   }>
 }
 
@@ -43,6 +48,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   const companyFilter = params.company ?? ''
   const recallFilter = params.recall ?? ''
   const sortRaw = params.sort ?? 'name_asc'
+  const page = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1)
 
   type DbSortKey = 'name_asc' | 'name_desc' | 'company_asc' | 'company_desc' | 'jobTitle_asc' | 'jobTitle_desc'
   type ClientSortKey = 'lastExam_asc' | 'lastExam_desc' | 'recall_asc' | 'recall_desc' | 'workplace_asc' | 'workplace_desc'
@@ -90,31 +96,39 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
             ? { recalls: { none: { deletedAt: null, status: { in: ['pending', 'scheduled', 'overdue'] } } } }
             : {}
 
-  const [employees, workplacesForFilter, companiesForFilter] = await Promise.all([
+  const employeeWhere: Prisma.EmployeeWhereInput = {
+    tenantId: user.tenantId,
+    deletedAt: null,
+    ...(showArchived ? { archivedAt: { not: null } } : { archivedAt: null }),
+    ...(q.length >= 2
+      ? {
+          OR: [
+            { firstName: { contains: q, mode: 'insensitive' } },
+            { lastName: { contains: q, mode: 'insensitive' } },
+            { jobTitle: { contains: q, mode: 'insensitive' } },
+            { company: { name: { contains: q, mode: 'insensitive' } } },
+          ],
+        }
+      : {}),
+    ...(wpFilter === 'no_workplace'
+      ? { workplaceAssignments: { none: { isCurrent: true } } }
+      : wpFilter
+        ? { workplaceAssignments: { some: { workplaceId: wpFilter, isCurrent: true, endDate: null } } }
+        : {}),
+    ...(companyFilter ? { companyId: companyFilter } : {}),
+    ...recallWhere,
+  }
+
+  // DB-level pagination only applies to the 6 simple (DB-orderable) sorts.
+  // The 3 join-derived sorts (lastExam/recall/workplace) need the full
+  // filtered set fetched to sort correctly in memory — degrading those to
+  // "no pagination" (full result, unchanged from before) rather than
+  // producing subtly-wrong paginated results.
+  const [employees, employeeTotal, workplacesForFilter, companiesForFilter] = await Promise.all([
     prisma.employee.findMany({
-      where: {
-        tenantId: user.tenantId,
-        deletedAt: null,
-        ...(showArchived ? { archivedAt: { not: null } } : { archivedAt: null }),
-        ...(q.length >= 2
-          ? {
-              OR: [
-                { firstName: { contains: q, mode: 'insensitive' } },
-                { lastName: { contains: q, mode: 'insensitive' } },
-                { jobTitle: { contains: q, mode: 'insensitive' } },
-                { company: { name: { contains: q, mode: 'insensitive' } } },
-              ],
-            }
-          : {}),
-        ...(wpFilter === 'no_workplace'
-          ? { workplaceAssignments: { none: { isCurrent: true } } }
-          : wpFilter
-            ? { workplaceAssignments: { some: { workplaceId: wpFilter, isCurrent: true, endDate: null } } }
-            : {}),
-        ...(companyFilter ? { companyId: companyFilter } : {}),
-        ...recallWhere,
-      },
+      where: employeeWhere,
       orderBy,
+      ...(isClientSort ? {} : { skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
       select: {
         id: true,
         firstName: true,
@@ -149,6 +163,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         },
       },
     }),
+    isClientSort ? Promise.resolve(null) : prisma.employee.count({ where: employeeWhere }),
     prisma.workplace.findMany({
       where: {
         tenantId: user.tenantId,
@@ -202,6 +217,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   } else {
     sortedEmployees = employees
   }
+
+  const totalPages = employeeTotal !== null ? Math.ceil(employeeTotal / PAGE_SIZE) : null
 
   // Serialize dates so the client component receives plain strings (RSC serialization requirement)
   const serializedEmployees = sortedEmployees.map((e) => ({
@@ -368,6 +385,16 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
           sort={sort}
           showArchived={showArchived}
           canWrite={caps.canWriteAdministrative}
+        />
+      )}
+
+      {totalPages !== null && (
+        <Pagination
+          href={EMPLOYEES_PATH}
+          params={params}
+          paramName="page"
+          page={page}
+          totalPages={totalPages}
         />
       )}
     </div>

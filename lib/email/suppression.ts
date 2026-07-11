@@ -7,12 +7,6 @@ function normalize(email: string): string {
   return email.trim().toLowerCase()
 }
 
-function getSecret(): string {
-  const secret = process.env.EMAIL_UNSUBSCRIBE_SECRET
-  if (!secret) throw new Error('EMAIL_UNSUBSCRIBE_SECRET is not configured')
-  return secret
-}
-
 export async function isSuppressed(email: string): Promise<boolean> {
   const row = await prisma.emailSuppression.findUnique({
     where: { email: normalize(email) },
@@ -30,20 +24,34 @@ export async function suppress(email: string, reason?: string): Promise<void> {
   })
 }
 
-export function generateUnsubscribeToken(email: string): string {
-  return createHmac('sha256', getSecret()).update(normalize(email)).digest('hex')
+/**
+ * Returns undefined (instead of throwing) when EMAIL_UNSUBSCRIBE_SECRET isn't
+ * configured, so a missing/misconfigured secret can never take down a core
+ * flow (e.g. tenant creation) that happens to trigger an email send along the
+ * way. Logs loudly so the misconfiguration is visible in server logs.
+ */
+export function generateUnsubscribeToken(email: string): string | undefined {
+  const secret = process.env.EMAIL_UNSUBSCRIBE_SECRET
+  if (!secret) {
+    console.error('[email] EMAIL_UNSUBSCRIBE_SECRET is not configured — sending without an unsubscribe link')
+    return undefined
+  }
+  return createHmac('sha256', secret).update(normalize(email)).digest('hex')
 }
 
+/** Fails closed: if the secret is missing, no token can be verified valid. */
 export function verifyUnsubscribeToken(email: string, token: string): boolean {
   const expected = generateUnsubscribeToken(email)
+  if (!expected) return false
   const expectedBuf = Buffer.from(expected, 'hex')
   const tokenBuf = Buffer.from(token, 'hex')
   if (expectedBuf.length !== tokenBuf.length) return false
   return timingSafeEqual(expectedBuf, tokenBuf)
 }
 
-export function generateUnsubscribeUrl(email: string): string {
+export function generateUnsubscribeUrl(email: string): string | undefined {
   const token = generateUnsubscribeToken(email)
+  if (!token) return undefined
   const params = new URLSearchParams({ email: normalize(email), token })
   return `${APP_URL}/api/email/unsubscribe?${params.toString()}`
 }

@@ -46,7 +46,9 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
         company: { select: { id: true, name: true } },
         employeeAssignments: {
           where: { isCurrent: true },
-          include: {
+          select: {
+            id: true,
+            startDate: true,
             employee: {
               select: {
                 id: true,
@@ -75,7 +77,14 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
         { createdAt: 'desc' },
       ],
       take: 10,
-      include: {
+      select: {
+        id: true,
+        examinationNumber: true,
+        status: true,
+        verdict: true,
+        signedAt: true,
+        scheduledAt: true,
+        createdAt: true,
         employee: {
           select: { id: true, firstName: true, lastName: true },
         },

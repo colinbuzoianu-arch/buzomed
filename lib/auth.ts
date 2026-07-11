@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createClient } from './supabase/server'
 import { prisma } from './prisma'
 import { redirect } from 'next/navigation'
@@ -8,8 +9,14 @@ import { writeAuditLog } from './audit/log'
 /**
  * Returns the currently logged-in app User, or null if not authenticated.
  * Combines Supabase Auth identity with our application's User table row.
+ *
+ * Wrapped in React's `cache()` so multiple calls within a single request
+ * (e.g. the authenticated layout AND the page it wraps both call
+ * requireUser()/requireRole()) share one Supabase Auth round trip + one
+ * Prisma lookup instead of repeating both per call. This is the standard
+ * Next.js App Router pattern for deduping per-request auth resolution.
  */
-export async function getCurrentUser(): Promise<AppUser | null> {
+export const getCurrentUser = cache(async (): Promise<AppUser | null> => {
   const supabase = await createClient()
   const {
     data: { user: authUser },
@@ -60,7 +67,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   }
 
   return appUser
-}
+})
 
 /**
  * Server-side guard: throws redirect to /login if not authenticated.
@@ -98,12 +105,16 @@ export async function requireRole(
  *
  * Use this in `app/api/...` routes. Use `requireUser()` in server
  * components / pages where redirecting on auth failure is appropriate.
+ *
+ * Wrapped in React's `cache()` — same per-request dedup rationale as
+ * `getCurrentUser()` above, for routes/helpers that call getApiUser()
+ * more than once while handling a single request.
  */
 export type ApiAuthResult =
   | { user: AppUser; supabaseUserId: string }
   | { user: null; reason: 'no_session' | 'no_db_user' | 'inactive' }
 
-export async function getApiUser(): Promise<ApiAuthResult> {
+export const getApiUser = cache(async (): Promise<ApiAuthResult> => {
   const supabase = await createClient()
   const {
     data: { user: authUser },
@@ -126,4 +137,4 @@ export async function getApiUser(): Promise<ApiAuthResult> {
   }
 
   return { user: appUser, supabaseUserId: authUser.id }
-}
+})

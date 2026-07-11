@@ -44,14 +44,25 @@ export default async function FisaPage({ params }: PageProps) {
   const examination = await prisma.examination.findFirst({
     where: { id, tenantId: user.tenantId, deletedAt: null },
     include: {
-      tenant: true,
-      employee: true,
-      workplace: {
-        include: {
-          company: true,
+      tenant: { select: { legalName: true, name: true } },
+      employee: {
+        select: {
+          firstName: true,
+          lastName: true,
+          birthDate: true,
+          idDocumentNumber: true,
         },
       },
-      examinationType: true,
+      workplace: {
+        select: {
+          name: true,
+          department: true,
+          company: { select: { name: true, cui: true } },
+        },
+      },
+      examinationType: {
+        select: { nameRo: true, legalReference: true },
+      },
       practitioner: {
         select: {
           firstName: true,
@@ -60,7 +71,14 @@ export default async function FisaPage({ params }: PageProps) {
           professionalCode: true,
         },
       },
-      location: true,
+      location: {
+        select: {
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          county: true,
+        },
+      },
     },
   })
 

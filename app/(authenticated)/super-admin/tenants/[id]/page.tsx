@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton } from '@/components/ui/skeleton'
 import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -67,52 +69,15 @@ export default async function TenantDetailPage({ params }: PageProps) {
     entitySummary: tenant.name,
   })
 
-  // Activity metrics
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  // Activity metrics — moved into TenantActivityDashboard below (streams in
+  // behind its own Suspense boundary; isolated from everything else on this
+  // page, verified nothing else here reads these values).
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-
-  const [
-    totalExaminations,
-    examsThisMonth,
-    examsThisWeek,
-    signedThisMonth,
-    totalEmployees,
-    totalCompanies,
-    overdueRecalls,
-    pendingRecalls,
-  ] = await Promise.all([
-    prisma.examination.count({
-      where: { tenantId: tenant.id, deletedAt: null },
-    }),
-    prisma.examination.count({
-      where: { tenantId: tenant.id, deletedAt: null, createdAt: { gte: thirtyDaysAgo } },
-    }),
-    prisma.examination.count({
-      where: { tenantId: tenant.id, deletedAt: null, createdAt: { gte: sevenDaysAgo } },
-    }),
-    prisma.examination.count({
-      where: { tenantId: tenant.id, deletedAt: null, signedAt: { gte: thirtyDaysAgo } },
-    }),
-    prisma.employee.count({
-      where: { tenantId: tenant.id, deletedAt: null, archivedAt: null },
-    }),
-    prisma.company.count({
-      where: { tenantId: tenant.id, deletedAt: null },
-    }),
-    prisma.recall.count({
-      where: { tenantId: tenant.id, deletedAt: null, status: 'overdue' },
-    }),
-    prisma.recall.count({
-      where: { tenantId: tenant.id, deletedAt: null, status: 'pending' },
-    }),
-  ])
 
   const lastActive = tenant.users.reduce<Date | null>((best, u) => {
     if (!u.lastLoginAt) return best
     return best === null || u.lastLoginAt > best ? u.lastLoginAt : best
   }, null)
-
-  const now = new Date()
 
   const rawSubscription = await prisma.subscription.findFirst({
     where: { tenantId: tenant.id },
@@ -135,19 +100,6 @@ export default async function TenantDetailPage({ params }: PageProps) {
           : null,
       }
     : null
-
-  const pendingInvitations = await prisma.invitation.findMany({
-    where: {
-      tenantId: tenant.id,
-      acceptedAt: null,
-      revokedAt: null,
-      expiresAt: { gt: now },
-    },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      invitedBy: { select: { firstName: true, lastName: true } },
-    },
-  })
 
   const inviteLabels = {
     sectionTitle: t('tenantDetail.invitations.sectionTitle'),
@@ -236,48 +188,15 @@ export default async function TenantDetailPage({ params }: PageProps) {
       {/* Activity dashboard */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">{t('tenantDetail.activityTitle')}</h2>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <ActivityCard
-            label={t('tenantDetail.activity.totalExams')}
-            value={String(totalExaminations)}
+        <Suspense fallback={<ActivityDashboardSkeleton />}>
+          <TenantActivityDashboard
+            tenantId={tenant.id}
+            lastActive={lastActive}
+            sevenDaysAgo={sevenDaysAgo}
+            locale={locale}
+            t={t}
           />
-          <ActivityCard
-            label={t('tenantDetail.activity.examsThisMonth')}
-            value={String(examsThisMonth)}
-            sub={`${examsThisWeek} ${t('tenantDetail.activity.thisWeek')}`}
-          />
-          <ActivityCard
-            label={t('tenantDetail.activity.signedThisMonth')}
-            value={String(signedThisMonth)}
-          />
-          <ActivityCard
-            label={t('tenantDetail.activity.overdueRecalls')}
-            value={String(overdueRecalls)}
-            tone={overdueRecalls > 0 ? 'destructive' : 'default'}
-            sub={`${pendingRecalls} ${t('tenantDetail.activity.pending')}`}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <ActivityCard
-            label={t('tenantDetail.activity.employees')}
-            value={String(totalEmployees)}
-          />
-          <ActivityCard
-            label={t('tenantDetail.activity.companies')}
-            value={String(totalCompanies)}
-          />
-          <ActivityCard
-            label={t('tenantDetail.activity.lastActive')}
-            value={lastActive ? formatDate(lastActive, 'datetime', locale === 'ro' ? 'ro' : 'en') : '—'}
-            tone={
-              lastActive && lastActive > sevenDaysAgo
-                ? 'success'
-                : 'default'
-            }
-          />
-        </div>
+        </Suspense>
       </section>
 
       {/* Tenant info */}
@@ -462,18 +381,13 @@ export default async function TenantDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      <TenantInviteSection
-        tenantId={tenant.id}
-        tenantName={tenant.name}
-        labels={inviteLabels}
-        initialPendingInvitations={pendingInvitations.map((inv) => ({
-          id: inv.id,
-          email: inv.email,
-          role: inv.role,
-          invitedByName: `${inv.invitedBy.firstName} ${inv.invitedBy.lastName}`,
-          expiresAt: inv.expiresAt.toISOString(),
-        }))}
-      />
+      <Suspense fallback={<InviteSectionSkeleton />}>
+        <PendingInvitationsLoader
+          tenantId={tenant.id}
+          tenantName={tenant.name}
+          labels={inviteLabels}
+        />
+      </Suspense>
 
       {/* Facturare platformă */}
       <section className="space-y-4">
@@ -522,6 +436,175 @@ function ActivityCard({
         <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>
       )}
     </div>
+  )
+}
+
+function ActivityDashboardSkeleton() {
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-20 rounded-lg" />
+        ))}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-20 rounded-lg" />
+        ))}
+      </div>
+    </>
+  )
+}
+
+// Isolated from everything else on the page — nothing outside this section
+// (tenant info, GDPR section, SubscriptionActions, members table, invite
+// section, PlatformInvoicesTab) reads any of these values.
+async function TenantActivityDashboard({
+  tenantId,
+  lastActive,
+  sevenDaysAgo,
+  locale,
+  t,
+}: {
+  tenantId: string
+  lastActive: Date | null
+  sevenDaysAgo: Date
+  locale: 'ro' | 'en'
+  t: (key: string) => string
+}) {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+  const [
+    totalExaminations,
+    examsThisMonth,
+    examsThisWeek,
+    signedThisMonth,
+    totalEmployees,
+    totalCompanies,
+    recallCounts,
+  ] = await Promise.all([
+    prisma.examination.count({
+      where: { tenantId, deletedAt: null },
+    }),
+    prisma.examination.count({
+      where: { tenantId, deletedAt: null, createdAt: { gte: thirtyDaysAgo } },
+    }),
+    prisma.examination.count({
+      where: { tenantId, deletedAt: null, createdAt: { gte: sevenDaysAgo } },
+    }),
+    prisma.examination.count({
+      where: { tenantId, deletedAt: null, signedAt: { gte: thirtyDaysAgo } },
+    }),
+    prisma.employee.count({
+      where: { tenantId, deletedAt: null, archivedAt: null },
+    }),
+    prisma.company.count({
+      where: { tenantId, deletedAt: null },
+    }),
+    // Single groupBy instead of two counts differing only by status.
+    prisma.recall.groupBy({
+      by: ['status'],
+      where: { tenantId, deletedAt: null, status: { in: ['overdue', 'pending'] } },
+      _count: true,
+    }),
+  ])
+  const overdueRecalls = recallCounts.find((c) => c.status === 'overdue')?._count ?? 0
+  const pendingRecalls = recallCounts.find((c) => c.status === 'pending')?._count ?? 0
+
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <ActivityCard
+          label={t('tenantDetail.activity.totalExams')}
+          value={String(totalExaminations)}
+        />
+        <ActivityCard
+          label={t('tenantDetail.activity.examsThisMonth')}
+          value={String(examsThisMonth)}
+          sub={`${examsThisWeek} ${t('tenantDetail.activity.thisWeek')}`}
+        />
+        <ActivityCard
+          label={t('tenantDetail.activity.signedThisMonth')}
+          value={String(signedThisMonth)}
+        />
+        <ActivityCard
+          label={t('tenantDetail.activity.overdueRecalls')}
+          value={String(overdueRecalls)}
+          tone={overdueRecalls > 0 ? 'destructive' : 'default'}
+          sub={`${pendingRecalls} ${t('tenantDetail.activity.pending')}`}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+        <ActivityCard
+          label={t('tenantDetail.activity.employees')}
+          value={String(totalEmployees)}
+        />
+        <ActivityCard
+          label={t('tenantDetail.activity.companies')}
+          value={String(totalCompanies)}
+        />
+        <ActivityCard
+          label={t('tenantDetail.activity.lastActive')}
+          value={lastActive ? formatDate(lastActive, 'datetime', locale === 'ro' ? 'ro' : 'en') : '—'}
+          tone={
+            lastActive && lastActive > sevenDaysAgo
+              ? 'success'
+              : 'default'
+          }
+        />
+      </div>
+    </>
+  )
+}
+
+function InviteSectionSkeleton() {
+  return (
+    <div className="space-y-3">
+      <Skeleton className="h-6 w-40" />
+      <Skeleton className="h-24 rounded-lg" />
+    </div>
+  )
+}
+
+// Sequential/isolated in the original page — feeds only TenantInviteSection's
+// initial prop, nothing else reads pendingInvitations.
+async function PendingInvitationsLoader({
+  tenantId,
+  tenantName,
+  labels,
+}: {
+  tenantId: string
+  tenantName: string
+  labels: React.ComponentProps<typeof TenantInviteSection>['labels']
+}) {
+  const now = new Date()
+  const pendingInvitations = await prisma.invitation.findMany({
+    where: {
+      tenantId,
+      acceptedAt: null,
+      revokedAt: null,
+      expiresAt: { gt: now },
+    },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      invitedBy: { select: { firstName: true, lastName: true } },
+    },
+  })
+
+  return (
+    <TenantInviteSection
+      tenantId={tenantId}
+      tenantName={tenantName}
+      labels={labels}
+      initialPendingInvitations={pendingInvitations.map((inv) => ({
+        id: inv.id,
+        email: inv.email,
+        role: inv.role,
+        invitedByName: `${inv.invitedBy.firstName} ${inv.invitedBy.lastName}`,
+        expiresAt: inv.expiresAt.toISOString(),
+      }))}
+    />
   )
 }
 

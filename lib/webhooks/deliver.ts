@@ -4,6 +4,11 @@ import { decryptWebhookSecret } from './secret'
 import type { WebhookEvent, WebhookPayload } from './events'
 import { logSystemError } from '@/lib/system-log/error-log'
 import { assertSafeWebhookUrl, SSRF_BLOCK_MESSAGES } from './url-guard'
+import { runInBatches } from '@/lib/batch-parallel'
+
+type WebhookEndpointRow = { id: string; url: string; secretEncrypted: string }
+
+const DELIVERY_CONCURRENCY = 10
 
 export async function deliverWebhook(
   tenantId: string,
@@ -25,103 +30,116 @@ export async function deliverWebhook(
   }
   const body = JSON.stringify(payload)
 
-  for (const endpoint of endpoints) {
-    const start = Date.now()
-    let responseStatus: number | null = null
-    let responseBody: string | null = null
-    let success = false
+  // Each endpoint touches fully disjoint rows (its own WebhookDelivery +
+  // WebhookEndpoint.id) with per-endpoint error isolation already built
+  // into the try/catch below — safe to fan out concurrently instead of
+  // delivering one endpoint at a time.
+  await runInBatches(endpoints, DELIVERY_CONCURRENCY, (endpoint) =>
+    deliverToEndpoint(endpoint, event, payload, body)
+  )
+}
 
-    try {
-      const secret = decryptWebhookSecret(endpoint.secretEncrypted)
-      const signature = 'sha256=' + createHmac('sha256', secret).update(body).digest('hex')
+async function deliverToEndpoint(
+  endpoint: WebhookEndpointRow,
+  event: WebhookEvent,
+  payload: WebhookPayload,
+  body: string
+): Promise<void> {
+  const start = Date.now()
+  let responseStatus: number | null = null
+  let responseBody: string | null = null
+  let success = false
 
-      // Re-validate at delivery time to defeat DNS rebinding attacks:
-      // the hostname may have resolved to a public IP at registration but
-      // been re-pointed to an internal address before this delivery fires.
-      await assertSafeWebhookUrl(endpoint.url)
+  try {
+    const secret = decryptWebhookSecret(endpoint.secretEncrypted)
+    const signature = 'sha256=' + createHmac('sha256', secret).update(body).digest('hex')
 
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), 10_000)
+    // Re-validate at delivery time to defeat DNS rebinding attacks:
+    // the hostname may have resolved to a public IP at registration but
+    // been re-pointed to an internal address before this delivery fires.
+    await assertSafeWebhookUrl(endpoint.url)
 
-      const res = await fetch(endpoint.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Buzomed-Signature': signature,
-          'X-Buzomed-Event': event,
-        },
-        body,
-        signal: controller.signal,
-        redirect: 'manual', // never follow redirects — they can bypass the URL guard
-      }).finally(() => clearTimeout(timer))
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 10_000)
 
-      responseStatus = res.status
-      // Opaque redirect responses (status 0 from undici with redirect:'manual')
-      // and any explicit 3xx both indicate a redirect attempt — block and log.
-      const isRedirect = res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)
-      if (isRedirect) {
-        responseBody = 'blocked: redirect_response'
-        success = false
-      } else {
-        responseBody = (await res.text().catch(() => null))?.slice(0, 500) ?? null
-        success = res.ok
-      }
-    } catch (fetchErr) {
+    const res = await fetch(endpoint.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Buzomed-Signature': signature,
+        'X-Buzomed-Event': event,
+      },
+      body,
+      signal: controller.signal,
+      redirect: 'manual', // never follow redirects — they can bypass the URL guard
+    }).finally(() => clearTimeout(timer))
+
+    responseStatus = res.status
+    // Opaque redirect responses (status 0 from undici with redirect:'manual')
+    // and any explicit 3xx both indicate a redirect attempt — block and log.
+    const isRedirect = res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)
+    if (isRedirect) {
+      responseBody = 'blocked: redirect_response'
       success = false
-      const msg = (fetchErr as Error).message
-      if (SSRF_BLOCK_MESSAGES.has(msg)) {
-        // Expected SSRF block — record reason, don't noise up system error log
-        responseBody = `blocked: ${msg}`
-      } else {
-        void logSystemError({
-          route: endpoint.url,
-          method: 'WEBHOOK',
-          error: fetchErr,
-          context: { endpointId: endpoint.id },
-        })
-      }
+    } else {
+      responseBody = (await res.text().catch(() => null))?.slice(0, 500) ?? null
+      success = res.ok
     }
+  } catch (fetchErr) {
+    success = false
+    const msg = (fetchErr as Error).message
+    if (SSRF_BLOCK_MESSAGES.has(msg)) {
+      // Expected SSRF block — record reason, don't noise up system error log
+      responseBody = `blocked: ${msg}`
+    } else {
+      void logSystemError({
+        route: endpoint.url,
+        method: 'WEBHOOK',
+        error: fetchErr,
+        context: { endpointId: endpoint.id },
+      })
+    }
+  }
 
-    const durationMs = Date.now() - start
+  const durationMs = Date.now() - start
 
-    try {
-      await prisma.$transaction(async (tx) => {
-        await tx.webhookDelivery.create({
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.webhookDelivery.create({
+        data: {
+          endpointId: endpoint.id,
+          event,
+          payload: payload as never,
+          responseStatus,
+          responseBody,
+          durationMs,
+          success,
+        },
+      })
+
+      if (!success) {
+        const updated = await tx.webhookEndpoint.update({
+          where: { id: endpoint.id },
           data: {
-            endpointId: endpoint.id,
-            event,
-            payload: payload as never,
-            responseStatus,
-            responseBody,
-            durationMs,
-            success,
+            failureCount: { increment: 1 },
+            ...(success ? { failureCount: 0, lastTriggeredAt: new Date() } : {}),
           },
+          select: { failureCount: true },
         })
-
-        if (!success) {
-          const updated = await tx.webhookEndpoint.update({
-            where: { id: endpoint.id },
-            data: {
-              failureCount: { increment: 1 },
-              ...(success ? { failureCount: 0, lastTriggeredAt: new Date() } : {}),
-            },
-            select: { failureCount: true },
-          })
-          if (updated.failureCount >= 10) {
-            await tx.webhookEndpoint.update({
-              where: { id: endpoint.id },
-              data: { isActive: false },
-            })
-          }
-        } else {
+        if (updated.failureCount >= 10) {
           await tx.webhookEndpoint.update({
             where: { id: endpoint.id },
-            data: { failureCount: 0, lastTriggeredAt: new Date() },
+            data: { isActive: false },
           })
         }
-      })
-    } catch (dbErr) {
-      console.error('[webhook] delivery log DB write failed:', dbErr)
-    }
+      } else {
+        await tx.webhookEndpoint.update({
+          where: { id: endpoint.id },
+          data: { failureCount: 0, lastTriggeredAt: new Date() },
+        })
+      }
+    })
+  } catch (dbErr) {
+    console.error('[webhook] delivery log DB write failed:', dbErr)
   }
 }

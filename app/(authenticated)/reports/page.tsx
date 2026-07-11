@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton } from '@/components/ui/skeleton'
 import { requireUser } from '@/lib/auth'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
@@ -78,18 +80,6 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         })
       : Promise.resolve([]),
   ])
-
-  const overdueRecalls = await prisma.recall.count({
-    where: {
-      tenantId: user.tenantId,
-      status: 'overdue',
-      deletedAt: null,
-      OR: [
-        { createdFromExaminationId: null },
-        { createdFromExamination: { deletedAt: null } },
-      ],
-    },
-  })
 
   // Headline counts.
   const headline = {
@@ -281,13 +271,9 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             value={headline.inapt}
             valueColor="text-red-700"
           />
-          <Link href="/recalls?horizon=overdue" className="block">
-            <StatCard
-              label={t('reports.headline.overdueRecalls')}
-              value={overdueRecalls}
-              tone={overdueRecalls > 0 ? 'destructive' : 'default'}
-            />
-          </Link>
+          <Suspense fallback={<StatCardSkeleton />}>
+            <OverdueRecallsCard tenantId={user.tenantId} label={t('reports.headline.overdueRecalls')} />
+          </Suspense>
         </div>
       </section>
 
@@ -675,5 +661,41 @@ function StatCard({
         <div className="text-xs text-muted-foreground mt-1">{sublabel}</div>
       )}
     </div>
+  )
+}
+
+function StatCardSkeleton() {
+  return (
+    <div className="border rounded-lg p-4">
+      <Skeleton className="h-3 w-20 mb-2" />
+      <Skeleton className="h-7 w-10" />
+    </div>
+  )
+}
+
+// Isolated from the rest of the page's Promise.all — was previously a
+// sequential await after it (a needless waterfall), now streams in behind
+// its own Suspense boundary instead of blocking the whole page.
+async function OverdueRecallsCard({ tenantId, label }: { tenantId: string; label: string }) {
+  const overdueRecalls = await prisma.recall.count({
+    where: {
+      tenantId,
+      status: 'overdue',
+      deletedAt: null,
+      OR: [
+        { createdFromExaminationId: null },
+        { createdFromExamination: { deletedAt: null } },
+      ],
+    },
+  })
+
+  return (
+    <Link href="/recalls?horizon=overdue" className="block">
+      <StatCard
+        label={label}
+        value={overdueRecalls}
+        tone={overdueRecalls > 0 ? 'destructive' : 'default'}
+      />
+    </Link>
   )
 }

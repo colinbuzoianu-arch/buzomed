@@ -141,4 +141,13 @@ export function renderButton(text: string, url: string): string {
 </table>`
 }
 
+/**
+ * Plain-text footer line for the unsubscribe link, or '' when no URL was
+ * generated (e.g. EMAIL_UNSUBSCRIBE_SECRET missing — see lib/email/suppression.ts).
+ * Mirrors the conditional footer line renderEmailLayout adds to the HTML version.
+ */
+export function unsubscribeTextFooter(unsubscribeUrl?: string): string {
+  return unsubscribeUrl ? `\n\nDezabonează-te: ${unsubscribeUrl}` : ''
+}
+
 export { COLORS }

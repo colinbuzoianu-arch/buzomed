@@ -71,7 +71,19 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: [{ scheduledAt: 'desc' }, { createdAt: 'desc' }],
       take: 200,
-      include: {
+      // List response — deliberately excludes the heavy clinical JSON/text
+      // fields (anamnesis, vitalSigns, diagnoses, notes, etc.), which belong
+      // to the single-examination edit view, not a list payload.
+      select: {
+        id: true,
+        examinationNumber: true,
+        status: true,
+        verdict: true,
+        scheduledAt: true,
+        startedAt: true,
+        completedAt: true,
+        signedAt: true,
+        createdAt: true,
         employee: {
           select: { id: true, firstName: true, lastName: true },
         },

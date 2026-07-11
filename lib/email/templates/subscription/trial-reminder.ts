@@ -1,11 +1,11 @@
-import { renderEmailLayout, renderButton, escapeHtml } from '../layout'
+import { renderEmailLayout, renderButton, escapeHtml, unsubscribeTextFooter } from '../layout'
 
 interface TrialReminderParams {
   cabinetName: string
   adminName: string
   trialEndsAt: Date
   billingUrl: string
-  unsubscribeUrl: string
+  unsubscribeUrl?: string
 }
 
 export function renderTrialReminderEmail(params: TrialReminderParams): { subject: string; html: string; text: string } {
@@ -49,7 +49,7 @@ ${renderButton('Activează subscripția acum', params.billingUrl)}
     unsubscribeUrl: params.unsubscribeUrl,
   })
 
-  const text = `Bună, ${params.adminName},\n\nTrial-ul pentru ${params.cabinetName} expiră pe ${endDate} (3 zile rămase).\n\nPlanuri disponibile:\n- Starter: 99 RON/lună — până la 100 angajați\n- Growth: 299 RON/lună — până la 500 angajați\n- Pro: 699 RON/lună — până la 2000 angajați\n\nActivează: ${params.billingUrl}\n\nDezabonează-te: ${params.unsubscribeUrl}\n\nBuzomed`
+  const text = `Bună, ${params.adminName},\n\nTrial-ul pentru ${params.cabinetName} expiră pe ${endDate} (3 zile rămase).\n\nPlanuri disponibile:\n- Starter: 99 RON/lună — până la 100 angajați\n- Growth: 299 RON/lună — până la 500 angajați\n- Pro: 699 RON/lună — până la 2000 angajați\n\nActivează: ${params.billingUrl}${unsubscribeTextFooter(params.unsubscribeUrl)}\n\nBuzomed`
 
   return { subject, html, text }
 }

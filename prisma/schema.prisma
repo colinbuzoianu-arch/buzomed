@@ -468,7 +468,7 @@ model Company {
   @@map("companies")
   @@index([tenantId])
   @@index([tenantId, name])
-  @@index([cui])
+  @@index([tenantId, cui])
 }
 
 model CompanyContact {
@@ -522,9 +522,7 @@ model Contract {
   @@map("contracts")
   @@unique([tenantId, contractYear, contractSequence])
   @@index([tenantId])
-  @@index([companyId])
-  @@index([tenantId, status])
-  @@index([deletedAt])
+  @@index([tenantId, companyId, deletedAt, status])
 }
 
 model Invoice {
@@ -563,9 +561,8 @@ model Invoice {
   @@map("invoices")
   @@unique([tenantId, invoiceYear, invoiceSequence])
   @@index([tenantId])
-  @@index([companyId])
-  @@index([tenantId, status])
-  @@index([deletedAt])
+  @@index([tenantId, companyId, deletedAt])
+  @@index([tenantId, deletedAt, issuedAt])
 }
 
 model InvoiceItem {
@@ -623,8 +620,7 @@ model PlatformInvoice {
   @@unique([invoiceYear, invoiceSequence])
   @@unique([tenantId, billingPeriod])
   @@index([tenantId])
-  @@index([status])
-  @@index([deletedAt])
+  @@index([status, deletedAt])
 }
 
 model PlatformInvoiceItem {
@@ -725,7 +721,8 @@ model Workplace {
   
   @@map("workplaces")
   @@index([tenantId])
-  @@index([companyId])
+  @@index([tenantId, companyId, deletedAt])
+  @@index([tenantId, deletedAt, isActive])
 }
 
 // ============================================================================
@@ -809,8 +806,8 @@ model Employee {
   @@index([tenantId, lastName, firstName])
   @@index([tenantId, companyEmployeeId])
   @@index([tenantId, archivedAt])
-  @@index([archivedAt])
-  @@index([companyId])
+  @@index([tenantId, companyId, deletedAt])
+  @@index([tenantId, isActive, archivedAt, deletedAt])
 }
 
 model EmployeeWorkplaceAssignment {

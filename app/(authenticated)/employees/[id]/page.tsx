@@ -99,7 +99,14 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
           { createdAt: 'desc' },
         ],
         take: 10,
-        include: {
+        select: {
+          id: true,
+          examinationNumber: true,
+          status: true,
+          verdict: true,
+          signedAt: true,
+          scheduledAt: true,
+          createdAt: true,
           examinationType: {
             select: { nameRo: true, nameEn: true },
           },

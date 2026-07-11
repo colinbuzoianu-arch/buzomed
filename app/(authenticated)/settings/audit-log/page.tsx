@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { formatDate } from '@/lib/format-date'
 import { getLocale } from '@/lib/i18n'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { Pagination } from '@/components/ui/pagination'
 import type { AuditAction } from '@prisma/client'
 
 export const metadata = { title: 'Jurnal acces — Buzomed' }
@@ -22,7 +23,14 @@ const ACTION_BADGE: Record<AuditAction, { label: string; cls: string }> = {
   import:   { label: 'Import',      cls: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300' },
 }
 
-export default async function AuditLogPage() {
+const PAGE_SIZE = 200
+const AUDIT_LOG_PATH = '/settings/audit-log'
+
+interface PageProps {
+  searchParams: Promise<{ page?: string }>
+}
+
+export default async function AuditLogPage({ searchParams }: PageProps) {
   const user = await requireUser()
   const locale = await getLocale()
 
@@ -30,20 +38,28 @@ export default async function AuditLogPage() {
     redirect('/dashboard')
   }
 
-  const entries = await prisma.auditLogEntry.findMany({
-    where: { tenantId: user.tenantId },
-    orderBy: { occurredAt: 'desc' },
-    take: 200,
-    select: {
-      id: true,
-      action: true,
-      entityType: true,
-      entitySummary: true,
-      occurredAt: true,
-      ipAddress: true,
-      user: { select: { firstName: true, lastName: true } },
-    },
-  })
+  const params = await searchParams
+  const page = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1)
+
+  const [entries, total] = await Promise.all([
+    prisma.auditLogEntry.findMany({
+      where: { tenantId: user.tenantId },
+      orderBy: { occurredAt: 'desc' },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      select: {
+        id: true,
+        action: true,
+        entityType: true,
+        entitySummary: true,
+        occurredAt: true,
+        ipAddress: true,
+        user: { select: { firstName: true, lastName: true } },
+      },
+    }),
+    prisma.auditLogEntry.count({ where: { tenantId: user.tenantId } }),
+  ])
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
     <div className="space-y-6">
@@ -57,7 +73,7 @@ export default async function AuditLogPage() {
       <div>
         <h1 className="text-2xl font-bold">Jurnal acces</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Ultimele 200 de operațiuni pe date medicale ale cabinetului tău.
+          {total} operațiuni pe date medicale ale cabinetului tău.
         </p>
       </div>
 
@@ -111,6 +127,14 @@ export default async function AuditLogPage() {
           </table>
         </div>
       )}
+
+      <Pagination
+        href={AUDIT_LOG_PATH}
+        params={params}
+        paramName="page"
+        page={page}
+        totalPages={totalPages}
+      />
     </div>
   )
 }

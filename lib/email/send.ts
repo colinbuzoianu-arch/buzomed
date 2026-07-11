@@ -21,6 +21,11 @@ async function resolveSuppression(
     return { suppressed: true }
   }
   const unsubscribeUrl = generateUnsubscribeUrl(params.to.email)
+  if (!unsubscribeUrl) {
+    // EMAIL_UNSUBSCRIBE_SECRET missing — already logged in generateUnsubscribeUrl.
+    // Send anyway, just without the header, rather than blocking the send.
+    return { suppressed: false, headers: params.headers }
+  }
   return {
     suppressed: false,
     headers: {

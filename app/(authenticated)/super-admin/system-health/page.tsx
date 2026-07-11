@@ -9,9 +9,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Pagination } from '@/components/ui/pagination'
 import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { CsvExportButton } from './csv-export-button'
+
+const SYSTEM_HEALTH_PATH = '/super-admin/system-health'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -127,30 +130,6 @@ function FilterField({
   )
 }
 
-function PaginationLink({
-  params,
-  page,
-  children,
-}: {
-  params: Record<string, string | undefined>
-  page: number
-  children: React.ReactNode
-}) {
-  const qs = new URLSearchParams()
-  for (const [k, v] of Object.entries(params)) {
-    if (v && k !== 'errPage') qs.set(k, v)
-  }
-  qs.set('errPage', String(page))
-  return (
-    <Link
-      href={`/super-admin/system-health?${qs}`}
-      className="rounded border border-input bg-background px-3 py-1 text-xs hover:bg-accent"
-    >
-      {children}
-    </Link>
-  )
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 interface PageProps {
@@ -166,10 +145,22 @@ interface PageProps {
     auditUser?: string
     emailTag?: string
     emailTenant?: string
+    cronPage?: string
+    emailPage?: string
+    auditPage?: string
+    importPage?: string
+    webhookPage?: string
+    retentionPage?: string
   }>
 }
 
 const ERR_PAGE_SIZE = 50
+const CRON_PAGE_SIZE = 30
+const EMAIL_PAGE_SIZE = 100
+const AUDIT_PAGE_SIZE = 50
+const IMPORT_PAGE_SIZE = 30
+const WEBHOOK_PAGE_SIZE = 30
+const RETENTION_PAGE_SIZE = 20
 
 export default async function SystemHealthPage({ searchParams }: PageProps) {
   await requireRole('super_admin')
@@ -177,6 +168,12 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
 
   // Error section filters
   const errPage = Math.max(1, parseInt(params.errPage ?? '1', 10))
+  const cronPage = Math.max(1, parseInt(params.cronPage ?? '1', 10))
+  const emailPage = Math.max(1, parseInt(params.emailPage ?? '1', 10))
+  const auditPage = Math.max(1, parseInt(params.auditPage ?? '1', 10))
+  const importPage = Math.max(1, parseInt(params.importPage ?? '1', 10))
+  const webhookPage = Math.max(1, parseInt(params.webhookPage ?? '1', 10))
+  const retentionPage = Math.max(1, parseInt(params.retentionPage ?? '1', 10))
   const errFromDate = params.errFrom ? new Date(params.errFrom) : undefined
   const errToDate = params.errTo ? new Date(params.errTo) : undefined
   const errWhere = {
@@ -218,12 +215,18 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
     errors,
     errorsTotal,
     cronRuns,
+    cronRunsTotal,
     aiByRoute,
     emailDeliveries,
+    emailDeliveriesTotal,
     auditEntries,
+    auditEntriesTotal,
     imports,
+    importsTotal,
     failedWebhooks,
+    failedWebhooksTotal,
     retentionRuns,
+    retentionRunsTotal,
   ] = await Promise.all([
     // Header aggregates (24h)
     prisma.systemErrorLog.count({ where: { createdAt: { gte: since24h } } }),
@@ -255,8 +258,13 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
       skip: (errPage - 1) * ERR_PAGE_SIZE,
     }),
     prisma.systemErrorLog.count({ where: errWhere }),
-    // Cron runs (last 30)
-    prisma.cronRun.findMany({ orderBy: { startedAt: 'desc' }, take: 30 }),
+    // Cron runs (paginated)
+    prisma.cronRun.findMany({
+      orderBy: { startedAt: 'desc' },
+      take: CRON_PAGE_SIZE,
+      skip: (cronPage - 1) * CRON_PAGE_SIZE,
+    }),
+    prisma.cronRun.count(),
     // AI usage (last 7d by route+model)
     prisma.aiUsageLog.groupBy({
       by: ['route', 'model'],
@@ -265,7 +273,7 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
       _sum: { inputTokens: true, outputTokens: true, cacheReadTokens: true },
       orderBy: { _sum: { inputTokens: 'desc' } },
     }),
-    // Email delivery (last 24h, filtered)
+    // Email delivery (last 24h, filtered, paginated)
     prisma.emailDelivery.findMany({
       where: {
         attemptedAt: { gte: since24h },
@@ -273,21 +281,37 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
         ...(params.emailTenant ? { tenantId: params.emailTenant } : {}),
       },
       orderBy: { attemptedAt: 'desc' },
-      take: 100,
+      take: EMAIL_PAGE_SIZE,
+      skip: (emailPage - 1) * EMAIL_PAGE_SIZE,
     }),
-    // Audit events (last 50, filtered)
+    prisma.emailDelivery.count({
+      where: {
+        attemptedAt: { gte: since24h },
+        ...(params.emailTag ? { tags: { has: params.emailTag } } : {}),
+        ...(params.emailTenant ? { tenantId: params.emailTenant } : {}),
+      },
+    }),
+    // Audit events (filtered, paginated)
     prisma.auditLogEntry.findMany({
       where: auditWhere,
       orderBy: { occurredAt: 'desc' },
-      take: 50,
+      take: AUDIT_PAGE_SIZE,
+      skip: (auditPage - 1) * AUDIT_PAGE_SIZE,
     }),
-    // Imports (last 30)
-    prisma.importJob.findMany({ orderBy: { createdAt: 'desc' }, take: 30 }),
-    // Failed webhooks (last 30)
+    prisma.auditLogEntry.count({ where: auditWhere }),
+    // Imports (paginated)
+    prisma.importJob.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: IMPORT_PAGE_SIZE,
+      skip: (importPage - 1) * IMPORT_PAGE_SIZE,
+    }),
+    prisma.importJob.count(),
+    // Failed webhooks (paginated)
     prisma.webhookDelivery.findMany({
       where: { success: false },
       orderBy: { attemptedAt: 'desc' },
-      take: 30,
+      take: WEBHOOK_PAGE_SIZE,
+      skip: (webhookPage - 1) * WEBHOOK_PAGE_SIZE,
       select: {
         id: true,
         event: true,
@@ -297,12 +321,15 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
         endpoint: { select: { url: true, tenantId: true } },
       },
     }),
-    // Retention runs (last 20, any log-retention job)
+    prisma.webhookDelivery.count({ where: { success: false } }),
+    // Retention runs (any log-retention job, paginated)
     prisma.cronRun.findMany({
       where: { jobName: { in: ['log-retention', 'log-retention-dryrun'] } },
       orderBy: { startedAt: 'desc' },
-      take: 20,
+      take: RETENTION_PAGE_SIZE,
+      skip: (retentionPage - 1) * RETENTION_PAGE_SIZE,
     }),
+    prisma.cronRun.count({ where: { jobName: { in: ['log-retention', 'log-retention-dryrun'] } } }),
   ])
 
   // Derived header values
@@ -336,6 +363,12 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
   }
 
   const errTotalPages = Math.ceil(errorsTotal / ERR_PAGE_SIZE)
+  const cronTotalPages = Math.ceil(cronRunsTotal / CRON_PAGE_SIZE)
+  const emailTotalPages = Math.ceil(emailDeliveriesTotal / EMAIL_PAGE_SIZE)
+  const auditTotalPages = Math.ceil(auditEntriesTotal / AUDIT_PAGE_SIZE)
+  const importTotalPages = Math.ceil(importsTotal / IMPORT_PAGE_SIZE)
+  const webhookTotalPages = Math.ceil(failedWebhooksTotal / WEBHOOK_PAGE_SIZE)
+  const retentionTotalPages = Math.ceil(retentionRunsTotal / RETENTION_PAGE_SIZE)
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 p-6">
@@ -470,23 +503,13 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
                 ))}
               </TableBody>
             </Table>
-            {errTotalPages > 1 && (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">
-                  Pagina {errPage} din {errTotalPages}
-                </span>
-                {errPage > 1 && (
-                  <PaginationLink params={params} page={errPage - 1}>
-                    ← Anterior
-                  </PaginationLink>
-                )}
-                {errPage < errTotalPages && (
-                  <PaginationLink params={params} page={errPage + 1}>
-                    Următor →
-                  </PaginationLink>
-                )}
-              </div>
-            )}
+            <Pagination
+              href={SYSTEM_HEALTH_PATH}
+              params={params}
+              paramName="errPage"
+              page={errPage}
+              totalPages={errTotalPages}
+            />
           </>
         )}
       </section>
@@ -496,7 +519,9 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">
             Cron runs{' '}
-            <span className="text-sm font-normal text-muted-foreground">(ultimele 30)</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              ({cronRunsTotal} total)
+            </span>
             {staleJobs.size > 0 && (
               <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">
                 {staleJobs.size} job{staleJobs.size > 1 ? 's' : ''} stale (&gt;25h)
@@ -587,6 +612,13 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
             </TableBody>
           </Table>
         )}
+        <Pagination
+          href={SYSTEM_HEALTH_PATH}
+          params={params}
+          paramName="cronPage"
+          page={cronPage}
+          totalPages={cronTotalPages}
+        />
       </section>
 
       {/* ── Section 3: AI usage ────────────────────────────────────────────── */}
@@ -677,7 +709,9 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">
             Email delivery{' '}
-            <span className="text-sm font-normal text-muted-foreground">(ultimele 24h)</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              (ultimele 24h — {emailDeliveriesTotal} total)
+            </span>
           </h2>
           <CsvExportButton
             filename="email-delivery.csv"
@@ -780,6 +814,13 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
             </TableBody>
           </Table>
         )}
+        <Pagination
+          href={SYSTEM_HEALTH_PATH}
+          params={params}
+          paramName="emailPage"
+          page={emailPage}
+          totalPages={emailTotalPages}
+        />
       </section>
 
       {/* ── Section 5: Audit events ────────────────────────────────────────── */}
@@ -787,7 +828,9 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">
             Audit events{' '}
-            <span className="text-sm font-normal text-muted-foreground">(ultimele 50)</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              ({auditEntriesTotal} total)
+            </span>
           </h2>
           <CsvExportButton
             filename="audit-events.csv"
@@ -901,6 +944,13 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
             </TableBody>
           </Table>
         )}
+        <Pagination
+          href={SYSTEM_HEALTH_PATH}
+          params={params}
+          paramName="auditPage"
+          page={auditPage}
+          totalPages={auditTotalPages}
+        />
       </section>
 
       {/* ── Section 6: Imports ─────────────────────────────────────────────── */}
@@ -908,7 +958,9 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">
             Importuri recente{' '}
-            <span className="text-sm font-normal text-muted-foreground">(ultimele 30)</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              ({importsTotal} total)
+            </span>
           </h2>
           <CsvExportButton
             filename="imports.csv"
@@ -991,6 +1043,13 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
             </TableBody>
           </Table>
         )}
+        <Pagination
+          href={SYSTEM_HEALTH_PATH}
+          params={params}
+          paramName="importPage"
+          page={importPage}
+          totalPages={importTotalPages}
+        />
       </section>
 
       {/* ── Section 7: Failed webhooks ─────────────────────────────────────── */}
@@ -998,7 +1057,9 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">
             Webhook-uri eșuate{' '}
-            <span className="text-sm font-normal text-muted-foreground">(ultimele 30)</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              ({failedWebhooksTotal} total)
+            </span>
           </h2>
           <CsvExportButton
             filename="failed-webhooks.csv"
@@ -1043,6 +1104,13 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
             </TableBody>
           </Table>
         )}
+        <Pagination
+          href={SYSTEM_HEALTH_PATH}
+          params={params}
+          paramName="webhookPage"
+          page={webhookPage}
+          totalPages={webhookTotalPages}
+        />
       </section>
 
       {/* ── Section 8: Retention runs ──────────────────────────────────────── */}
@@ -1050,7 +1118,9 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">
             Log retention{' '}
-            <span className="text-sm font-normal text-muted-foreground">(ultimele 20 rulări)</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              ({retentionRunsTotal} total)
+            </span>
           </h2>
           <a
             href="/api/admin/trigger-log-retention?dryRun=true"
@@ -1126,6 +1196,13 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
             })}
           </div>
         )}
+        <Pagination
+          href={SYSTEM_HEALTH_PATH}
+          params={params}
+          paramName="retentionPage"
+          page={retentionPage}
+          totalPages={retentionTotalPages}
+        />
       </section>
     </div>
   )

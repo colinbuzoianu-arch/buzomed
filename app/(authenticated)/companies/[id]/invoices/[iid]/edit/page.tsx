@@ -26,9 +26,17 @@ export default async function EditInvoicePage({ params }: PageProps) {
   const [invoice, contracts] = await Promise.all([
     prisma.invoice.findFirst({
       where: { id: iid, companyId, tenantId: user.tenantId, deletedAt: null },
-      include: {
-        items: { orderBy: { sortOrder: 'asc' } },
+      select: {
+        status: true,
+        invoiceNumber: true,
+        contractId: true,
+        dueDate: true,
+        notes: true,
         company: { select: { name: true } },
+        items: {
+          orderBy: { sortOrder: 'asc' },
+          select: { description: true, quantity: true, unitPrice: true },
+        },
       },
     }),
     prisma.contract.findMany({

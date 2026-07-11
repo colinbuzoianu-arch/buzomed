@@ -1,5 +1,7 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton } from '@/components/ui/skeleton'
 import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -53,7 +55,13 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
   // Pull tenants with aggregated activity counts
   const tenants = await prisma.tenant.findMany({
     where: { deletedAt: null },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      isDemo: true,
+      city: true,
+      subscriptionStatus: true,
+      createdAt: true,
       users: {
         where: { deletedAt: null },
         select: { id: true, lastLoginAt: true, isActive: true },
@@ -161,23 +169,6 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
     conversionRate,
   }
 
-  // Billing stats
-  const billingRows = await prisma.platformInvoice.groupBy({
-    by: ['status'],
-    where: { deletedAt: null },
-    _count: { id: true },
-    _sum: { total: true },
-  })
-  const byStatus = Object.fromEntries(
-    billingRows.map((r) => [r.status, { count: r._count.id, sum: Number(r._sum.total ?? 0) }])
-  )
-  const billingStats = {
-    issued:        byStatus.issued?.count ?? 0,
-    totalUnpaid:   Math.round((byStatus.issued?.sum ?? 0) + (byStatus.overdue?.sum ?? 0)),
-    paidThisMonth: byStatus.paid?.count ?? 0,
-    overdue:       byStatus.overdue?.count ?? 0,
-  }
-
   function SortLink({
     sortKey,
     label,
@@ -282,12 +273,9 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
       </div>
 
       {/* Billing overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Facturi emise" value={billingStats.issued} />
-        <StatCard label="De încasat (RON)" value={billingStats.totalUnpaid} />
-        <StatCard label="Plătite" value={billingStats.paidThisMonth} tone="success" />
-        <StatCard label="Restanțe" value={billingStats.overdue} />
-      </div>
+      <Suspense fallback={<BillingOverviewSkeleton />}>
+        <BillingOverviewCards />
+      </Suspense>
 
       {/* GDPR — Data retention check */}
       <section className="rounded-lg border bg-card p-6 space-y-3">
@@ -456,6 +444,47 @@ function StatCard({
       >
         {value}
       </div>
+    </div>
+  )
+}
+
+function BillingOverviewSkeleton() {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {[1, 2, 3, 4].map((i) => (
+        <Skeleton key={i} className="h-20 rounded-lg" />
+      ))}
+    </div>
+  )
+}
+
+// Third sequential top-level await on this page in the original code — feeds
+// only this stat row, no tenant/user dependency, and is a groupBy over the
+// platform-wide (unfiltered-by-tenant) invoice table so plausibly the
+// slowest of the page's independent queries.
+async function BillingOverviewCards() {
+  const billingRows = await prisma.platformInvoice.groupBy({
+    by: ['status'],
+    where: { deletedAt: null },
+    _count: { id: true },
+    _sum: { total: true },
+  })
+  const byStatus = Object.fromEntries(
+    billingRows.map((r) => [r.status, { count: r._count.id, sum: Number(r._sum.total ?? 0) }])
+  )
+  const billingStats = {
+    issued:        byStatus.issued?.count ?? 0,
+    totalUnpaid:   Math.round((byStatus.issued?.sum ?? 0) + (byStatus.overdue?.sum ?? 0)),
+    paidThisMonth: byStatus.paid?.count ?? 0,
+    overdue:       byStatus.overdue?.count ?? 0,
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <StatCard label="Facturi emise" value={billingStats.issued} />
+      <StatCard label="De încasat (RON)" value={billingStats.totalUnpaid} />
+      <StatCard label="Plătite" value={billingStats.paidThisMonth} tone="success" />
+      <StatCard label="Restanțe" value={billingStats.overdue} />
     </div>
   )
 }

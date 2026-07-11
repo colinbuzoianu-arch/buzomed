@@ -254,49 +254,73 @@ export async function POST(request: Request) {
   //
   // The invitation record is created inside createInvitation(); if it
   // fails to persist, that's logged but tenant creation still succeeded.
+  //
+  // Everything below is a post-transaction side effect wrapped in its own
+  // try/catch: the tenant/user/subscription already exist at this point, so
+  // no failure here — expected (createInvitation returning ok:false) or
+  // unexpected (a throw, e.g. a misconfigured env var deep in a template) —
+  // should ever turn this into a 500. A missing EMAIL_UNSUBSCRIBE_SECRET did
+  // exactly that once (see .env.example) before this wrapping was added.
   const locale = await getLocale()
   const appUrl = getAppUrl(request)
 
-  const inviteResult = await createInvitation({
-    actor: {
-      userId: actor.id,
-      tenantId: actor.tenantId,
-      roles: actor.roles,
-      fullName: `${actor.firstName} ${actor.lastName}`,
-      locale,
-    },
-    email: body.adminEmail,
-    role: 'practice_admin',
-    tenantId: tenantResult.tenant.id,
-    recipientName: `${body.adminFirstName} ${body.adminLastName}`,
-    appUrl,
-  })
+  let inviteResult: Awaited<ReturnType<typeof createInvitation>> | null = null
+  try {
+    inviteResult = await createInvitation({
+      actor: {
+        userId: actor.id,
+        tenantId: actor.tenantId,
+        roles: actor.roles,
+        fullName: `${actor.firstName} ${actor.lastName}`,
+        locale,
+      },
+      email: body.adminEmail,
+      role: 'practice_admin',
+      tenantId: tenantResult.tenant.id,
+      recipientName: `${body.adminFirstName} ${body.adminLastName}`,
+      appUrl,
+    })
+  } catch (err) {
+    console.error('[tenants] Unexpected error creating invitation — tenant creation still succeeded', {
+      tenantId: tenantResult.tenant.id,
+      email: body.adminEmail,
+      error: err,
+    })
+  }
 
   // Send trial welcome email for self-service tenants.
   // Suppress for enterprise (billing arranged separately), demo, and probe accounts.
   const suppressTrialWelcome = body.isDemo || body.isProbe || isEnterprise
   if (!suppressTrialWelcome) {
-    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-    const welcomeContent = renderTrialWelcomeEmail({
-      cabinetName: tenantResult.tenant.name,
-      adminName: `${body.adminFirstName} ${body.adminLastName}`,
-      trialEndsAt,
-      billingUrl: `${appUrl}/settings/billing`,
-      unsubscribeUrl: generateUnsubscribeUrl(body.adminEmail),
-    })
-    sendEmail({
-      to: { email: body.adminEmail, name: `${body.adminFirstName} ${body.adminLastName}` },
-      content: welcomeContent,
-      tags: ['trial-welcome'],
-    }).catch((err) => console.error('[tenants] Failed to send trial welcome email', err))
+    try {
+      const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+      const welcomeContent = renderTrialWelcomeEmail({
+        cabinetName: tenantResult.tenant.name,
+        adminName: `${body.adminFirstName} ${body.adminLastName}`,
+        trialEndsAt,
+        billingUrl: `${appUrl}/settings/billing`,
+        unsubscribeUrl: generateUnsubscribeUrl(body.adminEmail),
+      })
+      sendEmail({
+        to: { email: body.adminEmail, name: `${body.adminFirstName} ${body.adminLastName}` },
+        content: welcomeContent,
+        tags: ['trial-welcome'],
+      }).catch((err) => console.error('[tenants] Failed to send trial welcome email', err))
+    } catch (err) {
+      console.error('[tenants] Unexpected error building/sending trial welcome email — tenant creation still succeeded', {
+        tenantId: tenantResult.tenant.id,
+        email: body.adminEmail,
+        error: err,
+      })
+    }
   }
 
-  if (!inviteResult.ok) {
+  if (!inviteResult || !inviteResult.ok) {
     console.error('[tenants] Failed to send initial admin invite', {
       tenantId: tenantResult.tenant.id,
       email: body.adminEmail,
-      error: inviteResult.error,
-      message: inviteResult.message,
+      error: inviteResult ? inviteResult.error : 'threw_unexpectedly',
+      message: inviteResult ? inviteResult.message : 'See error above',
     })
     // We still return success — the tenant exists, the placeholder user
     // exists, and the super-admin can manually resend the invite from
@@ -313,8 +337,8 @@ export async function POST(request: Request) {
       id: tenantResult.adminUser.id,
       email: tenantResult.adminUser.email,
     },
-    inviteSent: inviteResult.ok && inviteResult.emailSent,
-    inviteCreated: inviteResult.ok,
+    inviteSent: inviteResult?.ok === true && inviteResult.emailSent,
+    inviteCreated: inviteResult?.ok === true,
   })
 }
 

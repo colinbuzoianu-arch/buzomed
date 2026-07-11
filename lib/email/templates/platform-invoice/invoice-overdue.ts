@@ -1,4 +1,4 @@
-import { renderEmailLayout, renderButton, escapeHtml } from '../layout'
+import { renderEmailLayout, renderButton, escapeHtml, unsubscribeTextFooter } from '../layout'
 
 interface InvoiceOverdueParams {
   tenantName: string
@@ -8,7 +8,7 @@ interface InvoiceOverdueParams {
   dueDate: Date | null
   daysPastDue: number
   billingUrl: string
-  unsubscribeUrl: string
+  unsubscribeUrl?: string
 }
 
 // Factual, courtesy tone — small B2B market, "ai uitat probabil" not
@@ -36,7 +36,7 @@ ${renderButton('Vezi factura', params.billingUrl)}
     unsubscribeUrl: params.unsubscribeUrl,
   })
 
-  const text = `Bună ziua,\n\nFactura ${params.invoiceNumber} pentru ${params.tenantName} (${amount}, scadentă ${dueDateStr}) este restantă de ${params.daysPastDue} zile.\n\nVezi factura: ${params.billingUrl}\n\nDezabonează-te: ${params.unsubscribeUrl}\n\nBuzomed`
+  const text = `Bună ziua,\n\nFactura ${params.invoiceNumber} pentru ${params.tenantName} (${amount}, scadentă ${dueDateStr}) este restantă de ${params.daysPastDue} zile.\n\nVezi factura: ${params.billingUrl}${unsubscribeTextFooter(params.unsubscribeUrl)}\n\nBuzomed`
 
   return { subject, html, text }
 }

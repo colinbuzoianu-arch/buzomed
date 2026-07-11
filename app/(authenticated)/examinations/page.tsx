@@ -11,6 +11,11 @@ import { BulkScheduleButton } from '../recalls/bulk-schedule-modal'
 import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
 import { formatDate } from '@/lib/format-date'
 import { parseRiskProfile, RISK_PROFILE_SCHEMA } from '@/lib/workplaces/risk-profile'
+import { Pagination } from '@/components/ui/pagination'
+
+const EXAMINATIONS_PATH = '/examinations'
+const LIST_PAGE_SIZE = 200
+const SCADENTE_PAGE_SIZE = 100
 
 /**
  * Merged examinations page (after session 10 fixup).
@@ -42,28 +47,11 @@ import { parseRiskProfile, RISK_PROFILE_SCHEMA } from '@/lib/workplaces/risk-pro
  */
 
 type Tab = 'scadente' | 'programate' | 'in_curs' | 'finalizate' | 'toate'
-type Horizon =
-  | 'overdue'
-  | 'thisWeek'
-  | 'thisMonth'
-  | 'next3Months'
-  | 'all'
+type Horizon = 'overdue' | 'thisWeek' | 'thisMonth' | 'next3Months' | 'all'
 
-const VALID_TABS: Tab[] = [
-  'scadente',
-  'programate',
-  'in_curs',
-  'finalizate',
-  'toate',
-]
+const VALID_TABS: Tab[] = ['scadente', 'programate', 'in_curs', 'finalizate', 'toate']
 
-const VALID_HORIZONS: Horizon[] = [
-  'overdue',
-  'thisWeek',
-  'thisMonth',
-  'next3Months',
-  'all',
-]
+const VALID_HORIZONS: Horizon[] = ['overdue', 'thisWeek', 'thisMonth', 'next3Months', 'all']
 
 /** Map our tab labels to the underlying ExaminationStatus filter. */
 function tabToStatus(tab: Tab): ExaminationStatus | null {
@@ -115,6 +103,7 @@ interface PageProps {
     companyId?: string
     // Backwards-compat: old links used ?status=scheduled directly.
     status?: string
+    page?: string
   }>
 }
 
@@ -149,6 +138,7 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
       ? (params.horizon as Horizon)
       : 'thisMonth'
   const companyIdFilter = params.companyId || null
+  const page = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1)
 
   // Lazy pending → overdue promotion. Same as the original recall page.
   const today = new Date()
@@ -168,40 +158,34 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
   // Counts per tab — shown as `(N)` badges on tab labels.
   // For tabs that map to ExaminationStatus, count from examinations.
   // For scadente, count from recalls (pending + overdue, with the
-  // soft-deleted-source-exam filter).
-  const [examCounts, scadenteCount, overdueScadenteCount] = await Promise.all([
+  // soft-deleted-source-exam filter) — one groupBy instead of two counts,
+  // since the only difference between them is the status value.
+  const [examCounts, scadenteCounts] = await Promise.all([
     prisma.examination.groupBy({
       by: ['status'],
       where: { tenantId: user.tenantId, deletedAt: null },
       _count: true,
     }),
-    prisma.recall.count({
+    prisma.recall.groupBy({
+      by: ['status'],
       where: {
         tenantId: user.tenantId,
         status: { in: ['pending', 'overdue'] as RecallStatus[] },
         deletedAt: null,
-        OR: [
-          { createdFromExaminationId: null },
-          { createdFromExamination: { deletedAt: null } },
-        ],
+        OR: [{ createdFromExaminationId: null }, { createdFromExamination: { deletedAt: null } }],
       },
-    }),
-    prisma.recall.count({
-      where: {
-        tenantId: user.tenantId,
-        status: 'overdue',
-        deletedAt: null,
-        OR: [
-          { createdFromExaminationId: null },
-          { createdFromExamination: { deletedAt: null } },
-        ],
-      },
+      _count: true,
     }),
   ])
 
   const countByStatus = (s: ExaminationStatus): number =>
     examCounts.find((c) => c.status === s)?._count ?? 0
   const totalExams = examCounts.reduce((s, c) => s + c._count, 0)
+
+  const scadenteCountByStatus = (s: RecallStatus): number =>
+    scadenteCounts.find((c) => c.status === s)?._count ?? 0
+  const overdueScadenteCount = scadenteCountByStatus('overdue')
+  const scadenteCount = scadenteCounts.reduce((s, c) => s + c._count, 0)
 
   const tabs: Array<{
     key: Tab
@@ -252,25 +236,18 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {tab !== 'scadente' && (
-            <a
-              href={exportUrl}
-              className="text-sm border rounded-md px-3 py-2 hover:bg-muted"
-            >
+            <a href={exportUrl} className="text-sm border rounded-md px-3 py-2 hover:bg-muted">
               {t('examinations.exportCsv')}
             </a>
           )}
           {caps.canWriteAdministrative && (
             <Button asChild variant="outline">
-              <Link href="/examinations/bulk">
-                Programare în masă
-              </Link>
+              <Link href="/examinations/bulk">Programare în masă</Link>
             </Button>
           )}
           {caps.canWriteAdministrative && (
             <Button asChild>
-              <Link href="/examinations/new">
-                + {t('examinations.newButton')}
-              </Link>
+              <Link href="/examinations/new">+ {t('examinations.newButton')}</Link>
             </Button>
           )}
         </div>
@@ -280,8 +257,7 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
         {tabs.map((entry) => {
           const active = tab === entry.key
           const href = `/examinations?tab=${entry.key}`
-          const isScadenteWithOverdue =
-            entry.key === 'scadente' && (entry.overdueBadge ?? 0) > 0
+          const isScadenteWithOverdue = entry.key === 'scadente' && (entry.overdueBadge ?? 0) > 0
           return (
             <Link
               key={entry.key}
@@ -319,6 +295,8 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
           userId={user.id}
           today={today}
           t={t}
+          page={page}
+          searchParams={params}
         />
       ) : (
         <ExaminationsListView
@@ -327,6 +305,9 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
           locale={locale}
           canWrite={caps.canWriteAdministrative}
           t={t}
+          page={page}
+          total={exportStatus ? countByStatus(exportStatus) : totalExams}
+          searchParams={params}
         />
       )}
     </div>
@@ -342,7 +323,9 @@ function getHazardMultiplier(riskProfileJson: unknown): number {
   let hasAny = false
   for (const { category, hazards } of RISK_PROFILE_SCHEMA) {
     for (const hazard of hazards) {
-      const entry = (profile[category] as Record<string, { present: boolean; severity?: string }>)[hazard]
+      const entry = (profile[category] as Record<string, { present: boolean; severity?: string }>)[
+        hazard
+      ]
       if (entry?.present) {
         hasAny = true
         if (entry.severity === 'high') hasHigh = true
@@ -356,15 +339,21 @@ function getHazardMultiplier(riskProfileJson: unknown): number {
   return 1
 }
 
-function recallPriorityBadge(daysOverdue: number, multiplier: number): { label: string; className: string } | null {
+function recallPriorityBadge(
+  daysOverdue: number,
+  multiplier: number
+): { label: string; className: string } | null {
   if (daysOverdue <= 0) {
-    if (multiplier >= 3) return { label: 'Risc ↑', className: 'text-blue-700 bg-blue-50 border-blue-200' }
+    if (multiplier >= 3)
+      return { label: 'Risc ↑', className: 'text-blue-700 bg-blue-50 border-blue-200' }
     return null
   }
   const score = daysOverdue * multiplier
   if (score >= 30) return { label: 'Critică', className: 'text-red-700 bg-red-50 border-red-200' }
-  if (score >= 10) return { label: 'Ridicată', className: 'text-orange-700 bg-orange-50 border-orange-200' }
-  if (score >= 3) return { label: 'Medie', className: 'text-amber-700 bg-amber-50 border-amber-200' }
+  if (score >= 10)
+    return { label: 'Ridicată', className: 'text-orange-700 bg-orange-50 border-orange-200' }
+  if (score >= 3)
+    return { label: 'Medie', className: 'text-amber-700 bg-amber-50 border-amber-200' }
   return { label: 'Scăzută', className: 'text-yellow-700 bg-yellow-50 border-yellow-200' }
 }
 
@@ -380,6 +369,8 @@ async function ScadenteView(props: {
   userId: string
   today: Date
   t: (k: string) => string
+  page: number
+  searchParams: Record<string, string | undefined>
 }) {
   const range = getHorizonRange(props.horizon)
   const statusFilter =
@@ -387,118 +378,137 @@ async function ScadenteView(props: {
       ? { status: 'overdue' as const }
       : { status: { in: ['pending', 'overdue'] as RecallStatus[] } }
 
-  const [recalls, allHorizonCounts, companies, practitioners] =
-    await Promise.all([
-      prisma.recall.findMany({
-        where: {
-          tenantId: props.tenantId,
-          deletedAt: null,
-          ...statusFilter,
-          ...(range.from ? { dueDate: { gte: range.from } } : {}),
-          ...(range.to
-            ? props.horizon === 'overdue'
-              ? { dueDate: { lt: range.to } }
-              : { dueDate: { lte: range.to } }
-            : {}),
-          ...(props.companyIdFilter
-            ? {
-                workplace: {
-                  companyId: props.companyIdFilter,
-                  deletedAt: null,
-                },
-              }
-            : {}),
-          OR: [
-            { createdFromExaminationId: null },
-            { createdFromExamination: { deletedAt: null } },
-          ],
-        },
-        orderBy: [{ status: 'asc' }, { dueDate: 'asc' }],
-        take: 500,
-        include: {
-          employee: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              archivedAt: true,
-            },
-          },
+  // Archived-employee exclusion pushed into the where clause (was previously
+  // a post-fetch .filter()) — required for the skip/take below to paginate
+  // correctly; filtering after the fact would undercount later pages.
+  const recallsWhere = {
+    tenantId: props.tenantId,
+    deletedAt: null,
+    ...statusFilter,
+    ...(range.from ? { dueDate: { gte: range.from } } : {}),
+    ...(range.to
+      ? props.horizon === 'overdue'
+        ? { dueDate: { lt: range.to } }
+        : { dueDate: { lte: range.to } }
+      : {}),
+    ...(props.companyIdFilter
+      ? {
           workplace: {
-            select: {
-              id: true,
-              name: true,
-              department: true,
-              riskProfile: true,
-              company: { select: { id: true, name: true } },
-            },
+            companyId: props.companyIdFilter,
+            deletedAt: null,
           },
-          examinationType: { select: { nameRo: true, nameEn: true } },
-        },
-      }),
-      Promise.all(
-        VALID_HORIZONS.map(async (h) => {
-          const r = getHorizonRange(h)
-          const count = await prisma.recall.count({
-            where: {
-              tenantId: props.tenantId,
-              deletedAt: null,
-              ...(h === 'overdue'
-                ? { status: 'overdue' }
-                : {
-                    status: { in: ['pending', 'overdue'] as RecallStatus[] },
-                  }),
-              ...(r.from ? { dueDate: { gte: r.from } } : {}),
-              ...(r.to
-                ? h === 'overdue'
-                  ? { dueDate: { lt: r.to } }
-                  : { dueDate: { lte: r.to } }
-                : {}),
-              OR: [
-                { createdFromExaminationId: null },
-                { createdFromExamination: { deletedAt: null } },
-              ],
-            },
-          })
-          return [h, count] as const
-        })
-      ),
-      prisma.company.findMany({
-        where: { tenantId: props.tenantId, deletedAt: null },
-        orderBy: { name: 'asc' },
-        select: { id: true, name: true },
-      }),
-      prisma.user.findMany({
-        where: {
-          tenantId: props.tenantId,
-          isActive: true,
-          deletedAt: null,
-          roles: { hasSome: ['practitioner', 'practice_admin'] },
-        },
-        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          professionalTitle: true,
-        },
-      }),
-    ])
+        }
+      : {}),
+    employee: { archivedAt: null },
+    OR: [{ createdFromExaminationId: null }, { createdFromExamination: { deletedAt: null } }],
+  }
 
-  const visibleRecalls = recalls.filter((r) => r.employee.archivedAt === null)
+  const [recalls, recallsTotal, horizonRecalls, companies, practitioners] = await Promise.all([
+    prisma.recall.findMany({
+      where: recallsWhere,
+      orderBy: [{ status: 'asc' }, { dueDate: 'asc' }],
+      skip: (props.page - 1) * SCADENTE_PAGE_SIZE,
+      take: SCADENTE_PAGE_SIZE,
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            archivedAt: true,
+          },
+        },
+        workplace: {
+          select: {
+            id: true,
+            name: true,
+            department: true,
+            riskProfile: true,
+            company: { select: { id: true, name: true } },
+          },
+        },
+        examinationType: { select: { nameRo: true, nameEn: true } },
+      },
+    }),
+    prisma.recall.count({ where: recallsWhere }),
+    // Horizon tab counts are tenant-wide (never company-filtered, unlike
+    // `recalls` above) — fetch the pending+overdue set once and bucket by
+    // horizon in memory, instead of one round trip per horizon. This set
+    // is bounded by active employee count (current/near-future
+    // obligations), not by historical volume like examinations, so it
+    // doesn't grow unboundedly over time the same way — the `take` here
+    // is defense-in-depth, not an expected-to-be-hit ceiling.
+    prisma.recall.findMany({
+      where: {
+        tenantId: props.tenantId,
+        deletedAt: null,
+        status: { in: ['pending', 'overdue'] as RecallStatus[] },
+        OR: [{ createdFromExaminationId: null }, { createdFromExamination: { deletedAt: null } }],
+      },
+      select: { status: true, dueDate: true },
+      take: 5000,
+    }),
+    prisma.company.findMany({
+      where: { tenantId: props.tenantId, deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    }),
+    prisma.user.findMany({
+      where: {
+        tenantId: props.tenantId,
+        isActive: true,
+        deletedAt: null,
+        roles: { hasSome: ['practitioner', 'practice_admin'] },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        professionalTitle: true,
+      },
+    }),
+  ])
+
+  // Archived-employee exclusion now happens in recallsWhere above — recalls
+  // is already the visible set. Priority-sorted within this page only (a
+  // true cross-page hazard-priority sort would need a computed/indexed
+  // column; DB orderBy above already puts overdue-first, due-date-ascending).
+  const visibleRecalls = recalls
   visibleRecalls.sort((a, b) => {
     const aOverdue = a.status === 'overdue'
     const bOverdue = b.status === 'overdue'
     if (aOverdue !== bOverdue) return aOverdue ? -1 : 1
     if (aOverdue) {
       const todayMs = props.today.getTime()
-      const aScore = Math.round((todayMs - a.dueDate.getTime()) / 86_400_000) * getHazardMultiplier(a.workplace.riskProfile)
-      const bScore = Math.round((todayMs - b.dueDate.getTime()) / 86_400_000) * getHazardMultiplier(b.workplace.riskProfile)
+      const aScore =
+        Math.round((todayMs - a.dueDate.getTime()) / 86_400_000) *
+        getHazardMultiplier(a.workplace.riskProfile)
+      const bScore =
+        Math.round((todayMs - b.dueDate.getTime()) / 86_400_000) *
+        getHazardMultiplier(b.workplace.riskProfile)
       if (bScore !== aScore) return bScore - aScore
     }
     return a.dueDate.getTime() - b.dueDate.getTime()
   })
-  const countsMap = Object.fromEntries(allHorizonCounts)
+  const countsMap = Object.fromEntries(
+    VALID_HORIZONS.map((h) => {
+      const r = getHorizonRange(h)
+      const count = horizonRecalls.filter((rec) => {
+        if (h === 'overdue' && rec.status !== 'overdue') return false
+        if (r.from && rec.dueDate < r.from) return false
+        if (r.to) {
+          if (h === 'overdue') {
+            if (!(rec.dueDate < r.to)) return false
+          } else if (!(rec.dueDate <= r.to)) {
+            return false
+          }
+        }
+        return true
+      }).length
+      return [h, count] as const
+    })
+  )
 
   // Group visible recalls by company for the overview cards
   type CompanyEntry = {
@@ -568,6 +578,8 @@ async function ScadenteView(props: {
     { h: 'all', label: t('recalls.tabs.all') },
   ]
 
+  const totalPages = Math.ceil(recallsTotal / SCADENTE_PAGE_SIZE)
+
   return (
     <div className="space-y-4">
       {/* Horizon sub-tabs */}
@@ -588,11 +600,7 @@ async function ScadenteView(props: {
             >
               {sub.label}{' '}
               <span
-                className={
-                  sub.destructive && count > 0
-                    ? 'font-semibold'
-                    : 'text-muted-foreground'
-                }
+                className={sub.destructive && count > 0 ? 'font-semibold' : 'text-muted-foreground'}
               >
                 ({count})
               </span>
@@ -679,9 +687,7 @@ async function ScadenteView(props: {
       {/* Company filter */}
       {companies.length > 0 && (
         <div className="flex items-center gap-2 text-sm flex-wrap">
-          <span className="text-muted-foreground">
-            {t('recalls.filterCompany')}:
-          </span>
+          <span className="text-muted-foreground">{t('recalls.filterCompany')}:</span>
           <Link
             href={`/examinations?tab=scadente&horizon=${props.horizon}`}
             className={`px-2 py-0.5 rounded border ${
@@ -695,9 +701,7 @@ async function ScadenteView(props: {
               key={c.id}
               href={`/examinations?tab=scadente&horizon=${props.horizon}&companyId=${c.id}`}
               className={`px-2 py-0.5 rounded border ${
-                props.companyIdFilter === c.id
-                  ? 'bg-secondary'
-                  : 'hover:bg-muted'
+                props.companyIdFilter === c.id ? 'bg-secondary' : 'hover:bg-muted'
               }`}
             >
               {c.name}
@@ -709,133 +713,115 @@ async function ScadenteView(props: {
       {visibleRecalls.length === 0 ? (
         <div className="border border-dashed rounded-lg p-12 text-center">
           <p className="text-sm text-muted-foreground">
-            {props.horizon === 'overdue'
-              ? t('recalls.emptyOverdue')
-              : t('recalls.empty')}
+            {props.horizon === 'overdue' ? t('recalls.emptyOverdue') : t('recalls.empty')}
           </p>
         </div>
       ) : (
         <>
           <div className="hidden md:block border rounded-lg overflow-x-auto">
             <table className="w-full text-sm min-w-[720px]">
-            <thead className="bg-muted/30 text-xs uppercase tracking-wide">
-              <tr>
-                <th className="text-left px-4 py-2">{t('recalls.colWorker')}</th>
-                <th className="text-left px-4 py-2">{t('recalls.colCompany')}</th>
-                <th className="text-left px-4 py-2">{t('recalls.colWorkplace')}</th>
-                <th className="text-left px-4 py-2">{t('recalls.colExamType')}</th>
-                <th className="text-left px-4 py-2">{t('recalls.colDueDate')}</th>
-                <th className="text-left px-4 py-2 whitespace-nowrap">
-                  {t('recalls.colDaysUntil')}
-                </th>
-                <th className="text-left px-4 py-2">Prioritate</th>
-                {props.canWrite && (
-                  <th className="text-right px-4 py-2">
-                    {t('recalls.colActions')}
+              <thead className="bg-muted/30 text-xs uppercase tracking-wide">
+                <tr>
+                  <th className="text-left px-4 py-2">{t('recalls.colWorker')}</th>
+                  <th className="text-left px-4 py-2">{t('recalls.colCompany')}</th>
+                  <th className="text-left px-4 py-2">{t('recalls.colWorkplace')}</th>
+                  <th className="text-left px-4 py-2">{t('recalls.colExamType')}</th>
+                  <th className="text-left px-4 py-2">{t('recalls.colDueDate')}</th>
+                  <th className="text-left px-4 py-2 whitespace-nowrap">
+                    {t('recalls.colDaysUntil')}
                   </th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {visibleRecalls.map((r) => {
-                const due = new Date(r.dueDate)
-                const days = Math.round(
-                  (due.getTime() - props.today.getTime()) /
-                    (1000 * 60 * 60 * 24)
-                )
-                const isOverdue = r.status === 'overdue'
-                return (
-                  <tr
-                    key={r.id}
-                    className={isOverdue ? 'bg-destructive/5' : undefined}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <Link
-                        href={`/employees/${r.employee.id}`}
-                        className="hover:underline font-medium"
-                      >
-                        {r.employee.lastName} {r.employee.firstName}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/companies/${r.workplace.company.id}`}
-                        className="hover:underline"
-                      >
-                        {r.workplace.company.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {r.workplace.name}
-                      {r.workplace.department && (
-                        <span className="text-xs">
-                          {' '}— {r.workplace.department}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {props.locale === 'en'
-                        ? r.examinationType.nameEn ?? r.examinationType.nameRo
-                        : r.examinationType.nameRo}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {formatDate(due, 'medium', props.locale === 'ro' ? 'ro' : 'en')}
-                    </td>
-                    <td
-                      className={`px-4 py-3 whitespace-nowrap ${
-                        isOverdue ? 'text-destructive font-medium' : ''
-                      }`}
-                    >
-                      {days === 0
-                        ? t('recalls.dueToday')
-                        : days < 0
-                          ? t('recalls.daysOverdue').replace(
-                              '{days}',
-                              String(-days)
-                            )
-                          : t('recalls.daysUntilDue').replace(
-                              '{days}',
-                              String(days)
-                            )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {(() => {
-                        const badge = recallPriorityBadge(
-                          isOverdue ? Math.abs(days) : 0,
-                          getHazardMultiplier(r.workplace.riskProfile)
-                        )
-                        return badge ? (
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border whitespace-nowrap ${badge.className}`}>
-                            {badge.label}
-                          </span>
-                        ) : null
-                      })()}
-                    </td>
-                    {props.canWrite && (
-                      <td className="px-4 py-3 text-right">
-                        <RecallActions
-                          recallId={r.id}
-                          employeeName={`${r.employee.lastName} ${r.employee.firstName}`}
-                          practitioners={practitioners.map((p) => ({
-                            id: p.id,
-                            label: `${p.lastName} ${p.firstName}${
-                              p.professionalTitle
-                                ? ` (${p.professionalTitle})`
-                                : ''
-                            }`,
-                          }))}
-                          defaultPractitionerId={
-                            props.isPractitioner ? props.userId : undefined
-                          }
-                          labels={recallActionLabels}
-                        />
+                  <th className="text-left px-4 py-2">Prioritate</th>
+                  {props.canWrite && (
+                    <th className="text-right px-4 py-2">{t('recalls.colActions')}</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {visibleRecalls.map((r) => {
+                  const due = new Date(r.dueDate)
+                  const days = Math.round(
+                    (due.getTime() - props.today.getTime()) / (1000 * 60 * 60 * 24)
+                  )
+                  const isOverdue = r.status === 'overdue'
+                  return (
+                    <tr key={r.id} className={isOverdue ? 'bg-destructive/5' : undefined}>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <Link
+                          href={`/employees/${r.employee.id}`}
+                          className="hover:underline font-medium"
+                        >
+                          {r.employee.lastName} {r.employee.firstName}
+                        </Link>
                       </td>
-                    )}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/companies/${r.workplace.company.id}`}
+                          className="hover:underline"
+                        >
+                          {r.workplace.company.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {r.workplace.name}
+                        {r.workplace.department && (
+                          <span className="text-xs"> — {r.workplace.department}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {props.locale === 'en'
+                          ? (r.examinationType.nameEn ?? r.examinationType.nameRo)
+                          : r.examinationType.nameRo}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {formatDate(due, 'medium', props.locale === 'ro' ? 'ro' : 'en')}
+                      </td>
+                      <td
+                        className={`px-4 py-3 whitespace-nowrap ${
+                          isOverdue ? 'text-destructive font-medium' : ''
+                        }`}
+                      >
+                        {days === 0
+                          ? t('recalls.dueToday')
+                          : days < 0
+                            ? t('recalls.daysOverdue').replace('{days}', String(-days))
+                            : t('recalls.daysUntilDue').replace('{days}', String(days))}
+                      </td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const badge = recallPriorityBadge(
+                            isOverdue ? Math.abs(days) : 0,
+                            getHazardMultiplier(r.workplace.riskProfile)
+                          )
+                          return badge ? (
+                            <span
+                              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border whitespace-nowrap ${badge.className}`}
+                            >
+                              {badge.label}
+                            </span>
+                          ) : null
+                        })()}
+                      </td>
+                      {props.canWrite && (
+                        <td className="px-4 py-3 text-right">
+                          <RecallActions
+                            recallId={r.id}
+                            employeeName={`${r.employee.lastName} ${r.employee.firstName}`}
+                            practitioners={practitioners.map((p) => ({
+                              id: p.id,
+                              label: `${p.lastName} ${p.firstName}${
+                                p.professionalTitle ? ` (${p.professionalTitle})` : ''
+                              }`,
+                            }))}
+                            defaultPractitionerId={props.isPractitioner ? props.userId : undefined}
+                            labels={recallActionLabels}
+                          />
+                        </td>
+                      )}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
 
           {/* Mobile cards */}
@@ -865,7 +851,9 @@ async function ScadenteView(props: {
                           getHazardMultiplier(r.workplace.riskProfile)
                         )
                         return badge ? (
-                          <span className={`text-[10px] font-semibold px-1 py-0.5 rounded border flex-shrink-0 ${badge.className}`}>
+                          <span
+                            className={`text-[10px] font-semibold px-1 py-0.5 rounded border flex-shrink-0 ${badge.className}`}
+                          >
                             {badge.label}
                           </span>
                         ) : null
@@ -901,7 +889,7 @@ async function ScadenteView(props: {
                     </div>
                     <div>
                       {props.locale === 'en'
-                        ? r.examinationType.nameEn ?? r.examinationType.nameRo
+                        ? (r.examinationType.nameEn ?? r.examinationType.nameRo)
                         : r.examinationType.nameRo}
                     </div>
                     <div className={isOverdue ? 'text-destructive font-medium' : ''}>
@@ -919,9 +907,7 @@ async function ScadenteView(props: {
                             p.professionalTitle ? ` (${p.professionalTitle})` : ''
                           }`,
                         }))}
-                        defaultPractitionerId={
-                          props.isPractitioner ? props.userId : undefined
-                        }
+                        defaultPractitionerId={props.isPractitioner ? props.userId : undefined}
                         labels={recallActionLabels}
                       />
                     </div>
@@ -932,6 +918,14 @@ async function ScadenteView(props: {
           </div>
         </>
       )}
+
+      <Pagination
+        href={EXAMINATIONS_PATH}
+        params={props.searchParams}
+        paramName="page"
+        page={props.page}
+        totalPages={totalPages}
+      />
     </div>
   )
 }
@@ -944,6 +938,9 @@ async function ExaminationsListView(props: {
   locale: 'ro' | 'en'
   canWrite: boolean
   t: (k: string) => string
+  page: number
+  total: number
+  searchParams: Record<string, string | undefined>
 }) {
   const examinations = await prisma.examination.findMany({
     where: {
@@ -952,8 +949,16 @@ async function ExaminationsListView(props: {
       ...(props.status ? { status: props.status } : {}),
     },
     orderBy: [{ scheduledAt: 'desc' }, { createdAt: 'desc' }],
-    take: 200,
-    include: {
+    skip: (props.page - 1) * LIST_PAGE_SIZE,
+    take: LIST_PAGE_SIZE,
+    select: {
+      id: true,
+      examinationNumber: true,
+      status: true,
+      scheduledAt: true,
+      startedAt: true,
+      completedAt: true,
+      signedAt: true,
       employee: { select: { id: true, firstName: true, lastName: true } },
       workplace: {
         select: {
@@ -971,9 +976,7 @@ async function ExaminationsListView(props: {
   if (examinations.length === 0) {
     return (
       <div className="border border-dashed rounded-lg p-12 text-center">
-        <p className="text-sm text-muted-foreground">
-          {t('examinations.empty')}
-        </p>
+        <p className="text-sm text-muted-foreground">{t('examinations.empty')}</p>
         {props.canWrite && (
           <Button asChild className="mt-4">
             <Link href="/examinations/new">+ {t('examinations.newButton')}</Link>
@@ -983,50 +986,60 @@ async function ExaminationsListView(props: {
     )
   }
 
+  const totalPages = Math.ceil(props.total / LIST_PAGE_SIZE)
+
   return (
-    <div className="border rounded-lg divide-y">
-      {examinations.map((e) => (
-        <Link
-          key={e.id}
-          href={`/examinations/${e.id}`}
-          className="block px-4 py-3 hover:bg-muted transition-colors"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <div className="text-sm font-medium flex items-center gap-2">
-                <span className="font-mono text-xs text-muted-foreground">
-                  {e.examinationNumber}
-                </span>
-                <span>
-                  {e.employee.lastName} {e.employee.firstName}
-                </span>
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                {e.workplace.company.name} • {e.workplace.name} •{' '}
-                {props.locale === 'en'
-                  ? e.examinationType.nameEn ?? e.examinationType.nameRo
-                  : e.examinationType.nameRo}
-              </div>
-            </div>
-            <div className="text-xs text-right">
-              <ExaminationStatusBadge
-                status={e.status}
-                scheduledAt={e.scheduledAt}
-                startedAt={e.startedAt}
-                completedAt={e.completedAt}
-                signedAt={e.signedAt}
-                locale={props.locale === 'en' ? 'en' : 'ro'}
-              />
-              {e.scheduledAt && (
-                <div className="text-muted-foreground mt-1">
-                  {formatDate(e.scheduledAt, 'medium', props.locale === 'ro' ? 'ro' : 'en')}
+    <div className="space-y-4">
+      <div className="border rounded-lg divide-y">
+        {examinations.map((e) => (
+          <Link
+            key={e.id}
+            href={`/examinations/${e.id}`}
+            className="block px-4 py-3 hover:bg-muted transition-colors"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="text-sm font-medium flex items-center gap-2">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {e.examinationNumber}
+                  </span>
+                  <span>
+                    {e.employee.lastName} {e.employee.firstName}
+                  </span>
                 </div>
-              )}
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {e.workplace.company.name} • {e.workplace.name} •{' '}
+                  {props.locale === 'en'
+                    ? (e.examinationType.nameEn ?? e.examinationType.nameRo)
+                    : e.examinationType.nameRo}
+                </div>
+              </div>
+              <div className="text-xs text-right">
+                <ExaminationStatusBadge
+                  status={e.status}
+                  scheduledAt={e.scheduledAt}
+                  startedAt={e.startedAt}
+                  completedAt={e.completedAt}
+                  signedAt={e.signedAt}
+                  locale={props.locale === 'en' ? 'en' : 'ro'}
+                />
+                {e.scheduledAt && (
+                  <div className="text-muted-foreground mt-1">
+                    {formatDate(e.scheduledAt, 'medium', props.locale === 'ro' ? 'ro' : 'en')}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </Link>
-      ))}
+          </Link>
+        ))}
+      </div>
+      <Pagination
+        href={EXAMINATIONS_PATH}
+        params={props.searchParams}
+        paramName="page"
+        page={props.page}
+        totalPages={totalPages}
+      />
     </div>
   )
 }
-

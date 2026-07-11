@@ -1,4 +1,4 @@
-import { renderEmailLayout, renderButton, escapeHtml } from '../layout'
+import { renderEmailLayout, renderButton, escapeHtml, unsubscribeTextFooter } from '../layout'
 
 interface InvoiceDueSoonParams {
   tenantName: string
@@ -7,7 +7,7 @@ interface InvoiceDueSoonParams {
   currency: string
   dueDate: Date
   billingUrl: string
-  unsubscribeUrl: string
+  unsubscribeUrl?: string
 }
 
 export function renderInvoiceDueSoonEmail(params: InvoiceDueSoonParams): { subject: string; html: string; text: string } {
@@ -30,7 +30,7 @@ ${renderButton('Vezi facturile', params.billingUrl)}
     unsubscribeUrl: params.unsubscribeUrl,
   })
 
-  const text = `Bună ziua,\n\nFactura ${params.invoiceNumber} pentru ${params.tenantName} (${amount}) este scadentă pe ${dueDateStr}.\n\nVezi facturile: ${params.billingUrl}\n\nDezabonează-te: ${params.unsubscribeUrl}\n\nBuzomed`
+  const text = `Bună ziua,\n\nFactura ${params.invoiceNumber} pentru ${params.tenantName} (${amount}) este scadentă pe ${dueDateStr}.\n\nVezi facturile: ${params.billingUrl}${unsubscribeTextFooter(params.unsubscribeUrl)}\n\nBuzomed`
 
   return { subject, html, text }
 }

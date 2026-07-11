@@ -38,6 +38,9 @@ export default async function DashboardPage() {
   todayStart.setUTCHours(0, 0, 0, 0)
   const todayEnd = new Date()
   todayEnd.setUTCHours(23, 59, 59, 999)
+  const monthStart = new Date()
+  monthStart.setUTCDate(1)
+  monthStart.setUTCHours(0, 0, 0, 0)
 
   const [
     tenant,
@@ -46,7 +49,7 @@ export default async function DashboardPage() {
     todayExams,
     inProgressExams,
     unsignedCompleted,
-    thisMonthTotal,
+    thisMonthExams,
     employeeCount,
     companyCount,
   ] = await Promise.all([
@@ -120,7 +123,7 @@ export default async function DashboardPage() {
     prisma.examination.count({
       where: {
         tenantId: user.tenantId,
-        createdAt: { gte: todayStart, lt: new Date(todayEnd.getTime()) },
+        createdAt: { gte: monthStart },
         deletedAt: null,
       },
     }),
@@ -143,18 +146,6 @@ export default async function DashboardPage() {
       },
     }),
   ])
-
-  // Actually "this month" not "today" for monthly total
-  const monthStart = new Date()
-  monthStart.setUTCDate(1)
-  monthStart.setUTCHours(0, 0, 0, 0)
-  const thisMonthExams = await prisma.examination.count({
-    where: {
-      tenantId: user.tenantId,
-      createdAt: { gte: monthStart },
-      deletedAt: null,
-    },
-  })
 
   const firstName = user.firstName
   const cabinetName = tenant?.name ?? ''

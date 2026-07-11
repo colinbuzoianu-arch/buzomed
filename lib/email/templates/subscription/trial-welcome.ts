@@ -1,11 +1,11 @@
-import { renderEmailLayout, renderButton, escapeHtml } from '../layout'
+import { renderEmailLayout, renderButton, escapeHtml, unsubscribeTextFooter } from '../layout'
 
 interface TrialWelcomeParams {
   cabinetName: string
   adminName: string
   trialEndsAt: Date
   billingUrl: string
-  unsubscribeUrl: string
+  unsubscribeUrl?: string
 }
 
 export function renderTrialWelcomeEmail(params: TrialWelcomeParams): { subject: string; html: string; text: string } {
@@ -34,7 +34,7 @@ ${renderButton('Alege un plan', params.billingUrl)}
     unsubscribeUrl: params.unsubscribeUrl,
   })
 
-  const text = `Bună, ${params.adminName},\n\nContul cabinetului ${params.cabinetName} a fost creat. Ai 14 zile trial gratuit până pe ${endDate}.\n\nAlege un plan: ${params.billingUrl}\n\nDezabonează-te: ${params.unsubscribeUrl}\n\nBuzomed`
+  const text = `Bună, ${params.adminName},\n\nContul cabinetului ${params.cabinetName} a fost creat. Ai 14 zile trial gratuit până pe ${endDate}.\n\nAlege un plan: ${params.billingUrl}${unsubscribeTextFooter(params.unsubscribeUrl)}\n\nBuzomed`
 
   return { subject, html, text }
 }

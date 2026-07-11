@@ -23,7 +23,17 @@ export default async function BillingPage() {
     prisma.platformInvoice.findMany({
       where: { tenantId: user.tenantId, deletedAt: null },
       orderBy: [{ invoiceYear: 'desc' }, { invoiceSequence: 'desc' }],
-      include: { items: true },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        status: true,
+        billingPeriod: true,
+        issuedAt: true,
+        dueDate: true,
+        paidAt: true,
+        total: true,
+        currency: true,
+      },
     }),
   ])
 

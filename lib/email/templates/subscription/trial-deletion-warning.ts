@@ -1,11 +1,11 @@
-import { renderEmailLayout, renderButton, escapeHtml } from '../layout'
+import { renderEmailLayout, renderButton, escapeHtml, unsubscribeTextFooter } from '../layout'
 
 interface TrialDeletionWarningParams {
   cabinetName: string
   adminName: string
   deletionDate: Date
   billingUrl: string
-  unsubscribeUrl: string
+  unsubscribeUrl?: string
 }
 
 export function renderTrialDeletionWarningEmail(params: TrialDeletionWarningParams): { subject: string; html: string; text: string } {
@@ -28,7 +28,7 @@ ${renderButton('Activează contul acum', params.billingUrl)}
     unsubscribeUrl: params.unsubscribeUrl,
   })
 
-  const text = `Bună, ${params.adminName},\n\nAvertizare: datele cabinetului ${params.cabinetName} vor fi șterse pe ${deletionDateStr}.\n\nActivează contul: ${params.billingUrl}\n\nDezabonează-te: ${params.unsubscribeUrl}\n\nBuzomed`
+  const text = `Bună, ${params.adminName},\n\nAvertizare: datele cabinetului ${params.cabinetName} vor fi șterse pe ${deletionDateStr}.\n\nActivează contul: ${params.billingUrl}${unsubscribeTextFooter(params.unsubscribeUrl)}\n\nBuzomed`
 
   return { subject, html, text }
 }

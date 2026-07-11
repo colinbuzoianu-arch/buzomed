@@ -40,13 +40,29 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
   const examination = await prisma.examination.findFirst({
     where: { id, tenantId: user.tenantId, deletedAt: null },
     include: {
-      employee: true,
+      employee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          medicCurantName: true,
+          medicCurantPhone: true,
+        },
+      },
       workplace: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          riskProfile: true,
+          examinationIntervalMonths: true,
+          riskAssessmentSignedByCompany: true,
+          riskAssessmentSignedAt: true,
           company: { select: { id: true, name: true } },
         },
       },
-      examinationType: true,
+      examinationType: {
+        select: { code: true, nameRo: true, nameEn: true },
+      },
       practitioner: {
         select: {
           id: true,
