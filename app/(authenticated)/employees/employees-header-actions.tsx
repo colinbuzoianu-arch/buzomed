@@ -10,9 +10,15 @@ interface Props {
   canWrite: boolean
   newEmployeeLabel: string
   newVaccinationLabel: string
+  mergeLabel: string
 }
 
-export function EmployeesHeaderActions({ canWrite, newEmployeeLabel, newVaccinationLabel }: Props) {
+export function EmployeesHeaderActions({
+  canWrite,
+  newEmployeeLabel,
+  newVaccinationLabel,
+  mergeLabel,
+}: Props) {
   const [showVaccinationModal, setShowVaccinationModal] = useState(false)
   const router = useRouter()
 
@@ -23,6 +29,9 @@ export function EmployeesHeaderActions({ canWrite, newEmployeeLabel, newVaccinat
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={() => setShowVaccinationModal(true)}>
           + {newVaccinationLabel}
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/employees/merge">{mergeLabel}</Link>
         </Button>
         <Button asChild size="sm">
           <Link href="/employees/new">+ {newEmployeeLabel}</Link>

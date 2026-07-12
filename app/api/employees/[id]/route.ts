@@ -155,6 +155,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     'jobTitle',
     'companyEmployeeId',
     'gender',
+    'disabilityDegree',
     'nationality',
     'addressLine1',
     'addressLine2',

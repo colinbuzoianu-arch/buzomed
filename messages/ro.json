@@ -457,6 +457,14 @@
       "fieldMedicCurantPhone": "Telefon medic",
       "medicCurantHelper": "Pentru pacienții cu medic curant la alt cabinet sau medic de familie",
       "fieldBloodType": "Grupă sanguină",
+      "fieldDisabilityDegree": "Grad de handicap",
+      "fieldDisabilityDegreeOptions": {
+        "none": "— nesetat —",
+        "usor": "Ușor",
+        "mediu": "Mediu",
+        "accentuat": "Accentuat",
+        "grav": "Grav"
+      },
       "fieldNotes": "Note",
       "fieldJobTitle": "Funcție",
       "fieldJobTitlePlaceholder": "ex: Operator, Sudor, Contabil",
@@ -612,6 +620,25 @@
       "diffShowMoved": "Arată schimbările de loc de muncă",
       "workplaceBreakdown": "Pe loc de muncă",
       "workplaceUnassigned": "Fără atribuire"
+    },
+    "merge": {
+      "title": "Combină angajați duplicați",
+      "subtitle": "Mută toate datele clinice de la angajatul duplicat (sursă) la angajatul păstrat (țintă), apoi arhivează sursa.",
+      "targetLabel": "Angajat de păstrat (țintă)",
+      "sourceLabel": "Angajat duplicat, de arhivat (sursă)",
+      "previewButton": "Previzualizează",
+      "previewTitle": "Ce se va muta",
+      "countExaminations": "Examinări",
+      "countVaccinations": "Vaccinări",
+      "countMedicalEvents": "Evenimente medicale",
+      "countRecalls": "Scadențe",
+      "countAssignments": "Alocări loc de muncă",
+      "confirmButton": "Confirmă combinarea",
+      "confirming": "Se combină…",
+      "confirmWarning": "Reasignarea înregistrărilor este ireversibilă. Angajatul sursă nu va fi șters — rămâne arhivat, cu trasabilitate spre angajatul țintă.",
+      "errorSameEmployee": "Angajatul de păstrat și cel duplicat trebuie să fie diferiți.",
+      "errorMessage": "Combinarea a eșuat. Încearcă din nou.",
+      "successMessage": "Angajații au fost combinați cu succes."
     }
   },
   "acceptInvite": {

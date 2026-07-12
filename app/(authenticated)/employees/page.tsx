@@ -255,6 +255,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
               canWrite={caps.canWriteAdministrative}
               newEmployeeLabel={t('employees.newButton')}
               newVaccinationLabel={t('vaccinations.newButton')}
+              mergeLabel={t('employees.merge.title')}
             />
           </div>
         )}

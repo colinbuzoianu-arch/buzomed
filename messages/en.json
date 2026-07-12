@@ -457,6 +457,14 @@
       "fieldMedicCurantPhone": "Doctor phone",
       "medicCurantHelper": "For patients with a referring doctor at another cabinet or a family doctor",
       "fieldBloodType": "Blood type",
+      "fieldDisabilityDegree": "Disability degree",
+      "fieldDisabilityDegreeOptions": {
+        "none": "— not set —",
+        "usor": "Mild",
+        "mediu": "Moderate",
+        "accentuat": "Severe",
+        "grav": "Profound"
+      },
       "fieldNotes": "Notes",
       "fieldJobTitle": "Job Title",
       "fieldJobTitlePlaceholder": "e.g. Operator, Welder, Accountant",
@@ -612,6 +620,25 @@
       "diffShowMoved": "Show workplace changes",
       "workplaceBreakdown": "By workplace",
       "workplaceUnassigned": "Unassigned"
+    },
+    "merge": {
+      "title": "Merge duplicate employees",
+      "subtitle": "Move all clinical data from the duplicate employee (source) to the one you're keeping (target), then archive the source.",
+      "targetLabel": "Employee to keep (target)",
+      "sourceLabel": "Duplicate employee to archive (source)",
+      "previewButton": "Preview",
+      "previewTitle": "What will be moved",
+      "countExaminations": "Examinations",
+      "countVaccinations": "Vaccinations",
+      "countMedicalEvents": "Medical events",
+      "countRecalls": "Recalls",
+      "countAssignments": "Workplace assignments",
+      "confirmButton": "Confirm merge",
+      "confirming": "Merging…",
+      "confirmWarning": "Reassigning these records is irreversible. The source employee will not be deleted — it stays archived, with a trace to the target employee.",
+      "errorSameEmployee": "The employee to keep and the duplicate must be different.",
+      "errorMessage": "The merge failed. Try again.",
+      "successMessage": "The employees were merged successfully."
     }
   },
   "acceptInvite": {

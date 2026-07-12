@@ -77,6 +77,15 @@ enum EmployeeArchivedReason {
   other
 }
 
+// Nullable on Employee — absence means "not confirmed/not set", not "no
+// disability". Values per Romanian legislation (Legea 448/2006).
+enum DisabilityDegree {
+  usor
+  mediu
+  accentuat
+  grav
+}
+
 enum WorkAssignmentReason {
   hired
   promoted
@@ -750,7 +759,8 @@ model Employee {
   birthDate                   DateTime?             @map("birth_date") @db.Date
   gender                      String?               // 'M' | 'F' | other
   nationality                 String                @default("RO")
-  
+  disabilityDegree            DisabilityDegree?     @map("disability_degree")
+
   addressLine1                String?               @map("address_line1")
   addressLine2                String?               @map("address_line2")
   city                        String?
@@ -785,12 +795,18 @@ model Employee {
   // null = use tenant default; non-null = override
   dataRetentionYears          Int?                  @map("data_retention_years")
   archivedReason              EmployeeArchivedReason? @map("archived_reason")
-  
+
+  // Duplicate-merge tracking. When an employee is merged into another (see
+  // /employees/merge), the source row is archived (not deleted) and this
+  // points at the target it was merged into — kept for audit trail and so
+  // anyone searching the old name/record can still find the surviving one.
+  mergedIntoId                String?               @map("merged_into_id") @db.Uuid
+
   createdByUserId             String?               @map("created_by_user_id") @db.Uuid
   createdAt                   DateTime              @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                   DateTime              @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt                   DateTime?             @map("deleted_at") @db.Timestamptz
-  
+
   tenant                      Tenant                          @relation(fields: [tenantId], references: [id])
   company                     Company?                        @relation("EmployeeCompany", fields: [companyId], references: [id])
   createdBy                   User?                           @relation(fields: [createdByUserId], references: [id])
@@ -799,6 +815,8 @@ model Employee {
   vaccinations                Vaccination[]
   medicalEvents               MedicalEvent[]
   recalls                     Recall[]
+  mergedInto                  Employee?                       @relation("EmployeeMerge", fields: [mergedIntoId], references: [id])
+  mergedFrom                  Employee[]                      @relation("EmployeeMerge")
 
   @@map("employees")
   @@index([tenantId])

@@ -48,6 +48,7 @@ export interface EmployeeFormValues {
   medicCurantName: string
   medicCurantPhone: string
   bloodType: string
+  disabilityDegree: '' | 'usor' | 'mediu' | 'accentuat' | 'grav'
   notes: string
   isActive: boolean
 }
@@ -75,6 +76,7 @@ export const emptyEmployeeFormValues: EmployeeFormValues = {
   medicCurantName: '',
   medicCurantPhone: '',
   bloodType: '',
+  disabilityDegree: '',
   notes: '',
   isActive: true,
 }
@@ -119,6 +121,14 @@ export interface EmployeeFormLabels {
   fieldMedicCurantPhone: string
   medicCurantHelper: string
   fieldBloodType: string
+  fieldDisabilityDegree: string
+  fieldDisabilityDegreeOptions: {
+    none: string
+    usor: string
+    mediu: string
+    accentuat: string
+    grav: string
+  }
   fieldNotes: string
   fieldJobTitle: string
   fieldJobTitlePlaceholder: string
@@ -237,6 +247,14 @@ export function EmployeeForm({
       payload.gender = form.gender === '' ? null : form.gender
     } else if (form.gender !== '') {
       payload.gender = form.gender
+    }
+
+    // Disability degree: empty string means "not set" → null on edit,
+    // omit on create. Absence is not the same as "no disability".
+    if (isEdit) {
+      payload.disabilityDegree = form.disabilityDegree === '' ? null : form.disabilityDegree
+    } else if (form.disabilityDegree !== '') {
+      payload.disabilityDegree = form.disabilityDegree
     }
 
     const birthDateValue = form.birthDate.trim()
@@ -602,6 +620,28 @@ export function EmployeeForm({
               onChange={(e) => update('bloodType', e.target.value)}
               placeholder="A+, O-, ..."
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="disabilityDegree">{labels.fieldDisabilityDegree}</Label>
+            <select
+              id="disabilityDegree"
+              value={form.disabilityDegree}
+              onChange={(e) =>
+                update(
+                  'disabilityDegree',
+                  e.target.value as EmployeeFormValues['disabilityDegree']
+                )
+              }
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">{labels.fieldDisabilityDegreeOptions.none}</option>
+              <option value="usor">{labels.fieldDisabilityDegreeOptions.usor}</option>
+              <option value="mediu">{labels.fieldDisabilityDegreeOptions.mediu}</option>
+              <option value="accentuat">
+                {labels.fieldDisabilityDegreeOptions.accentuat}
+              </option>
+              <option value="grav">{labels.fieldDisabilityDegreeOptions.grav}</option>
+            </select>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="notes">{labels.fieldNotes}</Label>

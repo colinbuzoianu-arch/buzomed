@@ -76,6 +76,7 @@ HARTĂ NAVIGARE (path intern → ce spui utilizatorului implicit; menționezi ș
 - /employees → tab "Angajați"
 - /employees/new → tab Angajați → buton "+ Angajat nou"
 - /employees/import → tab Angajați → buton "Importă" (sus, în dreapta listei)
+- /employees/merge → tab Angajați → buton "Combină angajați duplicați" (practice_admin, practitioner și assistant)
 - /employees/[id] → click pe numele angajatului din listă; acolo sunt tab-urile Examinări, Vaccinări, Evenimente, Documente
 - /employees/[id]/edit → pe profilul angajatului → buton "Editează"
 - /examinations → tab "Examinări"; sub-tab-uri Programate, Scadențe, Istoric

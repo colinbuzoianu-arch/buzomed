@@ -63,6 +63,8 @@ const ARCHIVED_REASONS = [
   'other',
 ] as const
 
+const DISABILITY_DEGREES = ['usor', 'mediu', 'accentuat', 'grav'] as const
+
 export async function GET(request: NextRequest) {
   const auth = await getApiUser()
   if (!auth.user) {
@@ -300,6 +302,7 @@ export async function POST(request: NextRequest) {
         companyEmployeeId: data.companyEmployeeId,
         birthDate: data.birthDate,
         gender: data.gender,
+        disabilityDegree: data.disabilityDegree,
         nationality: data.nationality ?? 'RO',
         addressLine1: data.addressLine1,
         addressLine2: data.addressLine2,
@@ -378,6 +381,7 @@ export interface ParsedEmployeeInput {
   companyEmployeeId?: string
   birthDate?: Date
   gender?: string
+  disabilityDegree?: (typeof DISABILITY_DEGREES)[number]
   nationality?: string
   addressLine1?: string
   addressLine2?: string
@@ -463,6 +467,25 @@ export function parseEmployeeInput(
       issues.push("gender must be 'M', 'F', or 'other'")
     } else {
       result.gender = body.gender
+    }
+  }
+
+  // Disability degree: nullable — absence means "not confirmed/not set",
+  // not "no disability". Accept null/empty to clear.
+  if (
+    body.disabilityDegree !== undefined &&
+    body.disabilityDegree !== null &&
+    body.disabilityDegree !== ''
+  ) {
+    if (
+      typeof body.disabilityDegree !== 'string' ||
+      !DISABILITY_DEGREES.includes(
+        body.disabilityDegree as (typeof DISABILITY_DEGREES)[number]
+      )
+    ) {
+      issues.push(`disabilityDegree must be one of: ${DISABILITY_DEGREES.join(', ')}`)
+    } else {
+      result.disabilityDegree = body.disabilityDegree as (typeof DISABILITY_DEGREES)[number]
     }
   }
 

@@ -204,6 +204,14 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
       title: t('employees.form.sectionMedical'),
       rows: [
         [t('employees.form.fieldBloodType'), employee.bloodType],
+        ...(employee.disabilityDegree
+          ? [
+              [
+                t('employees.form.fieldDisabilityDegree'),
+                t(`employees.form.fieldDisabilityDegreeOptions.${employee.disabilityDegree}`),
+              ],
+            ]
+          : []),
         [t('employees.form.fieldNotes'), employee.notes],
       ],
     },

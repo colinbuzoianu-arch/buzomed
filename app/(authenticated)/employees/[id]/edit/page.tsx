@@ -101,6 +101,7 @@ export default async function EditEmployeePage({ params }: PageProps) {
     medicCurantName: employee.medicCurantName ?? '',
     medicCurantPhone: employee.medicCurantPhone ?? '',
     bloodType: employee.bloodType ?? '',
+    disabilityDegree: employee.disabilityDegree ?? '',
     notes: employee.notes ?? '',
     isActive: employee.isActive,
   }
