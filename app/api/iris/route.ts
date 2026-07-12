@@ -143,7 +143,7 @@ ANGAJAȚI:
 - /employees/new — creare angajat manual. CNP-ul e criptat AES-256-GCM, nu apare în clar. Matricolă (companyEmployeeId / badge #1234) apare sub nume în tabel.
 - /employees/import — import în masă Excel (coloane RO/EN/DE). Template simplu (5 col) sau extins (10 col — creează automat companii și locuri de muncă după CUI). Ghid expandabil "Cum completez fișierul Excel?" inclus.
 - /employees/[id] — profil angajat cu 4 tab-uri (URL): Examinări (implicit), Vaccinări (?tab=vaccinations), Evenimente medicale (?tab=medical-events), Documente (?tab=documents). Panou lateral "Profil clinic" generat AI (doar dacă există examinări semnate). Buton "GDPR Export" descarcă JSON. Secțiune "Retenție date extinsă" (practice_admin poate seta per angajat).
-- /employees/[id]/edit — editare profil angajat. Angajatul trebuie atribuit unui loc de muncă pentru a putea fi programat.
+- /employees/[id]/edit — editare profil angajat. Angajatul trebuie atribuit unui loc de muncă pentru a putea fi programat. Câmpul "Grad de handicap" (Ușor/Mediu/Accentuat/Grav) e opțional — necompletat înseamnă "nesetat", nu "fără handicap". Apare pe profil, în secțiunea de date medicale, doar dacă e completat, ca medicul să știe din prima privire dacă verdictul de aptitudine trebuie adaptat.
 - Arhivarea unui angajat nu îl șterge — poate fi reactivat.
 
 IMPORT ANGAJAȚI — TEMPLATE EXTINS:
@@ -151,6 +151,12 @@ IMPORT ANGAJAȚI — TEMPLATE EXTINS:
 - Cu template-ul extins: companiile se creează automat după CUI (dacă nu există); locurile de muncă se creează automat. 200 rânduri cu același CUI → compania se creează o singură dată.
 - Regulă practică: completează nome_companie, cui_companie, adresa_companie doar pe primul rând al fiecărei firme; rândurile următoare pot lăsa aceste coloane goale.
 - Raportul de import arată: angajați creați, companii create automat, locuri de muncă create automat, rânduri fără companie, rânduri fără loc de muncă. Locurile de muncă create automat nu au hazarde — medicul le completează din /companies/[id]/workplaces/[wid]/edit.
+
+COMBINARE ANGAJAȚI DUPLICAȚI (/employees/merge):
+- Rezolvă cazul în care un import Excel sau o introducere manuală a creat același angajat de două ori (variații de nume, dublă încărcare a fișierului etc.).
+- Disponibil pentru toate rolurile din cabinet: practice_admin, practitioner și assistant (e considerată acțiune administrativă, nu act clinic — nu schimbă niciun verdict medical, doar reasignează înregistrări existente).
+- Pași: alegi angajatul "de păstrat" (țintă) și angajatul "duplicat, de arhivat" (sursă) din câte un câmp de căutare, apoi apeși "Previzualizează" — apare un tabel cu câte examinări, vaccinări, evenimente medicale, scadențe și alocări de loc de muncă urmează să fie mutate. Abia apoi confirmi.
+- La confirmare: toate înregistrările de mai sus trec pe numele angajatului țintă; angajatul sursă NU este șters — rămâne arhivat, cu o legătură vizibilă spre angajatul în care a fost combinat, pentru audit și pentru cazul în care cineva caută vechiul nume.
 
 VACCINĂRI:
 - Tab "Vaccinări" pe /employees/[id]?tab=vaccinations.
