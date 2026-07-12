@@ -213,7 +213,7 @@ export function IrisPanel({ cabinetName, locale, userName }: IrisPanelProps) {
       {/* Chat panel */}
       <div
         className={`
-          fixed bottom-20 right-4 z-50
+          fixed bottom-24 right-4 z-50
           w-[min(380px,calc(100vw-2rem))]
           flex flex-col
           rounded-xl border bg-card shadow-[0_8px_32px_-4px_rgba(15,30,63,0.14),0_0_0_1px_rgba(15,30,63,0.06)]
@@ -366,7 +366,8 @@ export function IrisPanel({ cabinetName, locale, userName }: IrisPanelProps) {
         className={`
           fixed bottom-4 right-4 z-50
           flex items-center justify-center
-          h-12 w-12 rounded-full
+          h-14 w-14 md:h-14 md:w-auto md:px-6
+          rounded-full
           bg-primary text-primary-foreground
           shadow-[0_4px_16px_-2px_rgba(15,30,63,0.28),0_1px_0_rgba(255,255,255,0.06)_inset]
           hover:bg-primary/90 active:scale-95
@@ -375,15 +376,22 @@ export function IrisPanel({ cabinetName, locale, userName }: IrisPanelProps) {
         `}
         aria-label={isOpen
           ? (locale === 'ro' ? 'Închide Iris' : 'Close Iris')
-          : (locale === 'ro' ? 'Deschide Iris' : 'Open Iris')
+          : (locale === 'ro' ? 'Ajutor' : 'Help')
         }
       >
         {isOpen ? (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden>
             <path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         ) : (
-          <IrisAvatar size={26} className="[&_circle]:stroke-white [&_line]:stroke-white [&_circle:last-child]:fill-white" />
+          <>
+            {/* Mobile: compact icon only */}
+            <IrisAvatar size={26} className="md:hidden shrink-0 [&_circle]:stroke-white [&_line]:stroke-white [&_circle:last-child]:fill-white" />
+            {/* Desktop: just the word, clearly legible, no icon */}
+            <span className="hidden md:inline text-[16px] font-medium whitespace-nowrap tracking-tight">
+              {locale === 'ro' ? 'Ajutor' : 'Help'}
+            </span>
+          </>
         )}
 
         {/* Unread indicator */}
