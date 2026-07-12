@@ -34,6 +34,8 @@ export default async function LoginPage() {
                 emailLabel: t('login.emailLabel'),
                 emailPlaceholder: t('login.emailPlaceholder'),
                 passwordLabel: t('login.passwordLabel'),
+                showPasswordLabel: t('common.showPassword'),
+                hidePasswordLabel: t('common.hidePassword'),
                 submitButton: t('login.submitButton'),
                 submitting: t('login.submitting'),
                 errorInvalid: t('login.errorInvalid'),

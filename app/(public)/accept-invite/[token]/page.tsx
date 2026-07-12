@@ -92,6 +92,8 @@ export default async function AcceptInvitePage({ params }: PageProps) {
                 firstNameLabel: t('acceptInvite.firstNameLabel'),
                 lastNameLabel: t('acceptInvite.lastNameLabel'),
                 passwordLabel: t('acceptInvite.passwordLabel'),
+                showPasswordLabel: t('common.showPassword'),
+                hidePasswordLabel: t('common.hidePassword'),
                 passwordHelp: t('acceptInvite.passwordHelp'),
                 submitButton: t('acceptInvite.submitButton'),
                 submitting: t('acceptInvite.submitting'),

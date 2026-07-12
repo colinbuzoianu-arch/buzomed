@@ -2,6 +2,8 @@
   "common": {
     "yes": "Yes",
     "no": "No",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "appName": "Buzomed",
     "tagline": "Occupational Health. Healthy Workplaces.",
     "logout": "Log out",

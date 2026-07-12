@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 
 interface InvitationData {
@@ -25,6 +26,8 @@ interface Labels {
   lastNameLabel: string
   passwordLabel: string
   passwordHelp: string
+  showPasswordLabel: string
+  hidePasswordLabel: string
   submitButton: string
   submitting: string
   roleLabel: string
@@ -191,13 +194,14 @@ export function AcceptInviteForm({ token, invitation, labels }: Props) {
 
         <div className="space-y-2">
           <Label htmlFor="accept-password">{labels.passwordLabel} *</Label>
-          <Input
+          <PasswordInput
             id="accept-password"
-            type="password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             minLength={8}
             required
+            showLabel={labels.showPasswordLabel}
+            hideLabel={labels.hidePasswordLabel}
           />
           <p className="text-xs text-muted-foreground">{labels.passwordHelp}</p>
         </div>

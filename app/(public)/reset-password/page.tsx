@@ -35,6 +35,8 @@ export default async function ResetPasswordPage() {
               labels={{
                 passwordLabel: t('resetPassword.passwordLabel'),
                 confirmLabel: t('resetPassword.confirmLabel'),
+                showPasswordLabel: t('common.showPassword'),
+                hidePasswordLabel: t('common.hidePassword'),
                 submitButton: t('resetPassword.submitButton'),
                 submitting: t('resetPassword.submitting'),
                 successMessage: t('resetPassword.successMessage'),

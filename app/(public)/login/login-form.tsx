@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 
 type LoginFormProps = {
@@ -12,6 +13,8 @@ type LoginFormProps = {
     emailLabel: string
     emailPlaceholder: string
     passwordLabel: string
+    showPasswordLabel: string
+    hidePasswordLabel: string
     submitButton: string
     submitting: string
     errorInvalid: string
@@ -113,15 +116,16 @@ export function LoginForm({ labels }: LoginFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="password">{labels.passwordLabel}</Label>
-        <Input
+        <PasswordInput
           id="password"
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           disabled={isSubmitting}
           autoComplete="current-password"
           autoFocus={!!email}
+          showLabel={labels.showPasswordLabel}
+          hideLabel={labels.hidePasswordLabel}
         />
       </div>
 

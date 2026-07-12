@@ -2,6 +2,8 @@
   "common": {
     "yes": "Da",
     "no": "Nu",
+    "showPassword": "Arată parola",
+    "hidePassword": "Ascunde parola",
     "appName": "Buzomed",
     "tagline": "Medicina muncii. Locuri de muncă sănătoase.",
     "logout": "Deconectare",
