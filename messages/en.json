@@ -1382,6 +1382,7 @@
     "unsignedFiseDesc": "Completed examinations without a signature",
     "today": "Today",
     "scheduledToday": "Scheduled today",
+    "scheduledThisWeek": "Scheduled this week",
     "dueThisWeek": "Due this week",
     "thisMonthExams": "This month",
     "activeWorkers": "Active workers",
