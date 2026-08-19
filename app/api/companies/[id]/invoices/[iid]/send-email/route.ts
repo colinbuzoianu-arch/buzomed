@@ -42,7 +42,7 @@ export async function POST(_req: NextRequest, ctx: RouteContext) {
     },
   })
 
-  if (!invoice) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  if (!invoice?.company) return NextResponse.json({ error: 'not_found' }, { status: 404 })
 
   // Determine recipient — contactPersonEmail preferred, fallback to company email
   const recipientEmail = invoice.company.contactPersonEmail ?? invoice.company.email
@@ -85,7 +85,7 @@ export async function POST(_req: NextRequest, ctx: RouteContext) {
       phone: invoice.tenant.phone ?? null,
       email: invoice.tenant.email ?? null,
     },
-    company: {
+    billedParty: {
       name: invoice.company.name,
       cui: invoice.company.cui ?? null,
       address: buildAddress(invoice.company.addressLine1, invoice.company.addressLine2, invoice.company.county),

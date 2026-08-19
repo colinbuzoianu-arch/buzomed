@@ -38,6 +38,9 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const company = await prisma.company.findFirst({
     where: { id, tenantId: user.tenantId, deletedAt: null },
     include: {
+      intermediary: {
+        select: { id: true, name: true },
+      },
       contacts: {
         orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
       },
@@ -170,6 +173,20 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               />
               {company.isActive ? t('common.active') : t('common.inactive')}
             </span>
+            {company.intermediary && (
+              <div className="mt-2 text-sm">
+                <span className="text-muted-foreground">{t('companies.intermediaryLabel')}: </span>
+                <Link
+                  href={`/intermediaries/${company.intermediary.id}`}
+                  className="font-medium hover:underline"
+                >
+                  {company.intermediary.name}
+                </Link>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  ({t('companies.intermediaryNote')})
+                </span>
+              </div>
+            )}
           </div>
           {(hasReportingRole || caps.canWriteAdministrative) && (
             <div className="flex items-center gap-2">

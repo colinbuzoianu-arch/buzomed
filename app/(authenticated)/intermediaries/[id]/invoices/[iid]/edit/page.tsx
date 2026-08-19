@@ -1,16 +1,16 @@
-import { redirect, notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
+import { InvoiceForm } from '@/app/(authenticated)/companies/[id]/invoices/invoice-form'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { requireUser } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
-import { InvoiceForm } from '../../invoice-form'
-import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { prisma } from '@/lib/prisma'
 
 interface PageProps {
   params: Promise<{ id: string; iid: string }>
 }
 
-export default async function EditInvoicePage({ params }: PageProps) {
+export default async function EditIntermediaryInvoicePage({ params }: PageProps) {
   const user = await requireUser()
   const locale = await getLocale()
   const t = getTranslator(locale)
@@ -21,66 +21,61 @@ export default async function EditInvoicePage({ params }: PageProps) {
   const caps = tenantDataCapabilities(user, user.tenantId)
   if (!caps.canWriteAdministrative) redirect('/')
 
-  const { id: companyId, iid } = await params
+  const { id: intermediaryId, iid } = await params
 
-  const [invoice, contracts] = await Promise.all([
+  const [invoice, companies] = await Promise.all([
     prisma.invoice.findFirst({
-      where: { id: iid, companyId, tenantId: user.tenantId, deletedAt: null },
+      where: { id: iid, intermediaryId, tenantId: user.tenantId, deletedAt: null },
       select: {
         status: true,
         invoiceNumber: true,
-        contractId: true,
         dueDate: true,
         notes: true,
-        company: { select: { name: true } },
+        intermediary: { select: { name: true } },
         items: {
           orderBy: { sortOrder: 'asc' },
-          select: { description: true, quantity: true, unitPrice: true },
+          select: { description: true, quantity: true, unitPrice: true, companyId: true },
         },
       },
     }),
-    prisma.contract.findMany({
-      where: {
-        companyId,
-        tenantId: user.tenantId,
-        deletedAt: null,
-        status: { in: ['active', 'draft'] },
-      },
-      orderBy: [{ contractYear: 'desc' }, { contractSequence: 'desc' }],
-      select: {
-        id: true,
-        contractNumber: true,
-        pricePerExamination: true,
-        priceMonthlyFlat: true,
-      },
+    prisma.company.findMany({
+      where: { intermediaryId, tenantId: user.tenantId, deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
     }),
   ])
 
-  if (!invoice?.company) notFound()
-  if (invoice.status !== 'draft') redirect(`/companies/${companyId}/invoices/${iid}`)
+  if (!invoice?.intermediary) notFound()
+  if (invoice.status !== 'draft') redirect(`/intermediaries/${intermediaryId}/invoices/${iid}`)
 
   return (
     <div className="space-y-6">
       <div>
-        <Breadcrumbs items={[{ label: t('nav.companies'), href: '/companies' }, { label: invoice.company.name, href: `/companies/${companyId}` }, { label: invoice.invoiceNumber, href: `/companies/${companyId}/invoices/${iid}` }, { label: t('common.edit') }]} />
+        <Breadcrumbs
+          items={[
+            { label: t('nav.intermediaries'), href: '/intermediaries' },
+            { label: invoice.intermediary.name, href: `/intermediaries/${intermediaryId}` },
+            {
+              label: invoice.invoiceNumber,
+              href: `/intermediaries/${intermediaryId}/invoices/${iid}`,
+            },
+            { label: t('common.edit') },
+          ]}
+        />
         <h1 className="text-3xl font-bold mt-2">{t('invoices.editPage.title')}</h1>
       </div>
 
       <InvoiceForm
-        companyId={companyId}
-        contracts={contracts.map((c) => ({
-          id: c.id,
-          contractNumber: c.contractNumber,
-          pricePerExamination: c.pricePerExamination?.toString() ?? null,
-          priceMonthlyFlat: c.priceMonthlyFlat?.toString() ?? null,
-        }))}
-        submitUrl={`/api/companies/${companyId}/invoices/${iid}`}
+        intermediaryId={intermediaryId}
+        contracts={[]}
+        lineCompanies={companies}
+        submitUrl={`/api/intermediaries/${intermediaryId}/invoices/${iid}`}
         method="PATCH"
-        initialContractId={invoice.contractId ?? ''}
         initialItems={invoice.items.map((item) => ({
           description: item.description,
           quantity: Number(item.quantity).toString(),
           unitPrice: Number(item.unitPrice).toString(),
+          companyId: item.companyId ?? '',
         }))}
         initialDueDate={invoice.dueDate ? invoice.dueDate.toISOString().substring(0, 10) : ''}
         initialNotes={invoice.notes ?? ''}
@@ -104,6 +99,8 @@ export default async function EditInvoicePage({ params }: PageProps) {
           cancelButton: t('common.cancel'),
           currency: t('invoices.currency'),
           errorMessage: t('invoices.form.errorMessage'),
+          lineCompanyLabel: t('invoices.form.lineCompanyLabel'),
+          lineCompanyNone: t('invoices.form.lineCompanyNone'),
         }}
       />
     </div>

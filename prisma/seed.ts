@@ -301,6 +301,86 @@ async function main() {
       }
     }
     console.log(`Seeded ${demoCompanies.length} demo companies with contacts.`)
+
+    // Seed a demo intermediary (MedLife-style medical network) covering
+    // two of the three demo companies, plus a draft invoice attributing
+    // lines back to each covered company — makes the intermediary billing
+    // flow visible immediately after seeding.
+    console.log('\nSeeding demo intermediary...')
+    const demoIntermediaryId = 'd1000001-0000-4000-8000-000000000001'
+    await prisma.intermediary.upsert({
+      where: { id: demoIntermediaryId },
+      update: {},
+      create: {
+        id: demoIntermediaryId,
+        tenantId: exempluTenantId,
+        name: 'MedLife Corporate',
+        cui: '5503523',
+        city: 'București',
+        county: 'București',
+        contactPersonName: 'Departament Corporate',
+        contactPersonEmail: 'corporate@medlife.ro',
+        isActive: true,
+      },
+    })
+
+    const intermediaryCompanyIds = [
+      'c1000001-0000-4000-8000-000000000001', // SC Metalotehnica SRL
+      'c1000002-0000-4000-8000-000000000002', // Fabrica de Utilaje SA
+    ]
+    for (const companyId of intermediaryCompanyIds) {
+      await prisma.company.update({
+        where: { id: companyId },
+        data: { intermediaryId: demoIntermediaryId },
+      })
+    }
+    console.log(`Linked ${intermediaryCompanyIds.length} demo companies to MedLife Corporate.`)
+
+    const existingIntermediaryInvoice = await prisma.invoice.findFirst({
+      where: { intermediaryId: demoIntermediaryId },
+    })
+    if (!existingIntermediaryInvoice) {
+      const year = new Date().getUTCFullYear()
+      const highest = await prisma.invoice.findFirst({
+        where: { tenantId: exempluTenantId, invoiceYear: year },
+        orderBy: { invoiceSequence: 'desc' },
+        select: { invoiceSequence: true },
+      })
+      const sequence = (highest?.invoiceSequence ?? 0) + 1
+      const items = [
+        { companyId: intermediaryCompanyIds[0], description: 'Control medical periodic — 4 angajați', quantity: 4, unitPrice: 120 },
+        { companyId: intermediaryCompanyIds[1], description: 'Examen medical la angajare — 2 angajați', quantity: 2, unitPrice: 150 },
+      ]
+      const subtotal = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0)
+      await prisma.invoice.create({
+        data: {
+          tenantId: exempluTenantId,
+          intermediaryId: demoIntermediaryId,
+          invoiceNumber: `${year}/${String(sequence).padStart(3, '0')}`,
+          invoiceYear: year,
+          invoiceSequence: sequence,
+          status: 'draft',
+          subtotal,
+          vatRate: 0,
+          vatAmount: 0,
+          total: subtotal,
+          currency: 'RON',
+          vatExemptReason: 'Scutit de TVA conform Art. 292 alin. (1) lit. a) pct. 1 din Codul Fiscal',
+          items: {
+            create: items.map((item, i) => ({
+              tenantId: exempluTenantId,
+              companyId: item.companyId,
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              lineTotal: item.quantity * item.unitPrice,
+              sortOrder: i,
+            })),
+          },
+        },
+      })
+      console.log('Seeded 1 draft invoice for MedLife Corporate.')
+    }
   } else {
     console.log('Exemplu Cabinet tenant not found — skipping demo employees.')
   }

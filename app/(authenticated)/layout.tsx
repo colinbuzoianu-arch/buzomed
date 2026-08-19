@@ -69,6 +69,7 @@ export default async function AuthenticatedLayout({
   } else if (hasTenant) {
     navItems.push({ href: '/dashboard', label: t('nav.dashboard') })
     navItems.push({ href: '/companies', label: t('nav.companies') })
+    navItems.push({ href: '/intermediaries', label: t('nav.intermediaries') })
     navItems.push({ href: '/employees', label: t('nav.employees') })
     navItems.push({ href: '/examinations', label: t('nav.examinations') })
     if (hasReportingRole) {

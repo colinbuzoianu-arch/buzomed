@@ -48,5 +48,8 @@ export function buildCompanyFormLabels(t: Translator): CompanyFormLabels {
     anafFound: t('companies.form.anafFound'),
     anafInactive: t('companies.form.anafInactive'),
     anafPlatitorTva: t('companies.form.anafPlatitorTva'),
+    fieldIntermediary: t('companies.form.fieldIntermediary'),
+    fieldIntermediaryNone: t('companies.form.fieldIntermediaryNone'),
+    fieldIntermediaryHint: t('companies.form.fieldIntermediaryHint'),
   }
 }

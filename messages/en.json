@@ -54,6 +54,7 @@
     "tenants": "Practices",
     "team": "Team",
     "companies": "Companies",
+    "intermediaries": "Intermediaries",
     "employees": "Employees",
     "examinations": "Examinations",
     "settings": "Settings",
@@ -354,14 +355,73 @@
       "errorMessage": "The operation could not complete. Please try again.",
       "anafFound": "Company found in ANAF — fields have been autofilled.",
       "anafInactive": "This company is marked inactive in ANAF — verify before signing a contract.",
-      "anafPlatitorTva": "VAT payer"
+      "anafPlatitorTva": "VAT payer",
+      "fieldIntermediary": "Intermediary",
+      "fieldIntermediaryNone": "— no intermediary (direct billing) —",
+      "fieldIntermediaryHint": "If this company is covered by a medical network (MedLife, Regina Maria, etc.), invoices for its examinations are addressed to the intermediary."
     },
     "viewReport": "View report",
     "viewAnnualReport": "Annual report",
     "emptyTitle": "No companies yet",
     "emptyDescription": "Add your first partner company to manage employees and examinations.",
     "emptyTitleArchived": "No archived companies",
-    "emptyDescriptionArchived": "Deactivated companies will appear here."
+    "emptyDescriptionArchived": "Deactivated companies will appear here.",
+    "intermediaryLabel": "Intermediary",
+    "intermediaryNote": "billed through intermediary"
+  },
+  "intermediaries": {
+    "title": "Intermediaries",
+    "subtitle": "Medical networks that subcontract examinations to this practice (MedLife, Regina Maria, etc.)",
+    "newButton": "New intermediary",
+    "backToList": "Intermediaries",
+    "deleteConfirm": "Are you sure you want to delete {name}?",
+    "deleting": "Deleting...",
+    "table": {
+      "name": "Name",
+      "cui": "Tax ID",
+      "companies": "Linked companies"
+    },
+    "newPage": {
+      "title": "New intermediary",
+      "subtitle": "Add a partner medical network"
+    },
+    "editPage": {
+      "title": "Edit intermediary"
+    },
+    "form": {
+      "sectionInfo": "Intermediary information",
+      "sectionAddress": "Address & banking",
+      "sectionContact": "Contact person",
+      "sectionNotes": "Notes",
+      "sectionStatus": "Status",
+      "fieldName": "Name",
+      "fieldNamePlaceholder": "MedLife SA",
+      "fieldCui": "Tax ID",
+      "fieldNrRegCom": "Registration number",
+      "fieldAddress": "Address",
+      "fieldIban": "IBAN",
+      "fieldBank": "Bank",
+      "fieldContactPersonName": "Contact person name",
+      "fieldContactPersonEmail": "Contact email",
+      "fieldContactPersonPhone": "Contact phone",
+      "fieldNotes": "Notes",
+      "fieldIsActive": "Intermediary is active",
+      "required": "required",
+      "submitCreate": "Create intermediary",
+      "submitUpdate": "Save changes",
+      "submitting": "Saving...",
+      "errorMessage": "The operation could not complete. Please try again.",
+      "anafFound": "Company found in ANAF — fields have been autofilled.",
+      "anafInactive": "This company is marked inactive in ANAF — verify before continuing.",
+      "anafPlatitorTva": "VAT payer"
+    },
+    "emptyTitle": "No intermediaries yet",
+    "emptyDescription": "Add a partner medical network (MedLife, Regina Maria, etc.) to bill through an intermediary.",
+    "companiesSection": {
+      "title": "Covered companies",
+      "empty": "No companies linked to this intermediary yet."
+    },
+    "hasLinkedCompaniesError": "This intermediary cannot be deleted — it still has companies linked to it. Unlink them first."
   },
   "employees": {
     "combobox": {
@@ -1499,10 +1559,15 @@
       "creating": "Creating...",
       "saveButton": "Save changes",
       "saving": "Saving...",
-      "errorMessage": "The operation could not complete. Please try again."
+      "errorMessage": "The operation could not complete. Please try again.",
+      "lineCompanyLabel": "Beneficiary company",
+      "lineCompanyNone": "— unattributed —"
     },
     "editPage": {
       "title": "Edit invoice"
+    },
+    "intermediaryInvoice": {
+      "backToIntermediary": "Back to intermediary"
     }
   },
   "annualReport": {

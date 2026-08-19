@@ -47,6 +47,7 @@ const styles = StyleSheet.create({
   tableHeaderCell: { fontSize: 7, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 },
   tableRow: { flexDirection: 'row', paddingVertical: 7, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: '#e2e8f0' },
   tableCell: { fontSize: 9 },
+  itemBeneficiary: { fontSize: 7, color: '#94a3b8', marginTop: 2 },
   colDesc: { flex: 1 },
   colQty: { width: 40, textAlign: 'right' },
   colPrice: { width: 60, textAlign: 'right' },
@@ -96,6 +97,10 @@ export type InvoicePdfData = {
     quantity: string | number
     unitPrice: string | number
     lineTotal: string | number
+    // Only set on intermediary invoices — the real employer this line was
+    // examined for. Rendered as a small "Beneficiar:" note under the
+    // description so the intermediary can reconcile per-employer.
+    companyName?: string | null
   }>
   tenant: {
     name: string
@@ -104,7 +109,10 @@ export type InvoicePdfData = {
     phone: string | null
     email: string | null
   }
-  company: {
+  // Whoever the invoice is addressed to — a Company for direct invoicing,
+  // or an Intermediary (MedLife, Regina Maria, etc.) when the employer is
+  // covered by a medical network contract. Same shape either way.
+  billedParty: {
     name: string
     cui: string | null
     address: string | null
@@ -175,13 +183,13 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
           </View>
           <View style={styles.party}>
             <Text style={styles.partyLabel}>Beneficiar</Text>
-            <Text style={styles.partyName}>{data.company.name}</Text>
-            {data.company.cui && <Text style={styles.partyDetail}>CUI: {data.company.cui}</Text>}
-            {data.company.address && <Text style={styles.partyDetail}>{data.company.address}</Text>}
-            {data.company.city && <Text style={styles.partyDetail}>{data.company.city}</Text>}
-            {data.company.contactPersonName && (
+            <Text style={styles.partyName}>{data.billedParty.name}</Text>
+            {data.billedParty.cui && <Text style={styles.partyDetail}>CUI: {data.billedParty.cui}</Text>}
+            {data.billedParty.address && <Text style={styles.partyDetail}>{data.billedParty.address}</Text>}
+            {data.billedParty.city && <Text style={styles.partyDetail}>{data.billedParty.city}</Text>}
+            {data.billedParty.contactPersonName && (
               <Text style={[styles.partyDetail, { marginTop: 4 }]}>
-                Attn: {data.company.contactPersonName}
+                Attn: {data.billedParty.contactPersonName}
               </Text>
             )}
           </View>
@@ -196,7 +204,12 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
           </View>
           {data.items.map((item, i) => (
             <View key={i} style={styles.tableRow}>
-              <Text style={[styles.tableCell, styles.colDesc]}>{item.description}</Text>
+              <View style={styles.colDesc}>
+                <Text style={styles.tableCell}>{item.description}</Text>
+                {item.companyName && (
+                  <Text style={styles.itemBeneficiary}>Beneficiar: {item.companyName}</Text>
+                )}
+              </View>
               <Text style={[styles.tableCell, styles.colQty]}>{fmt(item.quantity)}</Text>
               <Text style={[styles.tableCell, styles.colPrice]}>{fmt(item.unitPrice)}</Text>
               <Text style={[styles.tableCell, styles.colTotal]}>{fmt(item.lineTotal)}</Text>

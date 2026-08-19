@@ -117,6 +117,19 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  if (data.intermediaryId) {
+    const intermediary = await prisma.intermediary.findFirst({
+      where: { id: data.intermediaryId, tenantId: auth.user.tenantId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!intermediary) {
+      return NextResponse.json(
+        { error: 'validation_failed', issues: ['intermediaryId not found'] },
+        { status: 400 }
+      )
+    }
+  }
+
   let company: Awaited<ReturnType<typeof prisma.company.create>>
   try {
     company = await prisma.company.create({
@@ -145,6 +158,7 @@ export async function POST(request: NextRequest) {
         contractEndDate: data.contractEndDate,
         notes: data.notes,
         isActive: data.isActive ?? true,
+        intermediaryId: data.intermediaryId,
       },
     })
   } catch (err) {
@@ -189,6 +203,7 @@ export interface ParsedCompanyInput {
   notes?: string
   recallNotificationEmail?: string
   isActive?: boolean
+  intermediaryId?: string
 }
 
 export function parseCompanyInput(
@@ -265,6 +280,9 @@ export function parseCompanyInput(
       issues
     ),
     notes: optionalString('notes', body.notes, issues, { maxLength: 4000 }),
+    intermediaryId: optionalString('intermediaryId', body.intermediaryId, issues, {
+      maxLength: 64,
+    }),
   }
 
   if (body.isActive !== undefined) {

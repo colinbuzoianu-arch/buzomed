@@ -34,9 +34,16 @@ export default async function EditCompanyPage({ params }: PageProps) {
   }
 
   const { id } = await params
-  const company = await prisma.company.findFirst({
-    where: { id, tenantId: user.tenantId, deletedAt: null },
-  })
+  const [company, intermediaries] = await Promise.all([
+    prisma.company.findFirst({
+      where: { id, tenantId: user.tenantId, deletedAt: null },
+    }),
+    prisma.intermediary.findMany({
+      where: { tenantId: user.tenantId, deletedAt: null, isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    }),
+  ])
 
   if (!company) {
     notFound()
@@ -64,6 +71,7 @@ export default async function EditCompanyPage({ params }: PageProps) {
     notes: company.notes ?? '',
     recallNotificationEmail: company.recallNotificationEmail ?? '',
     isActive: company.isActive,
+    intermediaryId: company.intermediaryId ?? '',
   }
 
   const labels = buildCompanyFormLabels(t)
@@ -81,6 +89,7 @@ export default async function EditCompanyPage({ params }: PageProps) {
         companyId={company.id}
         initialValues={initialValues}
         labels={labels}
+        intermediaries={intermediaries}
       />
     </div>
   )

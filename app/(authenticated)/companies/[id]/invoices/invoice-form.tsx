@@ -10,10 +10,16 @@ export interface InvoiceItemDraft {
   description: string
   quantity: string
   unitPrice: string
+  // Only used on intermediary invoices — the real employer this line
+  // should be attributed to. Ignored (and hidden) on company invoices.
+  companyId?: string
 }
 
 interface Props {
-  companyId: string
+  // Recipient — exactly one of companyId / intermediaryId is passed by the
+  // caller page, matching which route tree the form was rendered under.
+  companyId?: string
+  intermediaryId?: string
   contracts: Array<{ id: string; contractNumber: string; pricePerExamination: string | null; priceMonthlyFlat: string | null }>
   submitUrl: string   // POST or PATCH URL
   method: 'POST' | 'PATCH'
@@ -21,6 +27,10 @@ interface Props {
   initialItems?: InvoiceItemDraft[]
   initialDueDate?: string
   initialNotes?: string
+  // When set, renders a per-line company selector limited to these
+  // companies (the ones linked to the intermediary) and includes the
+  // selection as `companyId` on each submitted item.
+  lineCompanies?: Array<{ id: string; name: string }>
   labels: {
     contractLabel: string
     contractNone: string
@@ -41,11 +51,14 @@ interface Props {
     cancelButton: string
     currency: string
     errorMessage: string
+    lineCompanyLabel?: string
+    lineCompanyNone?: string
   }
 }
 
 export function InvoiceForm({
   companyId,
+  intermediaryId,
   contracts,
   submitUrl,
   method,
@@ -53,6 +66,7 @@ export function InvoiceForm({
   initialItems,
   initialDueDate = '',
   initialNotes = '',
+  lineCompanies,
   labels,
 }: Props) {
   const router = useRouter()
@@ -112,6 +126,7 @@ export function InvoiceForm({
           description: item.description,
           quantity: parseFloat(item.quantity),
           unitPrice: parseFloat(item.unitPrice),
+          ...(lineCompanies ? { companyId: item.companyId || undefined } : {}),
         })),
       }
       const res = await fetch(submitUrl, {
@@ -127,7 +142,8 @@ export function InvoiceForm({
         return
       }
       const iid: string = data.invoice.id
-      router.push(`/companies/${companyId}/invoices/${iid}`)
+      const base = companyId ? `/companies/${companyId}` : `/intermediaries/${intermediaryId}`
+      router.push(`${base}/invoices/${iid}`)
       router.refresh()
     } catch {
       setError(labels.errorMessage)
@@ -170,6 +186,9 @@ export function InvoiceForm({
             <thead className="bg-muted/30 text-xs uppercase tracking-wide">
               <tr>
                 <th className="text-left px-3 py-2 w-full">{labels.colDescription}</th>
+                {lineCompanies && (
+                  <th className="text-left px-3 py-2 whitespace-nowrap">{labels.lineCompanyLabel}</th>
+                )}
                 <th className="text-right px-3 py-2 whitespace-nowrap">{labels.colQty}</th>
                 <th className="text-right px-3 py-2 whitespace-nowrap">
                   {labels.colUnitPrice} ({labels.currency})
@@ -189,6 +208,23 @@ export function InvoiceForm({
                       className="h-8 text-sm"
                     />
                   </td>
+                  {lineCompanies && (
+                    <td className="px-3 py-2">
+                      <select
+                        value={item.companyId ?? ''}
+                        onChange={(e) => updateItem(idx, 'companyId', e.target.value)}
+                        disabled={busy}
+                        className="flex h-8 w-full min-w-[160px] rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        <option value="">{labels.lineCompanyNone}</option>
+                        {lineCompanies.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  )}
                   <td className="px-3 py-2">
                     <Input
                       type="number"

@@ -1,21 +1,20 @@
-import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import { notFound, redirect } from 'next/navigation'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { Button } from '@/components/ui/button'
+import { InvoiceStatusBadge } from '@/components/ui/invoice-status-badge'
 import { requireUser } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { formatDate } from '@/lib/format-date'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
-import { Button } from '@/components/ui/button'
-import { InvoiceActions } from '../invoice-actions'
-import { InvoiceStatusBadge } from '@/components/ui/invoice-status-badge'
-import { formatDate } from '@/lib/format-date'
+import { prisma } from '@/lib/prisma'
+import { IntermediaryInvoiceDeleteButton } from '../invoice-delete-button'
 
 interface PageProps {
   params: Promise<{ id: string; iid: string }>
 }
 
-
-export default async function InvoiceDetailPage({ params }: PageProps) {
+export default async function IntermediaryInvoiceDetailPage({ params }: PageProps) {
   const user = await requireUser()
   const locale = await getLocale()
   const t = getTranslator(locale)
@@ -26,25 +25,33 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
   const caps = tenantDataCapabilities(user, user.tenantId)
   if (!caps.canRead) redirect('/')
 
-  const { id: companyId, iid } = await params
+  const { id: intermediaryId, iid } = await params
 
   const invoice = await prisma.invoice.findFirst({
-    where: { id: iid, companyId, tenantId: user.tenantId, deletedAt: null },
+    where: { id: iid, intermediaryId, tenantId: user.tenantId, deletedAt: null },
     include: {
-      company: { select: { id: true, name: true, cui: true, email: true, contactPersonEmail: true } },
-      contract: { select: { id: true, contractNumber: true } },
-      items: { orderBy: { sortOrder: 'asc' } },
+      intermediary: { select: { id: true, name: true, cui: true } },
+      items: {
+        orderBy: { sortOrder: 'asc' },
+        include: { company: { select: { id: true, name: true } } },
+      },
     },
   })
 
-  if (!invoice?.company) notFound()
+  if (!invoice?.intermediary) notFound()
 
   const isVatExempt = Number(invoice.vatRate) === 0
 
   return (
     <div className="space-y-6">
       <div>
-        <Breadcrumbs items={[{ label: t('nav.companies'), href: '/companies' }, { label: invoice.company.name, href: `/companies/${companyId}` }, { label: invoice.invoiceNumber }]} />
+        <Breadcrumbs
+          items={[
+            { label: t('nav.intermediaries'), href: '/intermediaries' },
+            { label: invoice.intermediary.name, href: `/intermediaries/${intermediaryId}` },
+            { label: invoice.invoiceNumber },
+          ]}
+        />
         <div className="flex items-start justify-between mt-2 gap-4 flex-wrap">
           <div>
             <div className="flex items-baseline gap-3">
@@ -52,38 +59,35 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               <InvoiceStatusBadge status={invoice.status} />
             </div>
             <div className="text-muted-foreground mt-1 text-sm">
-              {invoice.company.name}
-              {invoice.company.cui && ` • CUI ${invoice.company.cui}`}
+              {invoice.intermediary.name}
+              {invoice.intermediary.cui && ` • CUI ${invoice.intermediary.cui}`}
             </div>
             <div className="text-xs text-muted-foreground mt-1 flex gap-3 flex-wrap">
               {invoice.issuedAt && (
-                <span>{t('invoices.issuedAt')}: {formatDate(invoice.issuedAt, 'medium', locale === 'ro' ? 'ro' : 'en')}</span>
+                <span>
+                  {t('invoices.issuedAt')}:{' '}
+                  {formatDate(invoice.issuedAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
+                </span>
               )}
               {invoice.dueDate && (
-                <span>{t('invoices.dueDate')}: {formatDate(invoice.dueDate, 'medium', locale === 'ro' ? 'ro' : 'en')}</span>
+                <span>
+                  {t('invoices.dueDate')}:{' '}
+                  {formatDate(invoice.dueDate, 'medium', locale === 'ro' ? 'ro' : 'en')}
+                </span>
               )}
               {invoice.paidAt && (
-                <span>{t('invoices.paidAt')}: {formatDate(invoice.paidAt, 'medium', locale === 'ro' ? 'ro' : 'en')}</span>
-              )}
-              {invoice.contract && (
                 <span>
-                  {t('invoices.contract')}:{' '}
-                  <Link
-                    href={`/companies/${companyId}/contracts/${invoice.contract.id}`}
-                    className="underline hover:no-underline"
-                  >
-                    {invoice.contract.contractNumber}
-                  </Link>
+                  {t('invoices.paidAt')}:{' '}
+                  {formatDate(invoice.paidAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
                 </span>
               )}
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* PDF download — disponibil pentru orice status */}
             <Button asChild variant="outline">
               <a
-                href={`/api/companies/${companyId}/invoices/${iid}/pdf`}
+                href={`/api/intermediaries/${intermediaryId}/invoices/${iid}/pdf`}
                 target="_blank"
                 rel="noopener noreferrer"
                 download
@@ -92,39 +96,20 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               </a>
             </Button>
 
-            {caps.canWriteAdministrative && invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+            {caps.canWriteAdministrative && invoice.status === 'draft' && (
               <>
-                {invoice.status === 'draft' && (
-                  <Button asChild variant="outline">
-                    <Link href={`/companies/${companyId}/invoices/${iid}/edit`}>
-                      {t('common.edit')}
-                    </Link>
-                  </Button>
-                )}
-                <InvoiceActions
-                  companyId={companyId}
+                <Button asChild variant="outline">
+                  <Link href={`/intermediaries/${intermediaryId}/invoices/${iid}/edit`}>
+                    {t('common.edit')}
+                  </Link>
+                </Button>
+                <IntermediaryInvoiceDeleteButton
+                  intermediaryId={intermediaryId}
                   invoiceId={iid}
-                  invoiceNumber={invoice.invoiceNumber}
-                  status={invoice.status}
-                  hasRecipientEmail={!!(invoice.company.contactPersonEmail ?? invoice.company.email)}
                   labels={{
-                    issue: t('invoices.actions.issue'),
-                    issuing: t('invoices.actions.issuing'),
-                    issueConfirm: t('invoices.actions.issueConfirm'),
-                    pay: t('invoices.actions.pay'),
-                    paying: t('invoices.actions.paying'),
-                    payConfirm: t('invoices.actions.payConfirm'),
-                    cancel: t('common.delete'),
-                    cancelling: t('common.deleting'),
-                    cancelConfirm: t('invoices.actions.deleteConfirm'),
-                    cancelInvoice: t('invoices.actions.cancelInvoice'),
-                    cancellingInvoice: t('invoices.actions.cancellingInvoice'),
-                    cancelInvoiceConfirm: t('invoices.actions.cancelInvoiceConfirm'),
-                    sendEmail: t('invoices.actions.sendEmail'),
-                    sendingEmail: t('invoices.actions.sendingEmail'),
-                    sendEmailConfirm: t('invoices.actions.sendEmailConfirm'),
-                    emailSent: t('invoices.actions.emailSent'),
-                    noEmailWarning: t('invoices.actions.noEmailWarning'),
+                    delete: t('common.delete'),
+                    deleteConfirm: t('invoices.actions.deleteConfirm'),
+                    deleting: t('common.deleting'),
                     errorMessage: t('invoices.form.errorMessage'),
                   }}
                 />
@@ -154,7 +139,14 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             <tbody className="divide-y">
               {invoice.items.map((item) => (
                 <tr key={item.id}>
-                  <td className="px-4 py-3">{item.description}</td>
+                  <td className="px-4 py-3">
+                    {item.description}
+                    {item.company && (
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {t('invoices.form.lineCompanyLabel')}: {item.company.name}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {Number(item.quantity).toFixed(2)}
                   </td>
@@ -176,7 +168,9 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
         <div className="w-full max-w-xs border rounded-lg divide-y text-sm">
           <div className="flex justify-between px-4 py-2">
             <span className="text-muted-foreground">{t('invoices.form.subtotalLabel')}</span>
-            <span className="tabular-nums">{Number(invoice.subtotal).toFixed(2)} {t('invoices.currency')}</span>
+            <span className="tabular-nums">
+              {Number(invoice.subtotal).toFixed(2)} {t('invoices.currency')}
+            </span>
           </div>
           <div className="flex justify-between px-4 py-2 text-xs text-muted-foreground">
             <span>
@@ -197,17 +191,17 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* VAT exemption legal basis */}
       {isVatExempt && invoice.vatExemptReason && (
         <p className="text-xs text-muted-foreground border rounded px-3 py-2 bg-muted/20">
           {invoice.vatExemptReason}
         </p>
       )}
 
-      {/* Notes */}
       {invoice.notes && (
         <section className="space-y-2">
-          <h2 className="text-sm font-medium text-muted-foreground">{t('invoices.form.notesLabel')}</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {t('invoices.form.notesLabel')}
+          </h2>
           <p className="text-sm whitespace-pre-wrap">{invoice.notes}</p>
         </section>
       )}

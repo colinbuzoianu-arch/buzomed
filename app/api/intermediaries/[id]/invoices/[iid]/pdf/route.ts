@@ -1,11 +1,11 @@
-import { type NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
+import { type NextRequest, NextResponse } from 'next/server'
 import { createElement } from 'react'
-import { prisma } from '@/lib/prisma'
+import type { InvoicePdfData } from '@/app/api/companies/[id]/invoices/[iid]/pdf/invoice-pdf-document'
+import { InvoicePdfDocument } from '@/app/api/companies/[id]/invoices/[iid]/pdf/invoice-pdf-document'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
-import { InvoicePdfDocument } from './invoice-pdf-document'
-import type { InvoicePdfData } from './invoice-pdf-document'
+import { prisma } from '@/lib/prisma'
 
 interface RouteContext {
   params: Promise<{ id: string; iid: string }>
@@ -17,23 +17,32 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   if (!auth.user.tenantId || !canReadTenantData(auth.user, auth.user.tenantId))
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
 
-  const { id: companyId, iid } = await ctx.params
+  const { id: intermediaryId, iid } = await ctx.params
 
   const invoice = await prisma.invoice.findFirst({
-    where: { id: iid, companyId, tenantId: auth.user.tenantId, deletedAt: null },
+    where: { id: iid, intermediaryId, tenantId: auth.user.tenantId, deletedAt: null },
     include: {
-      company: {
+      intermediary: {
         select: {
-          name: true, cui: true, addressLine1: true, addressLine2: true,
-          city: true, county: true,
-          contactPersonName: true, contactPersonEmail: true,
+          name: true,
+          cui: true,
+          address: true,
+          city: true,
+          county: true,
+          contactPersonName: true,
+          contactPersonEmail: true,
         },
       },
       tenant: {
         select: {
-          name: true, cui: true,
-          addressLine1: true, addressLine2: true, city: true, county: true,
-          phone: true, email: true,
+          name: true,
+          cui: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          county: true,
+          phone: true,
+          email: true,
         },
       },
       items: {
@@ -43,7 +52,8 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     },
   })
 
-  if (!invoice?.company) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  if (!invoice?.intermediary)
+    return NextResponse.json({ error: 'not_found' }, { status: 404 })
 
   const buildAddress = (...parts: (string | null | undefined)[]) =>
     parts.filter(Boolean).join(', ') || null
@@ -71,17 +81,22 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     tenant: {
       name: invoice.tenant.name,
       cui: invoice.tenant.cui ?? null,
-      address: buildAddress(invoice.tenant.addressLine1, invoice.tenant.addressLine2, invoice.tenant.city, invoice.tenant.county),
+      address: buildAddress(
+        invoice.tenant.addressLine1,
+        invoice.tenant.addressLine2,
+        invoice.tenant.city,
+        invoice.tenant.county
+      ),
       phone: invoice.tenant.phone ?? null,
       email: invoice.tenant.email ?? null,
     },
     billedParty: {
-      name: invoice.company.name,
-      cui: invoice.company.cui ?? null,
-      address: buildAddress(invoice.company.addressLine1, invoice.company.addressLine2, invoice.company.county),
-      city: invoice.company.city ?? null,
-      contactPersonName: invoice.company.contactPersonName ?? null,
-      contactPersonEmail: invoice.company.contactPersonEmail ?? null,
+      name: invoice.intermediary.name,
+      cui: invoice.intermediary.cui ?? null,
+      address: buildAddress(invoice.intermediary.address, invoice.intermediary.county),
+      city: invoice.intermediary.city ?? null,
+      contactPersonName: invoice.intermediary.contactPersonName ?? null,
+      contactPersonEmail: invoice.intermediary.contactPersonEmail ?? null,
     },
   }
 

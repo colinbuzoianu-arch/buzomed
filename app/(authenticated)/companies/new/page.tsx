@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { CompanyForm } from '../company-form'
@@ -18,6 +19,12 @@ export default async function NewCompanyPage() {
   if (!caps.canWriteAdministrative) {
     redirect('/companies')
   }
+
+  const intermediaries = await prisma.intermediary.findMany({
+    where: { tenantId: user.tenantId, deletedAt: null, isActive: true },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true },
+  })
 
   const labels = buildCompanyFormLabels(t)
 
@@ -38,7 +45,7 @@ export default async function NewCompanyPage() {
         </p>
       </div>
 
-      <CompanyForm labels={labels} />
+      <CompanyForm labels={labels} intermediaries={intermediaries} />
     </div>
   )
 }

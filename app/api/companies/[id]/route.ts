@@ -92,6 +92,19 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     )
   }
 
+  if (data.intermediaryId) {
+    const intermediary = await prisma.intermediary.findFirst({
+      where: { id: data.intermediaryId, tenantId: auth.user.tenantId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!intermediary) {
+      return NextResponse.json(
+        { error: 'validation_failed', issues: ['intermediaryId not found'] },
+        { status: 400 }
+      )
+    }
+  }
+
   // PATCH semantics: only fields that were explicitly provided in the
   // request body get written. Fields the parser turned into `undefined`
   // because the client didn't send them are skipped here.
@@ -118,6 +131,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     'contactPersonEmail',
     'recallNotificationEmail',
     'notes',
+    'intermediaryId',
   ] as const
 
   const updateData: Record<string, unknown> = {}

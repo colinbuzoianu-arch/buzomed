@@ -40,6 +40,7 @@ export interface CompanyFormValues {
   notes: string
   recallNotificationEmail: string
   isActive: boolean
+  intermediaryId: string
 }
 
 export const emptyCompanyFormValues: CompanyFormValues = {
@@ -64,6 +65,7 @@ export const emptyCompanyFormValues: CompanyFormValues = {
   notes: '',
   recallNotificationEmail: '',
   isActive: true,
+  intermediaryId: '',
 }
 
 export interface CompanyFormLabels {
@@ -106,15 +108,19 @@ export interface CompanyFormLabels {
   anafFound: string
   anafInactive: string
   anafPlatitorTva: string
+  fieldIntermediary: string
+  fieldIntermediaryNone: string
+  fieldIntermediaryHint: string
 }
 
 interface Props {
   companyId?: string
   initialValues?: CompanyFormValues
   labels: CompanyFormLabels
+  intermediaries?: Array<{ id: string; name: string }>
 }
 
-export function CompanyForm({ companyId, initialValues, labels }: Props) {
+export function CompanyForm({ companyId, initialValues, labels, intermediaries = [] }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [form, setForm] = useState<CompanyFormValues>(
@@ -177,6 +183,7 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
       'contactPersonEmail',
       'recallNotificationEmail',
       'notes',
+      'intermediaryId',
     ]
     for (const f of stringFields) {
       const trimmed = (form[f] as string).trim()
@@ -483,6 +490,25 @@ export function CompanyForm({ companyId, initialValues, labels }: Props) {
               onChange={(e) => update('notes', e.target.value)}
               className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="intermediaryId">{labels.fieldIntermediary}</Label>
+            <select
+              id="intermediaryId"
+              value={form.intermediaryId}
+              onChange={(e) => update('intermediaryId', e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">{labels.fieldIntermediaryNone}</option>
+              {intermediaries.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              {labels.fieldIntermediaryHint}
+            </p>
           </div>
         </div>
       </section>

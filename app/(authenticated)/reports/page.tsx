@@ -70,6 +70,10 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             deletedAt: null,
             status: { notIn: ['draft', 'cancelled'] },
             issuedAt: { gte: range.from, lt: range.to },
+            // Revenue-per-company report — intermediary invoices are
+            // excluded here (out of scope: no per-intermediary reporting
+            // in this batch; see CLAUDE.md intermediary billing notes).
+            companyId: { not: null },
           },
           select: {
             id: true,
@@ -181,6 +185,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     { companyId: string; companyName: string; invoiced: number; paid: number }
   >()
   for (const inv of invoices) {
+    if (!inv.company) continue
     const existing = revenueMap.get(inv.company.id) ?? {
       companyId: inv.company.id,
       companyName: inv.company.name,

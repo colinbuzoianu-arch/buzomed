@@ -290,6 +290,7 @@ model Tenant {
   invitations         Invitation[]
   locations           Location[]
   companies           Company[]
+  intermediaries      Intermediary[]
   contracts           Contract[]
   invoices            Invoice[]
   invoiceItems        InvoiceItem[]
@@ -465,19 +466,61 @@ model Company {
   updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt           DateTime?   @map("deleted_at") @db.Timestamptz
 
+  intermediaryId      String?     @map("intermediary_id") @db.Uuid
+
   tenant              Tenant          @relation(fields: [tenantId], references: [id])
   workplaces          Workplace[]
   contacts            CompanyContact[]
   contracts           Contract[]
   invoices            Invoice[]
+  invoiceItems        InvoiceItem[]
   medicalEvents       MedicalEvent[]
   employees           Employee[]      @relation("EmployeeCompany")
   hrAssignments       CompanyHrAssignment[]
+  intermediary        Intermediary?   @relation(fields: [intermediaryId], references: [id])
 
   @@map("companies")
   @@index([tenantId])
   @@index([tenantId, name])
   @@index([tenantId, cui])
+  @@index([tenantId, intermediaryId])
+}
+
+// An Intermediary represents a large medical network (MedLife, Regina Maria,
+// Sanador, Medicover) that subcontracts occupational medicine exams to this
+// cabinet. Employees stay under their real employer Company — only billing
+// is redirected here. See CLAUDE.md handoff notes for the full flow.
+model Intermediary {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+
+  name              String
+  cui               String?
+  nrRegCom          String?   @map("nr_reg_com")
+  address           String?
+  city              String?
+  county            String?
+  iban              String?
+  bank              String?
+
+  contactPersonName  String?  @map("contact_person_name")
+  contactPersonEmail String?  @map("contact_person_email")
+  contactPersonPhone String?  @map("contact_person_phone")
+
+  notes             String?
+  isActive          Boolean   @default(true) @map("is_active")
+
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz
+
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+  companies         Company[]
+  invoices          Invoice[]
+
+  @@map("intermediaries")
+  @@index([tenantId])
+  @@index([tenantId, deletedAt])
 }
 
 model CompanyContact {
@@ -537,7 +580,8 @@ model Contract {
 model Invoice {
   id                String        @id @default(uuid()) @db.Uuid
   tenantId          String        @map("tenant_id") @db.Uuid
-  companyId         String        @map("company_id") @db.Uuid
+  companyId         String?       @map("company_id") @db.Uuid
+  intermediaryId    String?       @map("intermediary_id") @db.Uuid
   contractId        String?       @map("contract_id") @db.Uuid
 
   invoiceNumber     String        @map("invoice_number")
@@ -563,7 +607,11 @@ model Invoice {
   deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz
 
   tenant            Tenant        @relation(fields: [tenantId], references: [id])
-  company           Company       @relation(fields: [companyId], references: [id])
+  // Exactly one of company / intermediary is set — enforced in application
+  // code (the parse helpers per route tree), not a DB constraint, since
+  // `db push` doesn't manage CHECK constraints cleanly.
+  company           Company?      @relation(fields: [companyId], references: [id])
+  intermediary      Intermediary? @relation(fields: [intermediaryId], references: [id])
   contract          Contract?     @relation(fields: [contractId], references: [id])
   items             InvoiceItem[]
 
@@ -571,6 +619,7 @@ model Invoice {
   @@unique([tenantId, invoiceYear, invoiceSequence])
   @@index([tenantId])
   @@index([tenantId, companyId, deletedAt])
+  @@index([tenantId, intermediaryId, deletedAt])
   @@index([tenantId, deletedAt, issuedAt])
 }
 
@@ -578,6 +627,10 @@ model InvoiceItem {
   id            String   @id @default(uuid()) @db.Uuid
   invoiceId     String   @map("invoice_id") @db.Uuid
   tenantId      String   @map("tenant_id") @db.Uuid
+  // Set only on intermediary invoices, to attribute a line to the real
+  // employer company being billed through the intermediary. Null on
+  // direct company invoices.
+  companyId     String?  @map("company_id") @db.Uuid
 
   description   String
   quantity      Decimal  @db.Decimal(10, 2)
@@ -588,10 +641,12 @@ model InvoiceItem {
 
   invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  company       Company? @relation(fields: [companyId], references: [id])
 
   @@map("invoice_items")
   @@index([invoiceId])
   @@index([tenantId])
+  @@index([companyId])
 }
 
 model PlatformInvoice {

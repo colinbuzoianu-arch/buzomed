@@ -54,6 +54,7 @@
     "tenants": "Cabinete",
     "team": "Echipă",
     "companies": "Companii",
+    "intermediaries": "Intermediari",
     "employees": "Angajați",
     "examinations": "Examinări",
     "settings": "Setări",
@@ -354,14 +355,73 @@
       "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou.",
       "anafFound": "Firmă găsită în ANAF — câmpurile au fost completate automat.",
       "anafInactive": "Firmă inactivă în ANAF — verificați înainte de a semna contractul.",
-      "anafPlatitorTva": "Plătitor TVA"
+      "anafPlatitorTva": "Plătitor TVA",
+      "fieldIntermediary": "Intermediar",
+      "fieldIntermediaryNone": "— fără intermediar (facturare directă) —",
+      "fieldIntermediaryHint": "Dacă firma este acoperită de o rețea medicală (MedLife, Regina Maria etc.), facturile pentru examinările acestei firme se emit către intermediar."
     },
     "viewReport": "Vezi raportul",
     "viewAnnualReport": "Raport anual",
     "emptyTitle": "Nicio companie înregistrată",
     "emptyDescription": "Adaugați prima companie parteneră pentru a gestiona angajații și examinările.",
     "emptyTitleArchived": "Nicio companie arhivată",
-    "emptyDescriptionArchived": "Companiile dezactivate vor apărea aici."
+    "emptyDescriptionArchived": "Companiile dezactivate vor apărea aici.",
+    "intermediaryLabel": "Intermediar",
+    "intermediaryNote": "facturare prin intermediar"
+  },
+  "intermediaries": {
+    "title": "Intermediari",
+    "subtitle": "Rețele medicale care subcontractează examinări cabinetului (MedLife, Regina Maria etc.)",
+    "newButton": "Intermediar nou",
+    "backToList": "Intermediari",
+    "deleteConfirm": "Sigur doriți să ștergeți intermediarul {name}?",
+    "deleting": "Se șterge...",
+    "table": {
+      "name": "Denumire",
+      "cui": "CUI",
+      "companies": "Firme legate"
+    },
+    "newPage": {
+      "title": "Intermediar nou",
+      "subtitle": "Adăugați o rețea medicală parteneră"
+    },
+    "editPage": {
+      "title": "Editare intermediar"
+    },
+    "form": {
+      "sectionInfo": "Informații intermediar",
+      "sectionAddress": "Adresă și date bancare",
+      "sectionContact": "Persoană de contact",
+      "sectionNotes": "Note",
+      "sectionStatus": "Stare",
+      "fieldName": "Denumire",
+      "fieldNamePlaceholder": "MedLife SA",
+      "fieldCui": "CUI",
+      "fieldNrRegCom": "Nr. înregistrare",
+      "fieldAddress": "Adresă",
+      "fieldIban": "IBAN",
+      "fieldBank": "Bancă",
+      "fieldContactPersonName": "Nume persoană de contact",
+      "fieldContactPersonEmail": "Email contact",
+      "fieldContactPersonPhone": "Telefon contact",
+      "fieldNotes": "Note",
+      "fieldIsActive": "Intermediar activ",
+      "required": "obligatoriu",
+      "submitCreate": "Creează intermediarul",
+      "submitUpdate": "Salvează modificările",
+      "submitting": "Se salvează...",
+      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou.",
+      "anafFound": "Firmă găsită în ANAF — câmpurile au fost completate automat.",
+      "anafInactive": "Firmă inactivă în ANAF — verificați înainte de a continua.",
+      "anafPlatitorTva": "Plătitor TVA"
+    },
+    "emptyTitle": "Niciun intermediar înregistrat",
+    "emptyDescription": "Adăugați o rețea medicală parteneră (MedLife, Regina Maria etc.) pentru a factura prin intermediar.",
+    "companiesSection": {
+      "title": "Firme acoperite",
+      "empty": "Nicio firmă legată de acest intermediar încă."
+    },
+    "hasLinkedCompaniesError": "Intermediarul nu poate fi șters — are firme asociate. Dezasociați firmele întâi."
   },
   "employees": {
     "combobox": {
@@ -1499,10 +1559,15 @@
       "creating": "Se creează...",
       "saveButton": "Salvează modificările",
       "saving": "Se salvează...",
-      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou."
+      "errorMessage": "Operația nu a putut fi finalizată. Încercați din nou.",
+      "lineCompanyLabel": "Firmă beneficiară",
+      "lineCompanyNone": "— fără atribuire —"
     },
     "editPage": {
       "title": "Editare factură"
+    },
+    "intermediaryInvoice": {
+      "backToIntermediary": "Înapoi la intermediar"
     }
   },
   "annualReport": {

@@ -38,10 +38,7 @@ export async function createInvoiceWithNumber<T>(
       const created = await prisma.invoice.create({ data: buildData(next) })
       return toReturn(created)
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         continue
       }
       throw err
