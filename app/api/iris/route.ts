@@ -74,6 +74,12 @@ HARTĂ NAVIGARE (path intern → ce spui utilizatorului implicit; menționezi ș
 - /companies/[id]/report → pe pagina companiei → buton "Raport"
 - /companies/[id]/annual-report → pe pagina companiei → buton "Raport anual"
 - /companies/[id]/compliance → pe pagina companiei → buton "Conformitate"
+- /intermediaries → tab "Intermediari"
+- /intermediaries/new → tab Intermediari → buton "Intermediar nou"
+- /intermediaries/[id] → tab Intermediari → click pe numele intermediarului; acolo sunt secțiunile Firme acoperite și Facturi
+- /intermediaries/[id]/edit → pe pagina intermediarului → buton "Editează"
+- /intermediaries/[id]/invoices/new → pe pagina intermediarului, secțiunea Facturi → buton "Factură nouă"
+- /intermediaries/[id]/invoices/[iid]/edit → pe pagina facturii de la intermediar → buton "Editează"
 - /employees → tab "Angajați"
 - /employees/new → tab Angajați → buton "+ Angajat nou"
 - /employees/import → tab Angajați → buton "Importă" (sus, în dreapta listei)
@@ -102,6 +108,7 @@ Folosește pagina curentă ("${context.currentPage}") ca să înțelegi unde e u
 - Dacă e pe /employees sau /employees/[id] → pentru programare rapidă sugerează /examinations/new?employeeId=ID sau /examinations/bulk
 - Dacă e pe /examinations/[id] → după completare: buton "Semnează" (dacă are rol), apoi "Generează fișă" → duce la /examinations/[id]/fisa
 - Dacă e pe /companies/[id] → sub-pagini disponibile: /edit, /workplaces/new, /contracts/new, /invoices/new, /report, /annual-report, /compliance
+- Dacă e pe /intermediaries/[id] → sub-pagini disponibile: /edit, /invoices/new
 - Dacă e pe /settings/practice → poate upload logo, semnătură, ștampilă cabinet; setări retenție date
 - Dacă e pe /super-admin → sub-pagini: /super-admin/tenants/new, /super-admin/tenants/[id] (include tab-ul "Facturi platformă"), /super-admin/system-health
 Dacă nu știi pagina curentă sau e "/", răspunde generic cu URL-urile corecte.
@@ -120,7 +127,7 @@ COMPANII:
 - /companies/new — creare companie. CUI-ul declanșează autofill ANAF (denumire, adresă, județ, cod CAEN, TVA platitor). Câmpul "Email notificări scadențe" (recallNotificationEmail) se setează în secțiunea Contact — dacă e gol, se folosește emailul principal.
 - /companies/[id] — detaliu companie: tab-uri Angajați, Locuri de muncă, Contracte, Facturi, Persoane de contact; butoane Raport, Raport anual, Conformitate.
 - /companies/[id] — secțiunea Persoane de contact: mai multe contacte per companie, fiecare cu rol (HR, SSM/HSE, Manager producție, Șef tură, Laborator, Contabilitate, Altul), notă de rol, telefon, email, bifă "Contact principal" și note.
-- /companies/[id]/edit — editare date companie (inclusiv email notificări scadențe).
+- /companies/[id]/edit — editare date companie (inclusiv email notificări scadențe și legătura cu un intermediar, câmpul "Intermediar" din secțiunea Contract și note).
 - /companies/[id]/workplaces/new — creare loc de muncă cu profil de risc JSONB (expuneri, echipamente, noxe). Hazardele definite aici se moștenesc automat de toți angajații atribuiți.
 - /companies/[id]/workplaces/[wid] — detaliu loc de muncă: profil de risc, angajați atribuiți, buton "Atribuie angajați" (dialog cu mod "Toți angajații companiei" sau "Caută").
 - /companies/[id]/workplaces/[wid]/edit — editare loc de muncă și profil de risc.
@@ -133,6 +140,19 @@ COMPANII:
 - /companies/[id]/report — raport per companie: 4 exporturi (CSV examinări, CSV angajați, CSV vaccinări, PDF A4 landscape).
 - /companies/[id]/annual-report — raport anual HG 355/2007 cu narativă generată de AI. Reduce 4h la 15 minute.
 - /companies/[id]/compliance — Raport de Conformitate: rată snapshot, previziune 30/60/90 zile, briefing inspecție ITM (AI, cache 30min), PDF ITM 3 pagini.
+
+INTERMEDIARI (facturare prin rețea medicală — MedLife, Regina Maria, Sanador, Medicover etc.):
+- Unele firme nu contractează direct cu cabinetul, ci printr-o rețea medicală mare care subcontractează examinările. Angajații rămân mereu sub firma reală — doar factura se schimbă.
+- IMPORTANT: fișa de aptitudine, profilul de risc al locului de muncă și raportul anual rămân mereu pe numele firmei reale a angajatului. Intermediarul apare DOAR pe factură.
+- /intermediaries — lista intermediarilor cabinetului: denumire, CUI, oraș, câte firme sunt legate, stare activ/inactiv.
+- /intermediaries/new — creare intermediar. CUI-ul declanșează autofill ANAF (denumire, adresă, nr. reg. com.), la fel ca la companii.
+- /intermediaries/[id] — detaliu intermediar: date de contact și bancare, lista firmelor acoperite, lista facturilor emise către intermediar.
+- O firmă se leagă de un intermediar din /companies/[id]/edit, câmpul "Intermediar" (implicit "— fără intermediar —" = facturare directă, ca până acum). Pe pagina firmei apare o linie "Intermediar: [nume]" doar dacă e legată.
+- Un intermediar cu firme legate NU poate fi șters — trebuie dezasociate firmele întâi (mesaj de eroare clar la ștergere).
+- /intermediaries/[id]/invoices/new — factură nouă către intermediar. Fiecare linie de pe factură poate fi atribuită uneia dintre firmele legate de intermediar (câmp "Firmă beneficiară"), ca intermediarul să știe pentru ce angajați/firmă e fiecare linie. PDF-ul facturii arată această atribuire sub fiecare linie.
+- Numerotarea facturilor e comună — facturile către intermediari continuă aceeași secvență cu facturile directe către companii, nu au numerotare separată.
+- Facturile către intermediari se creează și editează manual, la fel ca la companii — nu există generare automată din examinări în acest moment.
+- Intermediarii NU au acces la platformă (nu au portal HR, nu au login) — sunt doar o entitate de facturare gestionată de cabinet.
 
 NOTIFICĂRI SCADENȚE (super_admin):
 - Din /super-admin există butonul "Trimite notificări scadențe". Trimite un email per companie cu angajații care au recalls scadente în 7 zile.
