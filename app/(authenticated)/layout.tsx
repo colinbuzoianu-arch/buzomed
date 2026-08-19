@@ -1,27 +1,22 @@
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
-import { requireUser } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { getLocale, getTranslator } from '@/lib/i18n'
+import { AppNav } from '@/components/app-nav'
+import { BuzomedLogo } from '@/components/buzomed-logo'
+import { IrisPanel } from '@/components/iris/iris-panel'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { LogoutButton } from '@/components/logout-button'
-import { BuzomedLogo } from '@/components/buzomed-logo'
-import { TenantLogo } from '@/components/tenant-logo'
 import { MobileNav } from '@/components/mobile-nav'
-import { AppNav } from '@/components/app-nav'
-import { IrisPanel } from '@/components/iris/iris-panel'
 import { SubscriptionBanner } from '@/components/subscription-banner'
-import Image from 'next/image'
-import Link from 'next/link'
+import { TenantLogo } from '@/components/tenant-logo'
+import { requireUser } from '@/lib/auth'
+import { getLocale, getTranslator } from '@/lib/i18n'
+import { prisma } from '@/lib/prisma'
 
-export default async function AuthenticatedLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser()
 
   // company_hr users have their own portal — keep them out of the main app
-  if (user.roles.includes('company_hr') && !user.roles.some(r => r !== 'company_hr')) {
+  if (user.roles.includes('company_hr') && !user.roles.some((r) => r !== 'company_hr')) {
     redirect('/hr-portal/dashboard')
   }
 
@@ -31,9 +26,7 @@ export default async function AuthenticatedLayout({
   const isSuperAdmin = user.roles.includes('super_admin')
   const hasTenant = user.tenantId !== null
   const isAdmin = user.roles.includes('practice_admin')
-  const hasReportingRole = user.roles.some(
-    (r) => r === 'practitioner' || r === 'practice_admin'
-  )
+  const hasReportingRole = user.roles.some((r) => r === 'practitioner' || r === 'practice_admin')
 
   // Fetch tenant data for non-super-admin users
   const tenantData = hasTenant
@@ -51,10 +44,7 @@ export default async function AuthenticatedLayout({
       })
     : null
 
-  if (
-    tenantData?.subscriptionStatus === 'suspended' &&
-    !user.roles.includes('super_admin')
-  ) {
+  if (tenantData?.subscriptionStatus === 'suspended' && !user.roles.includes('super_admin')) {
     redirect('/suspended')
   }
 
@@ -91,8 +81,8 @@ export default async function AuthenticatedLayout({
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-40 border-b bg-gradient-to-b from-background to-background/98 backdrop-blur-sm">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 md:gap-6 min-w-0">
+        <div className="container mx-auto px-4 h-14 flex items-center gap-4">
+          <div className="flex items-center shrink-0">
             {hasTenant && tenantLogoUrl ? (
               <div className="flex items-center gap-3 shrink-0">
                 <TenantLogo logoUrl={tenantLogoUrl} size="md" />
@@ -104,17 +94,20 @@ export default async function AuthenticatedLayout({
                 <BuzomedLogo variant="icon" size="md" />
               </div>
             )}
+          </div>
 
+          <div className="flex-1 flex justify-center min-w-0">
             <AppNav items={navItems} />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Command palette hint — visual signal only, not wired yet */}
             <span
               className="hidden lg:inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2 py-1 text-[11px] text-[hsl(var(--text-faint))] font-mono"
               aria-hidden
             >
-              <span>⌘</span><span>K</span>
+              <span>⌘</span>
+              <span>K</span>
             </span>
 
             <LanguageSwitcher currentLocale={locale} />
@@ -142,9 +135,7 @@ export default async function AuthenticatedLayout({
 
       {hasTenant && !isSuperAdmin && <SubscriptionBanner subscription={subscription} />}
 
-      <main className="flex-1 container mx-auto px-4 py-6 md:py-8">
-        {children}
-      </main>
+      <main className="flex-1 container mx-auto px-4 py-6 md:py-8">{children}</main>
 
       {/* Iris — asistentul intern */}
       {hasTenant && (
@@ -178,13 +169,26 @@ export default async function AuthenticatedLayout({
               <span>· {new Date().getFullYear()}</span>
             </div>
             <div className="flex items-center gap-3">
-              <a href="/terms" target="_blank" className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors" rel="noopener">
+              <a
+                href="/terms"
+                target="_blank"
+                className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors"
+                rel="noopener"
+              >
                 Termeni
               </a>
-              <a href="/privacy" target="_blank" className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors" rel="noopener">
+              <a
+                href="/privacy"
+                target="_blank"
+                className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors"
+                rel="noopener"
+              >
                 Confidențialitate
               </a>
-              <a href="mailto:hello@buzomed.com" className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors">
+              <a
+                href="mailto:hello@buzomed.com"
+                className="text-[11px] text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text-muted))] transition-colors"
+              >
                 Suport
               </a>
             </div>

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
+import { IntermediaryCompaniesSection } from '@/components/intermediaries/intermediary-companies-section'
 import { IntermediaryDeleteButton } from '@/components/intermediaries/intermediary-delete-button'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { Button } from '@/components/ui/button'
@@ -54,6 +55,12 @@ export default async function IntermediaryDetailPage({ params }: PageProps) {
   if (!intermediary) {
     notFound()
   }
+
+  const availableCompanies = await prisma.company.findMany({
+    where: { tenantId: user.tenantId, intermediaryId: null, deletedAt: null },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, cui: true, city: true },
+  })
 
   const sections = [
     {
@@ -155,37 +162,24 @@ export default async function IntermediaryDetailPage({ params }: PageProps) {
       )}
 
       {/* Covered companies */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">
-          {t('intermediaries.companiesSection.title')}{' '}
-          <span className="text-sm font-normal text-muted-foreground">
-            ({intermediary.companies.length})
-          </span>
-        </h2>
-        {intermediary.companies.length === 0 ? (
-          <EmptyState
-            size="compact"
-            illustration="companies"
-            title={t('intermediaries.companiesSection.empty')}
-          />
-        ) : (
-          <div className="border rounded-lg divide-y">
-            {intermediary.companies.map((c) => (
-              <Link
-                key={c.id}
-                href={`/companies/${c.id}`}
-                className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors"
-              >
-                <div>
-                  <div className="text-sm font-medium">{c.name}</div>
-                  {c.city && <div className="text-xs text-muted-foreground">{c.city}</div>}
-                </div>
-                <div className="text-xs text-muted-foreground tabular-nums">{c.cui ?? '—'}</div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+      <IntermediaryCompaniesSection
+        intermediaryId={intermediary.id}
+        initialCompanies={intermediary.companies}
+        availableCompanies={availableCompanies}
+        canWrite={caps.canWriteAdministrative}
+        labels={{
+          title: t('intermediaries.companiesSection.title'),
+          empty: t('intermediaries.companiesSection.empty'),
+          linkLabel: t('intermediaries.companiesSection.linkLabel'),
+          linkPlaceholder: t('intermediaries.companiesSection.linkPlaceholder'),
+          linkButton: t('intermediaries.companiesSection.linkButton'),
+          linking: t('intermediaries.companiesSection.linking'),
+          unlinkButton: t('intermediaries.companiesSection.unlinkButton'),
+          unlinking: t('intermediaries.companiesSection.unlinking'),
+          unlinkConfirm: t('intermediaries.companiesSection.unlinkConfirm'),
+          errorMessage: t('intermediaries.form.errorMessage'),
+        }}
+      />
 
       {/* Invoices */}
       <section className="space-y-3">

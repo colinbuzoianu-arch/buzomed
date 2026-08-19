@@ -419,7 +419,14 @@
     "emptyDescription": "Add a partner medical network (MedLife, Regina Maria, etc.) to bill through an intermediary.",
     "companiesSection": {
       "title": "Covered companies",
-      "empty": "No companies linked to this intermediary yet."
+      "empty": "No companies linked to this intermediary yet.",
+      "linkLabel": "Add existing company",
+      "linkPlaceholder": "— choose a company —",
+      "linkButton": "Link company",
+      "linking": "Linking...",
+      "unlinkButton": "Unlink",
+      "unlinking": "Unlinking...",
+      "unlinkConfirm": "Unlink {name} from this intermediary? The company moves to direct billing."
     },
     "hasLinkedCompaniesError": "This intermediary cannot be deleted — it still has companies linked to it. Unlink them first."
   },

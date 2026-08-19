@@ -419,7 +419,14 @@
     "emptyDescription": "Adăugați o rețea medicală parteneră (MedLife, Regina Maria etc.) pentru a factura prin intermediar.",
     "companiesSection": {
       "title": "Firme acoperite",
-      "empty": "Nicio firmă legată de acest intermediar încă."
+      "empty": "Nicio firmă legată de acest intermediar încă.",
+      "linkLabel": "Adaugă firmă existentă",
+      "linkPlaceholder": "— alege o firmă —",
+      "linkButton": "Leagă firma",
+      "linking": "Se leagă...",
+      "unlinkButton": "Dezasociază",
+      "unlinking": "Se dezasociază...",
+      "unlinkConfirm": "Dezasociezi firma {name} de acest intermediar? Firma trece pe facturare directă."
     },
     "hasLinkedCompaniesError": "Intermediarul nu poate fi șters — are firme asociate. Dezasociați firmele întâi."
   },
