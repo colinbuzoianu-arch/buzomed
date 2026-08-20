@@ -63,7 +63,8 @@
     "reports": "Reports",
     "superAdmin": "Super admin",
     "fisa": "Fitness certificate",
-    "medicalEvents": "Medical events"
+    "medicalEvents": "Medical events",
+    "administration": "Administration"
   },
   "iris": {
     "assistant": "Buzomed assistant",

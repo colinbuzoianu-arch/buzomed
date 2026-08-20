@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
-import { AppNav } from '@/components/app-nav'
+import { AppNav, type NavEntry, type NavLink } from '@/components/app-nav'
 import { BuzomedLogo } from '@/components/buzomed-logo'
 import { IrisPanel } from '@/components/iris/iris-panel'
 import { LanguageSwitcher } from '@/components/language-switcher'
@@ -53,25 +53,42 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
 
   // Centralized list of nav items so the mobile drawer and the desktop
   // nav stay in sync. Different visibility rules apply per role.
-  const navItems: Array<{ href: string; label: string }> = []
+  //
+  // Restructured into 4 direct items + 2 dropdown groups (Administrare,
+  // Setări) so the top row stays at 6 clickable regions instead of the
+  // 12 that used to wrap on narrower desktop widths. Role gating from
+  // the old flat list is preserved per-item: a group renders only the
+  // items the role can see, and the whole group trigger disappears if
+  // that leaves it empty (e.g. Setări for non-admins).
+  const navItems: NavEntry[] = []
   if (isSuperAdmin) {
-    navItems.push({ href: '/super-admin', label: t('nav.tenants') })
+    navItems.push({ type: 'link', href: '/super-admin', label: t('nav.tenants') })
   } else if (hasTenant) {
-    navItems.push({ href: '/dashboard', label: t('nav.dashboard') })
-    navItems.push({ href: '/companies', label: t('nav.companies') })
-    navItems.push({ href: '/intermediaries', label: t('nav.intermediaries') })
-    navItems.push({ href: '/employees', label: t('nav.employees') })
-    navItems.push({ href: '/examinations', label: t('nav.examinations') })
+    navItems.push({ type: 'link', href: '/dashboard', label: t('nav.dashboard') })
+    navItems.push({ type: 'link', href: '/companies', label: t('nav.companies') })
+    navItems.push({ type: 'link', href: '/employees', label: t('nav.employees') })
+    navItems.push({ type: 'link', href: '/examinations', label: t('nav.examinations') })
+
+    const administrationItems: NavLink[] = []
+    administrationItems.push({ href: '/intermediaries', label: t('nav.intermediaries') })
     if (hasReportingRole) {
-      navItems.push({ href: '/medical-events', label: t('nav.medicalEvents') })
-      navItems.push({ href: '/reports', label: t('nav.reports') })
+      administrationItems.push({ href: '/reports', label: t('nav.reports') })
+      administrationItems.push({ href: '/medical-events', label: t('nav.medicalEvents') })
     }
-    navItems.push({ href: '/team', label: t('nav.team') })
+    administrationItems.push({ href: '/team', label: t('nav.team') })
+    navItems.push({ type: 'group', label: t('nav.administration'), items: administrationItems })
+
     if (isAdmin) {
-      navItems.push({ href: '/settings/practice', label: t('nav.settings') })
-      navItems.push({ href: '/settings/audit-log', label: 'Jurnal acces' })
-      navItems.push({ href: '/settings/billing', label: 'Abonament' })
-      navItems.push({ href: '/settings/api', label: 'API & Webhooks' })
+      navItems.push({
+        type: 'group',
+        label: t('nav.settings'),
+        items: [
+          { href: '/settings/practice', label: t('nav.settings') },
+          { href: '/settings/billing', label: 'Abonament' },
+          { href: '/settings/api', label: 'API & Webhooks' },
+          { href: '/settings/audit-log', label: 'Jurnal acces' },
+        ],
+      })
     }
   }
 

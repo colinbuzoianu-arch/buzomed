@@ -1,18 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { ChevronDown, Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import type { NavEntry } from '@/components/app-nav'
 import { LogoutButton } from '@/components/logout-button'
 
-interface NavItem {
-  href: string
-  label: string
-}
-
 interface Props {
-  items: NavItem[]
+  items: NavEntry[]
   userName: string
   closeLabel: string
   logoutLabel: string
@@ -27,9 +23,14 @@ interface Props {
  * matches the existing header height.
  *
  * Closes automatically on route change (the usePathname effect).
+ *
+ * Dropdown groups (Administrare, Setări) render as expandable
+ * sections here — no hover/click-away semantics needed since the
+ * whole drawer is already a single open/closed state.
  */
 export function MobileNav({ items, userName, closeLabel, logoutLabel }: Props) {
   const [open, setOpen] = useState(false)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
   const pathname = usePathname()
 
   // Close on route change. Even though the Link will refresh the page,
@@ -48,6 +49,18 @@ export function MobileNav({ items, userName, closeLabel, logoutLabel }: Props) {
     }
   }, [open])
 
+  function toggleGroup(label: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(label)) {
+        next.delete(label)
+      } else {
+        next.add(label)
+      }
+      return next
+    })
+  }
+
   return (
     <>
       <button
@@ -62,12 +75,9 @@ export function MobileNav({ items, userName, closeLabel, logoutLabel }: Props) {
       {open && (
         <div className="md:hidden fixed inset-0 z-50">
           {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setOpen(false)}
-          />
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
           {/* Panel */}
-          <div className="absolute inset-x-0 top-0 bg-background border-b shadow-lg">
+          <div className="absolute inset-x-0 top-0 bg-background border-b shadow-lg max-h-screen overflow-y-auto">
             <div className="flex items-center justify-between px-4 h-16 border-b">
               <span className="text-sm font-medium truncate">{userName}</span>
               <button
@@ -80,15 +90,49 @@ export function MobileNav({ items, userName, closeLabel, logoutLabel }: Props) {
               </button>
             </div>
             <nav className="flex flex-col py-2">
-              {items.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="px-4 py-3 text-base hover:bg-muted transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {items.map((entry) => {
+                if (entry.type === 'link') {
+                  return (
+                    <Link
+                      key={entry.href}
+                      href={entry.href}
+                      className="px-4 py-3 text-base hover:bg-muted transition-colors"
+                    >
+                      {entry.label}
+                    </Link>
+                  )
+                }
+
+                const isOpen = openGroups.has(entry.label)
+                return (
+                  <div key={entry.label}>
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(entry.label)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-base hover:bg-muted transition-colors"
+                      aria-expanded={isOpen}
+                    >
+                      {entry.label}
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                    {isOpen && (
+                      <div className="bg-muted/30">
+                        {entry.items.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className="block px-8 py-2.5 text-sm hover:bg-muted transition-colors"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
               <div className="px-4 py-3 border-t mt-2">
                 <LogoutButton label={logoutLabel} />
               </div>
