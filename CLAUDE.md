@@ -85,6 +85,11 @@ Pure cosmetic rename for clarity. Make `prismaApp` the default-think. ~30 min wh
 ### Prisma config
 - package.json#prisma block is deprecated, will be removed in Prisma 7. Move to prisma.config.ts before then.
 
+### Slow query logging (added later session — see feat/prisma-slow-query-logging)
+- `SlowQueryLog` model + `lib/slow-query-log.ts` capture Prisma queries slower than a threshold, for the super-admin-only `/super-admin/slow-queries` dashboard.
+- Env vars (not committed — `.env.example` is gitignored in this repo, see `.gitignore`): `SLOW_QUERY_LOG_ENABLED` (default `false`), `SLOW_QUERY_THRESHOLD_MS` (default `200`), `SLOW_QUERY_CLEANUP_SECRET` (required in prod for the daily cleanup cron at `/api/admin/cleanup-slow-queries`, checked as `Authorization: Bearer <secret>`).
+- That cleanup route is carved into the public-route allowlist in `lib/supabase/middleware.ts` since it's called by Vercel Cron with no browser session — same pattern as `/api/invitations/accept` and `/api/v1`.
+
 ## Migration history (in order)
 1. 20260507084433_init — initial schema
 2. 20260508081943_add_invitations — Invitation model

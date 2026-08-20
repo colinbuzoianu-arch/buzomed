@@ -238,6 +238,9 @@ export default async function SuperAdminPage({ searchParams }: PageProps) {
           <Button asChild variant="outline">
             <Link href="/super-admin/system-health">System Health</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link href="/super-admin/slow-queries">Interogări lente</Link>
+          </Button>
           <RecallNotificationsButton />
           <ProbeInviteButton labels={probeInviteLabels} />
           <Button asChild variant="outline">

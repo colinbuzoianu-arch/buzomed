@@ -1530,6 +1530,30 @@ model AiUsageLog {
 // BigInt because per-tenant monthly totals can exceed 32-bit on heavy AI tenants.
 // The unique constraint uses NULLS NOT DISTINCT (see migration) so that NULL
 // tenantId (system-level calls) is treated as equal for conflict detection.
+// Slow query diagnostic log — captures Prisma queries slower than
+// SLOW_QUERY_THRESHOLD_MS (see lib/slow-query-log.ts). Not tenant-scoped:
+// this is a system-level observability table, super-admin only.
+// PRIVACY: queryText is a redacted query TEMPLATE (see redactQuery) —
+// literal params (CNPs, emails, phones, UUIDs) are stripped before insert.
+// Retention: rows are deleted once expiresAt passes, via the daily
+// /api/admin/cleanup-slow-queries cron (see vercel.json).
+model SlowQueryLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  queryText  String   @map("query_text") @db.Text
+  durationMs Int      @map("duration_ms")
+  model      String?
+  operation  String?
+  routePath  String?  @map("route_path")
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz
+
+  @@map("slow_query_logs")
+  @@index([occurredAt(sort: Desc)])
+  @@index([model, occurredAt(sort: Desc)])
+  @@index([durationMs(sort: Desc)])
+  @@index([expiresAt])
+}
+
 model AiUsageMonthlySummary {
   id                   String   @id @default(cuid())
   tenantId             String?  @map("tenant_id") @db.Uuid

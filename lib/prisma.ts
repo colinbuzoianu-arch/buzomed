@@ -1,4 +1,5 @@
 import { type Prisma, PrismaClient } from '@prisma/client'
+import { extractModel, extractOperation, persistSlowQuery, redactQuery } from '@/lib/slow-query-log'
 
 /**
  * STATUS NOTE (end of session 3, 2026-05-10):
@@ -69,17 +70,48 @@ declare global {
 }
 
 // -----------------------------------------------------------------------------
-// Existing superuser client — unchanged
+// Existing superuser client — unchanged, plus opt-in slow query logging
+//
+// SLOW_QUERY_LOG_ENABLED (default off) switches the client from Prisma's
+// normal stdout query logging to an event-based hook that measures each
+// query's duration and persists the ones slower than
+// SLOW_QUERY_THRESHOLD_MS to slow_query_logs (see lib/slow-query-log.ts).
+// Persistence is fire-and-forget: the app never awaits it, so a slow
+// INSERT into slow_query_logs itself cannot slow down the request that
+// triggered it.
 // -----------------------------------------------------------------------------
 
-export const prisma =
-  globalThis.prisma ??
-  new PrismaClient({
-    log:
-      process.env.NODE_ENV === 'development'
-        ? ['query', 'error', 'warn']
-        : ['error'],
+const SLOW_QUERY_LOG_ENABLED = process.env.SLOW_QUERY_LOG_ENABLED === 'true'
+const SLOW_QUERY_THRESHOLD_MS = Number(process.env.SLOW_QUERY_THRESHOLD_MS ?? '200')
+
+function makePrismaClient(): PrismaClient {
+  if (SLOW_QUERY_LOG_ENABLED) {
+    const client = new PrismaClient({
+      log: [
+        { level: 'query', emit: 'event' },
+        { level: 'error', emit: 'stdout' },
+        { level: 'warn', emit: 'stdout' },
+      ],
+    })
+    client.$on('query', (e: Prisma.QueryEvent) => {
+      if (e.duration < SLOW_QUERY_THRESHOLD_MS) return
+      // Fire and forget — persistSlowQuery swallows its own errors.
+      void persistSlowQuery({
+        queryText: redactQuery(e.query),
+        durationMs: e.duration,
+        model: extractModel(e.query),
+        operation: extractOperation(e.query),
+      })
+    })
+    return client
+  }
+
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
+}
+
+export const prisma = globalThis.prisma ?? makePrismaClient()
 
 if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma
 
@@ -92,8 +124,7 @@ if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma
 // string) fails loudly rather than silently using superuser perms.
 // -----------------------------------------------------------------------------
 
-export const prismaApp: PrismaClient =
-  globalThis.prismaApp ?? createAppClient()
+export const prismaApp: PrismaClient = globalThis.prismaApp ?? createAppClient()
 
 if (process.env.NODE_ENV !== 'production') globalThis.prismaApp = prismaApp
 
@@ -119,10 +150,7 @@ function createAppClient(): PrismaClient {
 
   return new PrismaClient({
     datasources: { db: { url: appUrl } },
-    log:
-      process.env.NODE_ENV === 'development'
-        ? ['error', 'warn']
-        : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   })
 }
 
@@ -244,7 +272,6 @@ export async function withAuth<T>(
     }
   )
 }
-
 
 // -----------------------------------------------------------------------------
 // authContextFromUser — single conversion point from a User row to AuthContext

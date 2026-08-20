@@ -49,6 +49,9 @@ const isPublicRoute =
     pathname.startsWith('/api/contact') ||
     pathname.startsWith('/api/v1') ||
     pathname.startsWith('/api-docs') ||
+    // Secret-header authenticated, not session authenticated — called by
+    // Vercel Cron with no browser session. See app/api/admin/cleanup-slow-queries/route.ts.
+    pathname.startsWith('/api/admin/cleanup-slow-queries') ||
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico' ||
     pathname === '/suspended'
