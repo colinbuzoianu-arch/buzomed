@@ -1,24 +1,22 @@
-import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { requireUser } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { getLocale, getTranslator } from '@/lib/i18n'
-import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
-import { Button } from '@/components/ui/button'
-import { ExaminationForm } from './examination-form'
-import { DocumentsPanel } from './documents-panel'
-import { ExaminationActions } from './examination-actions'
+import { notFound, redirect } from 'next/navigation'
 import { DocumentsSection } from '@/app/(authenticated)/_components/documents-section'
-import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
-import { getSectionsForExamType } from '@/lib/examinations/document-templates'
-import { ExaminationHistorySummary } from '@/components/ai/ExaminationHistorySummary'
-import { InvestigationRecommender } from '@/components/ai/InvestigationRecommender'
-import { VerdictBadge } from '@/components/ui/verdict-badge'
-import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
-import { formatDate } from '@/lib/format-date'
-import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { PatientContextPanel } from '@/components/examinations/patient-context-panel'
 import { RiskProfileGlanceCard } from '@/components/examinations/risk-profile-glance-card'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
+import { Button } from '@/components/ui/button'
+import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
+import { VerdictBadge } from '@/components/ui/verdict-badge'
+import { requireUser } from '@/lib/auth'
+import { getSectionsForExamType } from '@/lib/examinations/document-templates'
+import { formatDate } from '@/lib/format-date'
+import { getLocale, getTranslator } from '@/lib/i18n'
+import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
+import { prisma } from '@/lib/prisma'
+import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
+import { DocumentsPanel } from './documents-panel'
+import { ExaminationActions } from './examination-actions'
+import { ExaminationStepper } from './examination-stepper'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -125,9 +123,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
 
   const isSigned = examination.signedAt !== null
   const isLocked =
-    isSigned ||
-    examination.status === 'cancelled' ||
-    examination.status === 'no_show'
+    isSigned || examination.status === 'cancelled' || examination.status === 'no_show'
 
   const examSections = getSectionsForExamType(examination.examinationType.code)
   const prefillEnabled =
@@ -166,36 +162,66 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
 
   const examTypeName =
     locale === 'en'
-      ? examination.examinationType.nameEn ?? examination.examinationType.nameRo
+      ? (examination.examinationType.nameEn ?? examination.examinationType.nameRo)
       : examination.examinationType.nameRo
 
   // JSONB fields can be `null` even though schema defaults to {} — handle both.
   const jsonOrEmpty = (v: unknown): Record<string, unknown> =>
-    v && typeof v === 'object' && !Array.isArray(v)
-      ? (v as Record<string, unknown>)
-      : {}
-  const jsonOrEmptyArray = (v: unknown): unknown[] =>
-    Array.isArray(v) ? v : []
+    v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {}
+  const jsonOrEmptyArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : [])
+
+  const practitionerFullName = `${examination.practitioner.lastName} ${examination.practitioner.firstName}${
+    examination.practitioner.professionalTitle
+      ? ` (${examination.practitioner.professionalTitle})`
+      : ''
+  }`
+
+  const examinationActionsNode =
+    caps.canWriteAdministrative && !isLocked ? (
+      <ExaminationActions
+        examinationId={examination.id}
+        examinationNumber={examination.examinationNumber}
+        currentStatus={examination.status}
+        verdictSet={examination.verdict !== null}
+        canWriteClinical={caps.canWriteClinical}
+        labels={{
+          start: t('examinations.actions.start'),
+          starting: t('examinations.actions.starting'),
+          cancel: t('examinations.actions.cancel'),
+          cancelConfirm: t('examinations.actions.cancelConfirm'),
+          noShow: t('examinations.actions.noShow'),
+          noShowConfirm: t('examinations.actions.noShowConfirm'),
+          sign: t('examinations.actions.sign'),
+          signing: t('examinations.actions.signing'),
+          signConfirm: t('examinations.actions.signConfirm'),
+          signRequirementsNotMet: t('examinations.actions.signRequirementsNotMet'),
+          signNote: t('examinations.actions.signNote'),
+          signNoteNoSignature: t('examinations.actions.signNoteNoSignature'),
+          errorMessage: t('examinations.form.errorMessage'),
+        }}
+        practitionerHasSignature={!!examination.practitioner?.signatureImageUrl}
+      />
+    ) : null
 
   return (
     <div className="space-y-6">
       <div>
-        <Breadcrumbs items={[{ label: t('nav.examinations'), href: '/examinations' }, { label: `${examination.employee.lastName} ${examination.employee.firstName}` }]} />
+        <Breadcrumbs
+          items={[
+            { label: t('nav.examinations'), href: '/examinations' },
+            { label: `${examination.employee.lastName} ${examination.employee.firstName}` },
+          ]}
+        />
         <div className="flex items-start justify-between mt-2 gap-4 flex-wrap">
           <div className="min-w-0">
             <div className="flex items-baseline gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold">
-                {examTypeName}
-              </h1>
+              <h1 className="text-3xl font-bold">{examTypeName}</h1>
               <span className="font-mono text-sm text-muted-foreground">
                 #{examination.examinationNumber}
               </span>
             </div>
             <div className="text-muted-foreground mt-1">
-              <Link
-                href={`/employees/${examination.employee.id}`}
-                className="hover:underline"
-              >
+              <Link href={`/employees/${examination.employee.id}`} className="hover:underline">
                 {examination.employee.lastName} {examination.employee.firstName}
               </Link>
               {' • '}
@@ -250,179 +276,133 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
                 </Link>
               </Button>
             )}
-            {caps.canWriteAdministrative && !isLocked && (
-              <ExaminationActions
-                examinationId={examination.id}
-                examinationNumber={examination.examinationNumber}
-                currentStatus={examination.status}
-                verdictSet={examination.verdict !== null}
-                canWriteClinical={caps.canWriteClinical}
-                labels={{
-                  start: t('examinations.actions.start'),
-                  starting: t('examinations.actions.starting'),
-                  cancel: t('examinations.actions.cancel'),
-                  cancelConfirm: t('examinations.actions.cancelConfirm'),
-                  noShow: t('examinations.actions.noShow'),
-                  noShowConfirm: t('examinations.actions.noShowConfirm'),
-                  sign: t('examinations.actions.sign'),
-                  signing: t('examinations.actions.signing'),
-                  signConfirm: t('examinations.actions.signConfirm'),
-                  signRequirementsNotMet: t(
-                    'examinations.actions.signRequirementsNotMet'
-                  ),
-                  signNote: t('examinations.actions.signNote'),
-                  signNoteNoSignature: t('examinations.actions.signNoteNoSignature'),
-                  errorMessage: t('examinations.form.errorMessage'),
-                }}
-                practitionerHasSignature={!!(examination.practitioner?.signatureImageUrl)}
-              />
-            )}
           </div>
         </div>
       </div>
 
-      <PatientContextPanel
-        requestSource={examination.requestSource}
-        examinationTypeName={examTypeName}
-        referringDocumentNumber={examination.referringDocumentNumber}
-        workplaceName={examination.workplace.name}
-        priorVerdict={priorExam?.verdict ?? null}
-        medicCurantName={examination.employee.medicCurantName}
-        medicCurantPhone={examination.employee.medicCurantPhone}
-      />
-      <RiskProfileGlanceCard
-        workplace={examination.workplace}
-        hazardHintLabels={hazardHintLabels}
-      />
+      {/* Persistent, read-only context bar */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-4 border-b space-y-3">
+        <PatientContextPanel
+          requestSource={examination.requestSource}
+          examinationTypeName={examTypeName}
+          referringDocumentNumber={examination.referringDocumentNumber}
+          workplaceName={examination.workplace.name}
+          priorVerdict={priorExam?.verdict ?? null}
+          medicCurantName={examination.employee.medicCurantName}
+          medicCurantPhone={examination.employee.medicCurantPhone}
+          practitionerName={practitionerFullName}
+        />
+        <RiskProfileGlanceCard
+          workplace={examination.workplace}
+          hazardHintLabels={hazardHintLabels}
+        />
 
-      {/* Two-column layout: main content + AI history sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-6 items-start">
-      <div className="space-y-6 min-w-0">
-
-      {/* Practitioner + intake metadata */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t('examinations.metaSection')}</h2>
-        <div className="border rounded-lg divide-y">
-          <Row
-            label={t('examinations.form.fieldPractitioner')}
-            value={`${examination.practitioner.lastName} ${examination.practitioner.firstName}${
-              examination.practitioner.professionalTitle
-                ? ` (${examination.practitioner.professionalTitle})`
-                : ''
-            }`}
-          />
-          <Row
-            label={t('examinations.form.fieldRequestSource')}
-            value={
-              examination.requestSource
-                ? t(`examinations.requestSource.${examination.requestSource}`)
-                : null
-            }
-          />
-          <Row
-            label={t('examinations.form.fieldReferringDocument')}
-            value={examination.referringDocumentNumber}
-          />
-        </div>
-      </section>
-
-      {/* Prior examination panel — shown when a previous signed exam exists */}
-      {priorExam && (
-        <details className="border rounded-lg overflow-hidden group">
-          <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/30 select-none list-none">
-            <span className="text-sm font-medium">
-              {t('examinations.priorExam.title')}
-            </span>
-            <span className="flex items-center gap-2 text-xs text-muted-foreground">
-              {!priorExam.signedAt && (
-                <span className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700">
-                  {t('examinations.priorExam.draftLabel')}
-                </span>
-              )}
-              #{priorExam.examinationNumber}
-              {' — '}
-              {formatDate(priorExam.signedAt ?? priorExam.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
-            </span>
-          </summary>
-          <div className="px-4 pb-4 pt-3 border-t space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">
-                  {t('examinations.priorExam.typeLabel')}
-                </div>
-                <div>
-                  {locale === 'en'
-                    ? (priorExam.examinationType.nameEn ?? priorExam.examinationType.nameRo)
-                    : priorExam.examinationType.nameRo}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">
-                  {priorExam.signedAt
-                    ? t('examinations.priorExam.signedLabel')
-                    : t('examinations.priorExam.createdLabel')}
-                </div>
-                <div>
-                  {formatDate(priorExam.signedAt ?? priorExam.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
-                </div>
-              </div>
-              {priorExam.verdict && (
+        {/* Prior examination panel — shown when a previous signed exam exists */}
+        {priorExam && (
+          <details className="border rounded-lg overflow-hidden group">
+            <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/30 select-none list-none">
+              <span className="text-sm font-medium">{t('examinations.priorExam.title')}</span>
+              <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                {!priorExam.signedAt && (
+                  <span className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700">
+                    {t('examinations.priorExam.draftLabel')}
+                  </span>
+                )}
+                #{priorExam.examinationNumber}
+                {' — '}
+                {formatDate(
+                  priorExam.signedAt ?? priorExam.createdAt,
+                  'medium',
+                  locale === 'ro' ? 'ro' : 'en'
+                )}
+              </span>
+            </summary>
+            <div className="px-4 pb-4 pt-3 border-t space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">
-                    {t('examinations.priorExam.verdictLabel')}
+                    {t('examinations.priorExam.typeLabel')}
                   </div>
-                  <VerdictBadge verdict={priorExam.verdict} />
-                  {priorExam.verdictConditions && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {priorExam.verdictConditions}
+                  <div>
+                    {locale === 'en'
+                      ? (priorExam.examinationType.nameEn ?? priorExam.examinationType.nameRo)
+                      : priorExam.examinationType.nameRo}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    {priorExam.signedAt
+                      ? t('examinations.priorExam.signedLabel')
+                      : t('examinations.priorExam.createdLabel')}
+                  </div>
+                  <div>
+                    {formatDate(
+                      priorExam.signedAt ?? priorExam.createdAt,
+                      'medium',
+                      locale === 'ro' ? 'ro' : 'en'
+                    )}
+                  </div>
+                </div>
+                {priorExam.verdict && (
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {t('examinations.priorExam.verdictLabel')}
                     </div>
-                  )}
+                    <VerdictBadge verdict={priorExam.verdict} />
+                    {priorExam.verdictConditions && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {priorExam.verdictConditions}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Prior vital signs */}
+              {priorExam.vitalSigns &&
+                typeof priorExam.vitalSigns === 'object' &&
+                !Array.isArray(priorExam.vitalSigns) && (
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground mb-2">
+                      {t('examinations.priorExam.vitalSignsTitle')}
+                    </div>
+                    <PriorVitalSigns
+                      vitalSigns={priorExam.vitalSigns as Record<string, unknown>}
+                      t={t}
+                    />
+                  </div>
+                )}
+
+              {priorExam.clinicalFindings && (
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground mb-1">
+                    {t('examinations.form.fieldClinicalFindings')}
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap text-muted-foreground">
+                    {priorExam.clinicalFindings}
+                  </div>
+                </div>
+              )}
+
+              {priorExam.recommendations && (
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground mb-1">
+                    {t('examinations.form.fieldRecommendations')}
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap text-muted-foreground">
+                    {priorExam.recommendations}
+                  </div>
                 </div>
               )}
             </div>
+          </details>
+        )}
+      </div>
+      {/* end sticky context bar */}
 
-            {/* Prior vital signs */}
-            {priorExam.vitalSigns &&
-              typeof priorExam.vitalSigns === 'object' &&
-              !Array.isArray(priorExam.vitalSigns) && (
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground mb-2">
-                    {t('examinations.priorExam.vitalSignsTitle')}
-                  </div>
-                  <PriorVitalSigns
-                    vitalSigns={priorExam.vitalSigns as Record<string, unknown>}
-                    t={t}
-                  />
-                </div>
-              )}
-
-            {priorExam.clinicalFindings && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground mb-1">
-                  {t('examinations.form.fieldClinicalFindings')}
-                </div>
-                <div className="text-sm whitespace-pre-wrap text-muted-foreground">
-                  {priorExam.clinicalFindings}
-                </div>
-              </div>
-            )}
-
-            {priorExam.recommendations && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground mb-1">
-                  {t('examinations.form.fieldRecommendations')}
-                </div>
-                <div className="text-sm whitespace-pre-wrap text-muted-foreground">
-                  {priorExam.recommendations}
-                </div>
-              </div>
-            )}
-          </div>
-        </details>
-      )}
-
-      <ExaminationForm
+      <ExaminationStepper
         examinationId={examination.id}
+        employeeId={examination.employeeId}
         examinationTypeCode={examination.examinationType.code}
         locked={isLocked}
         signed={isSigned}
@@ -466,9 +446,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           fieldMedications: t('examinations.form.fieldMedications'),
           fieldAllergies: t('examinations.form.fieldAllergies'),
           fieldFamilyHistory: t('examinations.form.fieldFamilyHistory'),
-          fieldOccupationalHistory: t(
-            'examinations.form.fieldOccupationalHistory'
-          ),
+          fieldOccupationalHistory: t('examinations.form.fieldOccupationalHistory'),
           fieldAdditionalNotes: t('examinations.form.fieldAdditionalNotes'),
           fieldHeight: t('examinations.form.fieldHeight'),
           fieldWeight: t('examinations.form.fieldWeight'),
@@ -478,9 +456,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           fieldPulse: t('examinations.form.fieldPulse'),
           fieldVisionLeft: t('examinations.form.fieldVisionLeft'),
           fieldVisionRight: t('examinations.form.fieldVisionRight'),
-          fieldVisionWithCorrection: t(
-            'examinations.form.fieldVisionWithCorrection'
-          ),
+          fieldVisionWithCorrection: t('examinations.form.fieldVisionWithCorrection'),
           fieldVisionColor: t('examinations.form.fieldVisionColor'),
           fieldHearingLeft: t('examinations.form.fieldHearingLeft'),
           fieldHearingRight: t('examinations.form.fieldHearingRight'),
@@ -497,17 +473,11 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           fieldNotes: t('examinations.form.fieldNotes'),
           fieldVerdict: t('examinations.form.fieldVerdict'),
           fieldVerdictApt: t('examinations.form.verdict.apt'),
-          fieldVerdictAptConditionat: t(
-            'examinations.form.verdict.apt_conditionat'
-          ),
-          fieldVerdictInaptTemporar: t(
-            'examinations.form.verdict.inapt_temporar'
-          ),
+          fieldVerdictAptConditionat: t('examinations.form.verdict.apt_conditionat'),
+          fieldVerdictInaptTemporar: t('examinations.form.verdict.inapt_temporar'),
           fieldVerdictInapt: t('examinations.form.verdict.inapt'),
           fieldVerdictConditions: t('examinations.form.fieldVerdictConditions'),
-          fieldInaptTemporarUntil: t(
-            'examinations.form.fieldInaptTemporarUntil'
-          ),
+          fieldInaptTemporarUntil: t('examinations.form.fieldInaptTemporarUntil'),
           fieldNextDueDate: t('examinations.form.fieldNextDueDate'),
           fieldNextDueDateHelp: t('examinations.form.fieldNextDueDateHelp'),
           saveButton: t('examinations.form.saveButton'),
@@ -528,9 +498,13 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           fieldIntakeSportPerformanta: t('examinations.form.fieldIntakeSportPerformanta'),
           fieldIntakeTratamenteUrmate: t('examinations.form.fieldIntakeTratamenteUrmate'),
           fieldIntakeBoliProfesionale: t('examinations.form.fieldIntakeBoliProfesionale'),
-          fieldIntakeBoliProfesionaleDiagnostic: t('examinations.form.fieldIntakeBoliProfesionaleDiagnostic'),
+          fieldIntakeBoliProfesionaleDiagnostic: t(
+            'examinations.form.fieldIntakeBoliProfesionaleDiagnostic'
+          ),
           fieldIntakeAccidenteMunca: t('examinations.form.fieldIntakeAccidenteMunca'),
-          fieldIntakeAccidenteMuncaDiagnostic: t('examinations.form.fieldIntakeAccidenteMuncaDiagnostic'),
+          fieldIntakeAccidenteMuncaDiagnostic: t(
+            'examinations.form.fieldIntakeAccidenteMuncaDiagnostic'
+          ),
           fieldIntakeStagiuMilitar: t('examinations.form.fieldIntakeStagiuMilitar'),
           optYes: t('examinations.form.optYes'),
           optNo: t('examinations.form.optNo'),
@@ -550,64 +524,47 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           prefillIgnore: t('examinations.form.prefillIgnore'),
           prefillNoData: t('examinations.form.prefillNoData'),
           prefillTooltip: t('examinations.form.prefillTooltip'),
+          stepAnamnesis: t('examinations.form.stepAnamnesis'),
+          stepClinical: t('examinations.form.stepClinical'),
+          stepFindings: t('examinations.form.stepFindings'),
+          stepVerdict: t('examinations.form.stepVerdict'),
+          stepBack: t('examinations.form.stepBack'),
+          stepContinue: t('examinations.form.stepContinue'),
+          stepAutoSaved: t('examinations.form.stepAutoSaved'),
         }}
+        documentsPanel={
+          <DocumentsPanel
+            examinationTypeCode={examination.examinationType.code}
+            examinationId={examination.id}
+            employeeFullName={`${examination.employee.lastName} ${examination.employee.firstName}`}
+            locked={isLocked}
+            isCancelled={examination.status === 'cancelled' || examination.status === 'no_show'}
+            labels={{
+              title: t('examinations.documentsPanel.title'),
+              downloadBlank: t('examinations.documentsPanel.downloadBlank'),
+              generateFilled: t('examinations.documentsPanel.generateFilled'),
+              generateFilledTooltip: t('examinations.documentsPanel.generateFilledTooltip'),
+              generating: t('examinations.documentsPanel.generating'),
+              unsignedWarning: t('examinations.documentsPanel.unsignedWarning'),
+              badgeRequired: t('examinations.documentsPanel.badgeRequired'),
+              badgeOptional: t('examinations.documentsPanel.badgeOptional'),
+            }}
+          />
+        }
+        documentsSection={
+          <DocumentsSection
+            entityType="examination"
+            entityId={examination.id}
+            tenantId={user.tenantId}
+            canWrite={caps.canWriteAdministrative}
+            locale={locale}
+          />
+        }
+        examinationActions={examinationActionsNode}
       />
-
-      {/* Generated document templates for this examination type */}
-      <DocumentsPanel
-        examinationTypeCode={examination.examinationType.code}
-        examinationId={examination.id}
-        employeeFullName={`${examination.employee.lastName} ${examination.employee.firstName}`}
-        locked={isLocked}
-        isCancelled={examination.status === 'cancelled' || examination.status === 'no_show'}
-        labels={{
-          title: t('examinations.documentsPanel.title'),
-          downloadBlank: t('examinations.documentsPanel.downloadBlank'),
-          generateFilled: t('examinations.documentsPanel.generateFilled'),
-          generateFilledTooltip: t('examinations.documentsPanel.generateFilledTooltip'),
-          generating: t('examinations.documentsPanel.generating'),
-          unsignedWarning: t('examinations.documentsPanel.unsignedWarning'),
-          badgeRequired: t('examinations.documentsPanel.badgeRequired'),
-          badgeOptional: t('examinations.documentsPanel.badgeOptional'),
-        }}
-      />
-
-      {/* Uploaded documents — session 7 */}
-      <DocumentsSection
-        entityType="examination"
-        entityId={examination.id}
-        tenantId={user.tenantId}
-        canWrite={caps.canWriteAdministrative}
-        locale={locale}
-      />
-
-      </div>{/* end main column */}
-
-      {/* Sidebar */}
-      <aside className="space-y-4 lg:sticky lg:top-6">
-        <InvestigationRecommender examinationId={examination.id} />
-        <ExaminationHistorySummary
-          currentExaminationId={examination.id}
-          employeeId={examination.employeeId}
-        />
-      </aside>
-
-      </div>{/* end grid */}
     </div>
   )
 }
-
-function Row({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-4 py-3">
-      <div className="text-sm font-medium text-muted-foreground">{label}</div>
-      <div className="md:col-span-2 text-sm">
-        {value && value !== '' ? value : '—'}
-      </div>
-    </div>
-  )
-}
-
 
 function PriorVitalSigns({
   vitalSigns,
@@ -645,4 +602,3 @@ function PriorVitalSigns({
     </div>
   )
 }
-

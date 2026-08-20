@@ -16,6 +16,7 @@ interface PatientContextPanelProps {
   priorVerdict: string | null
   medicCurantName?: string | null
   medicCurantPhone?: string | null
+  practitionerName?: string | null
 }
 
 export function PatientContextPanel({
@@ -26,17 +27,19 @@ export function PatientContextPanel({
   priorVerdict,
   medicCurantName,
   medicCurantPhone,
+  practitionerName,
 }: PatientContextPanelProps) {
   const hasMedicCurant = !!(medicCurantName || medicCurantPhone)
-  const colCount = hasMedicCurant ? 6 : 5
+  const colCount = (practitionerName ? 1 : 0) + (hasMedicCurant ? 6 : 5)
 
   return (
     <div className="border rounded-lg bg-card px-4 py-3">
       <div
         className={`grid grid-cols-2 gap-x-4 gap-y-3 ${
-          colCount === 6 ? 'md:grid-cols-6' : 'md:grid-cols-5'
+          colCount >= 6 ? 'md:grid-cols-6' : 'md:grid-cols-5'
         }`}
       >
+        {practitionerName && <Field label="Medic examinator" value={practitionerName} />}
         <Field
           label="Motiv trimitere"
           value={requestSource ? (REQUEST_SOURCE_LABELS[requestSource] ?? requestSource) : '—'}

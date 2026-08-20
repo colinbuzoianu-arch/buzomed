@@ -1032,7 +1032,14 @@
       "prefillApply": "Aplică sugestiile",
       "prefillIgnore": "Ignoră",
       "prefillNoData": "Nicio examinare anterioară semnată — câmpurile nu pot fi pre-completate automat.",
-      "prefillTooltip": "Sugestie AI — verificați acest câmp"
+      "prefillTooltip": "Sugestie AI — verificați acest câmp",
+      "stepAnamnesis": "Anamneză",
+      "stepClinical": "Examen clinic",
+      "stepFindings": "Constatări",
+      "stepVerdict": "Verdict",
+      "stepBack": "Înapoi",
+      "stepContinue": "Continuă",
+      "stepAutoSaved": "✓ Salvat automat"
     },
     "actions": {
       "start": "Începe examinarea",
