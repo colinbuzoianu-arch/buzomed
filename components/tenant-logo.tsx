@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 
 interface Props {
   logoUrl: string | null | undefined
@@ -11,6 +12,8 @@ const heights: Record<NonNullable<Props['size']>, number> = {
   sm: 28,
   md: 36,
 }
+
+const MAX_WIDTH = 160
 
 export function TenantLogo({ logoUrl, size = 'md' }: Props) {
   const [logoError, setLogoError] = useState(false)
@@ -23,25 +26,18 @@ export function TenantLogo({ logoUrl, size = 'md' }: Props) {
     <div
       key={logoUrl}
       style={{
+        position: 'relative',
         height: h,
-        width: 'auto',
-        maxWidth: 160,
-        display: 'flex',
-        alignItems: 'center',
+        width: MAX_WIDTH,
         flexShrink: 0,
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={logoUrl}
         alt="Logo cabinet"
-        style={{
-          height: h,
-          width: 'auto',
-          maxWidth: 160,
-          objectFit: 'contain',
-          display: 'block',
-        }}
+        fill
+        sizes={`${MAX_WIDTH}px`}
+        style={{ objectFit: 'contain' }}
         onError={() => setLogoError(true)}
       />
     </div>
