@@ -166,10 +166,11 @@ export default async function LandingPage() {
         }}
       >
         <Image
-          src="/buzomed_picture.png"
+          src="/buzomed_picture.jpg"
           alt=""
           fill
           priority
+          sizes="100vw"
           style={{ objectFit: 'cover', objectPosition: 'center' }}
         />
         <div
