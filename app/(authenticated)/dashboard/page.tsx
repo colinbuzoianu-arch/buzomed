@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
@@ -7,6 +8,12 @@ import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/format-date'
 import { DashboardGreeting } from '@/components/dashboard-greeting'
+import DashboardAlerts from '@/components/dashboard/dashboard-alerts'
+import { DashboardAlertsSkeleton } from '@/components/dashboard/dashboard-alerts-skeleton'
+import DashboardStats from '@/components/dashboard/dashboard-stats'
+import { DashboardStatsSkeleton } from '@/components/dashboard/dashboard-stats-skeleton'
+import DashboardOverview from '@/components/dashboard/dashboard-overview'
+import { DashboardOverviewSkeleton } from '@/components/dashboard/dashboard-overview-skeleton'
 
 /**
  * Dashboard — the first thing a cabinet user sees after logging in.
@@ -17,9 +24,12 @@ import { DashboardGreeting } from '@/components/dashboard-greeting'
  *      in-progress exams, and unsigned completed exams
  *   3. Quick actions — shortcuts to the most common tasks
  *
- * Data strategy: all counts in a single Promise.all. No heavy queries —
- * each count uses an indexed field (tenantId + status/date). The
- * dashboard is the most-visited page; it must be fast.
+ * The most-visited page; it must be fast. The shell (auth, greeting,
+ * quick actions) renders as soon as the cheap tenant-name lookup
+ * resolves — the heavier count queries live in their own Suspense-
+ * wrapped Server Components (dashboard-alerts, dashboard-stats,
+ * dashboard-overview) so each streams in independently instead of
+ * blocking the whole page on the slowest one.
  */
 
 export default async function DashboardPage() {
@@ -33,145 +43,18 @@ export default async function DashboardPage() {
   const caps = tenantDataCapabilities(user, user.tenantId)
   if (!caps.canRead) redirect('/login')
 
-  // Today's boundaries in UTC
-  const todayStart = new Date()
-  todayStart.setUTCHours(0, 0, 0, 0)
-  const todayEnd = new Date()
-  todayEnd.setUTCHours(23, 59, 59, 999)
-  const monthStart = new Date()
-  monthStart.setUTCDate(1)
-  monthStart.setUTCHours(0, 0, 0, 0)
+  const tenantId = user.tenantId
 
-  const [
-    tenant,
-    overdueRecalls,
-    pendingRecalls,
-    todayExams,
-    thisWeekExams,
-    inProgressExams,
-    unsignedCompleted,
-    thisMonthExams,
-    employeeCount,
-    companyCount,
-  ] = await Promise.all([
-    // Cabinet name for the greeting
-    prisma.tenant.findUnique({
-      where: { id: user.tenantId },
-      select: { name: true },
-    }),
-
-    // Overdue recalls — the most urgent number
-    prisma.recall.count({
-      where: {
-        tenantId: user.tenantId,
-        status: 'overdue',
-        deletedAt: null,
-        OR: [
-          { createdFromExaminationId: null },
-          { createdFromExamination: { deletedAt: null } },
-        ],
-      },
-    }),
-
-    // Pending recalls due this week (actionable but not yet overdue)
-    prisma.recall.count({
-      where: {
-        tenantId: user.tenantId,
-        status: 'pending',
-        dueDate: {
-          gte: todayStart,
-          lte: new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000),
-        },
-        deletedAt: null,
-        OR: [
-          { createdFromExaminationId: null },
-          { createdFromExamination: { deletedAt: null } },
-        ],
-      },
-    }),
-
-    // Examinations scheduled for today
-    prisma.examination.count({
-      where: {
-        tenantId: user.tenantId,
-        status: 'scheduled',
-        scheduledAt: { gte: todayStart, lte: todayEnd },
-        deletedAt: null,
-      },
-    }),
-
-    // Examinations scheduled anytime in the next 7 days (includes today).
-    // Distinct from `pendingRecalls` below: this counts appointments
-    // already on the calendar, while pendingRecalls counts obligations
-    // that haven't been booked yet. A recall booked for later this week
-    // flips to Recall.status 'completed' immediately (see
-    // examinations/bulk-schedule and recalls/[id]/schedule routes), so
-    // without this count it disappears from the dashboard entirely
-    // between "today" and "this month".
-    prisma.examination.count({
-      where: {
-        tenantId: user.tenantId,
-        status: 'scheduled',
-        scheduledAt: {
-          gte: todayStart,
-          lte: new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000),
-        },
-        deletedAt: null,
-      },
-    }),
-
-    // Examinations currently in progress
-    prisma.examination.count({
-      where: {
-        tenantId: user.tenantId,
-        status: 'in_progress',
-        deletedAt: null,
-      },
-    }),
-
-    // Completed but not yet signed — the practitioner still needs to
-    // sign these to generate the fișa de aptitudine
-    prisma.examination.count({
-      where: {
-        tenantId: user.tenantId,
-        status: 'completed',
-        signedAt: null,
-        deletedAt: null,
-      },
-    }),
-
-    // This month's total examinations — context for the practitioner
-    prisma.examination.count({
-      where: {
-        tenantId: user.tenantId,
-        createdAt: { gte: monthStart },
-        deletedAt: null,
-      },
-    }),
-
-    // Total active employees in the cabinet
-    prisma.employee.count({
-      where: {
-        tenantId: user.tenantId,
-        archivedAt: null,
-        deletedAt: null,
-      },
-    }),
-
-    // Total active companies
-    prisma.company.count({
-      where: {
-        tenantId: user.tenantId,
-        isActive: true,
-        deletedAt: null,
-      },
-    }),
-  ])
+  // Cabinet name for the greeting — kept in the shell (not suspended)
+  // since it's a single indexed PK lookup, fast enough not to delay
+  // first paint.
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { name: true },
+  })
 
   const firstName = user.firstName
   const cabinetName = tenant?.name ?? ''
-
-  const urgentCount = overdueRecalls + inProgressExams + unsignedCompleted
 
   return (
     <div className="space-y-8">
@@ -186,81 +69,14 @@ export default async function DashboardPage() {
       />
 
       {/* Urgent items — the "what needs attention NOW" row */}
-      {urgentCount > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-[11px] font-medium uppercase tracking-[0.1em] text-[hsl(var(--text-muted))]">
-            {t('dashboard.needsAttention')}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {overdueRecalls > 0 && (
-              <AlertCard
-                href="/examinations?tab=scadente&horizon=overdue"
-                label={t('dashboard.overdueRecalls')}
-                value={overdueRecalls}
-                tone="destructive"
-                description={t('dashboard.overdueRecallsDesc')}
-              />
-            )}
-            {inProgressExams > 0 && (
-              <AlertCard
-                href="/examinations?tab=in_curs"
-                label={t('dashboard.inProgress')}
-                value={inProgressExams}
-                tone="warning"
-                description={t('dashboard.inProgressDesc')}
-              />
-            )}
-            {unsignedCompleted > 0 && (
-              <AlertCard
-                href="/examinations?tab=finalizate"
-                label={t('dashboard.unsignedFise')}
-                value={unsignedCompleted}
-                tone="warning"
-                description={t('dashboard.unsignedFiseDesc')}
-              />
-            )}
-          </div>
-        </section>
-      )}
+      <Suspense fallback={<DashboardAlertsSkeleton />}>
+        <DashboardAlerts tenantId={tenantId} t={t} />
+      </Suspense>
 
       {/* Today section */}
-      <section className="space-y-3">
-        <h2 className="text-[11px] font-medium uppercase tracking-[0.1em] text-[hsl(var(--text-muted))]">
-          {t('dashboard.today')}
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <StatCard
-            href="/examinations?tab=programate"
-            label={t('dashboard.scheduledToday')}
-            value={todayExams}
-            accent="primary"
-          />
-          <StatCard
-            href="/examinations?tab=programate"
-            label={t('dashboard.scheduledThisWeek')}
-            value={thisWeekExams}
-            accent="primary"
-          />
-          <StatCard
-            href="/examinations?tab=scadente&horizon=thisWeek"
-            label={t('dashboard.dueThisWeek')}
-            value={pendingRecalls}
-            accent="warning"
-          />
-          <StatCard
-            href="/examinations?tab=toate"
-            label={t('dashboard.thisMonthExams')}
-            value={thisMonthExams}
-            accent="muted"
-          />
-          <StatCard
-            href="/employees"
-            label={t('dashboard.activeWorkers')}
-            value={employeeCount}
-            accent="positive"
-          />
-        </div>
-      </section>
+      <Suspense fallback={<DashboardStatsSkeleton />}>
+        <DashboardStats tenantId={tenantId} t={t} />
+      </Suspense>
 
       {/* Quick actions */}
       <section className="space-y-3">
@@ -315,108 +131,9 @@ export default async function DashboardPage() {
       </section>
 
       {/* Cabinet overview */}
-      <section className="border-t pt-6">
-        <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 text-sm">
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-medium tabular-nums text-foreground">{companyCount}</span>
-            <span className="text-[hsl(var(--text-muted))]">{t('dashboard.companies')}</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-medium tabular-nums text-foreground">{employeeCount}</span>
-            <span className="text-[hsl(var(--text-muted))]">{t('dashboard.employees')}</span>
-          </div>
-          <Link
-            href="/reports"
-            className="ml-auto text-sm text-primary hover:underline"
-          >
-            {t('dashboard.viewFullReport')} →
-          </Link>
-        </div>
-      </section>
+      <Suspense fallback={<DashboardOverviewSkeleton />}>
+        <DashboardOverview tenantId={tenantId} t={t} />
+      </Suspense>
     </div>
-  )
-}
-
-// ─── Sub-components ──────────────────────────────────────────────────
-
-function AlertCard({
-  href,
-  label,
-  value,
-  tone,
-  description,
-}: {
-  href: string
-  label: string
-  value: number
-  tone: 'destructive' | 'warning'
-  description: string
-}) {
-  const accent = tone === 'destructive'
-    ? 'before:bg-[hsl(var(--accent-danger))]'
-    : 'before:bg-[hsl(var(--accent-warning))]'
-  const valueColor = tone === 'destructive'
-    ? 'text-[hsl(var(--accent-danger))]'
-    : 'text-[hsl(var(--accent-warning))]'
-  const bg = tone === 'destructive'
-    ? 'hover:bg-[hsl(0_72%_50%/0.06)]'
-    : 'hover:bg-[hsl(38_92%_38%/0.06)]'
-
-  return (
-    <Link
-      href={href}
-      className={`group relative block rounded-lg border bg-card p-4 transition-colors before:absolute before:left-0 before:top-0 before:h-[2px] before:w-7 before:rounded-b-sm ${accent} ${bg}`}
-    >
-      <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
-        {label}
-      </div>
-      <div className={`mt-1.5 text-3xl font-medium tabular-nums tracking-tight ${valueColor}`}>
-        {value}
-      </div>
-      <div className="mt-1.5 text-[11px] text-[hsl(var(--text-faint))]">
-        {description}
-      </div>
-    </Link>
-  )
-}
-
-function StatCard({
-  href,
-  label,
-  value,
-  hint,
-  accent = 'primary',
-}: {
-  href: string
-  label: string
-  value: number
-  hint?: string
-  accent?: 'primary' | 'positive' | 'warning' | 'danger' | 'muted'
-}) {
-  const accentClass = {
-    primary:  'before:bg-primary',
-    positive: 'before:bg-[hsl(var(--accent-positive))]',
-    warning:  'before:bg-[hsl(var(--accent-warning))]',
-    danger:   'before:bg-[hsl(var(--accent-danger))]',
-    muted:    'before:bg-muted-foreground/30',
-  }[accent]
-
-  return (
-    <Link
-      href={href}
-      className={`group relative block rounded-lg border bg-card p-4 transition-colors hover:bg-[hsl(var(--surface-tinted))] before:absolute before:left-0 before:top-0 before:h-[2px] before:w-7 before:rounded-b-sm ${accentClass}`}
-    >
-      <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]">
-        {label}
-      </div>
-      <div className="mt-1.5 text-3xl font-medium tabular-nums tracking-tight text-foreground">
-        {value}
-      </div>
-      {hint && (
-        <div className="mt-1.5 text-[11px] text-[hsl(var(--text-faint))] tabular-nums">
-          {hint}
-        </div>
-      )}
-    </Link>
   )
 }
