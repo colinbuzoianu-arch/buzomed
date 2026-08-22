@@ -15,10 +15,12 @@ export function CompaniesListSkeleton() {
       <div className="hidden md:block border rounded-lg overflow-hidden">
         <div className="border-b px-4 py-3 flex gap-8">
           {[140, 80, 80, 120, 60].map((w, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders, never reordered
             <Skeleton key={i} className="h-3.5" style={{ width: w }} />
           ))}
         </div>
         {Array.from({ length: 10 }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders, never reordered
           <div key={i} className="px-4 py-3 border-b last:border-b-0 flex items-center gap-4">
             <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
             <Skeleton className="h-4 w-36" />
@@ -31,6 +33,7 @@ export function CompaniesListSkeleton() {
       </div>
       <div className="md:hidden space-y-3">
         {Array.from({ length: 8 }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders, never reordered
           <div key={i} className="border rounded-lg p-4 flex items-center gap-3">
             <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
             <div className="flex-1 space-y-1.5">

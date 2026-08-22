@@ -1,7 +1,4 @@
 import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
-import type { Translator } from '@/lib/i18n'
-import type { Locale } from '@/lib/i18n'
 import { EmptyState } from '@/components/ui/empty-state'
 import {
   Table,
@@ -11,6 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import type { Locale, Translator } from '@/lib/i18n'
+import { prisma } from '@/lib/prisma'
 
 function companyInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -73,7 +72,11 @@ export default async function CompaniesList({
         illustration="companies"
         title={t('companies.emptyTitle')}
         description={t('companies.emptyDescription')}
-        primaryAction={canWriteAdministrative ? { label: `+ ${t('companies.newButton')}`, href: '/companies/new' } : undefined}
+        primaryAction={
+          canWriteAdministrative
+            ? { label: `+ ${t('companies.newButton')}`, href: '/companies/new' }
+            : undefined
+        }
       />
     )
   }
@@ -182,10 +185,15 @@ export default async function CompaniesList({
                 </div>
                 <div className="text-xs text-[hsl(var(--text-muted))] mt-1 space-y-0.5 tabular-nums">
                   {c.cui && <div className="truncate">CUI: {c.cui}</div>}
-                  {c.city && <div className="truncate">{t('common.city')}: {c.city}</div>}
+                  {c.city && (
+                    <div className="truncate">
+                      {t('common.city')}: {c.city}
+                    </div>
+                  )}
                   {c.contactPersonName && <div className="truncate">{c.contactPersonName}</div>}
                   <div className="truncate text-foreground font-medium pt-0.5">
-                    {c._count.employees.toLocaleString(locale === 'ro' ? 'ro-RO' : 'en-GB')} {t('companies.table.employees').toLowerCase()}
+                    {c._count.employees.toLocaleString(locale === 'ro' ? 'ro-RO' : 'en-GB')}{' '}
+                    {t('companies.table.employees').toLowerCase()}
                   </div>
                 </div>
               </div>

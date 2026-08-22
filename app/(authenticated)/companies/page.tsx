@@ -1,12 +1,12 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
+import CompaniesList from '@/components/companies/companies-list'
+import { CompaniesListSkeleton } from '@/components/companies/companies-list-skeleton'
+import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
-import { Button } from '@/components/ui/button'
-import CompaniesList from '@/components/companies/companies-list'
-import { CompaniesListSkeleton } from '@/components/companies/companies-list-skeleton'
 
 export default async function CompaniesPage() {
   const user = await requireUser()

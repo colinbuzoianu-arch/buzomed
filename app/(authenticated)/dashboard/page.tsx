@@ -1,19 +1,19 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { requireUser } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { getLocale, getTranslator } from '@/lib/i18n'
-import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
-import { Button } from '@/components/ui/button'
-import { formatDate } from '@/lib/format-date'
-import { DashboardGreeting } from '@/components/dashboard-greeting'
 import DashboardAlerts from '@/components/dashboard/dashboard-alerts'
 import { DashboardAlertsSkeleton } from '@/components/dashboard/dashboard-alerts-skeleton'
-import DashboardStats from '@/components/dashboard/dashboard-stats'
-import { DashboardStatsSkeleton } from '@/components/dashboard/dashboard-stats-skeleton'
 import DashboardOverview from '@/components/dashboard/dashboard-overview'
 import { DashboardOverviewSkeleton } from '@/components/dashboard/dashboard-overview-skeleton'
+import DashboardStats from '@/components/dashboard/dashboard-stats'
+import { DashboardStatsSkeleton } from '@/components/dashboard/dashboard-stats-skeleton'
+import { DashboardGreeting } from '@/components/dashboard-greeting'
+import { Button } from '@/components/ui/button'
+import { requireUser } from '@/lib/auth'
+import { formatDate } from '@/lib/format-date'
+import { getLocale, getTranslator } from '@/lib/i18n'
+import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
+import { prisma } from '@/lib/prisma'
 
 /**
  * Dashboard — the first thing a cabinet user sees after logging in.
@@ -88,7 +88,12 @@ export default async function DashboardPage() {
             <>
               <Button asChild>
                 <Link href="/examinations/new">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-3.5 w-3.5"
+                  >
                     <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                   </svg>
                   <span>{t('examinations.newButton')}</span>
@@ -99,7 +104,12 @@ export default async function DashboardPage() {
               </Button>
               <Button asChild variant="outline">
                 <Link href="/employees/new">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-3.5 w-3.5"
+                  >
                     <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                   </svg>
                   <span>{t('employees.newButton')}</span>
@@ -108,7 +118,12 @@ export default async function DashboardPage() {
               {caps.canWrite && (
                 <Button asChild variant="outline">
                   <Link href="/companies/new">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="h-3.5 w-3.5"
+                    >
                       <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                     </svg>
                     <span>{t('companies.newButton')}</span>
@@ -118,14 +133,10 @@ export default async function DashboardPage() {
             </>
           )}
           <Button asChild variant="outline">
-            <Link href="/examinations?tab=scadente">
-              {t('dashboard.viewScadente')}
-            </Link>
+            <Link href="/examinations?tab=scadente">{t('dashboard.viewScadente')}</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/reports">
-              {t('nav.reports')}
-            </Link>
+            <Link href="/reports">{t('nav.reports')}</Link>
           </Button>
         </div>
       </section>

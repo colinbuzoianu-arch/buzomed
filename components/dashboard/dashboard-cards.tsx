@@ -13,15 +13,16 @@ export function AlertCard({
   tone: 'destructive' | 'warning'
   description: string
 }) {
-  const accent = tone === 'destructive'
-    ? 'before:bg-[hsl(var(--accent-danger))]'
-    : 'before:bg-[hsl(var(--accent-warning))]'
-  const valueColor = tone === 'destructive'
-    ? 'text-[hsl(var(--accent-danger))]'
-    : 'text-[hsl(var(--accent-warning))]'
-  const bg = tone === 'destructive'
-    ? 'hover:bg-[hsl(0_72%_50%/0.06)]'
-    : 'hover:bg-[hsl(38_92%_38%/0.06)]'
+  const accent =
+    tone === 'destructive'
+      ? 'before:bg-[hsl(var(--accent-danger))]'
+      : 'before:bg-[hsl(var(--accent-warning))]'
+  const valueColor =
+    tone === 'destructive'
+      ? 'text-[hsl(var(--accent-danger))]'
+      : 'text-[hsl(var(--accent-warning))]'
+  const bg =
+    tone === 'destructive' ? 'hover:bg-[hsl(0_72%_50%/0.06)]' : 'hover:bg-[hsl(38_92%_38%/0.06)]'
 
   return (
     <Link
@@ -34,9 +35,7 @@ export function AlertCard({
       <div className={`mt-1.5 text-3xl font-medium tabular-nums tracking-tight ${valueColor}`}>
         {value}
       </div>
-      <div className="mt-1.5 text-[11px] text-[hsl(var(--text-faint))]">
-        {description}
-      </div>
+      <div className="mt-1.5 text-[11px] text-[hsl(var(--text-faint))]">{description}</div>
     </Link>
   )
 }
@@ -55,11 +54,11 @@ export function StatCard({
   accent?: 'primary' | 'positive' | 'warning' | 'danger' | 'muted'
 }) {
   const accentClass = {
-    primary:  'before:bg-primary',
+    primary: 'before:bg-primary',
     positive: 'before:bg-[hsl(var(--accent-positive))]',
-    warning:  'before:bg-[hsl(var(--accent-warning))]',
-    danger:   'before:bg-[hsl(var(--accent-danger))]',
-    muted:    'before:bg-muted-foreground/30',
+    warning: 'before:bg-[hsl(var(--accent-warning))]',
+    danger: 'before:bg-[hsl(var(--accent-danger))]',
+    muted: 'before:bg-muted-foreground/30',
   }[accent]
 
   return (
@@ -74,9 +73,7 @@ export function StatCard({
         {value}
       </div>
       {hint && (
-        <div className="mt-1.5 text-[11px] text-[hsl(var(--text-faint))] tabular-nums">
-          {hint}
-        </div>
+        <div className="mt-1.5 text-[11px] text-[hsl(var(--text-faint))] tabular-nums">{hint}</div>
       )}
     </Link>
   )

@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma'
 import type { Translator } from '@/lib/i18n'
+import { prisma } from '@/lib/prisma'
 import { AlertCard } from './dashboard-cards'
 
 export default async function DashboardAlerts({
@@ -16,10 +16,7 @@ export default async function DashboardAlerts({
         tenantId,
         status: 'overdue',
         deletedAt: null,
-        OR: [
-          { createdFromExaminationId: null },
-          { createdFromExamination: { deletedAt: null } },
-        ],
+        OR: [{ createdFromExaminationId: null }, { createdFromExamination: { deletedAt: null } }],
       },
     }),
 

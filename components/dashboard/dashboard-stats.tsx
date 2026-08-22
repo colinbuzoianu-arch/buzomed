@@ -1,14 +1,8 @@
-import { prisma } from '@/lib/prisma'
 import type { Translator } from '@/lib/i18n'
+import { prisma } from '@/lib/prisma'
 import { StatCard } from './dashboard-cards'
 
-export default async function DashboardStats({
-  tenantId,
-  t,
-}: {
-  tenantId: string
-  t: Translator
-}) {
+export default async function DashboardStats({ tenantId, t }: { tenantId: string; t: Translator }) {
   // Today's boundaries in UTC
   const todayStart = new Date()
   todayStart.setUTCHours(0, 0, 0, 0)
@@ -60,10 +54,7 @@ export default async function DashboardStats({
             lte: new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000),
           },
           deletedAt: null,
-          OR: [
-            { createdFromExaminationId: null },
-            { createdFromExamination: { deletedAt: null } },
-          ],
+          OR: [{ createdFromExaminationId: null }, { createdFromExamination: { deletedAt: null } }],
         },
       }),
 
