@@ -1,13 +1,13 @@
-import { type NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
-import { createElement } from 'react'
 import { randomUUID } from 'crypto'
-import { prisma } from '@/lib/prisma'
+import { type NextRequest, NextResponse } from 'next/server'
+import { createElement } from 'react'
 import { getApiUser } from '@/lib/auth'
-import { canWriteTenantData } from '@/lib/permissions/tenant-data'
-import { createServiceClient } from '@/lib/supabase/admin'
 import { buildStoragePath } from '@/lib/documents/upload-rules'
-import { resolveExaminationDate } from '@/lib/examinations/examined-at'
+import { canWriteTenantData } from '@/lib/permissions/tenant-data'
+import { prisma } from '@/lib/prisma'
+import { createServiceClient } from '@/lib/supabase/admin'
+import { buildFisaPdfData, FISA_PDF_INCLUDE } from '../fisa-pdf/fisa-pdf-data'
 import { FisaPdfDocument } from '../fisa-pdf/fisa-pdf-document'
 
 /**
@@ -59,53 +59,7 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
   // Load examination with all data needed for PDF rendering
   const examination = await prisma.examination.findFirst({
     where: { id: examinationId, tenantId, deletedAt: null },
-    include: {
-      tenant: true,
-      employee: {
-        select: {
-          firstName: true,
-          lastName: true,
-          birthDate: true,
-          gender: true,
-          idDocumentType: true,
-        },
-      },
-      workplace: {
-        include: { company: true },
-      },
-      examinationType: {
-        select: { nameRo: true, code: true },
-      },
-      practitioner: {
-        select: {
-          firstName: true,
-          lastName: true,
-          professionalTitle: true,
-          professionalCode: true,
-          stampImageUrl: true,
-          signatureImageUrl: true,
-        },
-      },
-      location: {
-        select: {
-          name: true,
-          addressLine1: true,
-          addressLine2: true,
-          city: true,
-          county: true,
-        },
-      },
-      revokedBy: {
-        select: {
-          firstName: true,
-          lastName: true,
-          professionalTitle: true,
-        },
-      },
-      supersededBy: {
-        select: { examinationNumber: true },
-      },
-    },
+    include: FISA_PDF_INCLUDE,
   })
 
   if (!examination) {
@@ -118,73 +72,9 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
     )
   }
 
-  // Build PDF data (mirrors fisa-pdf/route.ts exactly)
-  const data = {
-    cabinetName: examination.tenant.legalName ?? examination.tenant.name,
-    logoUrl: examination.tenant.logoUrl ?? null,
-    stampUrl: examination.practitioner?.stampImageUrl ?? null,
-    signatureUrl: examination.practitioner?.signatureImageUrl ?? null,
-    cabinetAddress: [
-      examination.location.addressLine1,
-      examination.location.addressLine2,
-      examination.location.city,
-      examination.location.county,
-    ]
-      .filter(Boolean)
-      .join(', '),
-    examinationNumber: examination.examinationNumber,
-    examinationDate: formatDateRo(resolveExaminationDate(examination)),
-    signedAt: formatDateRo(examination.signedAt),
-    workerName: `${examination.employee.lastName} ${examination.employee.firstName}`,
-    workerBirthDate: examination.employee.birthDate
-      ? formatDateRo(examination.employee.birthDate)
-      : '—',
-    workerGender: examination.employee.gender ?? '—',
-    companyName: examination.workplace.company.name,
-    companyCui: examination.workplace.company.cui ?? '—',
-    workplaceName: examination.workplace.name,
-    workplaceDepartment: examination.workplace.department ?? null,
-    examinationTypeName: examination.examinationType.nameRo,
-    verdict: examination.verdict ?? null,
-    verdictConditions: examination.verdictConditions ?? null,
-    nextExaminationDueDate: examination.nextExaminationDueDate
-      ? formatDateRo(examination.nextExaminationDueDate)
-      : '—',
-    inaptUntil: examination.inaptTemporarUntil
-      ? formatDateRo(examination.inaptTemporarUntil)
-      : null,
-    clinicalFindings: examination.clinicalFindings ?? null,
-    vitalSigns: (() => {
-      const vs = (examination.vitalSigns ?? {}) as Record<string, unknown>
-      return {
-        height: (vs.height as number) ?? null,
-        weight: (vs.weight as number) ?? null,
-        bmi: (vs.bmi as number) ?? null,
-        bpSystolic: (vs.bpSystolic as number) ?? null,
-        bpDiastolic: (vs.bpDiastolic as number) ?? null,
-        pulse: (vs.pulse as number) ?? null,
-      }
-    })(),
-    practitionerName: examination.practitioner
-      ? `${examination.practitioner.lastName} ${examination.practitioner.firstName}`
-      : '—',
-    practitionerTitle: examination.practitioner?.professionalTitle ?? null,
-    practitionerCode: examination.practitioner?.professionalCode ?? null,
-    isDraft: false,
-
-    // A revoked fișă can still be archived — the Documents copy is a record
-    // of what was issued, and it must carry the withdrawal just as the live
-    // PDF does, or the archived copy would read as valid.
-    isRevoked: examination.revokedAt !== null,
-    revokedAt: examination.revokedAt
-      ? formatDateRo(examination.revokedAt)
-      : null,
-    revokedByName: examination.revokedBy
-      ? `${examination.revokedBy.professionalTitle ?? ''} ${examination.revokedBy.lastName} ${examination.revokedBy.firstName}`.trim()
-      : null,
-    revocationReason: examination.revocationReason ?? null,
-    supersededByNumber: examination.supersededBy?.examinationNumber ?? null,
-  }
+  // Same payload builder the streaming fisa-pdf route uses, so the archived
+  // copy can never disagree with what the browser shows.
+  const data = buildFisaPdfData(examination)
 
   // Generate PDF
   let buffer: Uint8Array
@@ -193,10 +83,7 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
     buffer = await renderToBuffer(createElement(FisaPdfDocument, data) as any)
   } catch (err) {
     console.error('[archive-fisa] pdf render failed', err)
-    return NextResponse.json(
-      { error: 'pdf_render_failed', message: String(err) },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'pdf_render_failed', message: String(err) }, { status: 500 })
   }
 
   // Upload to Supabase Storage
@@ -247,12 +134,4 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
   })
 
   return NextResponse.json({ document: doc, alreadyExisted: false })
-}
-
-function formatDateRo(date: Date): string {
-  return new Intl.DateTimeFormat('ro-RO', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(date)
 }

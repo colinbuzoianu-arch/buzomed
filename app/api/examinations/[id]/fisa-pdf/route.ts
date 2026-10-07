@@ -1,11 +1,11 @@
-import { type NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
+import { type NextRequest, NextResponse } from 'next/server'
 import { createElement } from 'react'
-import { prisma } from '@/lib/prisma'
+import { getClientIp, writeAuditLog } from '@/lib/audit/log'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
-import { writeAuditLog, getClientIp } from '@/lib/audit/log'
-import { resolveExaminationDate } from '@/lib/examinations/examined-at'
+import { prisma } from '@/lib/prisma'
+import { buildFisaPdfData, FISA_PDF_INCLUDE } from './fisa-pdf-data'
 import { FisaPdfDocument } from './fisa-pdf-document'
 
 /**
@@ -40,54 +40,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
 
   const examination = await prisma.examination.findFirst({
     where: { id, tenantId: auth.user.tenantId, deletedAt: null },
-    include: {
-      tenant: true,
-      employee: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          birthDate: true,
-          gender: true,
-          idDocumentType: true,
-        },
-      },
-      workplace: {
-        include: { company: true },
-      },
-      examinationType: {
-        select: { nameRo: true, code: true },
-      },
-      practitioner: {
-        select: {
-          firstName: true,
-          lastName: true,
-          professionalTitle: true,
-          professionalCode: true,
-          stampImageUrl: true,
-          signatureImageUrl: true,
-        },
-      },
-      location: {
-        select: {
-          name: true,
-          addressLine1: true,
-          addressLine2: true,
-          city: true,
-          county: true,
-        },
-      },
-      revokedBy: {
-        select: {
-          firstName: true,
-          lastName: true,
-          professionalTitle: true,
-        },
-      },
-      supersededBy: {
-        select: { examinationNumber: true },
-      },
-    },
+    include: FISA_PDF_INCLUDE,
   })
 
   if (!examination) {
@@ -96,85 +49,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
 
   // Build the data payload for the PDF component — plain serializable
   // values only, no Prisma objects.
-  const data = {
-    cabinetName: examination.tenant.legalName ?? examination.tenant.name,
-    logoUrl: examination.tenant.logoUrl ?? null,
-    stampUrl: examination.practitioner?.stampImageUrl ?? null,
-    signatureUrl: examination.practitioner?.signatureImageUrl ?? null,
-    cabinetAddress: [
-      examination.location.addressLine1,
-      examination.location.addressLine2,
-      examination.location.city,
-      examination.location.county,
-    ]
-      .filter(Boolean)
-      .join(', '),
-
-    examinationNumber: examination.examinationNumber,
-    // The consultation date, which may legitimately precede the signing
-    // date. resolveExaminationDate keeps the old completedAt/createdAt
-    // fallback for records that predate the examinedAt column, so already
-    // issued documents reprint identically.
-    examinationDate: formatDateRo(resolveExaminationDate(examination)),
-    signedAt: examination.signedAt ? formatDateRo(examination.signedAt) : null,
-
-    // Worker
-    workerName: `${examination.employee.lastName} ${examination.employee.firstName}`,
-    workerBirthDate: examination.employee.birthDate
-      ? formatDateRo(examination.employee.birthDate)
-      : '—',
-    workerGender: examination.employee.gender ?? '—',
-
-    // Company / workplace
-    companyName: examination.workplace.company.name,
-    companyCui: examination.workplace.company.cui ?? '—',
-    workplaceName: examination.workplace.name,
-    workplaceDepartment: examination.workplace.department ?? null,
-
-    // Exam type
-    examinationTypeName: examination.examinationType.nameRo,
-
-    // Clinical
-    verdict: examination.verdict ?? null,
-    verdictConditions: examination.verdictConditions ?? null,
-    nextExaminationDueDate: examination.nextExaminationDueDate
-      ? formatDateRo(examination.nextExaminationDueDate)
-      : '—',
-    inaptUntil: examination.inaptTemporarUntil
-      ? formatDateRo(examination.inaptTemporarUntil)
-      : null,
-    clinicalFindings: examination.clinicalFindings ?? null,
-    vitalSigns: (() => {
-      const vs = (examination.vitalSigns ?? {}) as Record<string, unknown>
-      return {
-        height: (vs.height as number) ?? null,
-        weight: (vs.weight as number) ?? null,
-        bmi: (vs.bmi as number) ?? null,
-        bpSystolic: (vs.bpSystolic as number) ?? null,
-        bpDiastolic: (vs.bpDiastolic as number) ?? null,
-        pulse: (vs.pulse as number) ?? null,
-      }
-    })(),
-
-    // Practitioner
-    practitionerName: examination.practitioner
-      ? `${examination.practitioner.lastName} ${examination.practitioner.firstName}`
-      : '—',
-    practitionerTitle: examination.practitioner?.professionalTitle ?? null,
-    practitionerCode: examination.practitioner?.professionalCode ?? null,
-
-    isDraft: examination.signedAt === null,
-
-    isRevoked: examination.revokedAt !== null,
-    revokedAt: examination.revokedAt
-      ? formatDateRo(examination.revokedAt)
-      : null,
-    revokedByName: examination.revokedBy
-      ? `${examination.revokedBy.professionalTitle ?? ''} ${examination.revokedBy.lastName} ${examination.revokedBy.firstName}`.trim()
-      : null,
-    revocationReason: examination.revocationReason ?? null,
-    supersededByNumber: examination.supersededBy?.examinationNumber ?? null,
-  }
+  const data = buildFisaPdfData(examination)
 
   let buffer: Uint8Array
   try {
@@ -182,10 +57,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     buffer = await renderToBuffer(createElement(FisaPdfDocument, data) as any)
   } catch (err) {
     console.error('[fisa-pdf] render failed', err)
-    return NextResponse.json(
-      { error: 'pdf_render_failed', message: String(err) },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'pdf_render_failed', message: String(err) }, { status: 500 })
   }
 
   await writeAuditLog({
@@ -207,12 +79,4 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
       'Cache-Control': 'no-store',
     },
   })
-}
-
-function formatDateRo(date: Date): string {
-  return new Intl.DateTimeFormat('ro-RO', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(date)
 }
