@@ -4,6 +4,7 @@ import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
 import { EXAM_TYPE_DOCUMENTS } from '@/lib/examinations/document-templates'
 import { fillExaminationPdf } from '@/lib/examinations/pdf-fill'
+import { resolveExaminationDate } from '@/lib/examinations/examined-at'
 
 interface RouteContext {
   params: Promise<{ id: string; docKey: string }>
@@ -56,7 +57,10 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   const vt = (examination.visionTest ?? {}) as Record<string, unknown>
   const str = (v: unknown): string =>
     v !== null && v !== undefined && v !== '' ? String(v) : ''
-  const examDate = formatDateRo(examination.completedAt ?? examination.createdAt)
+  // Same date the fișă page and fisa-pdf print — these templates include
+  // fisa_aptitudine itself, so computing it differently here would make the
+  // official form disagree with the other two renderings of the same fact.
+  const examDate = formatDateRo(resolveExaminationDate(examination))
   const nextDueDate = examination.nextExaminationDueDate
     ? formatDateRo(examination.nextExaminationDueDate)
     : ''
