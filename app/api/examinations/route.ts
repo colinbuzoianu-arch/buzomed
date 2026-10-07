@@ -1,21 +1,15 @@
+import type { ExaminationRequestSource, ExaminationStatus, Prisma } from '@prisma/client'
 import { type NextRequest, NextResponse } from 'next/server'
-import type { Prisma } from '@prisma/client'
-import type {
-  ExaminationStatus,
-  ExaminationRequestSource,
-} from '@prisma/client'
-import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
-import {
-  canReadTenantData,
-  canWriteAdministrative,
-} from '@/lib/permissions/tenant-data'
-import { asObject, optionalString } from '@/lib/validation'
-import { canTenantDo } from '@/lib/subscription'
 import { ensurePrimaryLocation } from '@/lib/examinations/auto-location'
 import { createExaminationWithNumber } from '@/lib/examinations/numbering'
-import { deliverWebhook } from '@/lib/webhooks/deliver'
+import { parseScheduledAt } from '@/lib/examinations/scheduled-at'
+import { canReadTenantData, canWriteAdministrative } from '@/lib/permissions/tenant-data'
+import { prisma } from '@/lib/prisma'
+import { canTenantDo } from '@/lib/subscription'
 import { logSystemError } from '@/lib/system-log/error-log'
+import { asObject, optionalString } from '@/lib/validation'
+import { deliverWebhook } from '@/lib/webhooks/deliver'
 
 /**
  * Examinations live at the tenant level (not nested under employee or
@@ -43,16 +37,10 @@ const VALID_REQUEST_SOURCES: ExaminationRequestSource[] = [
 export async function GET(request: NextRequest) {
   const auth = await getApiUser()
   if (!auth.user) {
-    return NextResponse.json(
-      { error: 'unauthorized', reason: auth.reason },
-      { status: 401 }
-    )
+    return NextResponse.json({ error: 'unauthorized', reason: auth.reason }, { status: 401 })
   }
   if (!auth.user.tenantId) {
-    return NextResponse.json(
-      { error: 'no_tenant' },
-      { status: 403 }
-    )
+    return NextResponse.json({ error: 'no_tenant' }, { status: 403 })
   }
   if (!canReadTenantData(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
@@ -113,10 +101,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await getApiUser()
   if (!auth.user) {
-    return NextResponse.json(
-      { error: 'unauthorized', reason: auth.reason },
-      { status: 401 }
-    )
+    return NextResponse.json({ error: 'unauthorized', reason: auth.reason }, { status: 401 })
   }
   if (!auth.user.tenantId) {
     return NextResponse.json({ error: 'no_tenant' }, { status: 403 })
@@ -158,18 +143,16 @@ export async function POST(request: NextRequest) {
 
   // Scheduled date is optional — exams can be created "right now" without
   // a future scheduled timestamp. Default to now() in that case.
+  //
+  // Bounded against typos rather than against backdating: an appointment may
+  // legitimately be in the future or in the recent past, but accepting any
+  // parseable datetime let a mistyped year create a slot centuries off and
+  // pollute every date-ranged report that reads it. See
+  // lib/examinations/scheduled-at.ts for why these bounds are looser than
+  // the ones on examinedAt.
   let scheduledAt: Date | null = null
   if (body.scheduledAt !== undefined && body.scheduledAt !== null && body.scheduledAt !== '') {
-    if (typeof body.scheduledAt !== 'string') {
-      issues.push('scheduledAt must be an ISO datetime string')
-    } else {
-      const parsed = new Date(body.scheduledAt)
-      if (isNaN(parsed.getTime())) {
-        issues.push('scheduledAt is not a valid ISO datetime')
-      } else {
-        scheduledAt = parsed
-      }
-    }
+    scheduledAt = parseScheduledAt(body.scheduledAt, issues) ?? null
   }
 
   let requestSource: ExaminationRequestSource | undefined
@@ -206,10 +189,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (issues.length > 0) {
-    return NextResponse.json(
-      { error: 'validation_failed', issues },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'validation_failed', issues }, { status: 400 })
   }
 
   // Resolve and verify entities. All tenant-scoped.
@@ -261,16 +241,10 @@ export async function POST(request: NextRequest) {
     )
   }
   if (!examinationType) {
-    return NextResponse.json(
-      { error: 'examination_type_not_found' },
-      { status: 404 }
-    )
+    return NextResponse.json({ error: 'examination_type_not_found' }, { status: 404 })
   }
   if (!practitioner) {
-    return NextResponse.json(
-      { error: 'practitioner_not_found' },
-      { status: 404 }
-    )
+    return NextResponse.json({ error: 'practitioner_not_found' }, { status: 404 })
   }
   // Schema requires practitionerId — confirm role is practitioner-capable.
   if (
@@ -296,9 +270,7 @@ export async function POST(request: NextRequest) {
     resolvedWorkplaceId = currentAssignment.workplace.id
   } else {
     const bodyWorkplaceId =
-      typeof body.workplaceId === 'string' && body.workplaceId
-        ? body.workplaceId
-        : null
+      typeof body.workplaceId === 'string' && body.workplaceId ? body.workplaceId : null
     if (bodyWorkplaceId) {
       const wp = await prisma.workplace.findFirst({
         where: {
@@ -329,10 +301,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Resolve the cabinet's primary location (auto-create on first use).
-  const locationId = await ensurePrimaryLocation(
-    auth.user.tenantId,
-    'Sediu principal'
-  )
+  const locationId = await ensurePrimaryLocation(auth.user.tenantId, 'Sediu principal')
 
   // Create with collision-safe numbering.
   try {

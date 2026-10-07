@@ -1,10 +1,11 @@
-import { type NextRequest, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
+import { type NextRequest, NextResponse } from 'next/server'
 import { getApiUser } from '@/lib/auth'
-import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
-import { asObject, optionalDateTime } from '@/lib/validation'
 import { ensurePrimaryLocation } from '@/lib/examinations/auto-location'
+import { parseScheduledAt } from '@/lib/examinations/scheduled-at'
+import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
+import { prisma } from '@/lib/prisma'
+import { asObject } from '@/lib/validation'
 
 const MAX_BATCH = 200
 
@@ -14,8 +15,16 @@ const MAX_BATCH = 200
 // mode=employees — active employees with no scheduled/in_progress exam
 //                  (first-time or freshly imported employees)
 
-const BULK_HORIZONS = ['overdue', 'thisWeek', 'thisMonth', 'next30', 'next60', 'next90', 'all'] as const
-type BulkHorizon = typeof BULK_HORIZONS[number]
+const BULK_HORIZONS = [
+  'overdue',
+  'thisWeek',
+  'thisMonth',
+  'next30',
+  'next60',
+  'next90',
+  'all',
+] as const
+type BulkHorizon = (typeof BULK_HORIZONS)[number]
 
 function horizonDateRange(h: BulkHorizon): { from: Date | null; to: Date | null } {
   const today = new Date()
@@ -26,27 +35,34 @@ function horizonDateRange(h: BulkHorizon): { from: Date | null; to: Date | null 
     return t
   }
   switch (h) {
-    case 'overdue':   return { from: null,  to: today       }
-    case 'thisWeek':  return { from: today, to: addDays(7)  }
+    case 'overdue':
+      return { from: null, to: today }
+    case 'thisWeek':
+      return { from: today, to: addDays(7) }
     case 'thisMonth':
-    case 'next30':    return { from: today, to: addDays(30) }
-    case 'next60':    return { from: today, to: addDays(60) }
-    case 'next90':    return { from: today, to: addDays(90) }
-    case 'all':       return { from: null,  to: null        }
+    case 'next30':
+      return { from: today, to: addDays(30) }
+    case 'next60':
+      return { from: today, to: addDays(60) }
+    case 'next90':
+      return { from: today, to: addDays(90) }
+    case 'all':
+      return { from: null, to: null }
   }
 }
 
 export async function GET(request: NextRequest) {
   const auth = await getApiUser()
-  if (!auth.user) return NextResponse.json({ error: 'unauthorized', reason: auth.reason }, { status: 401 })
+  if (!auth.user)
+    return NextResponse.json({ error: 'unauthorized', reason: auth.reason }, { status: 401 })
   if (!auth.user.tenantId || !canWriteAdministrative(auth.user, auth.user.tenantId))
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
 
   const sp = request.nextUrl.searchParams
-  const mode            = sp.get('mode') === 'recalls' ? 'recalls' : 'employees'
-  const companyId       = sp.get('companyId')        || null
-  const workplaceId     = sp.get('workplaceId')      || null
-  const department      = sp.get('department')       || null
+  const mode = sp.get('mode') === 'recalls' ? 'recalls' : 'employees'
+  const companyId = sp.get('companyId') || null
+  const workplaceId = sp.get('workplaceId') || null
+  const department = sp.get('department') || null
 
   // ── employees mode ────────────────────────────────────────────────────────
 
@@ -66,7 +82,7 @@ export async function GET(request: NextRequest) {
         some: {
           isCurrent: true,
           ...(workplaceId ? { workplaceId } : {}),
-          ...(department  ? { workplace: { department } } : {}),
+          ...(department ? { workplace: { department } } : {}),
         },
       }
     }
@@ -114,7 +130,7 @@ export async function GET(request: NextRequest) {
     const filtered = employees.filter((e) => !activeExamSet.has(e.id))
 
     // Derive filter metadata from result set
-    const workplacesMap  = new Map<string, string>()
+    const workplacesMap = new Map<string, string>()
     const departmentsSet = new Set<string>()
     for (const e of filtered) {
       const wp = e.workplaceAssignments[0]?.workplace
@@ -128,23 +144,23 @@ export async function GET(request: NextRequest) {
     const result = filtered.map((e) => {
       const wp = e.workplaceAssignments[0]?.workplace ?? null
       return {
-        id:                  e.id,
-        employeeId:          e.id,
-        employeeName:        `${e.lastName} ${e.firstName}`,
-        companyEmployeeId:   e.companyEmployeeId,
-        jobTitle:            e.jobTitle,
+        id: e.id,
+        employeeId: e.id,
+        employeeName: `${e.lastName} ${e.firstName}`,
+        companyEmployeeId: e.companyEmployeeId,
+        jobTitle: e.jobTitle,
         companyId,
-        companyName:         e.company?.name ?? companyName,
-        workplaceId:         wp?.id   ?? null,
-        workplaceName:       wp?.name ?? null,
-        department:          wp?.department ?? null,
-        examinationTypeId:   null,
+        companyName: e.company?.name ?? companyName,
+        workplaceId: wp?.id ?? null,
+        workplaceName: wp?.name ?? null,
+        department: wp?.department ?? null,
+        examinationTypeId: null,
         examinationTypeName: null,
-        dueDate:             null,
-        status:              'no_examination' as const,
-        daysOverdue:         null,
-        hasConflict:         false,
-        hasNoWorkplace:      wp === null,
+        dueDate: null,
+        status: 'no_examination' as const,
+        daysOverdue: null,
+        hasConflict: false,
+        hasNoWorkplace: wp === null,
       }
     })
 
@@ -153,9 +169,9 @@ export async function GET(request: NextRequest) {
       total: result.length,
       employeesWithoutWorkplace: result.filter((r) => r.hasNoWorkplace).length,
       filters: {
-        companies:        e_company_filters(filtered),
-        workplaces:       Array.from(workplacesMap.entries()).map(([id, name]) => ({ id, name })),
-        departments:      Array.from(departmentsSet).sort(),
+        companies: e_company_filters(filtered),
+        workplaces: Array.from(workplacesMap.entries()).map(([id, name]) => ({ id, name })),
+        departments: Array.from(departmentsSet).sort(),
         examinationTypes: [],
       },
     })
@@ -164,27 +180,30 @@ export async function GET(request: NextRequest) {
   // ── recalls mode ──────────────────────────────────────────────────────────
 
   const examinationTypeId = sp.get('examinationTypeId') || null
-  const horizonRaw        = sp.get('horizon') ?? 'all'
-  const horizon           = (BULK_HORIZONS as readonly string[]).includes(horizonRaw)
-    ? (horizonRaw as BulkHorizon) : 'all'
+  const horizonRaw = sp.get('horizon') ?? 'all'
+  const horizon = (BULK_HORIZONS as readonly string[]).includes(horizonRaw)
+    ? (horizonRaw as BulkHorizon)
+    : 'all'
 
   const today = new Date()
   today.setUTCHours(0, 0, 0, 0)
 
   const { from, to } = horizonDateRange(horizon)
   const dueDateWhere: Prisma.RecallWhereInput =
-    from && to  ? { dueDate: { gte: from, lt: to } } :
-    from        ? { dueDate: { gte: from } } :
-    to          ? { dueDate: { lt: to } }    : {}
+    from && to
+      ? { dueDate: { gte: from, lt: to } }
+      : from
+        ? { dueDate: { gte: from } }
+        : to
+          ? { dueDate: { lt: to } }
+          : {}
 
   const workplaceWhere: Prisma.WorkplaceWhereInput = { deletedAt: null }
-  if (companyId)   workplaceWhere.companyId  = companyId
-  if (department)  workplaceWhere.department = department
+  if (companyId) workplaceWhere.companyId = companyId
+  if (department) workplaceWhere.department = department
 
   const statusWhere: Prisma.RecallWhereInput =
-    horizon === 'overdue'
-      ? { status: 'overdue' }
-      : { status: { in: ['pending', 'overdue'] } }
+    horizon === 'overdue' ? { status: 'overdue' } : { status: { in: ['pending', 'overdue'] } }
 
   const rawRecalls = await prisma.recall.findMany({
     where: {
@@ -192,13 +211,10 @@ export async function GET(request: NextRequest) {
       deletedAt: null,
       ...statusWhere,
       ...dueDateWhere,
-      ...(workplaceId       ? { workplaceId }       : {}),
+      ...(workplaceId ? { workplaceId } : {}),
       ...(examinationTypeId ? { examinationTypeId } : {}),
       workplace: workplaceWhere,
-      OR: [
-        { createdFromExaminationId: null },
-        { createdFromExamination: { deletedAt: null } },
-      ],
+      OR: [{ createdFromExaminationId: null }, { createdFromExamination: { deletedAt: null } }],
     },
     orderBy: [{ status: 'asc' }, { dueDate: 'asc' }],
     take: 2000,
@@ -248,10 +264,10 @@ export async function GET(request: NextRequest) {
     for (const c of conflicts) conflictSet.add(c.employeeId)
   }
 
-  const companiesMap   = new Map<string, string>()
+  const companiesMap = new Map<string, string>()
   const workplacesMap2 = new Map<string, string>()
   const departmentsSet2 = new Set<string>()
-  const examTypesMap   = new Map<string, string>()
+  const examTypesMap = new Map<string, string>()
   for (const r of recalls) {
     companiesMap.set(r.workplace.company.id, r.workplace.company.name)
     workplacesMap2.set(r.workplace.id, r.workplace.name)
@@ -261,33 +277,34 @@ export async function GET(request: NextRequest) {
 
   const todayMs = today.getTime()
   const result = recalls.map((r) => ({
-    id:                  r.id,
-    employeeId:          r.employee.id,
-    employeeName:        `${r.employee.lastName} ${r.employee.firstName}`,
-    companyEmployeeId:   r.employee.companyEmployeeId,
-    jobTitle:            r.employee.jobTitle,
-    companyId:           r.workplace.company.id,
-    companyName:         r.workplace.company.name,
-    workplaceId:         r.workplace.id,
-    workplaceName:       r.workplace.name,
-    department:          r.workplace.department,
-    examinationTypeId:   r.examinationType.id,
+    id: r.id,
+    employeeId: r.employee.id,
+    employeeName: `${r.employee.lastName} ${r.employee.firstName}`,
+    companyEmployeeId: r.employee.companyEmployeeId,
+    jobTitle: r.employee.jobTitle,
+    companyId: r.workplace.company.id,
+    companyName: r.workplace.company.name,
+    workplaceId: r.workplace.id,
+    workplaceName: r.workplace.name,
+    department: r.workplace.department,
+    examinationTypeId: r.examinationType.id,
     examinationTypeName: r.examinationType.nameRo,
-    dueDate:             r.dueDate.toISOString().slice(0, 10),
-    status:              r.status as 'pending' | 'overdue',
-    daysOverdue:         r.dueDate.getTime() < todayMs
-      ? Math.round((todayMs - r.dueDate.getTime()) / 86_400_000)
-      : null,
-    hasConflict:         conflictSet.has(r.employee.id),
+    dueDate: r.dueDate.toISOString().slice(0, 10),
+    status: r.status as 'pending' | 'overdue',
+    daysOverdue:
+      r.dueDate.getTime() < todayMs
+        ? Math.round((todayMs - r.dueDate.getTime()) / 86_400_000)
+        : null,
+    hasConflict: conflictSet.has(r.employee.id),
   }))
 
   return NextResponse.json({
     recalls: result,
     total: result.length,
     filters: {
-      companies:        Array.from(companiesMap.entries()).map(([id, name]) => ({ id, name })),
-      workplaces:       Array.from(workplacesMap2.entries()).map(([id, name]) => ({ id, name })),
-      departments:      Array.from(departmentsSet2).sort(),
+      companies: Array.from(companiesMap.entries()).map(([id, name]) => ({ id, name })),
+      workplaces: Array.from(workplacesMap2.entries()).map(([id, name]) => ({ id, name })),
+      departments: Array.from(departmentsSet2).sort(),
       examinationTypes: Array.from(examTypesMap.entries()).map(([id, name]) => ({ id, name })),
     },
   })
@@ -326,7 +343,10 @@ export async function POST(request: NextRequest) {
   const itemsInput = Array.isArray(body.items) ? body.items : []
 
   if (itemsInput.length === 0) {
-    return NextResponse.json({ error: 'validation_failed', issues: ['items is empty'] }, { status: 400 })
+    return NextResponse.json(
+      { error: 'validation_failed', issues: ['items is empty'] },
+      { status: 400 }
+    )
   }
   if (itemsInput.length > MAX_BATCH) {
     return NextResponse.json({ error: 'too_many_items', max: MAX_BATCH }, { status: 400 })
@@ -383,13 +403,22 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < itemsInput.length; i++) {
       const r = asObject(itemsInput[i]) ?? {}
       const employeeId = typeof r.employeeId === 'string' ? r.employeeId.trim() : null
-      if (!employeeId) { parseIssues.push(`item[${i}]: employeeId is required`); continue }
-      const examinationTypeId = typeof r.examinationTypeId === 'string' ? r.examinationTypeId.trim() : null
-      if (!examinationTypeId) { parseIssues.push(`item[${i}]: examinationTypeId is required`); continue }
+      if (!employeeId) {
+        parseIssues.push(`item[${i}]: employeeId is required`)
+        continue
+      }
+      const examinationTypeId =
+        typeof r.examinationTypeId === 'string' ? r.examinationTypeId.trim() : null
+      if (!examinationTypeId) {
+        parseIssues.push(`item[${i}]: examinationTypeId is required`)
+        continue
+      }
       const workplaceIdRaw = typeof r.workplaceId === 'string' ? r.workplaceId.trim() : null
       let scheduledAt: Date | null = null
       if (r.scheduledAt) {
-        const parsed = optionalDateTime(`item[${i}].scheduledAt`, r.scheduledAt, parseIssues)
+        const parsed = parseScheduledAt(r.scheduledAt, parseIssues, {
+          field: `item[${i}].scheduledAt`,
+        })
         if (parsed) scheduledAt = parsed
       }
       empItems.push({ employeeId, scheduledAt, examinationTypeId, workplaceId: workplaceIdRaw })
@@ -399,8 +428,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Bulk pre-fetch all validation data (replaces 4 per-item queries) ─────
-    const allEmployeeIds   = empItems.map(i => i.employeeId)
-    const allExamTypeIds   = [...new Set(empItems.map(i => i.examinationTypeId))]
+    const allEmployeeIds = empItems.map((i) => i.employeeId)
+    const allExamTypeIds = [...new Set(empItems.map((i) => i.examinationTypeId))]
 
     const [employeeRows, assignmentRows, examTypeRows] = await Promise.all([
       prisma.employee.findMany({
@@ -414,7 +443,11 @@ export async function POST(request: NextRequest) {
         select: { id: true },
       }),
       prisma.employeeWorkplaceAssignment.findMany({
-        where: { employeeId: { in: allEmployeeIds }, tenantId: auth.user.tenantId, isCurrent: true },
+        where: {
+          employeeId: { in: allEmployeeIds },
+          tenantId: auth.user.tenantId,
+          isCurrent: true,
+        },
         select: { employeeId: true, workplaceId: true },
       }),
       prisma.examinationType.findMany({
@@ -423,9 +456,9 @@ export async function POST(request: NextRequest) {
       }),
     ])
 
-    const validEmployeeIds  = new Set(employeeRows.map(e => e.id))
-    const wpByEmployee      = new Map(assignmentRows.map(a => [a.employeeId, a.workplaceId]))
-    const validExamTypeIds  = new Set(examTypeRows.map(e => e.id))
+    const validEmployeeIds = new Set(employeeRows.map((e) => e.id))
+    const wpByEmployee = new Map(assignmentRows.map((a) => [a.employeeId, a.workplaceId]))
+    const validExamTypeIds = new Set(examTypeRows.map((e) => e.id))
 
     // Resolve all workplace IDs needed, then validate them in one query
     const neededWorkplaceIds = new Set<string>()
@@ -434,13 +467,23 @@ export async function POST(request: NextRequest) {
       if (wpId) neededWorkplaceIds.add(wpId)
     }
     const workplaceRows = await prisma.workplace.findMany({
-      where: { id: { in: [...neededWorkplaceIds] }, tenantId: auth.user.tenantId, isActive: true, deletedAt: null },
+      where: {
+        id: { in: [...neededWorkplaceIds] },
+        tenantId: auth.user.tenantId,
+        isActive: true,
+        deletedAt: null,
+      },
       select: { id: true },
     })
-    const validWorkplaceIds = new Set(workplaceRows.map(w => w.id))
+    const validWorkplaceIds = new Set(workplaceRows.map((w) => w.id))
 
     // ── Process items ─────────────────────────────────────────────────────
-    const results: Array<{ itemId: string; outcome: 'created' | 'failed'; examinationId?: string; reason?: string }> = []
+    const results: Array<{
+      itemId: string
+      outcome: 'created' | 'failed'
+      examinationId?: string
+      reason?: string
+    }> = []
     let created = 0
     let failed = 0
 
@@ -448,32 +491,40 @@ export async function POST(request: NextRequest) {
       try {
         if (!validEmployeeIds.has(item.employeeId)) {
           results.push({ itemId: item.employeeId, outcome: 'failed', reason: 'employee_not_found' })
-          failed++; continue
+          failed++
+          continue
         }
         if (!validExamTypeIds.has(item.examinationTypeId)) {
           results.push({ itemId: item.employeeId, outcome: 'failed', reason: 'exam_type_inactive' })
-          failed++; continue
+          failed++
+          continue
         }
         const resolvedWorkplaceId = item.workplaceId ?? wpByEmployee.get(item.employeeId) ?? null
         if (!resolvedWorkplaceId) {
           results.push({ itemId: item.employeeId, outcome: 'failed', reason: 'no_workplace' })
-          failed++; continue
+          failed++
+          continue
         }
         if (!validWorkplaceIds.has(resolvedWorkplaceId)) {
-          results.push({ itemId: item.employeeId, outcome: 'failed', reason: 'workplace_unavailable' })
-          failed++; continue
+          results.push({
+            itemId: item.employeeId,
+            outcome: 'failed',
+            reason: 'workplace_unavailable',
+          })
+          failed++
+          continue
         }
 
         const exam = await prisma.$transaction(async (tx) =>
           createExaminationWithNumberInTx(tx, auth.user!.tenantId!, (n) => ({
-            tenant:          { connect: { id: auth.user!.tenantId! } },
-            employee:        { connect: { id: item.employeeId } },
-            workplace:       { connect: { id: resolvedWorkplaceId } },
+            tenant: { connect: { id: auth.user!.tenantId! } },
+            employee: { connect: { id: item.employeeId } },
+            workplace: { connect: { id: resolvedWorkplaceId } },
             examinationType: { connect: { id: item.examinationTypeId } },
-            practitioner:    { connect: { id: practitioner.id } },
-            location:        { connect: { id: locationId } },
-            examinationNumber:   n.number,
-            examinationYear:     n.year,
+            practitioner: { connect: { id: practitioner.id } },
+            location: { connect: { id: locationId } },
+            examinationNumber: n.number,
+            examinationYear: n.year,
             examinationSequence: n.sequence,
             scheduledAt: item.scheduledAt,
             status: 'scheduled',
@@ -508,10 +559,15 @@ export async function POST(request: NextRequest) {
   for (let i = 0; i < itemsInput.length; i++) {
     const r = asObject(itemsInput[i]) ?? {}
     const recallId = typeof r.recallId === 'string' ? r.recallId.trim() : null
-    if (!recallId) { parseIssues.push(`item[${i}]: recallId is required`); continue }
+    if (!recallId) {
+      parseIssues.push(`item[${i}]: recallId is required`)
+      continue
+    }
     let scheduledAt: Date | null = null
     if (r.scheduledAt) {
-      const parsed = optionalDateTime(`item[${i}].scheduledAt`, r.scheduledAt, parseIssues)
+      const parsed = parseScheduledAt(r.scheduledAt, parseIssues, {
+        field: `item[${i}].scheduledAt`,
+      })
       if (parsed) scheduledAt = parsed
     }
     items.push({ recallId, scheduledAt })
@@ -521,20 +577,20 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Bulk pre-fetch all recalls (replaces N per-item findFirst queries) ──
-  const allRecallIds = items.map(i => i.recallId)
+  const allRecallIds = items.map((i) => i.recallId)
   const recallRows = await prisma.recall.findMany({
     where: { id: { in: allRecallIds }, tenantId: auth.user.tenantId, deletedAt: null },
     include: {
-      employee:        { select: { id: true, archivedAt: true, deletedAt: true } },
-      workplace:       { select: { id: true, isActive: true, deletedAt: true } },
+      employee: { select: { id: true, archivedAt: true, deletedAt: true } },
+      workplace: { select: { id: true, isActive: true, deletedAt: true } },
       examinationType: { select: { id: true, isActive: true } },
     },
   })
-  const recallById = new Map(recallRows.map(r => [r.id, r]))
+  const recallById = new Map(recallRows.map((r) => [r.id, r]))
 
   const results: Array<{
     itemId: string
-    recallId: string  // kept for backward compat
+    recallId: string // kept for backward compat
     outcome: 'created' | 'failed'
     examinationId?: string
     reason?: string
@@ -547,46 +603,72 @@ export async function POST(request: NextRequest) {
       const recall = recallById.get(item.recallId) ?? null
 
       if (!recall) {
-        results.push({ itemId: item.recallId, recallId: item.recallId, outcome: 'failed', reason: 'recall_not_found' })
-        failed++; continue
+        results.push({
+          itemId: item.recallId,
+          recallId: item.recallId,
+          outcome: 'failed',
+          reason: 'recall_not_found',
+        })
+        failed++
+        continue
       }
       if (recall.status === 'completed' || recall.status === 'cancelled') {
-        results.push({ itemId: item.recallId, recallId: item.recallId, outcome: 'failed', reason: `already_${recall.status}` })
-        failed++; continue
+        results.push({
+          itemId: item.recallId,
+          recallId: item.recallId,
+          outcome: 'failed',
+          reason: `already_${recall.status}`,
+        })
+        failed++
+        continue
       }
       if (recall.employee.archivedAt || recall.employee.deletedAt) {
-        results.push({ itemId: item.recallId, recallId: item.recallId, outcome: 'failed', reason: 'employee_unavailable' })
-        failed++; continue
+        results.push({
+          itemId: item.recallId,
+          recallId: item.recallId,
+          outcome: 'failed',
+          reason: 'employee_unavailable',
+        })
+        failed++
+        continue
       }
       if (!recall.workplace.isActive || recall.workplace.deletedAt) {
-        results.push({ itemId: item.recallId, recallId: item.recallId, outcome: 'failed', reason: 'workplace_unavailable' })
-        failed++; continue
+        results.push({
+          itemId: item.recallId,
+          recallId: item.recallId,
+          outcome: 'failed',
+          reason: 'workplace_unavailable',
+        })
+        failed++
+        continue
       }
       if (!recall.examinationType.isActive) {
-        results.push({ itemId: item.recallId, recallId: item.recallId, outcome: 'failed', reason: 'exam_type_inactive' })
-        failed++; continue
+        results.push({
+          itemId: item.recallId,
+          recallId: item.recallId,
+          outcome: 'failed',
+          reason: 'exam_type_inactive',
+        })
+        failed++
+        continue
       }
 
       const exam = await prisma.$transaction(async (tx) => {
-        const e = await createExaminationWithNumberInTx(
-          tx,
-          auth.user!.tenantId!,
-          (n) => ({
-            tenant:          { connect: { id: auth.user!.tenantId! } },
-            employee:        { connect: { id: recall.employee.id } },
-            workplace:       { connect: { id: recall.workplace.id } },
-            examinationType: { connect: { id: recall.examinationType.id } },
-            practitioner:    { connect: { id: practitioner.id } },
-            location:        { connect: { id: locationId } },
-            examinationNumber:   n.number,
-            examinationYear:     n.year,
-            examinationSequence: n.sequence,
-            scheduledAt: item.scheduledAt,
-            status: 'scheduled',
-            requestSource: 'periodic_due',
-            notes: `Created from recall ${recall.id} (batch schedule)`,
-          })
-        )
+        const e = await createExaminationWithNumberInTx(tx, auth.user!.tenantId!, (n) => ({
+          tenant: { connect: { id: auth.user!.tenantId! } },
+          employee: { connect: { id: recall.employee.id } },
+          workplace: { connect: { id: recall.workplace.id } },
+          examinationType: { connect: { id: recall.examinationType.id } },
+          practitioner: { connect: { id: practitioner.id } },
+          location: { connect: { id: locationId } },
+          examinationNumber: n.number,
+          examinationYear: n.year,
+          examinationSequence: n.sequence,
+          scheduledAt: item.scheduledAt,
+          status: 'scheduled',
+          requestSource: 'periodic_due',
+          notes: `Created from recall ${recall.id} (batch schedule)`,
+        }))
         await tx.recall.update({
           where: { id: recall.id },
           data: { status: 'completed', completedExaminationId: e.id },
@@ -594,11 +676,24 @@ export async function POST(request: NextRequest) {
         return e
       })
 
-      results.push({ itemId: item.recallId, recallId: item.recallId, outcome: 'created', examinationId: exam.id })
+      results.push({
+        itemId: item.recallId,
+        recallId: item.recallId,
+        outcome: 'created',
+        examinationId: exam.id,
+      })
       created++
     } catch (err) {
-      console.error('[bulk-schedule] item failed', { recallId: item.recallId, error: (err as Error).message })
-      results.push({ itemId: item.recallId, recallId: item.recallId, outcome: 'failed', reason: 'unexpected_error' })
+      console.error('[bulk-schedule] item failed', {
+        recallId: item.recallId,
+        error: (err as Error).message,
+      })
+      results.push({
+        itemId: item.recallId,
+        recallId: item.recallId,
+        outcome: 'failed',
+        reason: 'unexpected_error',
+      })
       failed++
     }
   }
@@ -611,7 +706,11 @@ export async function POST(request: NextRequest) {
 async function createExaminationWithNumberInTx(
   tx: Prisma.TransactionClient,
   tenantId: string,
-  buildData: (n: { year: number; sequence: number; number: string }) => Prisma.ExaminationCreateInput
+  buildData: (n: {
+    year: number
+    sequence: number
+    number: string
+  }) => Prisma.ExaminationCreateInput
 ): Promise<{ id: string }> {
   const MAX_RETRIES = 5
   const year = new Date().getUTCFullYear()
