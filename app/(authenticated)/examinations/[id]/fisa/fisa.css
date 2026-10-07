@@ -28,6 +28,38 @@
   text-align: center;
 }
 
+/*
+ * Withdrawn fișă. Unlike the draft banner, this is intentionally loud and
+ * intentionally survives printing: the whole point is that a reprint of a
+ * withdrawn certificate can never pass for a valid one. The print rules at
+ * the bottom of this file force the colours through (browsers strip
+ * backgrounds when printing unless print-color-adjust is set).
+ */
+.fisa-revoked-banner {
+  background: #fee2e2;
+  border: 2px solid #dc2626;
+  color: #7f1d1d;
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.fisa-revoked-section {
+  margin-top: 18px;
+  padding: 10px 12px;
+  border: 1px solid #dc2626;
+  border-radius: 4px;
+  background: #fef2f2;
+}
+
+.fisa-revoked-section .fisa-subhead {
+  color: #7f1d1d;
+}
+
 .fisa-page {
   background: white;
   border: 1px solid #e5e7eb;
@@ -198,6 +230,17 @@
   .fisa-page {
     border: none;
     padding: 16mm;
+    page-break-inside: avoid;
+  }
+
+  /* Force the withdrawal colours into print output. Browsers drop
+     background colours when printing by default, which would reduce the
+     banner to plain black text on white — exactly the ambiguity we are
+     trying to remove. The block must also never be split across pages. */
+  .fisa-revoked-banner,
+  .fisa-revoked-section {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
     page-break-inside: avoid;
   }
 

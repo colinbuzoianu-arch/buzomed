@@ -6,6 +6,7 @@ import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { FisaArchiveButton } from './fisa-archive-button'
 import './fisa.css'
 import { formatDate } from '@/lib/format-date'
+import { resolveExaminationDate } from '@/lib/examinations/examined-at'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
 interface PageProps {
@@ -79,6 +80,16 @@ export default async function FisaPage({ params }: PageProps) {
           county: true,
         },
       },
+      revokedBy: {
+        select: {
+          firstName: true,
+          lastName: true,
+          professionalTitle: true,
+        },
+      },
+      supersededBy: {
+        select: { id: true, examinationNumber: true },
+      },
     },
   })
 
@@ -143,6 +154,16 @@ export default async function FisaPage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* A withdrawn fișă must be unmistakable on a reprint, so this banner
+          is deliberately kept in print output rather than hidden like the
+          controls above. It takes precedence over the draft banner: a
+          revoked exam is always signed, so the two can't both apply. */}
+      {examination.revokedAt && (
+        <div className="fisa-revoked-banner">
+          {t('examinations.fisa.revokedBanner')}
+        </div>
+      )}
+
       {!examination.signedAt && (
         <div className="fisa-draft-banner print:bg-yellow-100">
           {t('examinations.fisa.draftBanner')}
@@ -171,16 +192,15 @@ export default async function FisaPage({ params }: PageProps) {
               {t('examinations.fisa.numberLabel')}:{' '}
               <strong>{examination.examinationNumber}</strong>
             </div>
+            {/* The date of the consultation itself — NOT the moment the
+                record was signed, which is rendered in the signature block
+                below. These were previously the same value, so a fișă
+                entered days after the consultation printed the entry date.
+                See lib/examinations/examined-at.ts. */}
             <div>
-              {t('examinations.fisa.dateLabel')}:{' '}
+              {t('examinations.fisa.examinationDateLabel')}:{' '}
               <strong>
-                {formatDate(
-                  examination.signedAt ??
-                    examination.completedAt ??
-                    examination.createdAt,
-                  'medium',
-                  'ro'
-                )}
+                {formatDate(resolveExaminationDate(examination), 'medium', 'ro')}
               </strong>
             </div>
           </div>
@@ -308,6 +328,54 @@ export default async function FisaPage({ params }: PageProps) {
               {t('examinations.fisa.recommendations')}
             </h2>
             <div className="fisa-prose">{examination.recommendations}</div>
+          </section>
+        )}
+
+        {/* Withdrawal details. Printed as part of the document so the paper
+            copy carries the reason and the replacement, not just a stamp. */}
+        {examination.revokedAt && (
+          <section className="fisa-revoked-section">
+            <h2 className="fisa-subhead">
+              {t('examinations.fisa.revokedHeader')}
+            </h2>
+            <div className="fisa-row">
+              <span className="fisa-label">
+                {t('examinations.fisa.revokedAtLabel')}:
+              </span>
+              <span className="fisa-value">
+                {formatDate(examination.revokedAt, 'medium', 'ro')}
+              </span>
+            </div>
+            {examination.revokedBy && (
+              <div className="fisa-row">
+                <span className="fisa-label">
+                  {t('examinations.fisa.revokedByLabel')}:
+                </span>
+                <span className="fisa-value">
+                  {examination.revokedBy.professionalTitle ?? ''}{' '}
+                  {examination.revokedBy.lastName}{' '}
+                  {examination.revokedBy.firstName}
+                </span>
+              </div>
+            )}
+            {examination.supersededBy && (
+              <div className="fisa-row">
+                <span className="fisa-label">
+                  {t('examinations.fisa.supersededByLabel')}:
+                </span>
+                <span className="fisa-value">
+                  {examination.supersededBy.examinationNumber}
+                </span>
+              </div>
+            )}
+            {examination.revocationReason && (
+              <div className="fisa-conditions">
+                <strong>
+                  {t('examinations.fisa.revocationReasonLabel')}:
+                </strong>{' '}
+                {examination.revocationReason}
+              </div>
+            )}
           </section>
         )}
 

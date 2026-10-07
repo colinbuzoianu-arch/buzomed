@@ -67,6 +67,41 @@ const S = StyleSheet.create({
     transform: 'rotate(-40deg)',
   },
 
+  /* Withdrawal watermark. Heavier and more opaque than the draft one: a
+     draft is an internal preview, a withdrawn certificate is a document
+     that may be in circulation and must be visibly void at a glance. */
+  revokedWatermark: {
+    position: 'absolute',
+    top: 230,
+    left: 40,
+    fontSize: 60,
+    color: '#dc2626',
+    opacity: 0.22,
+    fontWeight: 700,
+    transform: 'rotate(-35deg)',
+  },
+
+  revokedNotice: {
+    marginTop: 10,
+    marginBottom: 10,
+    padding: 8,
+    border: '2pt solid #dc2626',
+    backgroundColor: '#fef2f2',
+  },
+
+  revokedNoticeTitle: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#7f1d1d',
+    marginBottom: 4,
+  },
+
+  revokedNoticeLine: {
+    fontSize: 9,
+    color: '#7f1d1d',
+    marginBottom: 2,
+  },
+
   // Cabinet header
   header: {
     flexDirection: 'row',
@@ -243,6 +278,13 @@ export interface FisaPdfProps {
   practitionerTitle: string | null
   practitionerCode: string | null
   isDraft: boolean
+  // Withdrawal. When isRevoked, the PDF must not be mistakable for a valid
+  // certificate — see the watermark and notice block in the render below.
+  isRevoked: boolean
+  revokedAt: string | null
+  revokedByName: string | null
+  revocationReason: string | null
+  supersededByNumber: string | null
 }
 
 function verdictColor(verdict: string | null): string {
@@ -295,6 +337,13 @@ export function FisaPdfDocument(props: FisaPdfProps) {
           <Text style={S.draft}>DRAFT</Text>
         )}
 
+        {/* Withdrawal watermark. Mutually exclusive with DRAFT in practice —
+            only a signed fișă can be revoked — but ordered after it so that
+            if both ever applied, the more serious one draws on top. */}
+        {props.isRevoked && (
+          <Text style={S.revokedWatermark}>RETRASĂ</Text>
+        )}
+
         {/* Header */}
         <View style={S.header}>
           <View>
@@ -313,6 +362,36 @@ export function FisaPdfDocument(props: FisaPdfProps) {
             <Text style={S.docSubtitle}>{props.examinationDate}</Text>
           </View>
         </View>
+
+        {/* Withdrawal notice, placed above the verdict so a reader meets it
+            before the (no longer valid) conclusion. */}
+        {props.isRevoked && (
+          <View style={S.revokedNotice}>
+            <Text style={S.revokedNoticeTitle}>
+              FIȘĂ RETRASĂ — ACEST DOCUMENT NU MAI ESTE VALABIL
+            </Text>
+            {props.revokedAt && (
+              <Text style={S.revokedNoticeLine}>
+                Retrasă la: {props.revokedAt}
+              </Text>
+            )}
+            {props.revokedByName && (
+              <Text style={S.revokedNoticeLine}>
+                Retrasă de: {props.revokedByName}
+              </Text>
+            )}
+            {props.supersededByNumber && (
+              <Text style={S.revokedNoticeLine}>
+                Înlocuită de fișa nr. {props.supersededByNumber}
+              </Text>
+            )}
+            {props.revocationReason && (
+              <Text style={S.revokedNoticeLine}>
+                Motiv: {props.revocationReason}
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Verdict — most important, shown prominently */}
         <View

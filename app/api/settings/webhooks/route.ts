@@ -11,6 +11,7 @@ const VALID_EVENTS: WebhookEvent[] = [
   'examination.signed',
   'examination.scheduled',
   'examination.completed',
+  'examination.revoked',
   'recall.due_soon',
   'employee.created',
   'employee.updated',

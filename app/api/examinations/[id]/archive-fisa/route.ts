@@ -7,6 +7,7 @@ import { getApiUser } from '@/lib/auth'
 import { canWriteTenantData } from '@/lib/permissions/tenant-data'
 import { createServiceClient } from '@/lib/supabase/admin'
 import { buildStoragePath } from '@/lib/documents/upload-rules'
+import { resolveExaminationDate } from '@/lib/examinations/examined-at'
 import { FisaPdfDocument } from '../fisa-pdf/fisa-pdf-document'
 
 /**
@@ -94,6 +95,16 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
           county: true,
         },
       },
+      revokedBy: {
+        select: {
+          firstName: true,
+          lastName: true,
+          professionalTitle: true,
+        },
+      },
+      supersededBy: {
+        select: { examinationNumber: true },
+      },
     },
   })
 
@@ -122,9 +133,7 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
       .filter(Boolean)
       .join(', '),
     examinationNumber: examination.examinationNumber,
-    examinationDate: examination.completedAt
-      ? formatDateRo(examination.completedAt)
-      : formatDateRo(examination.createdAt),
+    examinationDate: formatDateRo(resolveExaminationDate(examination)),
     signedAt: formatDateRo(examination.signedAt),
     workerName: `${examination.employee.lastName} ${examination.employee.firstName}`,
     workerBirthDate: examination.employee.birthDate
@@ -162,6 +171,19 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
     practitionerTitle: examination.practitioner?.professionalTitle ?? null,
     practitionerCode: examination.practitioner?.professionalCode ?? null,
     isDraft: false,
+
+    // A revoked fișă can still be archived — the Documents copy is a record
+    // of what was issued, and it must carry the withdrawal just as the live
+    // PDF does, or the archived copy would read as valid.
+    isRevoked: examination.revokedAt !== null,
+    revokedAt: examination.revokedAt
+      ? formatDateRo(examination.revokedAt)
+      : null,
+    revokedByName: examination.revokedBy
+      ? `${examination.revokedBy.professionalTitle ?? ''} ${examination.revokedBy.lastName} ${examination.revokedBy.firstName}`.trim()
+      : null,
+    revocationReason: examination.revocationReason ?? null,
+    supersededByNumber: examination.supersededBy?.examinationNumber ?? null,
   }
 
   // Generate PDF

@@ -1039,7 +1039,9 @@
       "stepVerdict": "Verdict",
       "stepBack": "Înapoi",
       "stepContinue": "Continuă",
-      "stepAutoSaved": "✓ Salvat automat"
+      "stepAutoSaved": "✓ Salvat automat",
+      "examinedAtLabel": "Data examinării",
+      "examinedAtHelp": "Data la care a avut loc efectiv consultația. Lasă gol pentru a folosi data introducerii."
     },
     "actions": {
       "start": "Începe examinarea",
@@ -1081,7 +1083,15 @@
       "saveToDocuments": "Salvează în documente",
       "savingToDocuments": "Se salvează…",
       "savedToDocuments": "Salvat în documente",
-      "saveToDocumentsError": "Eroare la salvare. Încearcă din nou."
+      "saveToDocumentsError": "Eroare la salvare. Încearcă din nou.",
+      "examinationDateLabel": "Data examinării",
+      "signedDateLabel": "Data semnării",
+      "revokedBanner": "FIȘĂ RETRASĂ — acest document nu mai este valabil.",
+      "revokedHeader": "Retragere",
+      "revokedAtLabel": "Retrasă la",
+      "revokedByLabel": "Retrasă de",
+      "revocationReasonLabel": "Motivul retragerii",
+      "supersededByLabel": "Înlocuită de fișa nr."
     },
     "exportCsv": "Exportă CSV",
     "priorExam": {
@@ -1111,6 +1121,23 @@
     "typeGroups": {
       "hg355": "Examene medicale (HG 355/2007)",
       "special": "Documente speciale"
+    },
+    "revoke": {
+      "button": "Retrage fișa",
+      "dialogTitle": "Retragere fișă de aptitudine",
+      "dialogIntro": "O fișă semnată nu poate fi modificată. Retragerea o marchează ca nevalabilă, păstrând înregistrarea și verdictul original. Acțiunea este definitivă.",
+      "reasonLabel": "Motivul retragerii",
+      "reasonPlaceholder": "Ex: analize primite ulterior arată că lucrătorul este inapt pentru acest post.",
+      "reasonTooShort": "Motivul trebuie să aibă cel puțin 10 caractere.",
+      "supersededByLabel": "Fișa care o înlocuiește (opțional)",
+      "supersededByNone": "Niciuna",
+      "confirm": "Confirmă retragerea",
+      "cancel": "Anulează",
+      "submitting": "Se retrage…",
+      "error": "Retragerea a eșuat. Încearcă din nou.",
+      "badge": "Retrasă",
+      "revokedNoticeTitle": "Fișă retrasă",
+      "recallsCancelled": "Scadențe anulate automat: {count}"
     }
   },
   "documents": {

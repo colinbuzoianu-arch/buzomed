@@ -40,6 +40,7 @@ const ALL_EVENTS = [
   { value: 'examination.signed', label: 'Fișă semnată' },
   { value: 'examination.scheduled', label: 'Examinare programată' },
   { value: 'examination.completed', label: 'Examinare finalizată' },
+  { value: 'examination.revoked', label: 'Fișă retrasă' },
   { value: 'recall.due_soon', label: 'Scadență apropiată' },
   { value: 'employee.created', label: 'Angajat creat' },
   { value: 'employee.updated', label: 'Angajat modificat' },

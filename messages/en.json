@@ -1039,7 +1039,9 @@
       "stepVerdict": "Verdict",
       "stepBack": "Back",
       "stepContinue": "Continue",
-      "stepAutoSaved": "✓ Auto-saved"
+      "stepAutoSaved": "✓ Auto-saved",
+      "examinedAtLabel": "Examination date",
+      "examinedAtHelp": "The date the consultation actually took place. Leave empty to use the entry date."
     },
     "actions": {
       "start": "Start examination",
@@ -1081,7 +1083,15 @@
       "saveToDocuments": "Save to Documents",
       "savingToDocuments": "Saving…",
       "savedToDocuments": "Saved to Documents",
-      "saveToDocumentsError": "Save failed. Try again."
+      "saveToDocumentsError": "Save failed. Try again.",
+      "examinationDateLabel": "Examination date",
+      "signedDateLabel": "Date signed",
+      "revokedBanner": "CERTIFICATE WITHDRAWN — this document is no longer valid.",
+      "revokedHeader": "Withdrawal",
+      "revokedAtLabel": "Withdrawn at",
+      "revokedByLabel": "Withdrawn by",
+      "revocationReasonLabel": "Reason for withdrawal",
+      "supersededByLabel": "Superseded by certificate no."
     },
     "exportCsv": "Export CSV",
     "priorExam": {
@@ -1111,6 +1121,23 @@
     "typeGroups": {
       "hg355": "Medical examinations (HG 355/2007)",
       "special": "Special documents"
+    },
+    "revoke": {
+      "button": "Withdraw certificate",
+      "dialogTitle": "Withdraw fitness certificate",
+      "dialogIntro": "A signed certificate cannot be edited. Withdrawing marks it invalid while preserving the record and its original verdict. This action is final.",
+      "reasonLabel": "Reason for withdrawal",
+      "reasonPlaceholder": "E.g. lab results received afterwards show the worker is unfit for this role.",
+      "reasonTooShort": "The reason must be at least 10 characters.",
+      "supersededByLabel": "Replacement certificate (optional)",
+      "supersededByNone": "None",
+      "confirm": "Confirm withdrawal",
+      "cancel": "Cancel",
+      "submitting": "Withdrawing…",
+      "error": "Withdrawal failed. Please try again.",
+      "badge": "Withdrawn",
+      "revokedNoticeTitle": "Certificate withdrawn",
+      "recallsCancelled": "Recalls cancelled automatically: {count}"
     }
   },
   "documents": {

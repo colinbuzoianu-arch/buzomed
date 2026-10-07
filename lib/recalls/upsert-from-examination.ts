@@ -1,4 +1,4 @@
-import type { PrismaClient, Prisma, RecallStatus } from '@prisma/client'
+import type { Prisma, PrismaClient, RecallStatus } from '@prisma/client'
 
 /**
  * Create or update the Recall row that follows from a signed examination.
@@ -44,11 +44,7 @@ export async function upsertRecallFromExamination(
   input: UpsertRecallInput
 ): Promise<string | null> {
   // No recall for inapt/inapt_temporar/no-verdict cases.
-  if (
-    !input.verdict ||
-    input.verdict === 'inapt' ||
-    input.verdict === 'inapt_temporar'
-  ) {
+  if (!input.verdict || input.verdict === 'inapt' || input.verdict === 'inapt_temporar') {
     return null
   }
   if (!input.nextExaminationDueDate) {
@@ -70,8 +66,7 @@ export async function upsertRecallFromExamination(
   if (existing) {
     // Only update if the date actually changed AND the recall hasn't
     // already been completed/cancelled (those terminal states stay put).
-    const sameDate =
-      existing.dueDate.getTime() === input.nextExaminationDueDate.getTime()
+    const sameDate = existing.dueDate.getTime() === input.nextExaminationDueDate.getTime()
     const terminal: RecallStatus[] = ['completed', 'cancelled']
     if (sameDate || terminal.includes(existing.status)) {
       return existing.id
@@ -96,6 +91,69 @@ export async function upsertRecallFromExamination(
     select: { id: true },
   })
   return created.id
+}
+
+/**
+ * Cancel the Recall rows that were derived from an examination whose fișă
+ * has just been revoked.
+ *
+ * Why this is necessary: signing an `apt` examination schedules the next
+ * periodic check from that verdict's due date. If the verdict turns out to
+ * be wrong and the fișă is withdrawn, that schedule is built on a fact the
+ * cabinet no longer stands behind — leaving it `pending` would keep
+ * driving recall notifications off a retracted document, and would collide
+ * with the recall created by whichever examination replaces it.
+ *
+ * Only non-terminal recalls are touched. A recall already `completed`
+ * (a follow-up examination consumed it) or already `cancelled` stays as
+ * it is: those describe things that actually happened, and rewriting them
+ * would falsify the history rather than correct it.
+ *
+ * The reason is appended to the recall's notes rather than stored in a
+ * dedicated column — Recall has no revocation concept of its own, and the
+ * authoritative record of why lives on the examination itself.
+ *
+ * Returns the number of recalls cancelled (0 is normal and expected: an
+ * `inapt` examination never created one).
+ */
+export async function cancelRecallsFromRevokedExamination(
+  client: PrismaClient | Prisma.TransactionClient,
+  params: {
+    examinationId: string
+    tenantId: string
+    examinationNumber: string
+  }
+): Promise<number> {
+  const affected = await client.recall.findMany({
+    where: {
+      tenantId: params.tenantId,
+      createdFromExaminationId: params.examinationId,
+      status: { notIn: ['completed', 'cancelled'] },
+      deletedAt: null,
+    },
+    select: { id: true, notes: true },
+  })
+
+  if (affected.length === 0) return 0
+
+  const stamp = new Date().toISOString()
+  const note = `[${stamp}] Anulat automat — fișa ${params.examinationNumber} a fost retrasă.`
+
+  // Updated one at a time because each row's note is appended to its own
+  // existing text; there is no single `data` payload that fits all rows.
+  // Recalls per examination are at most a handful, so the round-trip count
+  // is not a concern here.
+  for (const recall of affected) {
+    await client.recall.update({
+      where: { id: recall.id },
+      data: {
+        status: 'cancelled',
+        notes: recall.notes ? `${recall.notes}\n${note}` : note,
+      },
+    })
+  }
+
+  return affected.length
 }
 
 /**

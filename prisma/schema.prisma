@@ -225,6 +225,7 @@ enum AuditAction {
   download
   print
   sign
+  revoke
   login
   logout
   export
@@ -390,6 +391,7 @@ model User {
   
   examinationsAsPractitioner      Examination[]                 @relation("ExaminationPractitioner")
   examinationsSigned              Examination[]                 @relation("ExaminationSigner")
+  examinationsRevoked             Examination[]                 @relation("ExaminationRevoker")
   vaccinationsAdministered        Vaccination[]
   medicalEventsHandled            MedicalEvent[]
   workplacesCreated               Workplace[]
@@ -952,7 +954,15 @@ model Examination {
   scheduledAt                 DateTime?                 @map("scheduled_at") @db.Timestamptz
   startedAt                   DateTime?                 @map("started_at") @db.Timestamptz
   completedAt                 DateTime?                 @map("completed_at") @db.Timestamptz
-  
+
+  // The date the consultation physically took place, as entered by the
+  // practitioner. Distinct from createdAt (row inserted) and signedAt
+  // (document signed): a consultation held on the 3rd may only be entered
+  // and signed on the 10th, and the fișă must show the 3rd. Validated in
+  // lib/examinations/examined-at.ts (never in the future, not absurdly old).
+  // Nullable — pre-existing rows fall back to completedAt/createdAt.
+  examinedAt                  DateTime?                 @map("examined_at") @db.Timestamptz
+
   status                      ExaminationStatus         @default(scheduled)
   requestSource               ExaminationRequestSource? @map("request_source")
   referringDocumentNumber     String?                   @map("referring_document_number")
@@ -984,7 +994,18 @@ model Examination {
   // Immutability after signing
   signedAt                    DateTime?                 @map("signed_at") @db.Timestamptz
   signedByUserId              String?                   @map("signed_by_user_id") @db.Uuid
-  
+
+  // Revocation (retragere). A signed fișă stays immutable — we never edit
+  // the verdict of a document the worker may already have handed to their
+  // employer. Instead it can be withdrawn: the record remains, visibly
+  // marked as retrasă on both the HTML fișă and the PDF, carrying a reason
+  // and an optional pointer to the examination that replaces it.
+  // Revocation is final — there is deliberately no un-revoke path.
+  revokedAt                   DateTime?                 @map("revoked_at") @db.Timestamptz
+  revokedByUserId             String?                   @map("revoked_by_user_id") @db.Uuid
+  revocationReason            String?                   @map("revocation_reason")
+  supersededByExaminationId   String?                   @map("superseded_by_examination_id") @db.Uuid
+
   createdAt                   DateTime                  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                   DateTime                  @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt                   DateTime?                 @map("deleted_at") @db.Timestamptz
@@ -996,7 +1017,10 @@ model Examination {
   practitioner                User                @relation("ExaminationPractitioner", fields: [practitionerId], references: [id])
   location                    Location            @relation(fields: [locationId], references: [id])
   signedBy                    User?               @relation("ExaminationSigner", fields: [signedByUserId], references: [id])
-  
+  revokedBy                   User?               @relation("ExaminationRevoker", fields: [revokedByUserId], references: [id])
+  supersededBy                Examination?        @relation("ExaminationSupersede", fields: [supersededByExaminationId], references: [id])
+  supersedes                  Examination[]       @relation("ExaminationSupersede")
+
   vaccinations                Vaccination[]
   recallsTriggered            Recall[]            @relation("RecallSourceExamination")
   recallsCompleted            Recall[]            @relation("RecallCompletingExamination")
@@ -1009,6 +1033,7 @@ model Examination {
   @@index([employeeId, completedAt])
   @@index([practitionerId, completedAt])
   @@index([status])
+  @@index([tenantId, revokedAt])
 }
 
 // ============================================================================

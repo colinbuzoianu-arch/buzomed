@@ -17,6 +17,7 @@ import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
 import { DocumentsPanel } from './documents-panel'
 import { ExaminationActions } from './examination-actions'
 import { ExaminationStepper } from './examination-stepper'
+import { RevokeFisaDialog } from './revoke-fisa-dialog'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -71,6 +72,12 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           signatureImageUrl: true,
         },
       },
+      revokedBy: {
+        select: { firstName: true, lastName: true, professionalTitle: true },
+      },
+      supersededBy: {
+        select: { id: true, examinationNumber: true },
+      },
     },
   })
 
@@ -122,8 +129,30 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
   }
 
   const isSigned = examination.signedAt !== null
+  const isRevoked = examination.revokedAt !== null
   const isLocked =
     isSigned || examination.status === 'cancelled' || examination.status === 'no_show'
+
+  // Candidates for "which fișă replaces this one" in the withdrawal dialog:
+  // the same employee's other signed examinations. Only queried when the
+  // dialog can actually be shown, so an ordinary (unsigned, or already
+  // withdrawn) examination page doesn't pay for it.
+  const canRevoke = caps.canWriteClinical && isSigned && !isRevoked
+  const revokeCandidates = canRevoke
+    ? await prisma.examination.findMany({
+        where: {
+          tenantId: user.tenantId,
+          employeeId: examination.employeeId,
+          id: { not: examination.id },
+          signedAt: { not: null },
+          revokedAt: null,
+          deletedAt: null,
+        },
+        orderBy: { signedAt: 'desc' },
+        take: 20,
+        select: { id: true, examinationNumber: true },
+      })
+    : []
 
   const examSections = getSectionsForExamType(examination.examinationType.code)
   const prefillEnabled =
@@ -248,9 +277,17 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
                 signedAt={examination.signedAt}
                 locale={locale === 'en' ? 'en' : 'ro'}
               />
-              {isSigned && (
+              {isSigned && !isRevoked && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border text-emerald-700 bg-emerald-50 border-emerald-200">
                   ✓ {t('examinations.signedBadge')}
+                </span>
+              )}
+              {/* A withdrawn fișă replaces the "signed" badge rather than
+                  sitting next to it — showing both would read as a valid
+                  certificate that also happens to be withdrawn. */}
+              {isRevoked && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border text-red-700 bg-red-50 border-red-200 dark:text-red-300 dark:bg-red-950 dark:border-red-900">
+                  {t('examinations.revoke.badge')}
                 </span>
               )}
               {examination.scheduledAt && (
@@ -276,9 +313,89 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
                 </Link>
               </Button>
             )}
+            {canRevoke && (
+              <RevokeFisaDialog
+                examinationId={examination.id}
+                candidates={revokeCandidates}
+                minReasonLength={10}
+                labels={{
+                  button: t('examinations.revoke.button'),
+                  dialogTitle: t('examinations.revoke.dialogTitle'),
+                  dialogIntro: t('examinations.revoke.dialogIntro'),
+                  reasonLabel: t('examinations.revoke.reasonLabel'),
+                  reasonPlaceholder: t('examinations.revoke.reasonPlaceholder'),
+                  reasonTooShort: t('examinations.revoke.reasonTooShort'),
+                  supersededByLabel: t('examinations.revoke.supersededByLabel'),
+                  supersededByNone: t('examinations.revoke.supersededByNone'),
+                  confirm: t('examinations.revoke.confirm'),
+                  cancel: t('examinations.revoke.cancel'),
+                  submitting: t('examinations.revoke.submitting'),
+                  error: t('examinations.revoke.error'),
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
+
+      {/* Withdrawal notice. Sits above the clinical content so it is the
+          first thing read on a withdrawn examination. */}
+      {isRevoked && examination.revokedAt && (
+        <div className="rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/40">
+          <h2 className="font-semibold text-red-900 dark:text-red-200">
+            {t('examinations.revoke.revokedNoticeTitle')}
+          </h2>
+          <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="inline text-red-900/70 dark:text-red-200/70">
+                {t('examinations.fisa.revokedAtLabel')}:{' '}
+              </dt>
+              <dd className="inline text-red-900 dark:text-red-200">
+                {formatDate(
+                  examination.revokedAt,
+                  'datetime',
+                  locale === 'ro' ? 'ro' : 'en'
+                )}
+              </dd>
+            </div>
+            {examination.revokedBy && (
+              <div>
+                <dt className="inline text-red-900/70 dark:text-red-200/70">
+                  {t('examinations.fisa.revokedByLabel')}:{' '}
+                </dt>
+                <dd className="inline text-red-900 dark:text-red-200">
+                  {examination.revokedBy.professionalTitle ?? ''}{' '}
+                  {examination.revokedBy.lastName}{' '}
+                  {examination.revokedBy.firstName}
+                </dd>
+              </div>
+            )}
+            {examination.supersededBy && (
+              <div>
+                <dt className="inline text-red-900/70 dark:text-red-200/70">
+                  {t('examinations.fisa.supersededByLabel')}:{' '}
+                </dt>
+                <dd className="inline">
+                  <Link
+                    href={`/examinations/${examination.supersededBy.id}`}
+                    className="font-mono text-red-900 underline dark:text-red-200"
+                  >
+                    #{examination.supersededBy.examinationNumber}
+                  </Link>
+                </dd>
+              </div>
+            )}
+          </dl>
+          {examination.revocationReason && (
+            <p className="mt-2 text-sm text-red-900 dark:text-red-200">
+              <span className="text-red-900/70 dark:text-red-200/70">
+                {t('examinations.fisa.revocationReasonLabel')}:{' '}
+              </span>
+              {examination.revocationReason}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Persistent, read-only context bar */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-4 border-b space-y-3">
@@ -429,6 +546,9 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           nextExaminationDueDate: examination.nextExaminationDueDate
             ? examination.nextExaminationDueDate.toISOString().slice(0, 10)
             : '',
+          examinedAt: examination.examinedAt
+            ? examination.examinedAt.toISOString().slice(0, 10)
+            : '',
         }}
         defaultIntervalMonths={examination.workplace.examinationIntervalMonths}
         hazardHintLabels={hazardHintLabels}
@@ -480,6 +600,8 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           fieldInaptTemporarUntil: t('examinations.form.fieldInaptTemporarUntil'),
           fieldNextDueDate: t('examinations.form.fieldNextDueDate'),
           fieldNextDueDateHelp: t('examinations.form.fieldNextDueDateHelp'),
+          fieldExaminedAt: t('examinations.form.examinedAtLabel'),
+          fieldExaminedAtHelp: t('examinations.form.examinedAtHelp'),
           saveButton: t('examinations.form.saveButton'),
           saving: t('examinations.form.saving'),
           savedToast: t('examinations.form.savedToast'),

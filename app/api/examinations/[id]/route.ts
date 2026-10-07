@@ -8,6 +8,7 @@ import {
   canWriteClinical,
 } from '@/lib/permissions/tenant-data'
 import { asObject, optionalDate, optionalString } from '@/lib/validation'
+import { parseExaminedAt } from '@/lib/examinations/examined-at'
 
 /**
  * Single examination operations.
@@ -15,14 +16,21 @@ import { asObject, optionalDate, optionalString } from '@/lib/validation'
  *   GET    — full record with all relations
  *   PATCH  — update clinical data, verdict, notes
  *   DELETE — soft-delete; only allowed while UNSIGNED. Signed exams are
- *            legal records and cannot be removed via the API. (A
- *            separate "annul" workflow with audit trail would be needed
- *            for that — future session.)
+ *            legal records and cannot be removed via the API.
  *
  * Immutability after signing: PATCH on a signed examination is refused.
- * If the practitioner needs to correct a signed exam, the current
- * workflow is to cancel + re-create. This matches medical recordkeeping
- * norms — once signed and given to the patient, it's "issued."
+ * Once signed, the fișă has been issued — the worker may already have
+ * handed it to their employer — so the verdict cannot be rewritten.
+ *
+ * To correct a signed examination the workflow is:
+ *   1. create and sign a new examination with the correct verdict
+ *   2. POST /api/examinations/[id]/revoke on the old one, with a reason
+ *      and `supersededByExaminationId` pointing at the new one
+ *
+ * Note that /cancel and DELETE both refuse signed examinations too, so
+ * revocation is the only route for an issued document. The error message
+ * below says so explicitly: it previously advised "cancel and create a new
+ * one", which was impossible to follow.
  */
 
 interface RouteContext {
@@ -130,7 +138,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
       {
         error: 'already_signed',
         message:
-          'This examination has been signed and is immutable. Cancel and create a new one if a correction is required.',
+          'This examination has been signed and is immutable. To correct it, sign a new examination with the correct verdict and then revoke this one (POST /api/examinations/[id]/revoke) referencing the new one.',
       },
       { status: 409 }
     )
@@ -214,6 +222,18 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
         issues
       )
       if (parsed) updateData.inaptTemporarUntil = parsed
+    }
+  }
+
+  // examinedAt — the real consultation date, which may legitimately differ
+  // from createdAt when the cabinet enters a consultation later. Bounded
+  // (no future dates, no silent deep backdating) in lib/examinations/examined-at.ts.
+  if ('examinedAt' in body) {
+    const parsed = parseExaminedAt(body.examinedAt, issues)
+    // undefined means "absent or invalid"; invalid already pushed an issue,
+    // and absent can't happen inside this branch. null means explicit clear.
+    if (parsed !== undefined) {
+      updateData.examinedAt = parsed
     }
   }
 

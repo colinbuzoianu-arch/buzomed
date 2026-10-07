@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
 import { writeAuditLog, getClientIp } from '@/lib/audit/log'
+import { resolveExaminationDate } from '@/lib/examinations/examined-at'
 import { FisaPdfDocument } from './fisa-pdf-document'
 
 /**
@@ -76,6 +77,16 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
           county: true,
         },
       },
+      revokedBy: {
+        select: {
+          firstName: true,
+          lastName: true,
+          professionalTitle: true,
+        },
+      },
+      supersededBy: {
+        select: { examinationNumber: true },
+      },
     },
   })
 
@@ -100,11 +111,11 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
       .join(', '),
 
     examinationNumber: examination.examinationNumber,
-    examinationDate: examination.completedAt
-      ? formatDateRo(examination.completedAt)
-      : examination.createdAt
-        ? formatDateRo(examination.createdAt)
-        : '—',
+    // The consultation date, which may legitimately precede the signing
+    // date. resolveExaminationDate keeps the old completedAt/createdAt
+    // fallback for records that predate the examinedAt column, so already
+    // issued documents reprint identically.
+    examinationDate: formatDateRo(resolveExaminationDate(examination)),
     signedAt: examination.signedAt ? formatDateRo(examination.signedAt) : null,
 
     // Worker
@@ -153,6 +164,16 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     practitionerCode: examination.practitioner?.professionalCode ?? null,
 
     isDraft: examination.signedAt === null,
+
+    isRevoked: examination.revokedAt !== null,
+    revokedAt: examination.revokedAt
+      ? formatDateRo(examination.revokedAt)
+      : null,
+    revokedByName: examination.revokedBy
+      ? `${examination.revokedBy.professionalTitle ?? ''} ${examination.revokedBy.lastName} ${examination.revokedBy.firstName}`.trim()
+      : null,
+    revocationReason: examination.revocationReason ?? null,
+    supersededByNumber: examination.supersededBy?.examinationNumber ?? null,
   }
 
   let buffer: Uint8Array

@@ -97,6 +97,24 @@ export function VerdictStep({
 
       {sections.showVerdict && (
         <FormSection title={labels.sectionVerdict}>
+          {/* The real consultation date. Sits at the top of the conclusion
+              section because it dates the whole attestation, and because
+              it has to be filled before signing — after signing it is
+              immutable along with everything else. Leaving it empty keeps
+              the old behaviour (the fișă shows the entry date). */}
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="examinedAt">{labels.fieldExaminedAt}</Label>
+            <Input
+              id="examinedAt"
+              type="date"
+              value={values.examinedAt}
+              onChange={(e) => updateTop('examinedAt', e.target.value)}
+              disabled={ro}
+            />
+            <p className="text-xs text-muted-foreground">
+              {labels.fieldExaminedAtHelp}
+            </p>
+          </div>
           <FullWidth>
             <div className="space-y-2">
               <Label>{labels.fieldVerdict}</Label>

@@ -51,6 +51,12 @@ export interface ExaminationFormValues {
   verdictConditions: string
   inaptTemporarUntil: string
   nextExaminationDueDate: string
+  /**
+   * The date the consultation actually took place, as YYYY-MM-DD. Empty
+   * string means "not set" — the fișă then falls back to completedAt /
+   * createdAt, matching the behaviour before this field existed.
+   */
+  examinedAt: string
 }
 
 export interface Labels {
@@ -101,6 +107,8 @@ export interface Labels {
   fieldInaptTemporarUntil: string
   fieldNextDueDate: string
   fieldNextDueDateHelp: string
+  fieldExaminedAt: string
+  fieldExaminedAtHelp: string
   saveButton: string
   saving: string
   savedToast: string
@@ -345,6 +353,7 @@ export function ExaminationStepper({
         verdictConditions: values.verdictConditions,
         inaptTemporarUntil: values.inaptTemporarUntil || null,
         nextExaminationDueDate: values.nextExaminationDueDate || null,
+        examinedAt: values.examinedAt || null,
       }
 
       try {
