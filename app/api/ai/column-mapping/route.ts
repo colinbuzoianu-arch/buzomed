@@ -19,6 +19,9 @@ const VALID_COLUMN_KEYS = [
   'companyAddress',
   'hireDate',
   'fitnessValidUntil',
+  'fitnessValidUntilDay',
+  'fitnessValidUntilMonth',
+  'fitnessValidUntilYear',
   'notes',
 ]
 
@@ -71,7 +74,7 @@ Respond ONLY with valid JSON. No markdown, no explanation, no other text.`
 
 Headers: ${JSON.stringify(headers)}
 
-Valid field names: firstName, lastName, cnp, companyEmployeeId, email, jobTitle, workplaceName, department, companyName, cui, companyAddress, hireDate, fitnessValidUntil, notes
+Valid field names: firstName, lastName, cnp, companyEmployeeId, email, jobTitle, workplaceName, department, companyName, cui, companyAddress, hireDate, fitnessValidUntil, fitnessValidUntilDay, fitnessValidUntilMonth, fitnessValidUntilYear, notes
 
 Field meanings:
 - firstName: given name, prenume, first name, vorname, nome
@@ -86,7 +89,10 @@ Field meanings:
 - cui: company fiscal code / CUI / cod fiscal / cif / VAT id
 - companyAddress: company address / adresa companie / sediu social
 - hireDate: employment start date, data angajarii, hire date, eintrittsdatum
-- fitnessValidUntil: fitness-certificate expiry, expirare fisa aptitudine, valabil pana la, scadenta
+- fitnessValidUntil: fitness-certificate expiry in ONE column, expirare fisa aptitudine, valabil pana la, scadenta
+- fitnessValidUntilDay: the DAY part only of a split fitness-expiry date, "ziua exp", "ZIUA EXP."
+- fitnessValidUntilMonth: the MONTH part only of a split fitness-expiry date, "luna exp", "LUNA EXP."
+- fitnessValidUntilYear: the YEAR part only of a split fitness-expiry date, "anul exp", "ANUL EXP."
 - notes: free-text remarks, mentiuni, observatii, obs
 
 Return ONLY this JSON (no other text):

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { maskCnp, validateCnp } from '@/lib/crypto/cnp-validation'
 import {
+  combineDateParts,
   normalizeCnpInput,
   normalizeWorkplaceValue,
   workplaceKey,
@@ -146,6 +147,12 @@ function colKeyLabel(key: ColumnKey, labels: Record<string, string>): string {
       return labels.colHireDate ?? 'Data angajării'
     case 'fitnessValidUntil':
       return labels.colFitnessValidUntil ?? 'Expirare fișă aptitudine'
+    case 'fitnessValidUntilDay':
+      return labels.colFitnessExpDay ?? 'Zi expirare fișă'
+    case 'fitnessValidUntilMonth':
+      return labels.colFitnessExpMonth ?? 'Lună expirare fișă'
+    case 'fitnessValidUntilYear':
+      return labels.colFitnessExpYear ?? 'An expirare fișă'
     case 'notes':
       return labels.colNotes ?? 'Mențiuni'
   }
@@ -196,7 +203,13 @@ function reapplyMapping(originalRows: RawRow[], newMapping: ColumnMapping): RawR
       companyAddress: get('companyAddress'),
       workplaceName: get('workplaceName'),
       hireDate: get('hireDate'),
-      fitnessValidUntil: get('fitnessValidUntil'),
+      fitnessValidUntil:
+        get('fitnessValidUntil') ??
+        combineDateParts(
+          get('fitnessValidUntilDay'),
+          get('fitnessValidUntilMonth'),
+          get('fitnessValidUntilYear')
+        ),
       notes: get('notes'),
     }
   })

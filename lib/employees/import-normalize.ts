@@ -126,3 +126,92 @@ export function isFutureDate(date: Date): boolean {
   today.setUTCHours(0, 0, 0, 0)
   return date.getTime() > today.getTime()
 }
+
+// Romanian + English month names (and common abbreviations), diacritics
+// already stripped, for the split-column date format (ZIUA/LUNA/ANUL EXP.)
+// some HR exports use — e.g. the APAPROD file.
+const MONTH_NAMES: Record<string, number> = {
+  ianuarie: 1,
+  ian: 1,
+  january: 1,
+  jan: 1,
+  februarie: 2,
+  feb: 2,
+  february: 2,
+  martie: 3,
+  mar: 3,
+  march: 3,
+  aprilie: 4,
+  apr: 4,
+  april: 4,
+  mai: 5,
+  may: 5,
+  iunie: 6,
+  iun: 6,
+  june: 6,
+  jun: 6,
+  iulie: 7,
+  iul: 7,
+  july: 7,
+  jul: 7,
+  august: 8,
+  aug: 8,
+  septembrie: 9,
+  sep: 9,
+  sept: 9,
+  september: 9,
+  octombrie: 10,
+  oct: 10,
+  october: 10,
+  noiembrie: 11,
+  noi: 11,
+  nov: 11,
+  november: 11,
+  decembrie: 12,
+  dec: 12,
+  december: 12,
+}
+
+function parseMonthPart(raw: string): number | null {
+  const s = raw.trim()
+  if (/^\d{1,2}$/.test(s)) {
+    const n = Number(s)
+    return n >= 1 && n <= 12 ? n : null
+  }
+  const key = s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\.$/, '').trim()
+  return MONTH_NAMES[key] ?? null
+}
+
+function parseYearPart(raw: string): number | null {
+  const s = raw.trim()
+  if (!/^\d{2}$|^\d{4}$/.test(s)) return null
+  const n = Number(s)
+  const year = s.length === 2 ? 2000 + n : n
+  return year >= 1990 && year <= 2100 ? year : null
+}
+
+/**
+ * Assembles a date from three separate day / month / year cells (the
+ * ZIUA EXP. / LUNA EXP. / ANUL EXP. layout of some HR exports) into a
+ * canonical `yyyy-mm-dd` string that `parseFlexibleDate` can consume. The
+ * month cell may be numeric or a Romanian/English month name; a 2-digit
+ * year is read as 20xx. Returns null when any part is missing or
+ * implausible — final impossible-date rejection (e.g. 31.02) is left to
+ * `parseFlexibleDate`'s round-trip check.
+ */
+export function combineDateParts(
+  day: string | null | undefined,
+  month: string | null | undefined,
+  year: string | null | undefined
+): string | null {
+  if (!day || !month || !year) return null
+  const d = day.trim()
+  if (!/^\d{1,2}$/.test(d)) return null
+  const dn = Number(d)
+  if (dn < 1 || dn > 31) return null
+  const m = parseMonthPart(month)
+  const y = parseYearPart(year)
+  if (m === null || y === null) return null
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${y}-${pad(m)}-${pad(dn)}`
+}

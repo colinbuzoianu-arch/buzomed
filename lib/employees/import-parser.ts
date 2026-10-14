@@ -45,7 +45,12 @@
 
 import Papa from 'papaparse'
 import { validateCnp } from '@/lib/crypto/cnp-validation'
-import { isFutureDate, normalizeCnpInput, parseFlexibleDate } from './import-normalize'
+import {
+  combineDateParts,
+  isFutureDate,
+  normalizeCnpInput,
+  parseFlexibleDate,
+} from './import-normalize'
 
 // Note: `xlsx` is dynamically imported inside parseXlsxSheets() to keep it
 // out of bundles that only handle CSV. It's a ~700 KB lib.
@@ -65,6 +70,12 @@ export type ColumnKey =
   | 'workplaceName'
   | 'hireDate'
   | 'fitnessValidUntil'
+  // Split fitness-expiry date (some HR exports, e.g. APAPROD, put it in
+  // three separate columns: ZIUA EXP. / LUNA EXP. / ANUL EXP.). These are
+  // assembled into `fitnessValidUntil` when the single column is absent.
+  | 'fitnessValidUntilDay'
+  | 'fitnessValidUntilMonth'
+  | 'fitnessValidUntilYear'
   | 'notes'
 
 /** Every column the mapping UI / AI is allowed to assign a header to. */
@@ -83,6 +94,9 @@ export const ASSIGNABLE_COLUMN_KEYS: ColumnKey[] = [
   'workplaceName',
   'hireDate',
   'fitnessValidUntil',
+  'fitnessValidUntilDay',
+  'fitnessValidUntilMonth',
+  'fitnessValidUntilYear',
   'notes',
 ]
 
@@ -271,6 +285,12 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
     'urmatorul control',
     'valid until',
   ],
+  // Split fitness-expiry columns (APAPROD: "ZIUA EXP." / "LUNA EXP." /
+  // "ANUL EXP."). All aliases keep the exp/expirare token so they can't be
+  // mistaken for a stray day/month/year column elsewhere in the sheet.
+  fitnessValidUntilDay: ['ziua exp', 'zi exp', 'ziua expirarii', 'zi expirare', 'expiry day'],
+  fitnessValidUntilMonth: ['luna exp', 'luna expirarii', 'luna expirare', 'expiry month'],
+  fitnessValidUntilYear: ['anul exp', 'an exp', 'anul expirarii', 'an expirare', 'expiry year'],
   notes: ['mentiuni', 'observatii', 'obs', 'note', 'notes', 'remarks'],
 }
 
@@ -457,7 +477,15 @@ function recordToRawRow(
     companyAddress: extract(mapping, record, 'companyAddress'),
     workplaceName: extract(mapping, record, 'workplaceName'),
     hireDate: extract(mapping, record, 'hireDate'),
-    fitnessValidUntil: extract(mapping, record, 'fitnessValidUntil'),
+    // Single column if present, else assembled from the ZIUA/LUNA/ANUL EXP.
+    // split columns (spec §3, APAPROD layout).
+    fitnessValidUntil:
+      extract(mapping, record, 'fitnessValidUntil') ??
+      combineDateParts(
+        extract(mapping, record, 'fitnessValidUntilDay'),
+        extract(mapping, record, 'fitnessValidUntilMonth'),
+        extract(mapping, record, 'fitnessValidUntilYear')
+      ),
     notes: extract(mapping, record, 'notes'),
     raw: record,
   }
