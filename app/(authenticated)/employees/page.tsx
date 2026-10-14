@@ -1,19 +1,19 @@
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { requireUser } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
-import { getLocale, getTranslator } from '@/lib/i18n'
-import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
-import { Button } from '@/components/ui/button'
-import { EmptyState } from '@/components/ui/empty-state'
-import { EmployeeSearchInput } from './employee-search-input'
-import { WorkplaceFilter } from '@/components/employees/workplace-filter'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { CompanyFilter } from '@/components/employees/company-filter'
 import { RecallFilter } from '@/components/employees/recall-filter'
-import { EmployeesHeaderActions } from './employees-header-actions'
-import { EmployeesBulkTable } from './employees-bulk-table'
+import { WorkplaceFilter } from '@/components/employees/workplace-filter'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/pagination'
+import { requireUser } from '@/lib/auth'
+import { getLocale, getTranslator } from '@/lib/i18n'
+import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
+import { prisma } from '@/lib/prisma'
+import { EmployeeSearchInput } from './employee-search-input'
+import { EmployeesBulkTable } from './employees-bulk-table'
+import { EmployeesHeaderActions } from './employees-header-actions'
 
 const EMPLOYEES_PATH = '/employees'
 const PAGE_SIZE = 100
@@ -50,29 +50,45 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   const sortRaw = params.sort ?? 'name_asc'
   const page = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1)
 
-  type DbSortKey = 'name_asc' | 'name_desc' | 'company_asc' | 'company_desc' | 'jobTitle_asc' | 'jobTitle_desc'
-  type ClientSortKey = 'lastExam_asc' | 'lastExam_desc' | 'recall_asc' | 'recall_desc' | 'workplace_asc' | 'workplace_desc'
+  type DbSortKey =
+    | 'name_asc'
+    | 'name_desc'
+    | 'company_asc'
+    | 'company_desc'
+    | 'jobTitle_asc'
+    | 'jobTitle_desc'
+  type ClientSortKey =
+    | 'lastExam_asc'
+    | 'lastExam_desc'
+    | 'recall_asc'
+    | 'recall_desc'
+    | 'workplace_asc'
+    | 'workplace_desc'
   type SortKey = DbSortKey | ClientSortKey
 
   const VALID_SORTS: SortKey[] = [
-    'name_asc', 'name_desc',
-    'company_asc', 'company_desc',
-    'jobTitle_asc', 'jobTitle_desc',
-    'lastExam_asc', 'lastExam_desc',
-    'recall_asc', 'recall_desc',
-    'workplace_asc', 'workplace_desc',
+    'name_asc',
+    'name_desc',
+    'company_asc',
+    'company_desc',
+    'jobTitle_asc',
+    'jobTitle_desc',
+    'lastExam_asc',
+    'lastExam_desc',
+    'recall_asc',
+    'recall_desc',
+    'workplace_asc',
+    'workplace_desc',
   ]
 
-  const sort: SortKey = VALID_SORTS.includes(sortRaw as SortKey)
-    ? (sortRaw as SortKey)
-    : 'name_asc'
+  const sort: SortKey = VALID_SORTS.includes(sortRaw as SortKey) ? (sortRaw as SortKey) : 'name_asc'
 
   const dbOrderBy: Record<DbSortKey, Prisma.EmployeeOrderByWithRelationInput[]> = {
-    name_asc:      [{ lastName: 'asc' }, { firstName: 'asc' }],
-    name_desc:     [{ lastName: 'desc' }, { firstName: 'desc' }],
-    company_asc:   [{ company: { name: 'asc' } }, { lastName: 'asc' }],
-    company_desc:  [{ company: { name: 'desc' } }, { lastName: 'asc' }],
-    jobTitle_asc:  [{ jobTitle: 'asc' }, { lastName: 'asc' }],
+    name_asc: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    name_desc: [{ lastName: 'desc' }, { firstName: 'desc' }],
+    company_asc: [{ company: { name: 'asc' } }, { lastName: 'asc' }],
+    company_desc: [{ company: { name: 'desc' } }, { lastName: 'asc' }],
+    jobTitle_asc: [{ jobTitle: 'asc' }, { lastName: 'asc' }],
     jobTitle_desc: [{ jobTitle: 'desc' }, { lastName: 'asc' }],
   }
 
@@ -84,16 +100,43 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
 
   const recallWhere: Prisma.EmployeeWhereInput =
     recallFilter === 'overdue'
-      ? { recalls: { some: { deletedAt: null, OR: [
-          { status: 'overdue' },
-          { dueDate: { lt: now }, status: { in: ['pending', 'scheduled'] } },
-        ] } } }
+      ? {
+          recalls: {
+            some: {
+              deletedAt: null,
+              OR: [
+                { status: 'overdue' },
+                { dueDate: { lt: now }, status: { in: ['pending', 'scheduled'] } },
+              ],
+            },
+          },
+        }
       : recallFilter === 'soon'
-        ? { recalls: { some: { deletedAt: null, status: { in: ['pending', 'scheduled'] }, dueDate: { gte: now, lte: soonThreshold } } } }
+        ? {
+            recalls: {
+              some: {
+                deletedAt: null,
+                status: { in: ['pending', 'scheduled'] },
+                dueDate: { gte: now, lte: soonThreshold },
+              },
+            },
+          }
         : recallFilter === 'ok'
-          ? { recalls: { some: { deletedAt: null, status: { in: ['pending', 'scheduled'] }, dueDate: { gt: soonThreshold } } } }
+          ? {
+              recalls: {
+                some: {
+                  deletedAt: null,
+                  status: { in: ['pending', 'scheduled'] },
+                  dueDate: { gt: soonThreshold },
+                },
+              },
+            }
           : recallFilter === 'none'
-            ? { recalls: { none: { deletedAt: null, status: { in: ['pending', 'scheduled', 'overdue'] } } } }
+            ? {
+                recalls: {
+                  none: { deletedAt: null, status: { in: ['pending', 'scheduled', 'overdue'] } },
+                },
+              }
             : {}
 
   const employeeWhere: Prisma.EmployeeWhereInput = {
@@ -113,7 +156,11 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
     ...(wpFilter === 'no_workplace'
       ? { workplaceAssignments: { none: { isCurrent: true } } }
       : wpFilter
-        ? { workplaceAssignments: { some: { workplaceId: wpFilter, isCurrent: true, endDate: null } } }
+        ? {
+            workplaceAssignments: {
+              some: { workplaceId: wpFilter, isCurrent: true, endDate: null },
+            },
+          }
         : {}),
     ...(companyFilter ? { companyId: companyFilter } : {}),
     ...recallWhere,
@@ -223,15 +270,15 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   // Serialize dates so the client component receives plain strings (RSC serialization requirement)
   const serializedEmployees = sortedEmployees.map((e) => ({
     ...e,
-    archivedAt:   e.archivedAt   ? e.archivedAt.toISOString()   : null,
+    archivedAt: e.archivedAt ? e.archivedAt.toISOString() : null,
     examinations: e.examinations.map((ex) => ({
       completedAt: ex.completedAt ? ex.completedAt.toISOString() : null,
-      signedAt:    ex.signedAt    ? ex.signedAt.toISOString()    : null,
-      status:      ex.status,
+      signedAt: ex.signedAt ? ex.signedAt.toISOString() : null,
+      status: ex.status,
     })),
     recalls: e.recalls.map((r) => ({
       dueDate: r.dueDate instanceof Date ? r.dueDate.toISOString().slice(0, 10) : String(r.dueDate),
-      status:  r.status,
+      status: r.status,
     })),
   }))
 
@@ -239,7 +286,9 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight">{t('employees.title')}</h1>
+          <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight">
+            {t('employees.title')}
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             {t('employees.subtitle')}
           </p>
@@ -247,10 +296,15 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         {caps.canWriteAdministrative && !showArchived && (
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link href="/employees/import">
-                {t('employees.importButton')}
-              </Link>
+              <Link href="/employees/import">{t('employees.importButton')}</Link>
             </Button>
+            {user.roles.includes('practice_admin') && (
+              <Button asChild variant="outline" size="sm">
+                <Link href="/employees/import/history">
+                  {t('employees.import.importHistoryLink')}
+                </Link>
+              </Button>
+            )}
             <EmployeesHeaderActions
               canWrite={caps.canWriteAdministrative}
               newEmployeeLabel={t('employees.newButton')}
@@ -283,16 +337,10 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         </div>
 
         {/* Search text */}
-        <EmployeeSearchInput
-          defaultValue={q}
-          placeholder={t('employees.search.placeholder')}
-        />
+        <EmployeeSearchInput defaultValue={q} placeholder={t('employees.search.placeholder')} />
 
         {/* Filtru companie */}
-        <CompanyFilter
-          companies={companiesForFilter}
-          currentValue={companyFilter}
-        />
+        <CompanyFilter companies={companiesForFilter} currentValue={companyFilter} />
 
         {/* Filtru workplace — ascuns pe archived tab */}
         {!showArchived && (
@@ -309,9 +357,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         )}
 
         {/* Filtru scadență recall — ascuns pe archived tab */}
-        {!showArchived && (
-          <RecallFilter currentValue={recallFilter} />
-        )}
+        {!showArchived && <RecallFilter currentValue={recallFilter} />}
 
         {/* Badge filtre active */}
         {companyFilter && (
@@ -325,8 +371,12 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
             ]).toString()}`}
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-[hsl(var(--surface-tinted))] px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
           >
-            <span>{companiesForFilter.find((c) => c.id === companyFilter)?.name ?? 'Companie'}</span>
-            <span aria-hidden className="ml-0.5">×</span>
+            <span>
+              {companiesForFilter.find((c) => c.id === companyFilter)?.name ?? 'Companie'}
+            </span>
+            <span aria-hidden className="ml-0.5">
+              ×
+            </span>
           </Link>
         )}
         {wpFilter && (
@@ -343,9 +393,12 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
             <span>
               {wpFilter === 'no_workplace'
                 ? 'Fără loc de muncă'
-                : workplacesForFilter.find((w) => w.id === wpFilter)?.name ?? t('employees.search.workplacePlaceholder')}
+                : (workplacesForFilter.find((w) => w.id === wpFilter)?.name ??
+                  t('employees.search.workplacePlaceholder'))}
             </span>
-            <span aria-hidden className="ml-0.5">×</span>
+            <span aria-hidden className="ml-0.5">
+              ×
+            </span>
           </Link>
         )}
         {recallFilter && (
@@ -360,12 +413,17 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-[hsl(var(--surface-tinted))] px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             <span>
-              {recallFilter === 'overdue' ? 'Depășite'
-                : recallFilter === 'soon' ? 'Scadente în curând'
-                : recallFilter === 'ok' ? 'La zi'
-                : 'Fără scadență'}
+              {recallFilter === 'overdue'
+                ? 'Depășite'
+                : recallFilter === 'soon'
+                  ? 'Scadente în curând'
+                  : recallFilter === 'ok'
+                    ? 'La zi'
+                    : 'Fără scadență'}
             </span>
-            <span aria-hidden className="ml-0.5">×</span>
+            <span aria-hidden className="ml-0.5">
+              ×
+            </span>
           </Link>
         )}
       </div>
@@ -374,9 +432,23 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         <EmptyState
           illustration="employees"
           title={showArchived ? t('employees.emptyTitleArchived') : t('employees.emptyTitle')}
-          description={showArchived ? t('employees.emptyDescriptionArchived') : t('employees.emptyDescription')}
-          primaryAction={caps.canWriteAdministrative && !showArchived ? { label: `+ ${t('employees.newButton')}`, href: '/employees/new' } : undefined}
-          secondaryAction={caps.canWriteAdministrative && !showArchived ? { label: t('employees.importButton'), href: '/employees/import', variant: 'outline' } : undefined}
+          description={
+            showArchived ? t('employees.emptyDescriptionArchived') : t('employees.emptyDescription')
+          }
+          primaryAction={
+            caps.canWriteAdministrative && !showArchived
+              ? { label: `+ ${t('employees.newButton')}`, href: '/employees/new' }
+              : undefined
+          }
+          secondaryAction={
+            caps.canWriteAdministrative && !showArchived
+              ? {
+                  label: t('employees.importButton'),
+                  href: '/employees/import',
+                  variant: 'outline',
+                }
+              : undefined
+          }
         />
       ) : (
         <EmployeesBulkTable
