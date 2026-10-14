@@ -87,6 +87,19 @@ interface CommitResult {
   workplacesCreated: string[]
 }
 
+// Shape of one /commit batch response. Typed explicitly so threading the
+// ImportJob id back into the next batch's request body doesn't create a
+// circular `any` inference.
+interface CommitResponse {
+  importJobId?: string
+  summary: CommitSummary
+  notices?: string[]
+  companiesCreated?: Array<{ id: string; name: string; cui: string }>
+  workplacesCreated?: string[]
+  message?: string
+  error?: string
+}
+
 type Phase = 'idle' | 'previewing' | 'committing' | 'done'
 
 interface StagedFile {
@@ -270,8 +283,10 @@ export function ImportClient({ companies, locale, labels }: Props) {
     Partial<Record<ColumnKey, 'high' | 'medium' | 'low'>>
   >({})
   const [extendedMode, setExtendedMode] = useState(false)
+  const [fileName, setFileName] = useState<string | null>(null)
   const [commitProgress, setCommitProgress] = useState<{ done: number; total: number } | null>(null)
   const [commitResult, setCommitResult] = useState<CommitResult | null>(null)
+  const [resultJobId, setResultJobId] = useState<string | null>(null)
 
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([])
   const [stagedFilesLoading, setStagedFilesLoading] = useState(false)
@@ -383,6 +398,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
     setError(null)
     setParseErrors([])
     setSheetNotes([])
+    setFileName(file.name)
     setPhase('previewing')
     setAiUsed(false)
     setAiConfidence({})
@@ -557,6 +573,10 @@ export function ImportClient({ companies, locale, labels }: Props) {
 
     setCommitProgress({ done: 0, total: validRows.length })
 
+    // One ImportJob spans every batch: the first batch creates it and hands
+    // the id back, later batches reuse it (spec §8).
+    let jobId: string | null = null
+
     try {
       for (let b = 0; b < batches.length; b++) {
         const batch = batches[b]
@@ -568,6 +588,10 @@ export function ImportClient({ companies, locale, labels }: Props) {
             companyId: companyId || null,
             // Mark the staged file processed only once, on the final batch.
             stagedFileId: isLast ? activeStagedFileId : null,
+            importJobId: jobId,
+            importTotal: validRows.length,
+            fileName,
+            isFinalBatch: isLast,
             rows: batch.map((r) => ({
               rowNumber: r.rowNumber,
               firstName: r.firstName,
@@ -589,13 +613,15 @@ export function ImportClient({ companies, locale, labels }: Props) {
             })),
           }),
         })
-        const data = await response.json()
+        const data = (await response.json()) as CommitResponse
         if (!response.ok) {
           setError(data.message || data.error || labels.errorCommit)
           setPhase('previewing')
           setCommitProgress(null)
           return
         }
+
+        if (typeof data.importJobId === 'string') jobId = data.importJobId
 
         const s: CommitSummary = data.summary
         acc.total += s.total
@@ -631,6 +657,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
         companiesCreated: Array.from(newCompanies.values()),
         workplacesCreated: Array.from(newWorkplaces),
       })
+      setResultJobId(jobId)
       TOAST.importSuccess(acc.created)
       if (activeStagedFileId) {
         setStagedFiles((prev) => prev.filter((f) => f.id !== activeStagedFileId))
@@ -658,6 +685,8 @@ export function ImportClient({ companies, locale, labels }: Props) {
     setSheetNotes([])
     setError(null)
     setCommitResult(null)
+    setResultJobId(null)
+    setFileName(null)
     setCommitProgress(null)
     setDiffResult(null)
     setDiffLoading(false)
@@ -805,6 +834,14 @@ export function ImportClient({ companies, locale, labels }: Props) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => router.push('/employees')}>{labels.backToList}</Button>
+          {resultJobId && (
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/employees/import/history/${resultJobId}`)}
+            >
+              {labels.viewInHistory ?? 'Vezi în istoric'}
+            </Button>
+          )}
           <Button variant="outline" onClick={reset}>
             {labels.resetButton}
           </Button>
@@ -816,6 +853,15 @@ export function ImportClient({ companies, locale, labels }: Props) {
   // ─── Setup + preview ────────────────────────────────────────────
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <a
+          href="/employees/import/history"
+          className="text-sm text-muted-foreground underline hover:text-foreground"
+        >
+          {labels.importHistoryLink ?? 'Istoric importuri'} →
+        </a>
+      </div>
+
       {/* ── Staged files panel ──────────────────────────────────── */}
       <div className="border rounded-lg overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b">

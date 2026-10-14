@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getApiUser } from '@/lib/auth'
 import { encryptCnp, isCnpEncryptionConfigured } from '@/lib/crypto/cnp-cipher'
@@ -109,6 +110,20 @@ export async function POST(request: NextRequest) {
   const stagedFileId =
     typeof body.stagedFileId === 'string' && body.stagedFileId ? body.stagedFileId : null
   const rowsInput = Array.isArray(body.rows) ? body.rows : []
+  // Import-history tracking (spec §8). The client creates ONE ImportJob
+  // across all batches: the first batch leaves importJobId null (we create
+  // it) and reads the id back; later batches pass it. fileName/importTotal
+  // describe the whole import and are only used when the job is first made;
+  // isFinalBatch flips the job to 'completed'.
+  const providedImportJobId =
+    typeof body.importJobId === 'string' && body.importJobId ? body.importJobId : null
+  const fileName =
+    typeof body.fileName === 'string' && body.fileName.trim()
+      ? body.fileName.trim().slice(0, 300)
+      : null
+  const importTotal =
+    typeof body.importTotal === 'number' && body.importTotal > 0 ? body.importTotal : null
+  const isFinalBatch = body.isFinalBatch !== false // default true (single-batch import)
 
   if (rowsInput.length === 0) {
     return NextResponse.json(
@@ -259,6 +274,61 @@ export async function POST(request: NextRequest) {
     if (e.cnpHash) existingByCnpHash.set(e.cnpHash, e.id)
   }
 
+  // ── Import-history job (spec §8) ────────────────────────────────────
+  // Resolve the ImportJob BEFORE touching any row, so an interrupted import
+  // still leaves a 'running' trace. The first batch creates it; later
+  // batches reuse the id they pass (validated against this tenant).
+  let importJobId: string
+  if (providedImportJobId) {
+    const existing = await prisma.importJob.findFirst({
+      where: { id: providedImportJobId, tenantId },
+      select: { id: true },
+    })
+    if (existing) {
+      importJobId = existing.id
+    } else {
+      const job = await prisma.importJob.create({
+        data: {
+          tenantId,
+          initiatedByUserId: userId,
+          fallbackCompanyId,
+          fileName,
+          totalRows: importTotal ?? rows.length,
+          created: 0,
+          skipped: 0,
+          failed: 0,
+          companiesCreated: 0,
+          workplacesCreated: 0,
+          rowsWithoutCompany: 0,
+          rowsWithoutWorkplace: 0,
+          status: 'running',
+        },
+        select: { id: true },
+      })
+      importJobId = job.id
+    }
+  } else {
+    const job = await prisma.importJob.create({
+      data: {
+        tenantId,
+        initiatedByUserId: userId,
+        fallbackCompanyId,
+        fileName,
+        totalRows: importTotal ?? rows.length,
+        created: 0,
+        skipped: 0,
+        failed: 0,
+        companiesCreated: 0,
+        workplacesCreated: 0,
+        rowsWithoutCompany: 0,
+        rowsWithoutWorkplace: 0,
+        status: 'running',
+      },
+      select: { id: true },
+    })
+    importJobId = job.id
+  }
+
   // Running tallies (declared before the helpers that mutate them).
   let created = 0,
     skipped = 0,
@@ -323,6 +393,7 @@ export async function POST(request: NextRequest) {
           name,
           department: dept,
           isActive: true,
+          importJobId,
         },
         select: { id: true },
       })
@@ -538,6 +609,7 @@ export async function POST(request: NextRequest) {
             notes: row.notes,
             nationality: 'RO',
             isActive: true,
+            importJobId,
           },
           select: { id: true },
         })
@@ -590,6 +662,7 @@ export async function POST(request: NextRequest) {
                 dueDate,
                 status: 'pending',
                 notes: note,
+                importJob: { connect: { id: importJobId } },
               },
             })
           }
@@ -638,7 +711,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Compute anomaly flags before persisting the job audit record
+  // Compute anomaly flags for THIS batch's contribution.
   const flags: string[] = []
   if (rowsWithoutWorkplace > 0 && anyRowHadWorkplaceName)
     flags.push('workplace_data_present_but_unassigned')
@@ -648,24 +721,37 @@ export async function POST(request: NextRequest) {
   if (anyCnp && !encryptionConfigured) flags.push('cnp_encryption_not_configured')
   if (anyFitness && !controlPeriodicTypeId) flags.push('recall_type_missing')
 
-  void prisma.importJob
-    .create({
+  // Fold this batch into the ImportJob: increment the counters, append the
+  // (PII-free) per-row results, merge flags, and — only on the final batch —
+  // flip the job to 'completed'. Done synchronously so the history page and
+  // the batch-to-batch handoff always see a consistent row.
+  try {
+    const current = await prisma.importJob.findUnique({
+      where: { id: importJobId },
+      select: { results: true, flags: true },
+    })
+    const mergedResults = [...((current?.results as RowOutcome[] | null) ?? []), ...results]
+    const mergedFlags = Array.from(
+      new Set([...((current?.flags as string[] | null) ?? []), ...flags])
+    )
+    await prisma.importJob.update({
+      where: { id: importJobId },
       data: {
-        tenantId,
-        initiatedByUserId: auth.user.id,
-        fallbackCompanyId,
-        totalRows: rows.length,
-        created,
-        skipped,
-        failed,
-        companiesCreated,
-        workplacesCreated,
-        rowsWithoutCompany,
-        rowsWithoutWorkplace,
-        flags: flags.length > 0 ? flags : undefined,
+        created: { increment: created },
+        skipped: { increment: skipped },
+        failed: { increment: failed },
+        companiesCreated: { increment: companiesCreated },
+        workplacesCreated: { increment: workplacesCreated },
+        rowsWithoutCompany: { increment: rowsWithoutCompany },
+        rowsWithoutWorkplace: { increment: rowsWithoutWorkplace },
+        results: mergedResults as unknown as Prisma.InputJsonValue,
+        flags: mergedFlags.length > 0 ? mergedFlags : undefined,
+        ...(isFinalBatch ? { status: 'completed', finishedAt: new Date() } : {}),
       },
     })
-    .catch((err) => console.error('[import] Failed to write ImportJob:', err))
+  } catch (err) {
+    console.error('[import] Failed to update ImportJob:', err)
+  }
 
   if (stagedFileId) {
     void prisma.importStagedFile
@@ -683,6 +769,7 @@ export async function POST(request: NextRequest) {
   if (anyFitness && !controlPeriodicTypeId) notices.push('recall_type_missing')
 
   return NextResponse.json({
+    importJobId,
     summary: {
       total: rows.length,
       created,

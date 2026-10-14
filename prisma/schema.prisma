@@ -772,23 +772,28 @@ model Workplace {
   riskAssessmentSignedAt        DateTime? @map("risk_assessment_signed_at") @db.Date
   
   isActive                    Boolean     @default(true) @map("is_active")
-  
+
+  // Which bulk import auto-created this workplace (null = created manually).
+  importJobId                 String?     @map("import_job_id")
+
   createdByUserId             String?     @map("created_by_user_id") @db.Uuid
   createdAt                   DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt                   DateTime?   @map("deleted_at") @db.Timestamptz
-  
+
   tenant                      Tenant                          @relation(fields: [tenantId], references: [id])
   company                     Company                         @relation(fields: [companyId], references: [id])
   createdBy                   User?                           @relation(fields: [createdByUserId], references: [id])
+  importJob                   ImportJob?                      @relation(fields: [importJobId], references: [id], onDelete: SetNull)
   employeeAssignments         EmployeeWorkplaceAssignment[]
   examinations                Examination[]
   recalls                     Recall[]
-  
+
   @@map("workplaces")
   @@index([tenantId])
   @@index([tenantId, companyId, deletedAt])
   @@index([tenantId, deletedAt, isActive])
+  @@index([tenantId, importJobId])
 }
 
 // ============================================================================
@@ -859,6 +864,11 @@ model Employee {
   // anyone searching the old name/record can still find the surviving one.
   mergedIntoId                String?               @map("merged_into_id") @db.Uuid
 
+  // Which bulk import created this employee (null = created manually or
+  // before import tracking). Lets the import-history page attribute rows and
+  // the "cancel import" action find what to roll back.
+  importJobId                 String?               @map("import_job_id")
+
   createdByUserId             String?               @map("created_by_user_id") @db.Uuid
   createdAt                   DateTime              @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                   DateTime              @updatedAt @map("updated_at") @db.Timestamptz
@@ -867,6 +877,7 @@ model Employee {
   tenant                      Tenant                          @relation(fields: [tenantId], references: [id])
   company                     Company?                        @relation("EmployeeCompany", fields: [companyId], references: [id])
   createdBy                   User?                           @relation(fields: [createdByUserId], references: [id])
+  importJob                   ImportJob?                      @relation(fields: [importJobId], references: [id], onDelete: SetNull)
   workplaceAssignments        EmployeeWorkplaceAssignment[]
   examinations                Examination[]
   vaccinations                Vaccination[]
@@ -883,6 +894,7 @@ model Employee {
   @@index([tenantId, archivedAt])
   @@index([tenantId, companyId, deletedAt])
   @@index([tenantId, isActive, archivedAt, deletedAt])
+  @@index([tenantId, importJobId])
 }
 
 model EmployeeWorkplaceAssignment {
@@ -1224,23 +1236,29 @@ model Recall {
   notificationCount           Int                 @default(0) @map("notification_count")
   
   notes                       String?
-  
+
+  // Which bulk import created this recall (an external fișă expiry date;
+  // null = created from an examination signed in Buzomed).
+  importJobId                 String?             @map("import_job_id")
+
   createdAt                   DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt                   DateTime?           @map("deleted_at") @db.Timestamptz
-  
+
   tenant                      Tenant              @relation(fields: [tenantId], references: [id])
   employee                    Employee            @relation(fields: [employeeId], references: [id])
   workplace                   Workplace           @relation(fields: [workplaceId], references: [id])
   examinationType             ExaminationType     @relation(fields: [examinationTypeId], references: [id])
   createdFromExamination      Examination?        @relation("RecallSourceExamination", fields: [createdFromExaminationId], references: [id])
   completedExamination        Examination?        @relation("RecallCompletingExamination", fields: [completedExaminationId], references: [id])
-  
+  importJob                   ImportJob?          @relation(fields: [importJobId], references: [id], onDelete: SetNull)
+
   @@map("recalls")
   @@index([tenantId])
   @@index([tenantId, dueDate, status])
   @@index([employeeId])
   @@index([status])
+  @@index([tenantId, importJobId])
 }
 
 // ============================================================================
@@ -1449,6 +1467,19 @@ model ImportJob {
   tenantId             String   @map("tenant_id")
   initiatedByUserId    String   @map("initiated_by_user_id")
   fallbackCompanyId    String?  @map("fallback_company_id")
+
+  // Original uploaded file name, for the import-history list. Nullable —
+  // older rows predate this column.
+  fileName             String?  @map("file_name")
+
+  // Lifecycle. The row is created as 'running' BEFORE any employee is
+  // touched, so a trace survives even if the import dies half-way. It
+  // becomes 'completed' only when the final batch finishes; a job stuck at
+  // 'running' means the import was interrupted. 'cancelled' is set by the
+  // "cancel import" action (soft-deletes the employees it created).
+  //   running | completed | cancelled
+  status               String   @default("running")
+
   totalRows            Int      @map("total_rows")
   created              Int
   skipped              Int
@@ -1457,13 +1488,33 @@ model ImportJob {
   workplacesCreated    Int      @map("workplaces_created")
   rowsWithoutCompany   Int      @map("rows_without_company")
   rowsWithoutWorkplace Int      @map("rows_without_workplace")
+
+  // Per-row outcome, accumulated across batches. Deliberately PII-free:
+  //   [{ rowNumber, outcome, reason?, warning?, employeeId? }]
+  // No name, CNP, email or any other personal data in plaintext — only the
+  // row index, the outcome code and the created employee's UUID.
+  results              Json?
+
   // Anomaly flags computed at write time. Example values:
   //   workplace_data_present_but_unassigned, zero_rows_created,
   //   high_failure_rate, unexpected_company_creation
   flags                Json?
-  createdAt            DateTime @default(now()) @map("created_at")
+
+  // Cancellation bookkeeping (see /api/employees/import/jobs/[id]/cancel).
+  cancelledAt          DateTime? @map("cancelled_at")
+  cancelledByUserId    String?   @map("cancelled_by_user_id")
+  removedEmployeeCount Int?      @map("removed_employee_count")
+  keptEmployeeCount    Int?      @map("kept_employee_count")
+
+  createdAt            DateTime  @default(now()) @map("created_at")
+  finishedAt           DateTime? @map("finished_at")
+
+  employees            Employee[]
+  workplaces           Workplace[]
+  recalls              Recall[]
 
   @@index([tenantId, createdAt])
+  @@index([tenantId, status])
   @@map("import_jobs")
 }
 

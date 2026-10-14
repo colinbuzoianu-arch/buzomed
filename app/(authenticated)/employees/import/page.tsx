@@ -173,6 +173,8 @@ export default async function ImportEmployeesPage() {
           noticeCnpEncryption: t('employees.import.noticeCnpEncryption'),
           noticeRecallType: t('employees.import.noticeRecallType'),
           committingBatches: t('employees.import.committingBatches'),
+          importHistoryLink: t('employees.import.importHistoryLink'),
+          viewInHistory: t('employees.import.viewInHistory'),
         }}
       />
     </div>

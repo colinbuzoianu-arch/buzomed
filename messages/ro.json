@@ -718,7 +718,9 @@
       "summaryWithoutWorkplaceNote": "angajați importați fără loc de muncă",
       "noticeCnpEncryption": "Criptarea CNP nu este configurată pe server — angajații au fost importați fără CNP. Contactează administratorul.",
       "noticeRecallType": "Tipul de examinare „control periodic” lipsește din catalog — scadențele fișelor externe nu au fost înregistrate.",
-      "committingBatches": "Se importă în loturi…"
+      "committingBatches": "Se importă în loturi…",
+      "importHistoryLink": "Istoric importuri",
+      "viewInHistory": "Vezi în istoric"
     },
     "merge": {
       "title": "Combină angajați duplicați",

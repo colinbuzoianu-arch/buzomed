@@ -718,7 +718,9 @@
       "summaryWithoutWorkplaceNote": "employees imported without a workplace",
       "noticeCnpEncryption": "CNP encryption isn't configured on the server — employees were imported without a CNP. Contact the administrator.",
       "noticeRecallType": "The \"periodic check-up\" examination type is missing from the catalog — external certificate due dates were not registered.",
-      "committingBatches": "Importing in batches…"
+      "committingBatches": "Importing in batches…",
+      "importHistoryLink": "Import history",
+      "viewInHistory": "View in history"
     },
     "merge": {
       "title": "Merge duplicate employees",
