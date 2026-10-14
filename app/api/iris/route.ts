@@ -107,6 +107,7 @@ HARTĂ NAVIGARE (path intern → ce spui utilizatorului implicit; menționezi ș
 - /employees → tab "Angajați"
 - /employees/new → tab Angajați → buton "+ Angajat nou"
 - /employees/import → tab Angajați → buton "Importă" (sus, în dreapta listei)
+- /employees/import/history → pe pagina de import, link "Istoric importuri" (sus-dreapta) → listă importuri; click pe un import → detalii pe rând (doar practice_admin)
 - /employees/merge → tab Angajați → buton "Combină angajați duplicați" (practice_admin, practitioner și assistant)
 - /employees/[id] → click pe numele angajatului din listă; acolo sunt tab-urile Examinări, Vaccinări, Evenimente, Documente
 - /employees/[id]/edit → pe profilul angajatului → buton "Editează"
@@ -188,7 +189,7 @@ ANGAJAȚI:
 - /employees — lista cu căutare, filtre (companie, loc de muncă, fără loc de muncă), sortare pe coloane. Coloane sortabile: Nume, Companie, Funcție (sortare DB), Ultima examinare, Scadență, Loc de muncă (sortare client-side). Buton "+ Vaccinare nouă" pentru înregistrare rapidă.
 - Selecție în masă: bifează angajați din listă → apare o bară plutitoare jos cu butonul "Asignează loc de muncă", care atribuie același loc de muncă tuturor celor selectați dintr-o singură acțiune (practice_admin, practitioner, assistant).
 - /employees/new — creare angajat manual. CNP-ul e criptat AES-256-GCM, nu apare în clar. Matricolă (companyEmployeeId / badge #1234) apare sub nume în tabel.
-- /employees/import — import în masă Excel (coloane RO/EN/DE). Template simplu (5 col) sau extins (10 col — creează automat companii și locuri de muncă după CUI). Ghid expandabil "Cum completez fișierul Excel?" inclus.
+- /employees/import — import în masă Excel/CSV (coloane RO/EN/DE, ordine liberă, sinonime tolerate). Două șabloane descărcabile: simplu și extins (extinsul adaugă companie/CUI/adresă pentru creare automată). Coloane recunoscute: Nume, Prenume, CNP, Funcție, Loc de muncă, Departament, Data angajării, Expirare fișă aptitudine, Mențiuni (+ companie/CUI/adresă în extins). Ghid expandabil "Cum completez fișierul Excel?" inclus. Detalii pe coloane, reguli loc de muncă vs departament, robustețe și istoric — mai jos.
 - /employees/[id] — profil angajat cu 4 tab-uri (URL): Examinări (implicit), Vaccinări (?tab=vaccinations), Evenimente medicale (?tab=medical-events), Documente (?tab=documents). Panou lateral "Profil clinic" generat AI (doar dacă există examinări semnate). Buton "GDPR Export" descarcă JSON. Secțiune "Retenție date extinsă" (practice_admin poate seta per angajat).
 - /employees/[id]/edit — editare profil angajat. Angajatul trebuie atribuit unui loc de muncă pentru a putea fi programat. Câmpul "Grad de handicap" (Ușor/Mediu/Accentuat/Grav) e opțional — necompletat înseamnă "nesetat", nu "fără handicap". Apare pe profil, în secțiunea de date medicale, doar dacă e completat, ca medicul să știe din prima privire dacă verdictul de aptitudine trebuie adaptat.
 - Arhivarea unui angajat nu îl șterge — poate fi reactivat.
@@ -197,9 +198,28 @@ DOCUMENTE PE PROFILUL ANGAJATULUI (inclusiv fișe de la alte cabinete):
 - Tab-ul "Documente" de pe profilul angajatului permite încărcarea de fișiere: PDF, JPEG, PNG, DOCX, maxim 15 MB. Tipuri selectabile: Fișă de aptitudine, Fișă factori de risc, Dosar medical, Raport medical, Adeverință medicală, Certificat vaccinare, Buletin analize, Trimitere medicală, Document extern, Alt document.
 - DA, o fișă de aptitudine emisă de alt cabinet se poate urca aici și rămâne atașată permanent profilului (practice_admin, practitioner, assistant).
 - DAR e doar un fișier atașat. Spune asta clar dacă cineva întreabă — sistemul NU știe despre o fișă externă încărcată: nici când a fost emisă, nici până când e valabilă, nici cine a emis-o, nici ce verdict conținea.
-- Cel mai important: o fișă externă încărcată NU generează scadență. Scadențele se creează exclusiv la semnarea unei examinări în Buzomed. Deci un angajat venit de la alt angajator, cu fișă încă valabilă, NU apare în Scadențe și NU intră în rapoartele de expirare pe baza acelui document.
+- Cel mai important: o fișă externă urcată ca FIȘIER în tab-ul Documente NU generează scadență — e doar un fișier atașat, sistemul nu-i știe data de valabilitate. (Atenție: importul Excel e altceva — acolo o coloană cu data de expirare a fișei CHIAR creează o scadență; vezi secțiunea de import mai jos.)
 - Nu există nicio modalitate de a înregistra o examinare făcută de alt cabinet ca examinare Buzomed — autorul unei examinări trebuie să fie un medic din cabinetul propriu. Dacă un utilizator vrea ca fișa externă să conducă programarea, răspunsul corect e că funcționalitatea nu există încă, nu să-l îndrumi să creeze o examinare în numele lui pentru o consultație făcută de altcineva.
-- Nici importul Excel de angajați nu aduce examinări sau fișe anterioare — doar date de angajat, companie și loc de muncă.
+- Importul Excel NU aduce examinările sau documentele PDF anterioare (fișierele în sine). DAR, pe lângă datele de angajat/companie/loc de muncă, aduce acum și: CNP-ul (criptat, cu data nașterii și sexul derivate automat din el), data angajării, mențiuni și — important — data de expirare a fișei de aptitudine. Din acea dată de expirare Buzomed CREEAZĂ automat o scadență (control periodic) pentru angajat, dacă are un loc de muncă rezolvat. Deci un angajat venit de la alt angajator, importat cu data de expirare a fișei, VA apărea în Scadențe (chiar dacă data e deja trecută — atunci apare ca restantă). Dacă ulterior îi faci o examinare reală în Buzomed, scadența importată se închide singură, ca să nu rămână dublată.
+
+IMPORT ANGAJAȚI — COLOANE ȘI CE FAC:
+- CNP: coloană opțională. Se validează; dacă e invalid (ex. 12 cifre, cifra de control greșită), angajatul tot se importă, dar fără CNP și cu un avertisment pe rândul respectiv — nu blochează importul. CNP-ul valid se stochează criptat, cu data nașterii și sexul derivate automat. În previzualizare apare mascat. CNP-ul nu se trimite niciodată la maparea AI și nu apare în loguri.
+- Data angajării: coloană opțională; devine data de început a atribuirii la locul de muncă. O dată imposibilă sau în viitor e ignorată (se folosește data de azi), cu avertisment.
+- Expirare fișă aptitudine: coloană opțională. Poate fi o singură coloană (ex. "01.03.2026") SAU trei coloane separate — ZIUA EXP., LUNA EXP., ANUL EXP. (formatul unor exporturi HR) — pe care sistemul le combină automat. Din ea se creează scadența (vezi mai sus). Fără loc de muncă nu se poate crea scadența → avertisment.
+- Mențiuni: coloană opțională; se salvează la notele angajatului.
+- Duplicate: potrivirea cu angajații existenți se face întâi după CNP, apoi după nume/email.
+
+IMPORT ANGAJAȚI — LOC DE MUNCĂ vs DEPARTAMENT (reguli):
+- Loc de muncă = entitatea pentru care există riscuri, fișa postului și scadențe (ce contează pentru medicina muncii). Departament = doar text descriptiv (serviciu/secție/birou) pe locul de muncă, nu o entitate separată.
+- Dacă rândul are un loc de muncă (sau doar un departament), acesta se caută în companie și SE CREEAZĂ automat dacă nu există — același comportament în ambele moduri. Rândul NU mai e respins pentru "loc de muncă negăsit". Numele se normalizează (spații/punct final), deci "SECTOR APA " și "SECTOR APA." sunt același loc.
+- Fără nici loc de muncă, nici departament: angajatul se importă fără atribuire (cu un avertisment) și nu poate fi programat până nu primește un loc de muncă.
+- În exporturile HR românești, coloana "Locație"/"LOCATIE" înseamnă locul de muncă, nu orașul.
+
+IMPORT ANGAJAȚI — FIȘIERE REALE (robustețe):
+- Antetul nu trebuie să fie pe primul rând — sistemul îl caută în primele ~15 rânduri (primul rând cu Nume + Prenume).
+- Rândurile-separator (o singură celulă: o lună, un an, "SUSPENDAT") și antetele repetate în mijlocul foii sunt sărite automat.
+- Se citesc toate foile din fișier care au un antet recunoscut și se cumulează; previzualizarea arată din ce foaie vine fiecare rând. Foile fără antet recunoscut se ignoră, cu o notă.
+- Fișierele mari (sute de rânduri, ex. 600+) se trimit automat în loturi, cu progres — nu trebuie împărțite manual.
 
 IMPORT ANGAJAȚI — TEMPLATE EXTINS:
 - Modul extins se activează automat când fișierul conține coloanele de companie (nume_companie, cui_companie, adresa_companie, loc_de_munca) — nu trebuie selectat manual.
@@ -210,8 +230,14 @@ IMPORT ANGAJAȚI — TEMPLATE EXTINS:
 IMPORT ANGAJAȚI — WIZARD ÎN 4 PAȘI:
 - Pașii: Companie (aleasă dintr-o listă) → Fișier (upload Excel) → Previzualizare → Confirmare.
 - Maparea coloanelor din fișier e detectată automat, cu badge "Mapare AI" — dacă detecția automată eșuează sau durează prea mult, apare un mesaj clar și utilizatorul verifică/corectează maparea manual; nu blochează importul.
-- Previzualizarea arată rândurile: valide, cu probleme (nume/prenume lipsă, email invalid, loc de muncă negăsit) și duplicate — pentru duplicate se poate alege "Sari peste" sau "Importă oricum".
+- Previzualizarea arată rândurile ca: valide, cu erori care blochează rândul (doar nume/prenume lipsă sau email invalid) și cu avertismente care NU blochează (CNP invalid, dată ciudată, fără loc de muncă, duplicat în fișier). Cardul de sumar grupează locurile de muncă în: existent, va fi creat, fără loc de muncă. Pentru duplicate se poate alege "Sari peste" sau "Importă oricum".
 - La reimport pentru o companie care are deja angajați dintr-un import anterior: apare o comparație (diff) automată — angajați Noi, Lipsă din fișier (posibil plecați din firmă), Mută loc de muncă, Neschimbați. La primul import pentru o companie acest ecran nu apare.
+- La final, rezumatul arată: angajați creați / săriți / eșuați, companii și locuri de muncă create, CNP-uri salvate / invalide și scadențe create.
+
+IMPORT ANGAJAȚI — ISTORIC ȘI ANULARE (doar practice_admin):
+- Pe pagina de import, sus-dreapta, e link-ul "Istoric importuri": lista tuturor importurilor cabinetului (dată, fișier, cine l-a inițiat, status, câte rânduri create/sărite/eșuate). Un import rămas "în curs / întrerupt" înseamnă că s-a oprit la jumătate.
+- Click pe un import → detalii pe rând (ce s-a întâmplat cu fiecare rând) și, dacă e cazul, butonul "Anulează import".
+- "Anulează import" șterge (reversibil prin arhivare, soft-delete) DOAR angajații creați de acel import care nu au încă nicio examinare, împreună cu scadențele importate ale lor. Angajații care între timp au fost examinați se PĂSTREAZĂ. Companiile și locurile de muncă create de import rămân neatinse. Cere confirmare și e definitiv din perspectiva angajaților eliminați.
 
 COMBINARE ANGAJAȚI DUPLICAȚI (/employees/merge):
 - Rezolvă cazul în care un import Excel sau o introducere manuală a creat același angajat de două ori (variații de nume, dublă încărcare a fișierului etc.).
