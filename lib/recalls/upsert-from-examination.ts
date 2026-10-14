@@ -43,6 +43,17 @@ export async function upsertRecallFromExamination(
   client: PrismaClient | Prisma.TransactionClient,
   input: UpsertRecallInput
 ): Promise<string | null> {
+  // Supersede any IMPORTED fitness-certificate recall for this
+  // employee+workplace. Those recalls come from an external fișă entered at
+  // bulk import (createdFromExaminationId = null, see the employee import
+  // commit route). A real examination signed in Buzomed fulfils them, so we
+  // close them here — pointing at this examination — instead of leaving a
+  // second active recall alongside the one this examination creates below.
+  // This runs regardless of verdict: even an `inapt` result retires the
+  // external document's schedule. Idempotent — already-terminal recalls are
+  // excluded, so re-runs (backfill, re-sign) are safe.
+  await supersedeImportedRecalls(client, input)
+
   // No recall for inapt/inapt_temporar/no-verdict cases.
   if (!input.verdict || input.verdict === 'inapt' || input.verdict === 'inapt_temporar') {
     return null
@@ -91,6 +102,38 @@ export async function upsertRecallFromExamination(
     select: { id: true },
   })
   return created.id
+}
+
+/**
+ * Mark any open imported recall (external fișă, createdFromExaminationId
+ * null) for this employee+workplace as completed, fulfilled by the given
+ * examination. See the call site in upsertRecallFromExamination for the
+ * rationale. Terminal recalls (completed/cancelled) are left untouched.
+ */
+async function supersedeImportedRecalls(
+  client: PrismaClient | Prisma.TransactionClient,
+  input: UpsertRecallInput
+): Promise<void> {
+  const imported = await client.recall.findMany({
+    where: {
+      tenantId: input.tenantId,
+      employeeId: input.employeeId,
+      workplaceId: input.workplaceId,
+      createdFromExaminationId: null,
+      status: { notIn: ['completed', 'cancelled'] },
+      deletedAt: null,
+    },
+    select: { id: true },
+  })
+  for (const recall of imported) {
+    await client.recall.update({
+      where: { id: recall.id },
+      data: {
+        status: 'completed',
+        completedExaminationId: input.examinationId,
+      },
+    })
+  }
 }
 
 /**

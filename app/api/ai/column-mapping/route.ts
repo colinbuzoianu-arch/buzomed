@@ -1,16 +1,25 @@
+import Anthropic from '@anthropic-ai/sdk'
 import { type NextRequest, NextResponse } from 'next/server'
+import { checkAiRateLimit } from '@/lib/ai/rate-limit'
+import { logAiUsage } from '@/lib/ai/usage-log'
 import { getApiUser } from '@/lib/auth'
 import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
-import { checkAiRateLimit } from '@/lib/ai/rate-limit'
-import Anthropic from '@anthropic-ai/sdk'
-import { logAiUsage } from '@/lib/ai/usage-log'
 
 const VALID_COLUMN_KEYS = [
   'firstName',
   'lastName',
+  'cnp',
   'companyEmployeeId',
   'email',
   'department',
+  'jobTitle',
+  'workplaceName',
+  'companyName',
+  'cui',
+  'companyAddress',
+  'hireDate',
+  'fitnessValidUntil',
+  'notes',
 ]
 
 // Detect headers that look like actual data rather than column names.
@@ -62,14 +71,23 @@ Respond ONLY with valid JSON. No markdown, no explanation, no other text.`
 
 Headers: ${JSON.stringify(headers)}
 
-Valid field names: firstName, lastName, companyEmployeeId, email, department
+Valid field names: firstName, lastName, cnp, companyEmployeeId, email, jobTitle, workplaceName, department, companyName, cui, companyAddress, hireDate, fitnessValidUntil, notes
 
 Field meanings:
 - firstName: given name, prenume, first name, vorname, nome
 - lastName: family name, surname, nume, nachname, cognome
+- cnp: Romanian national ID number (cod numeric personal, c.n.p.) — this is a COLUMN HEADER only
 - companyEmployeeId: employee ID, badge, matricola, marca, payroll ID, cod angajat
 - email: email address, e-mail, adresa email
-- department: department, workplace, sector, birou, sectie, abteilung, reparto
+- jobTitle: role, functie, ocupatie, pozitie, beruf
+- workplaceName: the specific work location / loc de muncă / punct de lucru / locatie / work site
+- department: organizational unit, departament, sectie, birou, abteilung, reparto
+- companyName: employer / company name / nume companie / firma / angajator
+- cui: company fiscal code / CUI / cod fiscal / cif / VAT id
+- companyAddress: company address / adresa companie / sediu social
+- hireDate: employment start date, data angajarii, hire date, eintrittsdatum
+- fitnessValidUntil: fitness-certificate expiry, expirare fisa aptitudine, valabil pana la, scadenta
+- notes: free-text remarks, mentiuni, observatii, obs
 
 Return ONLY this JSON (no other text):
 {
@@ -113,7 +131,10 @@ Confidence: "high" = obvious match, "medium" = probable, "low" = guessed.`
     const message = aiMessage
 
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
-    const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    const jsonStr = raw
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim()
 
     let parsed: { mapping: Record<string, string | null>; confidence: Record<string, string> }
     try {
@@ -127,8 +148,7 @@ Confidence: "high" = obvious match, "medium" = probable, "low" = guessed.`
     const confidence: Record<string, 'high' | 'medium' | 'low'> = {}
     for (const header of headers) {
       const raw = parsed.mapping?.[header]
-      mapping[header] =
-        typeof raw === 'string' && VALID_COLUMN_KEYS.includes(raw) ? raw : null
+      mapping[header] = typeof raw === 'string' && VALID_COLUMN_KEYS.includes(raw) ? raw : null
       const conf = parsed.confidence?.[header]
       confidence[header] = (['high', 'medium', 'low'] as const).includes(
         conf as 'high' | 'medium' | 'low'

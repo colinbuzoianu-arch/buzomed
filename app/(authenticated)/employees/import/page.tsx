@@ -1,9 +1,9 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
+import { prisma } from '@/lib/prisma'
 import { ImportClient } from './import-client'
 
 export default async function ImportEmployeesPage() {
@@ -39,10 +39,7 @@ export default async function ImportEmployeesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/employees"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
+        <Link href="/employees" className="text-sm text-muted-foreground hover:text-foreground">
           ← {t('employees.import.backToList')}
         </Link>
         <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight mt-2">
@@ -56,8 +53,8 @@ export default async function ImportEmployeesPage() {
       {companies.length === 0 && (
         <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
           Nu ai companii create. Folosește template-ul extins (cu coloanele{' '}
-          <code>nume_companie</code> + <code>cui_companie</code>) pentru a le
-          crea automat din import, sau{' '}
+          <code>nume_companie</code> + <code>cui_companie</code>) pentru a le crea automat din
+          import, sau{' '}
           <Link href="/companies/new" className="underline hover:text-blue-600">
             creează o companie
           </Link>{' '}
@@ -76,83 +73,108 @@ export default async function ImportEmployeesPage() {
         }))}
         locale={locale}
         labels={{
-            stepCompany: t('employees.import.stepCompany'),
-            stepFile: t('employees.import.stepFile'),
-            stepPreview: t('employees.import.stepPreview'),
-            stepConfirm: t('employees.import.stepConfirm'),
-            companyLabel: t('employees.import.companyLabel'),
-            companyPlaceholder: t('employees.import.companyPlaceholder'),
-            companyHelp: t('employees.import.companyHelp'),
-            fileLabel: t('employees.import.fileLabel'),
-            fileHelp: t('employees.import.fileHelp'),
-            fileFormatHelp: t('employees.import.fileFormatHelp'),
-            downloadTemplate: t('employees.import.downloadTemplate'),
-            previewTitle: t('employees.import.previewTitle'),
-            previewSubtitle: t('employees.import.previewSubtitle'),
-            rowsTotal: t('employees.import.rowsTotal'),
-            rowsValid: t('employees.import.rowsValid'),
-            rowsWithIssues: t('employees.import.rowsWithIssues'),
-            rowsDuplicate: t('employees.import.rowsDuplicate'),
-            colRow: t('employees.import.colRow'),
-            colStatus: t('employees.import.colStatus'),
-            colFirstName: t('employees.import.colFirstName'),
-            colLastName: t('employees.import.colLastName'),
-            colEmployeeId: t('employees.import.colEmployeeId'),
-            colEmail: t('employees.import.colEmail'),
-            colDepartment: t('employees.import.colDepartment'),
-            statusOk: t('employees.import.statusOk'),
-            statusDuplicate: t('employees.import.statusDuplicate'),
-            statusIssue: t('employees.import.statusIssue'),
-            statusWarning: t('employees.import.statusWarning'),
-            issueMissingFirstName: t('employees.import.issueMissingFirstName'),
-            issueMissingLastName: t('employees.import.issueMissingLastName'),
-            issueInvalidEmail: t('employees.import.issueInvalidEmail'),
-            issueWorkplaceNotFound: t(
-              'employees.import.issueWorkplaceNotFound'
-            ),
-            warningNoDepartment: t('employees.import.warningNoDepartment'),
-            warningDuplicateEmployee: t(
-              'employees.import.warningDuplicateEmployee'
-            ),
-            skipDuplicates: t('employees.import.skipDuplicates'),
-            importAnywayDuplicates: t(
-              'employees.import.importAnywayDuplicates'
-            ),
-            mappingDetected: t('employees.import.mappingDetected'),
-            mappingMissing: t('employees.import.mappingMissing'),
-            mappingUnmapped: t('employees.import.mappingUnmapped'),
-            mappingAiBadge: t('employees.import.mappingAiBadge'),
-            mappingAiNote: t('employees.import.mappingAiNote'),
-            mappingAiTimeout: t('employees.import.mappingAiTimeout'),
-            mappingAiLoading: t('employees.import.mappingAiLoading'),
-            mappingLowConfidence: t('employees.import.mappingLowConfidence'),
-            commitButton: t('employees.import.commitButton'),
-            committing: t('employees.import.committing'),
-            cancelButton: t('common.cancel'),
-            resetButton: t('employees.import.resetButton'),
-            resultSuccess: t('employees.import.resultSuccess'),
-            resultSummary: t('employees.import.resultSummary'),
-            backToList: t('employees.import.backToList'),
-            errorParse: t('employees.import.errorParse'),
-            errorCommit: t('employees.import.errorCommit'),
-            errorNoFile: t('employees.import.errorNoFile'),
-            errorNoCompany: t('employees.import.errorNoCompany'),
-            errorNoValidRows: t('employees.import.errorNoValidRows'),
-            diffLoading: t('employees.import.diffLoading'),
-            diffTitle: t('employees.import.diffTitle'),
-            diffNew: t('employees.import.diffNew'),
-            diffLeaving: t('employees.import.diffLeaving'),
-            diffMoved: t('employees.import.diffMoved'),
-            diffUnchanged: t('employees.import.diffUnchanged'),
-            diffLeavingNote: t('employees.import.diffLeavingNote'),
-            diffFirstImport: t('employees.import.diffFirstImport'),
-            diffFirstImportDesc: t('employees.import.diffFirstImportDesc'),
-            diffShowLeaving: t('employees.import.diffShowLeaving'),
-            diffShowMoved: t('employees.import.diffShowMoved'),
-            workplaceBreakdown: t('employees.import.workplaceBreakdown'),
-            workplaceUnassigned: t('employees.import.workplaceUnassigned'),
-          }}
-        />
+          stepCompany: t('employees.import.stepCompany'),
+          stepFile: t('employees.import.stepFile'),
+          stepPreview: t('employees.import.stepPreview'),
+          stepConfirm: t('employees.import.stepConfirm'),
+          companyLabel: t('employees.import.companyLabel'),
+          companyPlaceholder: t('employees.import.companyPlaceholder'),
+          companyHelp: t('employees.import.companyHelp'),
+          fileLabel: t('employees.import.fileLabel'),
+          fileHelp: t('employees.import.fileHelp'),
+          fileFormatHelp: t('employees.import.fileFormatHelp'),
+          downloadTemplate: t('employees.import.downloadTemplate'),
+          previewTitle: t('employees.import.previewTitle'),
+          previewSubtitle: t('employees.import.previewSubtitle'),
+          rowsTotal: t('employees.import.rowsTotal'),
+          rowsValid: t('employees.import.rowsValid'),
+          rowsWithIssues: t('employees.import.rowsWithIssues'),
+          rowsDuplicate: t('employees.import.rowsDuplicate'),
+          colRow: t('employees.import.colRow'),
+          colStatus: t('employees.import.colStatus'),
+          colFirstName: t('employees.import.colFirstName'),
+          colLastName: t('employees.import.colLastName'),
+          colEmployeeId: t('employees.import.colEmployeeId'),
+          colEmail: t('employees.import.colEmail'),
+          colDepartment: t('employees.import.colDepartment'),
+          statusOk: t('employees.import.statusOk'),
+          statusDuplicate: t('employees.import.statusDuplicate'),
+          statusIssue: t('employees.import.statusIssue'),
+          statusWarning: t('employees.import.statusWarning'),
+          issueMissingFirstName: t('employees.import.issueMissingFirstName'),
+          issueMissingLastName: t('employees.import.issueMissingLastName'),
+          issueInvalidEmail: t('employees.import.issueInvalidEmail'),
+          issueWorkplaceNotFound: t('employees.import.issueWorkplaceNotFound'),
+          warningNoDepartment: t('employees.import.warningNoDepartment'),
+          warningDuplicateEmployee: t('employees.import.warningDuplicateEmployee'),
+          skipDuplicates: t('employees.import.skipDuplicates'),
+          importAnywayDuplicates: t('employees.import.importAnywayDuplicates'),
+          mappingDetected: t('employees.import.mappingDetected'),
+          mappingMissing: t('employees.import.mappingMissing'),
+          mappingUnmapped: t('employees.import.mappingUnmapped'),
+          mappingAiBadge: t('employees.import.mappingAiBadge'),
+          mappingAiNote: t('employees.import.mappingAiNote'),
+          mappingAiTimeout: t('employees.import.mappingAiTimeout'),
+          mappingAiLoading: t('employees.import.mappingAiLoading'),
+          mappingLowConfidence: t('employees.import.mappingLowConfidence'),
+          commitButton: t('employees.import.commitButton'),
+          committing: t('employees.import.committing'),
+          cancelButton: t('common.cancel'),
+          resetButton: t('employees.import.resetButton'),
+          resultSuccess: t('employees.import.resultSuccess'),
+          resultSummary: t('employees.import.resultSummary'),
+          backToList: t('employees.import.backToList'),
+          errorParse: t('employees.import.errorParse'),
+          errorCommit: t('employees.import.errorCommit'),
+          errorNoFile: t('employees.import.errorNoFile'),
+          errorNoCompany: t('employees.import.errorNoCompany'),
+          errorNoValidRows: t('employees.import.errorNoValidRows'),
+          diffLoading: t('employees.import.diffLoading'),
+          diffTitle: t('employees.import.diffTitle'),
+          diffNew: t('employees.import.diffNew'),
+          diffLeaving: t('employees.import.diffLeaving'),
+          diffMoved: t('employees.import.diffMoved'),
+          diffUnchanged: t('employees.import.diffUnchanged'),
+          diffLeavingNote: t('employees.import.diffLeavingNote'),
+          diffFirstImport: t('employees.import.diffFirstImport'),
+          diffFirstImportDesc: t('employees.import.diffFirstImportDesc'),
+          diffShowLeaving: t('employees.import.diffShowLeaving'),
+          diffShowMoved: t('employees.import.diffShowMoved'),
+          workplaceBreakdown: t('employees.import.workplaceBreakdown'),
+          workplaceUnassigned: t('employees.import.workplaceUnassigned'),
+          colCnp: t('employees.import.colCnp'),
+          colWorkplace: t('employees.import.colWorkplace'),
+          colJobTitle: t('employees.import.colJobTitle'),
+          colCity: t('employees.import.colCity'),
+          colHireDate: t('employees.import.colHireDate'),
+          colFitnessValidUntil: t('employees.import.colFitnessValidUntil'),
+          colNotes: t('employees.import.colNotes'),
+          colSheet: t('employees.import.colSheet'),
+          warningNoWorkplace: t('employees.import.warningNoWorkplace'),
+          warningCnpInvalid: t('employees.import.warningCnpInvalid'),
+          warningHireDateInvalid: t('employees.import.warningHireDateInvalid'),
+          warningHireDateFuture: t('employees.import.warningHireDateFuture'),
+          warningFitnessDateInvalid: t('employees.import.warningFitnessDateInvalid'),
+          warningDuplicateCnp: t('employees.import.warningDuplicateCnp'),
+          warningIncompleteCompany: t('employees.import.warningIncompleteCompany'),
+          warningWorkplaceWithoutCompany: t('employees.import.warningWorkplaceWithoutCompany'),
+          workplaceExisting: t('employees.import.workplaceExisting'),
+          workplaceWillCreate: t('employees.import.workplaceWillCreate'),
+          workplaceWillCreateTag: t('employees.import.workplaceWillCreateTag'),
+          workplaceNone: t('employees.import.workplaceNone'),
+          summaryCompaniesCreated: t('employees.import.summaryCompaniesCreated'),
+          summaryWorkplacesCreated: t('employees.import.summaryWorkplacesCreated'),
+          summaryWorkplacesCreatedList: t('employees.import.summaryWorkplacesCreatedList'),
+          summaryCnpSaved: t('employees.import.summaryCnpSaved'),
+          summaryCnpInvalid: t('employees.import.summaryCnpInvalid'),
+          summaryRecallsCreated: t('employees.import.summaryRecallsCreated'),
+          summaryWithoutWorkplace: t('employees.import.summaryWithoutWorkplace'),
+          summaryWithoutWorkplaceNote: t('employees.import.summaryWithoutWorkplaceNote'),
+          noticeCnpEncryption: t('employees.import.noticeCnpEncryption'),
+          noticeRecallType: t('employees.import.noticeRecallType'),
+          committingBatches: t('employees.import.committingBatches'),
+        }}
+      />
     </div>
   )
 }

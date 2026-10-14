@@ -4,32 +4,56 @@
  * Accepts either CSV text or an Excel file (XLSX/XLS), produces a
  * normalized array of `RawRow` objects keyed by detected column.
  *
- * Header detection is fuzzy. We don't require a specific filename or
- * column order — the cabinet can paste their existing HR export and
- * the importer figures out which column means what. The expected
- * columns are:
+ * Header detection is fuzzy AND positional. We don't require a specific
+ * filename, column order, or that the header sits on the first row — the
+ * cabinet can paste their existing HR export and the importer figures out
+ * which column means what. The columns we understand are:
  *
- *   - firstName       (nume, prenume, first name, prenume angajat, ...)
- *   - lastName        (nume de familie, surname, last name, nume, ...)
- *   - companyEmployeeId (id angajat, marca, marcă, employee id, payroll, ...)
+ *   - firstName       (prenume, first name, ...)
+ *   - lastName        (nume, surname, ...)
+ *   - cnp             (cnp, cod numeric personal, c.n.p., ...)  — optional
+ *   - companyEmployeeId (id angajat, marca, matricola, ...)
  *   - email
- *   - department      (departament, locul de munca, workplace, post, ...)
+ *   - jobTitle        (functie, ocupatie, ...)
+ *   - workplaceName   (loc de munca, punct de lucru, LOCATIE, ...)
+ *   - department      (departament, sectie, birou, ...)
+ *   - hireDate        (data angajarii, data angaj., hire date, ...) — optional
+ *   - fitnessValidUntil (expirare fisa aptitudine, valabil pana la, ...) — optional
+ *   - notes           (mentiuni, observatii, obs, ...) — optional
+ *   - companyName / cui / companyAddress (extended per-row company data)
+ *
+ * Workplace vs. department (import spec §5): a *workplace* is the Buzomed
+ * `Workplace` entity (what medicina muncii attaches risks, job sheets and
+ * recalls to); a *department* is just descriptive text on that workplace.
+ * The single rule, identical in both import modes: a workplace value is
+ * found-or-created under the resolved company; a department-only value is
+ * matched against existing workplaces and, failing that, creates a
+ * workplace named after the department. A row is never rejected for
+ * lacking a workplace.
+ *
+ * Robustness (import spec §6): the header row is searched for in the first
+ * ~15 rows; single-cell separator bands (months, years, "SUSPENDAT") and
+ * repeated header rows mid-sheet are skipped; every sheet with a
+ * recognizable header is read and its rows cumulated (tagged with the
+ * source sheet); columns with values but no header are surfaced as
+ * unmapped rather than silently dropped.
  *
  * Note that "nume" alone is ambiguous in Romanian — it can mean either
  * full name OR last name. We use position heuristics: if both "nume"
- * and "prenume" are present, "nume" is last name. If only "nume" is
- * present, we treat it as last name and rely on a separate "prenume"
- * column being absent as confirmation.
+ * and "prenume" are present, "nume" is last name.
  */
 
 import Papa from 'papaparse'
+import { validateCnp } from '@/lib/crypto/cnp-validation'
+import { isFutureDate, normalizeCnpInput, parseFlexibleDate } from './import-normalize'
 
-// Note: `xlsx` is dynamically imported inside parseXlsx() to keep it
+// Note: `xlsx` is dynamically imported inside parseXlsxSheets() to keep it
 // out of bundles that only handle CSV. It's a ~700 KB lib.
 
 export type ColumnKey =
   | 'firstName'
   | 'lastName'
+  | 'cnp'
   | 'companyEmployeeId'
   | 'email'
   | 'department'
@@ -39,21 +63,48 @@ export type ColumnKey =
   | 'cui'
   | 'companyAddress'
   | 'workplaceName'
+  | 'hireDate'
+  | 'fitnessValidUntil'
+  | 'notes'
+
+/** Every column the mapping UI / AI is allowed to assign a header to. */
+export const ASSIGNABLE_COLUMN_KEYS: ColumnKey[] = [
+  'firstName',
+  'lastName',
+  'cnp',
+  'companyEmployeeId',
+  'email',
+  'department',
+  'jobTitle',
+  'city',
+  'companyName',
+  'cui',
+  'companyAddress',
+  'workplaceName',
+  'hireDate',
+  'fitnessValidUntil',
+  'notes',
+]
 
 export interface RawRow {
-  rowNumber: number // 1-indexed in the source file (header = 0)
+  rowNumber: number // globally unique, 1-indexed across all cumulated sheets
+  sheetName: string | null // source sheet (null for CSV / single-sheet)
   firstName: string | null
   lastName: string | null
+  cnp: string | null
   companyEmployeeId: string | null
   email: string | null
   department: string | null
   jobTitle: string | null
   city: string | null
-  // Extended import columns — present when file uses the new 10-column template
+  // Extended import columns — present when file uses the new template
   companyName: string | null
   cui: string | null
   companyAddress: string | null
   workplaceName: string | null
+  hireDate: string | null
+  fitnessValidUntil: string | null
+  notes: string | null
   raw: Record<string, string> // for debugging / displaying unmapped values
 }
 
@@ -66,18 +117,18 @@ export interface ColumnMapping {
 const REQUIRED_COLS: ColumnKey[] = ['firstName', 'lastName']
 
 /**
- * Fuzzy matches a header string against known aliases for each column.
- * Returns the matched ColumnKey or null. Case-insensitive, strips
- * whitespace and Romanian diacritics for comparison.
+ * Normalizes a header string for alias comparison. Case-insensitive,
+ * strips whitespace and Romanian diacritics, flattens separators.
  */
 function normalizeHeader(h: string): string {
   return h
     .toLowerCase()
     .trim()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+    .replace(/[̀-ͯ]/g, '') // strip diacritics
     .replace(/[._\-/]/g, ' ')
     .replace(/\s+/g, ' ')
+    .trim()
 }
 
 const HEADER_ALIASES: Record<ColumnKey, string[]> = {
@@ -100,6 +151,12 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
     'family name',
     'nume familie',
   ],
+  // CNP is declared BEFORE companyEmployeeId so that in the "contains"
+  // fallback a header like "Cod personal angajat" resolves to cnp rather
+  // than being grabbed by companyEmployeeId's very short `id` alias.
+  // 'c.n.p.' normalizes to 'c n p'. Exact matches always win, so a plain
+  // "CNP" column is never mistaken for an employee id.
+  cnp: ['cnp', 'cod numeric personal', 'cod personal', 'c n p', 'personal number'],
   companyEmployeeId: [
     'id angajat',
     'id',
@@ -115,14 +172,7 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
     'badge',
     'badge number',
   ],
-  email: [
-    'email',
-    'e-mail',
-    'mail',
-    'adresa email',
-    'email address',
-    'adresa de email',
-  ],
+  email: ['email', 'e-mail', 'mail', 'adresa email', 'email address', 'adresa de email'],
   department: [
     'departament',
     'department',
@@ -152,19 +202,7 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
     'title',
     'titlu',
   ],
-  city: [
-    'oras',
-    'orasul',
-    'localitate',
-    'localitatea',
-    'city',
-    'town',
-    'location',
-    'locatie',
-    'locatia',
-    'stadt',
-    'wohnort',
-  ],
+  city: ['oras', 'orasul', 'localitate', 'localitatea', 'city', 'town', 'stadt', 'wohnort'],
   companyName: [
     'nume_companie',
     'nume companie',
@@ -195,36 +233,61 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
     'sediu',
     'sediu social',
   ],
+  // `locatie`/`location` moved here from `city`: in Romanian HR exports it
+  // means the work location (loc de muncă), not the town. `sector` is safe
+  // to add (it does not collide with department's `sectie`/`sectia`); we do
+  // NOT add `sectie` here because that alias already belongs to department.
   workplaceName: [
     'loc_de_munca',
     'loc de munca',
     'locul de munca',
+    'loc munca',
     'punct de lucru',
     'punct lucru',
     'work location',
     'work site',
     'locatie munca',
+    'locatie',
+    'locatia',
+    'location',
+    'sector',
     'workplace',
   ],
+  hireDate: [
+    'data angajarii',
+    'data angaj',
+    'data angajare',
+    'angajat la',
+    'hire date',
+    'start date',
+    'eintrittsdatum',
+  ],
+  fitnessValidUntil: [
+    'expirare fisa aptitudine',
+    'expirare fisa',
+    'valabil pana la',
+    'data expirare',
+    'scadenta',
+    'urmatorul control',
+    'valid until',
+  ],
+  notes: ['mentiuni', 'observatii', 'obs', 'note', 'notes', 'remarks'],
 }
 
 function detectColumn(header: string): ColumnKey | null {
   const norm = normalizeHeader(header)
+  if (!norm) return null
 
   // Prefer exact matches over partial matches. Tied scores resolved by
   // alias ordering (first wins).
-  for (const [key, aliases] of Object.entries(HEADER_ALIASES) as Array<
-    [ColumnKey, string[]]
-  >) {
+  for (const [key, aliases] of Object.entries(HEADER_ALIASES) as Array<[ColumnKey, string[]]>) {
     for (const alias of aliases) {
       if (norm === alias) return key
     }
   }
   // Fall back to "contains" matching — useful for headers like
   // "Nume / Prenume" or "ID angajat (marca)".
-  for (const [key, aliases] of Object.entries(HEADER_ALIASES) as Array<
-    [ColumnKey, string[]]
-  >) {
+  for (const [key, aliases] of Object.entries(HEADER_ALIASES) as Array<[ColumnKey, string[]]>) {
     for (const alias of aliases) {
       if (norm.includes(alias)) return key
     }
@@ -233,10 +296,10 @@ function detectColumn(header: string): ColumnKey | null {
 }
 
 /**
- * Disambiguates the "nume" alias: if both "nume" and "prenume" headers
- * are present, "nume" → lastName. The default mapping already does
- * that, but this function makes the rule explicit and warns if we
- * detect ambiguity.
+ * Resolves a list of header strings into a ColumnMapping. If both "nume"
+ * and "prenume" headers are present, "nume" → lastName (the default alias
+ * ordering already does that). Header collisions (two headers mapping to
+ * the same key) send the later header to `unmappedHeaders`.
  */
 function resolveMapping(headers: string[]): ColumnMapping {
   const detected: Partial<Record<ColumnKey, string>> = {}
@@ -258,77 +321,224 @@ function resolveMapping(headers: string[]): ColumnMapping {
   return { detected, unmappedHeaders, missingColumns }
 }
 
+// ───────────────────────── Matrix pipeline (spec §6) ────────────────────
+
+type Matrix = string[][]
+
+interface SheetData {
+  name: string
+  matrix: Matrix
+}
+
+const HEADER_SCAN_LIMIT = 15
+
 /**
- * Parses a CSV string into rows. Auto-detects delimiter (comma /
- * semicolon / tab — papaparse handles this). Skips empty rows.
+ * A row is accepted as the header row when its cells, run through the
+ * alias resolver, yield BOTH firstName and lastName. That is strong enough
+ * to reject stray title rows ("2026", a single merged company name) while
+ * matching every realistic employee-roster header.
  */
-export function parseCsv(text: string): {
-  headers: string[]
-  rows: Array<Record<string, string>>
-  errors: string[]
-} {
-  // Strip a UTF-8 BOM if present (Excel exports often include one).
-  const cleaned = text.replace(/^\uFEFF/, '')
-  const result = Papa.parse<Record<string, string>>(cleaned, {
-    header: true,
+function rowLooksLikeHeader(cells: string[]): boolean {
+  if (cells.filter((c) => c.trim() !== '').length < 2) return false
+  const m = resolveMapping(cells.map((c) => c.trim()))
+  return !m.missingColumns.includes('firstName') && !m.missingColumns.includes('lastName')
+}
+
+/** Returns the index of the header row within the first rows, or -1. */
+function detectHeaderRow(matrix: Matrix): number {
+  const limit = Math.min(HEADER_SCAN_LIMIT, matrix.length)
+  for (let i = 0; i < limit; i++) {
+    if (rowLooksLikeHeader(matrix[i])) return i
+  }
+  return -1
+}
+
+/**
+ * Turns raw header cells into unique, non-empty header names. Blank header
+ * cells that nonetheless sit above data become "Coloana N" so their values
+ * surface as unmapped columns instead of vanishing. Duplicate names get a
+ * disambiguating suffix.
+ */
+function materializeHeaders(cells: string[]): string[] {
+  const seen = new Map<string, number>()
+  return cells.map((raw, i) => {
+    const base = raw.trim() || `Coloana ${i + 1}`
+    const n = seen.get(base) ?? 0
+    seen.set(base, n + 1)
+    return n === 0 ? base : `${base} (${n + 1})`
+  })
+}
+
+/** True for single-cell separator bands (months, years, "SUSPENDAT", …). */
+function isSeparatorRow(cells: string[]): boolean {
+  return cells.filter((c) => c.trim() !== '').length <= 1
+}
+
+/**
+ * True when a mid-sheet row simply repeats the header (common when an
+ * export concatenates several blocks). Compared on normalized labels.
+ */
+function isRepeatedHeaderRow(cells: string[], headerCells: string[]): boolean {
+  if (!rowLooksLikeHeader(cells)) return false
+  const norm = (arr: string[]) =>
+    arr
+      .map((c) => normalizeHeader(c))
+      .filter(Boolean)
+      .join('|')
+  return norm(cells) === norm(headerCells)
+}
+
+interface SheetRecords {
+  name: string
+  headerCells: string[] // materialized header names
+  mapping: ColumnMapping
+  records: Record<string, string>[]
+}
+
+/**
+ * Extracts data records from one sheet. Returns null when no header row is
+ * found (the sheet is ignored by the caller, with a note).
+ */
+function sheetToRecords(sheet: SheetData): SheetRecords | null {
+  const headerIndex = detectHeaderRow(sheet.matrix)
+  if (headerIndex < 0) return null
+
+  const rawHeaderCells = sheet.matrix[headerIndex].map((c) => c.trim())
+  const headerCells = materializeHeaders(sheet.matrix[headerIndex])
+  const mapping = resolveMapping(headerCells)
+
+  const records: Record<string, string>[] = []
+  for (let i = headerIndex + 1; i < sheet.matrix.length; i++) {
+    const cells = sheet.matrix[i].map((c) => c.trim())
+    if (isSeparatorRow(cells)) continue
+    if (isRepeatedHeaderRow(cells, rawHeaderCells)) continue
+    const record: Record<string, string> = {}
+    for (let j = 0; j < headerCells.length; j++) {
+      record[headerCells[j]] = cells[j] ?? ''
+    }
+    records.push(record)
+  }
+  return { name: sheet.name, headerCells, mapping, records }
+}
+
+function extract(
+  mapping: ColumnMapping,
+  record: Record<string, string>,
+  col: ColumnKey
+): string | null {
+  const header = mapping.detected[col]
+  if (!header) return null
+  const v = record[header]
+  if (v === undefined || v === null) return null
+  const trimmed = String(v).trim()
+  return trimmed === '' ? null : trimmed
+}
+
+function recordToRawRow(
+  mapping: ColumnMapping,
+  record: Record<string, string>,
+  rowNumber: number,
+  sheetName: string | null
+): RawRow {
+  const cnpRaw = extract(mapping, record, 'cnp')
+  return {
+    rowNumber,
+    sheetName,
+    firstName: extract(mapping, record, 'firstName'),
+    lastName: extract(mapping, record, 'lastName'),
+    cnp: cnpRaw ? normalizeCnpInput(cnpRaw) : null,
+    companyEmployeeId: extract(mapping, record, 'companyEmployeeId'),
+    email: extract(mapping, record, 'email'),
+    department: extract(mapping, record, 'department'),
+    jobTitle: extract(mapping, record, 'jobTitle'),
+    city: extract(mapping, record, 'city'),
+    companyName: extract(mapping, record, 'companyName'),
+    cui: extract(mapping, record, 'cui'),
+    companyAddress: extract(mapping, record, 'companyAddress'),
+    workplaceName: extract(mapping, record, 'workplaceName'),
+    hireDate: extract(mapping, record, 'hireDate'),
+    fitnessValidUntil: extract(mapping, record, 'fitnessValidUntil'),
+    notes: extract(mapping, record, 'notes'),
+    raw: record,
+  }
+}
+
+/** Converts a single spreadsheet cell to a canonical string. */
+function cellToString(v: unknown): string {
+  if (v === null || v === undefined) return ''
+  if (v instanceof Date) {
+    if (Number.isNaN(v.getTime())) return ''
+    // Excel-native dates come back as a Date at the calendar day the user
+    // sees; emit ISO yyyy-mm-dd using LOCAL getters so a timezone behind
+    // UTC doesn't shift the day.
+    const y = v.getFullYear()
+    const m = String(v.getMonth() + 1).padStart(2, '0')
+    const d = String(v.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+  if (typeof v === 'number') {
+    // Integer magnitudes we care about (IDs, 13-digit CNPs) stay plain —
+    // never scientific notation within JS's safe-integer range.
+    return String(v)
+  }
+  if (typeof v === 'boolean') return v ? 'true' : ''
+  return String(v)
+}
+
+/**
+ * Parses a CSV string into a single-sheet matrix. Auto-detects delimiter
+ * (comma / semicolon / tab / pipe). Header-row detection and empty-row
+ * skipping happen later in the shared matrix pipeline.
+ */
+function parseCsvMatrix(text: string): { matrix: Matrix; errors: string[] } {
+  const cleaned = text.replace(/^﻿/, '') // strip UTF-8 BOM
+  const result = Papa.parse<string[]>(cleaned, {
+    header: false,
     skipEmptyLines: 'greedy',
-    transformHeader: (h) => h.trim(),
     delimitersToGuess: [',', ';', '\t', '|'],
   })
   return {
-    headers: result.meta.fields ?? [],
-    rows: result.data,
-    errors: result.errors.map(
-      (e) => `Row ${e.row}: ${e.message}`
+    matrix: (result.data ?? []).map((row) =>
+      (Array.isArray(row) ? row : []).map((c) => cellToString(c))
     ),
+    errors: result.errors.map((e) => `Row ${e.row}: ${e.message}`),
   }
 }
 
 /**
- * Parses an XLSX file (raw buffer) into rows. Uses the first sheet
- * only — multi-sheet workbooks are not supported (cabinets rarely
- * have legitimate multi-sheet employee lists, and we want clarity).
- *
- * Lazy-imports the xlsx package so the ~700 KB lib only loads when
- * the user actually selects an Excel file.
+ * Reads every sheet of an XLSX/XLS workbook into matrices. `cellDates`
+ * makes Excel-native dates come back as Date objects (spec §2/§3).
  */
-export async function parseXlsx(buffer: ArrayBuffer): Promise<{
-  headers: string[]
-  rows: Array<Record<string, string>>
-  errors: string[]
-}> {
+async function parseXlsxSheets(
+  buffer: ArrayBuffer
+): Promise<{ sheets: SheetData[]; errors: string[] }> {
   const XLSX = await import('xlsx')
-  const wb = XLSX.read(buffer, { type: 'array' })
+  const wb = XLSX.read(buffer, { type: 'array', cellDates: true })
   if (wb.SheetNames.length === 0) {
-    return { headers: [], rows: [], errors: ['No sheets in workbook'] }
+    return { sheets: [], errors: ['No sheets in workbook'] }
   }
-  const firstSheet = wb.Sheets[wb.SheetNames[0]]
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, {
-    header: 'A',
-    blankrows: false,
-    defval: '',
+  const sheets: SheetData[] = wb.SheetNames.map((name) => {
+    const ws = wb.Sheets[name]
+    const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, {
+      header: 1,
+      blankrows: false,
+      defval: '',
+      raw: true,
+    })
+    const matrix = aoa.map((row) => (Array.isArray(row) ? row : []).map((c) => cellToString(c)))
+    return { name, matrix }
   })
-  if (rows.length === 0) {
-    return { headers: [], rows: [], errors: ['Sheet is empty'] }
-  }
-  // First row = headers, rest = data.
-  const headerRow = rows[0]
-  const headers = Object.values(headerRow).map((v) => String(v).trim())
-  const colKeys = Object.keys(headerRow)
-  const dataRows = rows.slice(1).map((row) => {
-    const obj: Record<string, string> = {}
-    for (let i = 0; i < headers.length; i++) {
-      const colKey = colKeys[i]
-      obj[headers[i]] = String(row[colKey] ?? '').trim()
-    }
-    return obj
-  })
-  return { headers, rows: dataRows, errors: [] }
+  return { sheets, errors: [] }
 }
 
 /**
- * Top-level entry: takes raw text or buffer, returns mapped rows.
- * Async because XLSX parsing dynamically imports its lib.
+ * Top-level entry: takes raw text or buffer, returns mapped rows cumulated
+ * across every recognized sheet. Async because XLSX parsing dynamically
+ * imports its lib.
+ *
+ * `mapping`/`unmappedHeaders` describe the FIRST recognized sheet (that is
+ * what the override UI edits). `sheetNotes` carries human-readable notes
+ * about sheets that were read or skipped.
  */
 export async function parseImportFile(
   input: { text: string } | { buffer: ArrayBuffer; filename: string }
@@ -336,50 +546,66 @@ export async function parseImportFile(
   mapping: ColumnMapping
   rows: RawRow[]
   parseErrors: string[]
+  sheetNotes: string[]
 }> {
-  let parsed: { headers: string[]; rows: Array<Record<string, string>>; errors: string[] }
+  let sheets: SheetData[]
+  let parseErrors: string[]
 
   if ('text' in input) {
-    parsed = parseCsv(input.text)
+    const { matrix, errors } = parseCsvMatrix(input.text)
+    sheets = [{ name: 'CSV', matrix }]
+    parseErrors = errors
   } else {
     const lower = input.filename.toLowerCase()
     if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
-      parsed = await parseXlsx(input.buffer)
+      const r = await parseXlsxSheets(input.buffer)
+      sheets = r.sheets
+      parseErrors = r.errors
     } else {
       const text = new TextDecoder('utf-8').decode(input.buffer)
-      parsed = parseCsv(text)
+      const { matrix, errors } = parseCsvMatrix(text)
+      sheets = [{ name: 'CSV', matrix }]
+      parseErrors = errors
     }
   }
 
-  const mapping = resolveMapping(parsed.headers)
+  const multiSheet = sheets.length > 1
+  const sheetNotes: string[] = []
+  const recognized: SheetRecords[] = []
 
-  const rows: RawRow[] = parsed.rows.map((row, idx) => {
-    const get = (col: ColumnKey): string | null => {
-      const sourceHeader = mapping.detected[col]
-      if (!sourceHeader) return null
-      const v = row[sourceHeader]
-      if (v === undefined || v === null) return null
-      const trimmed = String(v).trim()
-      return trimmed === '' ? null : trimmed
+  for (const sheet of sheets) {
+    const r = sheetToRecords(sheet)
+    if (!r) {
+      if (multiSheet) {
+        sheetNotes.push(`Foaia „${sheet.name}" a fost ignorată (fără antet recunoscut).`)
+      }
+      continue
     }
-    return {
-      rowNumber: idx + 2,
-      firstName: get('firstName'),
-      lastName: get('lastName'),
-      companyEmployeeId: get('companyEmployeeId'),
-      email: get('email'),
-      department: get('department'),
-      jobTitle: get('jobTitle'),
-      city: get('city'),
-      companyName: get('companyName'),
-      cui: get('cui'),
-      companyAddress: get('companyAddress'),
-      workplaceName: get('workplaceName'),
-      raw: row,
+    recognized.push(r)
+    if (multiSheet) {
+      sheetNotes.push(`Foaia „${sheet.name}": ${r.records.length} rânduri.`)
     }
-  })
+  }
 
-  return { mapping, rows, parseErrors: parsed.errors }
+  // Canonical mapping = first recognized sheet (the one the override UI edits).
+  const canonical = recognized[0]
+  const mapping: ColumnMapping = canonical
+    ? canonical.mapping
+    : { detected: {}, unmappedHeaders: [], missingColumns: [...REQUIRED_COLS] }
+
+  const rows: RawRow[] = []
+  let rowNumber = 2 // keep the "header = row 1" feel for the first sheet
+  for (const sheetRecords of recognized) {
+    const sheetName = multiSheet ? sheetRecords.name : null
+    for (const record of sheetRecords.records) {
+      // Each sheet is extracted with ITS OWN mapping so data stays correct
+      // even if a later sheet's columns differ from the canonical header.
+      rows.push(recordToRawRow(sheetRecords.mapping, record, rowNumber, sheetName))
+      rowNumber++
+    }
+  }
+
+  return { mapping, rows, parseErrors, sheetNotes }
 }
 
 export interface AiColumnMappingResult {
@@ -390,7 +616,8 @@ export interface AiColumnMappingResult {
 
 /**
  * Enhances fuzzy column mapping with AI when ≥2 required columns are undetected.
- * Only column header names are sent to the API — never actual row data.
+ * Only column header names are sent to the API — never actual row data
+ * (import spec §1: the CNP value must never reach the AI endpoint).
  * Falls back gracefully on timeout (5 s) or any API error.
  * Must be called from a client context (uses fetch with a relative URL).
  */
@@ -432,7 +659,9 @@ export async function aiEnhancedColumnMapping(
   }
 
   // Merge: fuzzy-detected columns keep their mapping; AI fills the gaps only.
-  const mergedDetected: Partial<Record<ColumnKey, string>> = { ...fuzzyMapping.detected }
+  const mergedDetected: Partial<Record<ColumnKey, string>> = {
+    ...fuzzyMapping.detected,
+  }
   const mergedConfidence: Partial<Record<ColumnKey, 'high' | 'medium' | 'low'>> = {}
   const stillUnmapped: string[] = []
 
@@ -441,7 +670,7 @@ export async function aiEnhancedColumnMapping(
     if (
       aiKey &&
       typeof aiKey === 'string' &&
-      (REQUIRED_COLS as string[]).concat(['companyEmployeeId', 'email', 'department', 'jobTitle', 'city']).includes(aiKey) &&
+      (ASSIGNABLE_COLUMN_KEYS as string[]).includes(aiKey) &&
       !mergedDetected[aiKey as ColumnKey]
     ) {
       mergedDetected[aiKey as ColumnKey] = header
@@ -456,23 +685,26 @@ export async function aiEnhancedColumnMapping(
 
   const missingColumns = REQUIRED_COLS.filter((c) => !mergedDetected[c])
   return {
-    mapping: { detected: mergedDetected, unmappedHeaders: stillUnmapped, missingColumns },
+    mapping: {
+      detected: mergedDetected,
+      unmappedHeaders: stillUnmapped,
+      missingColumns,
+    },
     aiUsed: true,
     confidence: mergedConfidence,
   }
 }
 
 /**
- * Row-level validation. Returns issues for one row; an empty array
- * means the row is committable.
+ * Row-level validation. Returns `issues` (block the row) and `warnings`
+ * (row still imports). The only blocking issues are a missing first/last
+ * name and a malformed email — everything else (bad CNP, odd dates, no
+ * workplace) is a non-fatal warning so a messy real-world file still
+ * lands as much data as possible (import spec §1, §2, §3, §5).
  *
- * - firstName and lastName are required.
- * - email if present must look like an email.
- * - companyEmployeeId, department are optional.
- *
- * We DELIBERATELY do not validate the department against the actual
- * Workplace list here — that's done server-side using the live DB.
- * The client validation only catches shape problems.
+ * We DELIBERATELY do not validate the workplace against the live DB here —
+ * that's done server-side. The client validation only catches shape
+ * problems.
  */
 export interface RowValidation {
   rowNumber: number
@@ -492,8 +724,31 @@ export function validateRow(row: RawRow): RowValidation {
       issues.push('invalid_email')
     }
   }
-  if (!row.department) {
-    warnings.push('no_department')
+
+  // CNP — invalid never blocks; the employee imports without a CNP.
+  if (row.cnp && !validateCnp(row.cnp).valid) {
+    warnings.push('cnp_invalid')
+  }
+
+  // Hire date — a garbage or future date is dropped with a warning.
+  if (row.hireDate) {
+    const parsed = parseFlexibleDate(row.hireDate)
+    if (parsed.status === 'invalid') warnings.push('hire_date_invalid')
+    else if (parsed.status === 'valid' && isFutureDate(parsed.date))
+      warnings.push('hire_date_future')
+  }
+
+  // Fitness-certificate expiry — a past date is fine (overdue recall); only
+  // an unparseable value warns.
+  if (row.fitnessValidUntil) {
+    const parsed = parseFlexibleDate(row.fitnessValidUntil)
+    if (parsed.status === 'invalid') warnings.push('fitness_date_invalid')
+  }
+
+  // No workplace AND no department — the employee lands without an
+  // assignment (spec §5.3). Renamed from the old `no_department`.
+  if (!row.workplaceName && !row.department) {
+    warnings.push('no_workplace')
   }
 
   return { rowNumber: row.rowNumber, issues, warnings }
