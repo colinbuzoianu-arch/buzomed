@@ -62,7 +62,7 @@ const OUTCOME_LABEL: Record<string, string> = {
 }
 
 export default async function ImportHistoryDetailPage({ params }: PageProps) {
-  const user = await requireRole('practice_admin')
+  const user = await requireRole('practice_admin', 'practitioner')
   const { id } = await params
   if (!user.tenantId) notFound()
 
@@ -75,7 +75,10 @@ export default async function ImportHistoryDetailPage({ params }: PageProps) {
     (a, b) => a.rowNumber - b.rowNumber
   )
   const flags = (job.flags as string[] | null) ?? []
-  const canCancel = job.status !== 'cancelled' && job.created > 0
+  // Viewing is open to practitioners too, but cancelling an import is
+  // destructive — keep it practice_admin-only (the API enforces this as well).
+  const isPracticeAdmin = user.roles.includes('practice_admin')
+  const canCancel = isPracticeAdmin && job.status !== 'cancelled' && job.created > 0
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">

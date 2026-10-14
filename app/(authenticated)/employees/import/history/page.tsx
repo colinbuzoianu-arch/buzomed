@@ -41,7 +41,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default async function ImportHistoryPage() {
-  const user = await requireRole('practice_admin')
+  const user = await requireRole('practice_admin', 'practitioner')
   if (!user.tenantId) {
     return (
       <div className="mx-auto max-w-5xl p-6 text-sm text-muted-foreground">

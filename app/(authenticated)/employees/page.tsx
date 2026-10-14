@@ -298,7 +298,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
             <Button asChild variant="outline" size="sm">
               <Link href="/employees/import">{t('employees.importButton')}</Link>
             </Button>
-            {user.roles.includes('practice_admin') && (
+            {(user.roles.includes('practice_admin') || user.roles.includes('practitioner')) && (
               <Button asChild variant="outline" size="sm">
                 <Link href="/employees/import/history">
                   {t('employees.import.importHistoryLink')}
