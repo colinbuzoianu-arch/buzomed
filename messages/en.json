@@ -1074,7 +1074,7 @@
       "stepContinue": "Continue",
       "stepAutoSaved": "✓ Auto-saved",
       "examinedAtLabel": "Examination date",
-      "examinedAtHelp": "The date the consultation actually took place. Leave empty to use the entry date."
+      "examinedAtHelp": "The date the consultation actually took place. Required to sign the fișă — correct it if it differs from today."
     },
     "actions": {
       "start": "Start examination",

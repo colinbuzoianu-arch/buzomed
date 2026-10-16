@@ -102,6 +102,16 @@ export function parseExaminedAt(
  * had `signedAt` at the head of this chain, which is precisely the bug
  * this field fixes: the signing moment is rendered separately, in the
  * signature block, and is not the examination date.
+ *
+ * `completedAt` is set to `now()` at sign time if not already set (see
+ * sign/route.ts) — i.e. for any exam signed going forward it is the same
+ * instant as `signedAt`, just under another name. That used to reopen the
+ * exact bug this field fixes whenever a practitioner left examinedAt
+ * blank. As of the sign-time validation in sign/route.ts, examinedAt is
+ * now required before an examination can be signed, so for every new
+ * signed exam this function should resolve to `examinedAt` directly. The
+ * `completedAt ?? createdAt` tail only still matters for exams signed
+ * before that validation existed.
  */
 export function resolveExaminationDate(examination: {
   examinedAt: Date | null

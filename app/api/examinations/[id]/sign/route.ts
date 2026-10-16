@@ -88,6 +88,17 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
   if (existing.verdict === 'inapt_temporar' && !existing.inaptTemporarUntil) {
     issues.push('inaptTemporarUntil is required when verdict is inapt_temporar')
   }
+  // examinedAt must be set explicitly before signing. Without this check,
+  // a practitioner who never touches the date field silently gets
+  // resolveExaminationDate's completedAt fallback printed on the fișă —
+  // and completedAt is set to `now` right below, at sign time, so that
+  // fallback is just signedAt under another name. That is exactly the
+  // bug examinedAt was introduced to fix (see lib/examinations/examined-at.ts),
+  // so it cannot be left to a silent fallback: the practitioner must
+  // confirm the real consultation date before the document is issued.
+  if (!existing.examinedAt) {
+    issues.push('examinedAt must be set before signing')
+  }
   if (issues.length > 0) {
     return NextResponse.json(
       { error: 'cannot_sign', issues },

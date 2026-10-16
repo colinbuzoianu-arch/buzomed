@@ -1074,7 +1074,7 @@
       "stepContinue": "Continuă",
       "stepAutoSaved": "✓ Salvat automat",
       "examinedAtLabel": "Data examinării",
-      "examinedAtHelp": "Data la care a avut loc efectiv consultația. Lasă gol pentru a folosi data introducerii."
+      "examinedAtHelp": "Data la care a avut loc efectiv consultația. Obligatorie pentru a semna fișa — corectează-o dacă diferă de ziua curentă."
     },
     "actions": {
       "start": "Începe examinarea",

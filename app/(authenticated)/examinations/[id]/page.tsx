@@ -546,9 +546,19 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           nextExaminationDueDate: examination.nextExaminationDueDate
             ? examination.nextExaminationDueDate.toISOString().slice(0, 10)
             : '',
+          // examinedAt is required before signing (see sign/route.ts). For an
+          // unsigned exam that doesn't have one yet, default the field to
+          // today rather than leaving it blank, so the practitioner starts
+          // from a sensible value and only has to correct it when the
+          // consultation actually happened on a different day. A signed
+          // exam that predates this column keeps printing blank/fallback —
+          // defaulting it here would fabricate a date for an already-issued
+          // document.
           examinedAt: examination.examinedAt
             ? examination.examinedAt.toISOString().slice(0, 10)
-            : '',
+            : isSigned
+              ? ''
+              : new Date().toISOString().slice(0, 10),
         }}
         defaultIntervalMonths={examination.workplace.examinationIntervalMonths}
         hazardHintLabels={hazardHintLabels}
