@@ -145,7 +145,8 @@ export function VerdictStep({
               </div>
             </div>
           </FullWidth>
-          {(values.verdict === 'apt_conditionat' ||
+          {(values.verdict === 'apt' ||
+            values.verdict === 'apt_conditionat' ||
             values.verdict === 'inapt_temporar' ||
             values.verdict === 'inapt') && (
             <FullWidth>
