@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Suspense } from 'react'
+import type { UserRole } from '@prisma/client'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { requireRole } from '@/lib/auth'
@@ -16,7 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { TenantInviteSection } from './tenant-invite-section'
+import { invitableRoles } from '@/lib/permissions/invites'
+import { canManageUser, ASSIGNABLE_ROLES } from '@/lib/permissions/user-admin'
+import { TeamInviteSection } from '@/app/(authenticated)/team/team-invite-section'
+import { UserAdminActions } from '@/app/(authenticated)/team/user-admin-actions'
 import { PlatformInvoicesTab } from './platform-invoices-tab'
 import { TenantManagementActions } from './tenant-management-actions'
 import { SubscriptionActions } from './subscription-actions'
@@ -50,6 +54,7 @@ export default async function TenantDetailPage({ params }: PageProps) {
           lastLoginAt: true,
           createdAt: true,
           authUserId: true,
+          professionalTitle: true,
         },
       },
     },
@@ -128,7 +133,43 @@ export default async function TenantDetailPage({ params }: PageProps) {
     errorAlreadyActive: t('tenantDetail.invitations.errorAlreadyActive'),
     errorInvalidEmail: t('tenantDetail.invitations.errorInvalidEmail'),
     rolePracticeAdmin: t('tenantDetail.invitations.rolePracticeAdmin'),
+    rolePractitioner: t('tenantDetail.invitations.role_practitioner'),
+    roleAssistant: t('tenantDetail.invitations.role_assistant'),
+    roleCompanyHr: t('tenantDetail.invitations.role_company_hr'),
     locale,
+  }
+
+  // super_admin can now add practice_admin, practitioner, or assistant
+  // accounts directly to a tenant — e.g. a Buzomed operator joining as
+  // practitioner to help with a data import — and remove them again
+  // afterwards via UserAdminActions below. See lib/permissions/invites.ts.
+  const allowedRolesToInvite = invitableRoles(
+    { roles: actor.roles, tenantId: actor.tenantId },
+    tenant.id
+  )
+
+  const userAdminLabels = {
+    editAction: t('team.userAdmin.edit'),
+    archiveAction: t('team.userAdmin.archive'),
+    archiveConfirm: t('team.userAdmin.archiveConfirm'),
+    dialogTitle: t('team.userAdmin.dialogTitle'),
+    dialogDescription: t('team.userAdmin.dialogDescription'),
+    fieldRoles: t('team.userAdmin.fieldRoles'),
+    fieldRolesHelp: t('team.userAdmin.fieldRolesHelp'),
+    fieldIsActive: t('team.userAdmin.fieldIsActive'),
+    fieldIsActiveHelp: t('team.userAdmin.fieldIsActiveHelp'),
+    fieldProfessionalTitle: t('team.userAdmin.fieldProfessionalTitle'),
+    submit: t('team.userAdmin.submit'),
+    saving: t('team.userAdmin.saving'),
+    archiving: t('team.userAdmin.archiving'),
+    cancel: t('common.cancel'),
+    successUpdated: t('team.userAdmin.successUpdated'),
+    successArchived: t('team.userAdmin.successArchived'),
+    errorMessage: t('team.userAdmin.errorMessage'),
+    errorLastAdmin: t('team.userAdmin.errorLastAdmin'),
+    rolePracticeAdmin: t('tenantDetail.invitations.role_practice_admin'),
+    rolePractitioner: t('tenantDetail.invitations.role_practitioner'),
+    roleAssistant: t('tenantDetail.invitations.role_assistant'),
   }
 
   return (
@@ -314,6 +355,9 @@ export default async function TenantDetailPage({ params }: PageProps) {
                   <TableHead>{t('tenantDetail.membersTable.roles')}</TableHead>
                   <TableHead>{t('tenantDetail.membersTable.accountStatus')}</TableHead>
                   <TableHead>{t('tenantDetail.membersTable.lastSeen')}</TableHead>
+                  <TableHead className="text-right">
+                    {t('common.actions')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -372,6 +416,34 @@ export default async function TenantDetailPage({ params }: PageProps) {
                           </span>
                         )}
                       </TableCell>
+                      <TableCell className="text-right">
+                        {(() => {
+                          const check = canManageUser(
+                            { id: actor.id, roles: actor.roles, tenantId: actor.tenantId },
+                            { id: user.id, roles: user.roles, tenantId: tenant.id }
+                          )
+                          if (!check.allowed) {
+                            return (
+                              <span className="text-xs text-muted-foreground">
+                                —
+                              </span>
+                            )
+                          }
+                          return (
+                            <UserAdminActions
+                              userId={user.id}
+                              userDisplayName={`${user.firstName} ${user.lastName}`}
+                              currentRoles={user.roles}
+                              currentIsActive={user.isActive}
+                              currentProfessionalTitle={
+                                user.professionalTitle ?? ''
+                              }
+                              assignableRoles={ASSIGNABLE_ROLES}
+                              labels={userAdminLabels}
+                            />
+                          )
+                        })()}
+                      </TableCell>
                     </TableRow>
                   )
                 })}
@@ -385,6 +457,7 @@ export default async function TenantDetailPage({ params }: PageProps) {
         <PendingInvitationsLoader
           tenantId={tenant.id}
           tenantName={tenant.name}
+          allowedRoles={allowedRolesToInvite}
           labels={inviteLabels}
         />
       </Suspense>
@@ -567,16 +640,24 @@ function InviteSectionSkeleton() {
   )
 }
 
-// Sequential/isolated in the original page — feeds only TenantInviteSection's
+// Sequential/isolated in the original page — feeds only TeamInviteSection's
 // initial prop, nothing else reads pendingInvitations.
+//
+// Reuses the /team invite section rather than duplicating it: super_admin
+// now picks a role (practice_admin, practitioner, or assistant — see
+// invitableRoles) the same way a practice_admin does on /team. `companies`
+// is always empty here because company_hr isn't in allowedRoles for
+// super_admin, so the per-company picker it would gate never renders.
 async function PendingInvitationsLoader({
   tenantId,
   tenantName,
+  allowedRoles,
   labels,
 }: {
   tenantId: string
   tenantName: string
-  labels: React.ComponentProps<typeof TenantInviteSection>['labels']
+  allowedRoles: UserRole[]
+  labels: React.ComponentProps<typeof TeamInviteSection>['labels']
 }) {
   const now = new Date()
   const pendingInvitations = await prisma.invitation.findMany({
@@ -593,10 +674,12 @@ async function PendingInvitationsLoader({
   })
 
   return (
-    <TenantInviteSection
+    <TeamInviteSection
       tenantId={tenantId}
       tenantName={tenantName}
+      allowedRoles={allowedRoles}
       labels={labels}
+      companies={[]}
       initialPendingInvitations={pendingInvitations.map((inv) => ({
         id: inv.id,
         email: inv.email,

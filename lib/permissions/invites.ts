@@ -3,7 +3,12 @@
  *
  * Encodes the role hierarchy:
  *
- *   super_admin    → can invite practice_admin to any tenant
+ *   super_admin    → can invite practice_admin, practitioner, or assistant
+ *                    to any tenant (support/admin use — e.g. a Buzomed
+ *                    operator temporarily joining a cabinet as practitioner
+ *                    to help with a data import). Cannot grant company_hr
+ *                    (that needs a company-scoped decision made by someone
+ *                    inside the tenant) or super_admin itself.
  *   practice_admin → can invite practitioner or assistant within their tenant
  *   practitioner   → can invite assistant within their tenant
  *   assistant      → cannot invite anyone
@@ -63,15 +68,25 @@ export function canInvite(
     return { allowed: false, reason: 'actor_has_no_role' }
   }
 
-  // super_admin can invite practice_admin to any tenant
+  // super_admin can invite practice_admin, practitioner, or assistant to
+  // any tenant. This used to be practice_admin-only, on the theory that
+  // super_admin shouldn't take tenant-scoped actions — but it blocked a
+  // real support need: a Buzomed operator added to a cabinet to help with
+  // something (e.g. an Excel import) with no supported way to add or
+  // remove themselves afterwards other than a manual DB edit. Explicit
+  // role selection (never defaulted) plus the existing invite audit trail
+  // keeps this accountable.
   if (actor.roles.includes('super_admin')) {
-    if (target.role === 'practice_admin') {
+    if (
+      target.role === 'practice_admin' ||
+      target.role === 'practitioner' ||
+      target.role === 'assistant'
+    ) {
       return { allowed: true }
     }
-    // super_admin doesn't invite practitioners/assistants directly —
-    // that's the job of each tenant's practice_admin. This isolation
-    // keeps super_admin's audit trail clean and prevents accidental
-    // tenant-scoped actions from a global account.
+    // company_hr is deliberately excluded — it's scoped to specific
+    // companies inside a tenant, a decision that belongs to someone
+    // inside that tenant, not to a global operator.
     return { allowed: false, reason: 'role_cannot_invite' }
   }
 
