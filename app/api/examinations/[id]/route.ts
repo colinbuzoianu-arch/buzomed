@@ -227,7 +227,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
 
   // examinedAt — the real consultation date, which may legitimately differ
   // from createdAt when the cabinet enters a consultation later. Bounded
-  // (no future dates, no silent deep backdating) in lib/examinations/examined-at.ts.
+  // (no silent deep backdating; future dates allowed) in lib/examinations/examined-at.ts.
   if ('examinedAt' in body) {
     const parsed = parseExaminedAt(body.examinedAt, issues)
     // undefined means "absent or invalid"; invalid already pushed an issue,

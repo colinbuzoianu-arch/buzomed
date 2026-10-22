@@ -15,18 +15,20 @@ import { optionalDate } from '@/lib/validation'
  * now two different columns.
  *
  * Why it is bounded rather than free-form: an unbounded date field on a
- * legal document is an invitation to backdate. The two bounds below are
+ * legal document is an invitation to deep backdating. The bound below is
  * the minimum that keeps the field honest while still covering real
  * late-entry workflows:
  *
- *   - Never in the future. A fișă cannot attest to a consultation that
- *     has not happened. A small clock-skew tolerance is allowed so a
- *     client a few minutes ahead of the server doesn't get rejected for
- *     entering "today".
  *   - Not older than MAX_BACKDATE_DAYS. Entering a consultation from eight
  *     months ago is either a data-migration job (which should not go
  *     through the clinical form) or something that needs a human decision,
  *     not a silent accept.
+ *
+ * Future dates are intentionally allowed. A cabinet's real workflow
+ * includes preparing a fișă ahead of a scheduled appointment, so the
+ * field no longer rejects a date later than "now" — a practitioner asked
+ * for this and it does not open any backdating risk (the only thing the
+ * future block guarded against).
  *
  * MAX_BACKDATE_DAYS is a judgement call, not a legal figure — 90 days
  * comfortably covers "we're behind on data entry" while still refusing
@@ -35,13 +37,6 @@ import { optionalDate } from '@/lib/validation'
  */
 
 export const MAX_BACKDATE_DAYS = 90
-
-/**
- * Tolerance for a client clock running ahead of the server. Without it, a
- * practitioner whose machine is 2 minutes fast gets "cannot be in the
- * future" when entering today's date.
- */
-const FUTURE_SKEW_TOLERANCE_MS = 5 * 60 * 1000
 
 export interface ExaminedAtValidationContext {
   /** Injectable for tests; defaults to now. */
@@ -76,11 +71,6 @@ export function parseExaminedAt(
   if (!parsed) return undefined
 
   const now = ctx.now ?? new Date()
-
-  if (parsed.getTime() > now.getTime() + FUTURE_SKEW_TOLERANCE_MS) {
-    issues.push('examinedAt cannot be in the future')
-    return undefined
-  }
 
   const oldestAllowed = new Date(now.getTime() - MAX_BACKDATE_DAYS * 24 * 60 * 60 * 1000)
   if (parsed.getTime() < oldestAllowed.getTime()) {
