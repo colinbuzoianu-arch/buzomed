@@ -119,7 +119,7 @@ HARTĂ NAVIGARE (path intern → ce spui utilizatorului implicit; menționezi ș
 - /medical-events → dropdown-ul "Administrare" → "Evenimente medicale"
 - /reports → dropdown-ul "Administrare" → "Rapoarte" (sub-secțiuni: Activitate cabinet, Scadențe, Expuneri la noxe, Vaccinări, Per practician, Snapshot inspecție)
 - /team → dropdown-ul "Administrare" → "Echipă" → buton "Invită coleg"
-- /settings/practice → dropdown-ul "Setări" → "Setări" (logo, date fiscale, semnătură și ștampilă cabinet, retenție date)
+- /settings/practice → dropdown-ul "Setări" → "Setări" (logo, date fiscale, adresă cabinet, semnătură și ștampilă cabinet, retenție date)
 - /settings/practitioners/[userId] → din dropdown-ul Administrare → Echipă, sau din dropdown-ul Setări → Setări, click pe numele medicului
 - /settings/billing → dropdown-ul "Setări" → "Abonament"
 - /settings/api → dropdown-ul "Setări" → "API & Webhooks"
@@ -134,7 +134,7 @@ Folosește pagina curentă ("${context.currentPage}") ca să înțelegi unde e u
 - Dacă e pe /examinations/[id] → după completare: buton "Semnează" (dacă are rol), apoi "Generează fișă" → duce la /examinations/[id]/fisa
 - Dacă e pe /companies/[id] → sub-pagini disponibile: /edit, /workplaces/new, /contracts/new, /invoices/new, /report, /annual-report, /compliance
 - Dacă e pe /intermediaries/[id] → sub-pagini disponibile: /edit, /invoices/new
-- Dacă e pe /settings/practice → poate upload logo, semnătură, ștampilă cabinet; setări retenție date
+- Dacă e pe /settings/practice → poate upload logo, semnătură, ștampilă cabinet; edita adresa cabinetului; setări retenție date
 - Dacă e pe /super-admin → sub-pagini: /super-admin/tenants/new, /super-admin/tenants/[id] (include tab-ul "Facturi platformă"), /super-admin/system-health
 Dacă nu știi pagina curentă sau e "/", răspunde generic cu URL-urile corecte.
 
@@ -307,6 +307,7 @@ ECHIPĂ (/team):
 
 SETĂRI CABINET (/settings/practice):
 - Logo cabinet, date fiscale, preferințe limbă, upload semnătură și ștampilă cabinet (apar pe fișele PDF).
+- Adresa cabinetului (stradă, linia 2, localitate, județ, cod poștal) se editează în secțiunea Identitate cabinet. Această adresă apare pe fișa de aptitudine și pe facturi — dacă un medic vrea să schimbe adresa de pe fișă, aici o schimbă. Modificarea se aplică fișelor emise de acum înainte; fișele deja semnate nu se schimbă.
 - Secțiunea "Retenție date": implicit 7 ani (HG 355/2007); se poate extinde la 10/15/25/40 ani pentru noxe speciale.
 - Doar practice_admin are acces.
 
@@ -348,7 +349,7 @@ API PUBLIC ȘI WEBHOOK-URI (/settings/api):
 SUPER-ADMIN (doar super_admin):
 - /super-admin — dashboard platformă: lista tuturor cabinetelor cu status (trial activ/expirat, activ/plătit, complementar), KPI-uri agregate (MRR RON, rata conversie), buton "Trimite notificări scadențe".
 - /super-admin/tenants/new — creare cabinet nou: trimite automat email de invitație la practice_admin.
-- /super-admin/tenants/[id] — detaliu cabinet: date fiscale, status abonament, utilizatori, opțiuni GDPR (anonimizare, verificare retenție).
+- /super-admin/tenants/[id] — detaliu cabinet: date fiscale, status abonament, utilizatori, opțiuni GDPR (anonimizare, verificare retenție). Include și cardul "Adresă cabinet", de unde super_admin poate edita adresa oricărui cabinet (stradă, localitate, județ, cod poștal); se reflectă pe fișa de aptitudine și pe facturi.
 - /super-admin/tenants/[id] — tab "Facturi platformă": aici se emit facturile cabinetului (PlatformInvoice). Buton "Generează factură" — creează automat factura lunii alese, pe baza modului de facturare al cabinetului (flat sau usage). Buton "+ Factură nouă" — factură manuală, cu presetări rapide (Solo/Cabinet/Corporativ) sau valori proprii (descriere, cantitate, preț unitar, scadență, note). Per factură: acțiuni Emite, Marchează plătită, Anulează, Șterge (doar draft), Trimite pe email, Descarcă PDF.
 - /super-admin/system-health — observabilitate platformă: erori sistem (filtrabile), rulări cron cu detecție stale (>25h), consum AI per rută cu estimare cost, livrări email, audit events, importuri, webhook-uri eșuate, rulări retenție log. Export CSV per secțiune. Trigger manual retenție cu ?dryRun=true.
 

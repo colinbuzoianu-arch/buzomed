@@ -184,6 +184,19 @@
   },
   "tenantDetail": {
     "infoSectionTitle": "Practice details",
+    "address": {
+      "title": "Practice address",
+      "help": "This address appears on the fitness certificate and on invoices.",
+      "addressLine1": "Address",
+      "addressLine2": "Address (line 2)",
+      "city": "City",
+      "county": "County",
+      "postalCode": "Postal code",
+      "save": "Save address",
+      "saving": "Saving...",
+      "success": "Address updated",
+      "error": "Could not save the address. Please try again."
+    },
     "membersSectionTitle": "Members",
     "noMembers": "No members yet. Send an invitation to add the first administrator.",
     "membersTable": {

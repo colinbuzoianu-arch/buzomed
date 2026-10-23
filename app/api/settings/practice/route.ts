@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getApiUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { asObject, optionalString } from '@/lib/validation'
+import { getRequestMeta } from '@/lib/audit/log'
+import { updateCabinetAddress } from '@/lib/tenants/update-cabinet-address'
 
 export async function PATCH(request: NextRequest) {
   const auth = await getApiUser()
@@ -22,6 +24,10 @@ export async function PATCH(request: NextRequest) {
   const cui          = optionalString('cui', body.cui, issues, { maxLength: 20 })
   const regCom       = optionalString('regCom', body.regCom, issues, { maxLength: 50 })
   const addressLine1 = optionalString('addressLine1', body.addressLine1, issues, { maxLength: 300 })
+  const addressLine2 = optionalString('addressLine2', body.addressLine2, issues, { maxLength: 300 })
+  const city         = optionalString('city', body.city, issues, { maxLength: 100 })
+  const county       = optionalString('county', body.county, issues, { maxLength: 100 })
+  const postalCode   = optionalString('postalCode', body.postalCode, issues, { maxLength: 20 })
   const phone        = optionalString('phone', body.phone, issues, { maxLength: 50 })
   const email        = optionalString('email', body.email, issues, { maxLength: 200 })
 
@@ -38,19 +44,43 @@ export async function PATCH(request: NextRequest) {
 
   if (issues.length > 0) return NextResponse.json({ error: issues[0] }, { status: 400 })
 
-  const tenant = await prisma.tenant.update({
+  // Non-address fields are updated directly on the Tenant. Address fields go
+  // through updateCabinetAddress so the change also reaches the primary
+  // Location (the row the fișă de aptitudine reads) — see that helper for why
+  // the two must always move together.
+  await prisma.tenant.update({
     where: { id: auth.user.tenantId },
     data: {
       ...(name !== undefined && { name }),
       ...(legalName !== undefined && { legalName }),
       ...(cui !== undefined && { cui }),
       ...(regCom !== undefined && { registrationNumber: regCom }),
-      ...(addressLine1 !== undefined && { addressLine1 }),
       ...(phone !== undefined && { phone }),
       ...(email !== undefined && { email }),
       ...(dataRetentionYears !== undefined && { dataRetentionYears }),
     },
-    select: { id: true, name: true, legalName: true, cui: true, registrationNumber: true, addressLine1: true, phone: true, email: true, logoUrl: true, dataRetentionYears: true },
+  })
+
+  // Only touch the Location machinery when the request actually carried an
+  // address field — a retention-only or identity-only save must not disturb
+  // the primary location.
+  const addressProvided = ['addressLine1', 'addressLine2', 'city', 'county', 'postalCode'].some(
+    (k) => k in body
+  )
+  if (addressProvided) {
+    const { ipAddress, userAgent } = getRequestMeta(request)
+    await updateCabinetAddress({
+      tenantId: auth.user.tenantId,
+      actorUserId: auth.user.id,
+      address: { addressLine1, addressLine2, city, county, postalCode },
+      ipAddress,
+      userAgent,
+    })
+  }
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: auth.user.tenantId },
+    select: { id: true, name: true, legalName: true, cui: true, registrationNumber: true, addressLine1: true, addressLine2: true, city: true, county: true, postalCode: true, phone: true, email: true, logoUrl: true, dataRetentionYears: true },
   })
 
   return NextResponse.json({ tenant })

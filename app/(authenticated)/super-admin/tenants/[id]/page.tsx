@@ -23,6 +23,7 @@ import { TeamInviteSection } from '@/app/(authenticated)/team/team-invite-sectio
 import { UserAdminActions } from '@/app/(authenticated)/team/user-admin-actions'
 import { PlatformInvoicesTab } from './platform-invoices-tab'
 import { TenantManagementActions } from './tenant-management-actions'
+import { TenantAddressForm } from './tenant-address-form'
 import { SubscriptionActions } from './subscription-actions'
 import { formatDate } from '@/lib/format-date'
 import { formatBillingLabel } from '@/lib/subscription'
@@ -172,6 +173,20 @@ export default async function TenantDetailPage({ params }: PageProps) {
     roleAssistant: t('tenantDetail.invitations.role_assistant'),
   }
 
+  const addressLabels = {
+    title: t('tenantDetail.address.title'),
+    help: t('tenantDetail.address.help'),
+    addressLine1: t('tenantDetail.address.addressLine1'),
+    addressLine2: t('tenantDetail.address.addressLine2'),
+    city: t('tenantDetail.address.city'),
+    county: t('tenantDetail.address.county'),
+    postalCode: t('tenantDetail.address.postalCode'),
+    save: t('tenantDetail.address.save'),
+    saving: t('tenantDetail.address.saving'),
+    success: t('tenantDetail.address.success'),
+    error: t('tenantDetail.address.error'),
+  }
+
   return (
     <div className="space-y-8">
       <Breadcrumbs items={[{ label: t('nav.superAdmin'), href: '/super-admin' }, { label: tenant.name }]} />
@@ -261,6 +276,20 @@ export default async function TenantDetailPage({ params }: PageProps) {
           <InfoRow label={t('common.createdAt')} value={formatDate(tenant.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')} />
         </dl>
       </section>
+
+      {/* Cabinet address — editable; also writes the primary Location so the
+          change reaches the fișă de aptitudine */}
+      <TenantAddressForm
+        tenantId={tenant.id}
+        labels={addressLabels}
+        current={{
+          addressLine1: tenant.addressLine1,
+          addressLine2: tenant.addressLine2,
+          city: tenant.city,
+          county: tenant.county,
+          postalCode: tenant.postalCode,
+        }}
+      />
 
       {/* GDPR compliance status */}
       <section className="space-y-3">

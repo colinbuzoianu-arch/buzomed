@@ -18,6 +18,10 @@ interface Tenant {
   cui: string | null
   registrationNumber: string | null
   addressLine1: string | null
+  addressLine2: string | null
+  city: string | null
+  county: string | null
+  postalCode: string | null
   phone: string | null
   email: string | null
   logoUrl: string | null
@@ -49,6 +53,10 @@ export function PracticeSettingsClient({ tenant, practitioners }: Props) {
   const [cui, setCui] = useState(tenant.cui ?? '')
   const [regCom, setRegCom] = useState(tenant.registrationNumber ?? '')
   const [addressLine1, setAddressLine1] = useState(tenant.addressLine1 ?? '')
+  const [addressLine2, setAddressLine2] = useState(tenant.addressLine2 ?? '')
+  const [city, setCity] = useState(tenant.city ?? '')
+  const [county, setCounty] = useState(tenant.county ?? '')
+  const [postalCode, setPostalCode] = useState(tenant.postalCode ?? '')
   const [phone, setPhone] = useState(tenant.phone ?? '')
   const [email, setEmail] = useState(tenant.email ?? '')
 
@@ -104,7 +112,7 @@ export function PracticeSettingsClient({ tenant, practitioners }: Props) {
         const res = await fetch('/api/settings/practice', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, legalName, cui, regCom, addressLine1, phone, email }),
+          body: JSON.stringify({ name, legalName, cui, regCom, addressLine1, addressLine2, city, county, postalCode, phone, email }),
         })
         const json = await res.json()
         if (!res.ok) {
@@ -261,9 +269,56 @@ export function PracticeSettingsClient({ tenant, practitioners }: Props) {
             id="addressLine1"
             value={addressLine1}
             onChange={(e) => setAddressLine1(e.target.value)}
-            placeholder="Stradă, număr, oraș, județ"
+            placeholder="Stradă, număr"
             maxLength={300}
           />
+          <p className="text-xs text-muted-foreground">
+            Această adresă apare pe fișa de aptitudine și pe facturi.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="addressLine2">Adresă (linia 2)</Label>
+          <Input
+            id="addressLine2"
+            value={addressLine2}
+            onChange={(e) => setAddressLine2(e.target.value)}
+            placeholder="Bloc, scară, etaj, apartament"
+            maxLength={300}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="city">Localitate</Label>
+            <Input
+              id="city"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Ex: Cluj-Napoca"
+              maxLength={100}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="county">Județ</Label>
+            <Input
+              id="county"
+              value={county}
+              onChange={(e) => setCounty(e.target.value)}
+              placeholder="Ex: Cluj"
+              maxLength={100}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="postalCode">Cod poștal</Label>
+            <Input
+              id="postalCode"
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value)}
+              placeholder="Ex: 400001"
+              maxLength={20}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

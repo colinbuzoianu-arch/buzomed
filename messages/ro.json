@@ -184,6 +184,19 @@
   },
   "tenantDetail": {
     "infoSectionTitle": "Date cabinet",
+    "address": {
+      "title": "Adresă cabinet",
+      "help": "Această adresă apare pe fișa de aptitudine și pe facturi.",
+      "addressLine1": "Adresă",
+      "addressLine2": "Adresă (linia 2)",
+      "city": "Localitate",
+      "county": "Județ",
+      "postalCode": "Cod poștal",
+      "save": "Salvează adresa",
+      "saving": "Se salvează...",
+      "success": "Adresă actualizată",
+      "error": "Nu s-a putut salva adresa. Încercați din nou."
+    },
     "membersSectionTitle": "Membri",
     "noMembers": "Niciun membru încă. Trimiteți o invitație pentru a adăuga primul administrator.",
     "membersTable": {
