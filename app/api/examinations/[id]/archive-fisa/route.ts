@@ -4,7 +4,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createElement } from 'react'
 import { getApiUser } from '@/lib/auth'
 import { buildStoragePath } from '@/lib/documents/upload-rules'
-import { canWriteTenantData } from '@/lib/permissions/tenant-data'
+import { canViewSensitivePii, canWriteTenantData } from '@/lib/permissions/tenant-data'
+import { resolveEmployeeCnp } from '@/lib/employees/resolve-cnp'
 import { prisma } from '@/lib/prisma'
 import { createServiceClient } from '@/lib/supabase/admin'
 import { buildFisaPdfData, FISA_PDF_INCLUDE } from '../fisa-pdf/fisa-pdf-data'
@@ -73,8 +74,19 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
   }
 
   // Same payload builder the streaming fisa-pdf route uses, so the archived
-  // copy can never disagree with what the browser shows.
-  const data = buildFisaPdfData(examination)
+  // copy can never disagree with what the browser shows. CNP resolved here
+  // (gated on PII permission) since the pure builder can't see the actor.
+  const cnp = resolveEmployeeCnp(
+    examination.employee,
+    canViewSensitivePii(auth.user, tenantId)
+  )
+  if (cnp.error) {
+    console.error('[archive-fisa] CNP decryption failed', {
+      examinationId,
+      employeeId: examination.employee.id,
+    })
+  }
+  const data = buildFisaPdfData(examination, cnp.value)
 
   // Generate PDF
   let buffer: Uint8Array

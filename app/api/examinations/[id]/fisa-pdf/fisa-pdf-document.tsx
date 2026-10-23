@@ -261,6 +261,7 @@ export interface FisaPdfProps {
   examinationDate: string
   signedAt: string | null
   workerName: string
+  workerCnp: string
   workerBirthDate: string
   workerGender: string
   companyName: string
@@ -432,6 +433,7 @@ export function FisaPdfDocument(props: FisaPdfProps) {
             <Text style={S.sectionTitle}>Date angajat</Text>
           </View>
           <Row label="Nume și prenume" value={props.workerName} />
+          {props.workerCnp ? <Row label="CNP" value={props.workerCnp} /> : null}
           <Row label="Data nașterii" value={props.workerBirthDate} />
           <Row
             label="Sex"

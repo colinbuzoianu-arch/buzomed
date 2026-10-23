@@ -37,6 +37,8 @@ export const FISA_PDF_INCLUDE = {
       birthDate: true,
       gender: true,
       idDocumentType: true,
+      idDocumentNumber: true,
+      cnpEncrypted: true,
     },
   },
   workplace: {
@@ -104,7 +106,17 @@ export function formatDateRo(date: Date): string {
  * refuses unsigned examinations before it gets here; deriving it removes the
  * chance of the two answers disagreeing if that precondition ever changes.
  */
-export function buildFisaPdfData(examination: ExaminationForFisaPdf): FisaPdfProps {
+export function buildFisaPdfData(
+  examination: ExaminationForFisaPdf,
+  /**
+   * The resolved CNP (or non-CNP identity number) to print. Passed in rather
+   * than derived here because decrypting it requires the acting user's PII
+   * permission, which this pure builder has no access to — the two routes
+   * that call it resolve it via resolveEmployeeCnp first. Defaults to '' so an
+   * unauthorized caller simply omits the CNP.
+   */
+  workerCnp = ''
+): FisaPdfProps {
   const vs = (examination.vitalSigns ?? {}) as Record<string, unknown>
 
   return {
@@ -131,6 +143,7 @@ export function buildFisaPdfData(examination: ExaminationForFisaPdf): FisaPdfPro
 
     // Worker
     workerName: `${examination.employee.lastName} ${examination.employee.firstName}`,
+    workerCnp,
     workerBirthDate: examination.employee.birthDate
       ? formatDateRo(examination.employee.birthDate)
       : '—',

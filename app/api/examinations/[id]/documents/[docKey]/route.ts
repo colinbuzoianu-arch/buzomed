@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
-import { canReadTenantData } from '@/lib/permissions/tenant-data'
+import { canReadTenantData, canViewSensitivePii } from '@/lib/permissions/tenant-data'
+import { resolveEmployeeCnp } from '@/lib/employees/resolve-cnp'
+import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 import { EXAM_TYPE_DOCUMENTS } from '@/lib/examinations/document-templates'
 import { fillExaminationPdf } from '@/lib/examinations/pdf-fill'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
@@ -26,12 +28,14 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     include: {
       employee: {
         select: {
+          id: true,
           firstName: true,
           lastName: true,
           birthDate: true,
           gender: true,
           idDocumentType: true,
           idDocumentNumber: true,
+          cnpEncrypted: true,
           jobTitle: true,
         },
       },
@@ -51,6 +55,39 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   }
   if (process.env.NODE_ENV === 'development') {
     console.log('[doc-fill] generating', docKey, 'for exam', id)
+  }
+
+  // The CNP printed on the official forms. See resolveEmployeeCnp for why
+  // reading idDocumentNumber alone (as this route used to) printed an empty
+  // CNP for every Romanian worker. Gated on canViewSensitivePii, the same gate
+  // as the employee detail view.
+  const cnp = resolveEmployeeCnp(
+    examination.employee,
+    canViewSensitivePii(auth.user, auth.user.tenantId)
+  )
+  const cnpValue = cnp.value
+  if (cnp.error) {
+    console.error('[documents] CNP decryption failed', {
+      examinationId: id,
+      employeeId: examination.employee.id,
+    })
+  }
+  // Decrypting a CNP is a PII access; record it the same way the employee
+  // detail route does, so the audit log shows who pulled a worker's CNP onto
+  // a document and when.
+  if (cnp.decrypted) {
+    const { ipAddress, userAgent } = getRequestMeta(_req)
+    void writeAuditLog({
+      tenantId: auth.user.tenantId,
+      userId: auth.user.id,
+      action: 'read',
+      entityType: 'employee',
+      entityId: examination.employee.id,
+      entitySummary: `${examination.employee.lastName} ${examination.employee.firstName}`,
+      changes: { cnpDecrypted: true, document: docKey },
+      ipAddress,
+      userAgent,
+    })
   }
 
   const vs = (examination.vitalSigns ?? {}) as Record<string, unknown>
@@ -89,7 +126,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       fields[`adresa${suffix}`] = companyAddr
       fields[`nume${suffix}`] = examination.employee.lastName
       fields[`prenume${suffix}`] = examination.employee.firstName
-      fields[`cnp${suffix}`] = examination.employee.idDocumentNumber ?? ''
+      fields[`cnp${suffix}`] = cnpValue
       fields[`ocupatia${suffix}`] = examination.employee.jobTitle ?? ''
       fields[`post${suffix}`] = examination.workplace.name
       fields[`data${suffix}`] = examDate
@@ -186,14 +223,14 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       data_nasterii: examination.employee.birthDate
         ? formatDateRo(examination.employee.birthDate)
         : '',
-      cnp: examination.employee.idDocumentNumber ?? '',
+      cnp: cnpValue,
       sex: examination.employee.gender ?? '',
       data_trimiterii: formatDateRo(new Date()),
       motivul_trimiterii: examination.notes ?? '',
     }
   } else if (docKey === 'adeverinta') {
     fields = {
-      cnp: examination.employee.idDocumentNumber ?? '',
+      cnp: cnpValue,
       nume: examination.employee.lastName,
       prenume: examination.employee.firstName,
       sex: examination.employee.gender ?? '',
@@ -207,7 +244,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       data_cert: examDate,
       nume: examination.employee.lastName,
       prenume: examination.employee.firstName,
-      cnp: examination.employee.idDocumentNumber ?? '',
+      cnp: cnpValue,
       apt: verdict === 'apt',
       inapt: verdict === 'inapt',
     }
@@ -217,7 +254,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       data_cert: examDate,
       nume: examination.employee.lastName,
       prenume: examination.employee.firstName,
-      cnp: examination.employee.idDocumentNumber ?? '',
+      cnp: cnpValue,
       apt: verdict === 'apt',
       inapt: verdict === 'inapt',
       apt_cond: verdict === 'apt_conditionat',
@@ -238,7 +275,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       data_inf: examDate,
       inf_nume: examination.employee.lastName,
       inf_prenume: examination.employee.firstName,
-      inf_cnp: examination.employee.idDocumentNumber ?? '',
+      inf_cnp: cnpValue,
     }
   }
 

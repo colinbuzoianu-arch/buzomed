@@ -3,7 +3,8 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createElement } from 'react'
 import { getClientIp, writeAuditLog } from '@/lib/audit/log'
 import { getApiUser } from '@/lib/auth'
-import { canReadTenantData } from '@/lib/permissions/tenant-data'
+import { canReadTenantData, canViewSensitivePii } from '@/lib/permissions/tenant-data'
+import { resolveEmployeeCnp } from '@/lib/employees/resolve-cnp'
 import { prisma } from '@/lib/prisma'
 import { buildFisaPdfData, FISA_PDF_INCLUDE } from './fisa-pdf-data'
 import { FisaPdfDocument } from './fisa-pdf-document'
@@ -47,9 +48,23 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 })
   }
 
+  // Resolve the CNP before building the payload — decryption needs the acting
+  // user's PII permission, which the pure builder can't see. See
+  // resolveEmployeeCnp for the idDocumentNumber-vs-cnpEncrypted subtlety.
+  const cnp = resolveEmployeeCnp(
+    examination.employee,
+    canViewSensitivePii(auth.user, auth.user.tenantId)
+  )
+  if (cnp.error) {
+    console.error('[fisa-pdf] CNP decryption failed', {
+      examinationId: id,
+      employeeId: examination.employee.id,
+    })
+  }
+
   // Build the data payload for the PDF component — plain serializable
   // values only, no Prisma objects.
-  const data = buildFisaPdfData(examination)
+  const data = buildFisaPdfData(examination, cnp.value)
 
   let buffer: Uint8Array
   try {
@@ -68,6 +83,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     entityId: examination.id,
     entitySummary: `Fișă aptitudine ${examination.examinationNumber} — ${examination.employee.lastName} ${examination.employee.firstName}`,
     ipAddress: getClientIp(req),
+    ...(cnp.decrypted ? { changes: { cnpDecrypted: true } } : {}),
   })
 
   const filename = `fisa_aptitudine_${examination.examinationNumber.replace('/', '-')}.pdf`
