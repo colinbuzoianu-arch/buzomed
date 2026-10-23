@@ -197,6 +197,17 @@
       "success": "Address updated",
       "error": "Could not save the address. Please try again."
     },
+    "details": {
+      "title": "Practice details",
+      "help": "The practice's fiscal data and address. Enter the CUI to autofill from ANAF. The address appears on the fitness certificate and on invoices.",
+      "name": "Short name (display)",
+      "legalName": "Legal name",
+      "save": "Save details",
+      "success": "Practice details updated",
+      "error": "Could not save the details. Please try again.",
+      "anafFound": "Data retrieved from ANAF.",
+      "anafInactive": "CUI inactive in ANAF."
+    },
     "membersSectionTitle": "Members",
     "noMembers": "No members yet. Send an invitation to add the first administrator.",
     "membersTable": {

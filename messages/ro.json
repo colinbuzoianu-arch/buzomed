@@ -197,6 +197,17 @@
       "success": "Adresă actualizată",
       "error": "Nu s-a putut salva adresa. Încercați din nou."
     },
+    "details": {
+      "title": "Date cabinet",
+      "help": "Datele fiscale și adresa cabinetului. Introdu CUI-ul pentru a precompleta automat din ANAF. Adresa apare pe fișa de aptitudine și pe facturi.",
+      "name": "Denumire scurtă (afișaj)",
+      "legalName": "Denumire legală",
+      "save": "Salvează datele",
+      "success": "Date cabinet actualizate",
+      "error": "Nu s-au putut salva datele. Încercați din nou.",
+      "anafFound": "Date ANAF preluate automat.",
+      "anafInactive": "CUI inactiv în ANAF."
+    },
     "membersSectionTitle": "Membri",
     "noMembers": "Niciun membru încă. Trimiteți o invitație pentru a adăuga primul administrator.",
     "membersTable": {

@@ -23,7 +23,7 @@ import { TeamInviteSection } from '@/app/(authenticated)/team/team-invite-sectio
 import { UserAdminActions } from '@/app/(authenticated)/team/user-admin-actions'
 import { PlatformInvoicesTab } from './platform-invoices-tab'
 import { TenantManagementActions } from './tenant-management-actions'
-import { TenantAddressForm } from './tenant-address-form'
+import { TenantDetailsForm } from './tenant-details-form'
 import { SubscriptionActions } from './subscription-actions'
 import { formatDate } from '@/lib/format-date'
 import { formatBillingLabel } from '@/lib/subscription'
@@ -173,18 +173,26 @@ export default async function TenantDetailPage({ params }: PageProps) {
     roleAssistant: t('tenantDetail.invitations.role_assistant'),
   }
 
-  const addressLabels = {
-    title: t('tenantDetail.address.title'),
-    help: t('tenantDetail.address.help'),
+  const detailsLabels = {
+    title: t('tenantDetail.details.title'),
+    help: t('tenantDetail.details.help'),
+    name: t('tenantDetail.details.name'),
+    legalName: t('tenantDetail.details.legalName'),
+    cui: t('createTenant.cuiLabel'),
+    regCom: t('createTenant.registrationLabel'),
+    email: t('common.email'),
+    phone: t('common.phone'),
     addressLine1: t('tenantDetail.address.addressLine1'),
     addressLine2: t('tenantDetail.address.addressLine2'),
     city: t('tenantDetail.address.city'),
     county: t('tenantDetail.address.county'),
     postalCode: t('tenantDetail.address.postalCode'),
-    save: t('tenantDetail.address.save'),
+    save: t('tenantDetail.details.save'),
     saving: t('tenantDetail.address.saving'),
-    success: t('tenantDetail.address.success'),
-    error: t('tenantDetail.address.error'),
+    success: t('tenantDetail.details.success'),
+    error: t('tenantDetail.details.error'),
+    anafFound: t('tenantDetail.details.anafFound'),
+    anafInactive: t('tenantDetail.details.anafInactive'),
   }
 
   return (
@@ -255,41 +263,31 @@ export default async function TenantDetailPage({ params }: PageProps) {
         </Suspense>
       </section>
 
-      {/* Tenant info */}
-      <section className="bg-card border rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">
-          {t('tenantDetail.infoSectionTitle')}
-        </h2>
-        <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-          <InfoRow label={t('createTenant.cuiLabel')} value={tenant.cui} />
-          <InfoRow label={t('createTenant.registrationLabel')} value={tenant.registrationNumber} />
-          <InfoRow label={t('common.email')} value={tenant.email} />
-          <InfoRow label={t('common.phone')} value={tenant.phone} />
-          <InfoRow
-            label={t('common.address')}
-            value={
-              [tenant.addressLine1, tenant.city, tenant.county, tenant.postalCode]
-                .filter(Boolean)
-                .join(', ') || null
-            }
-          />
-          <InfoRow label={t('common.createdAt')} value={formatDate(tenant.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')} />
-        </dl>
-      </section>
-
-      {/* Cabinet address — editable; also writes the primary Location so the
-          change reaches the fișă de aptitudine */}
-      <TenantAddressForm
-        tenantId={tenant.id}
-        labels={addressLabels}
-        current={{
-          addressLine1: tenant.addressLine1,
-          addressLine2: tenant.addressLine2,
-          city: tenant.city,
-          county: tenant.county,
-          postalCode: tenant.postalCode,
-        }}
-      />
+      {/* Cabinet details — fully editable (identity + address). Address
+          fields also write the primary Location so the change reaches the
+          fișă de aptitudine; a CUI triggers ANAF autofill. */}
+      <div className="space-y-2">
+        <TenantDetailsForm
+          tenantId={tenant.id}
+          labels={detailsLabels}
+          current={{
+            name: tenant.name,
+            legalName: tenant.legalName,
+            cui: tenant.cui,
+            registrationNumber: tenant.registrationNumber,
+            email: tenant.email,
+            phone: tenant.phone,
+            addressLine1: tenant.addressLine1,
+            addressLine2: tenant.addressLine2,
+            city: tenant.city,
+            county: tenant.county,
+            postalCode: tenant.postalCode,
+          }}
+        />
+        <p className="text-xs text-muted-foreground px-1">
+          {t('common.createdAt')}: {formatDate(tenant.createdAt, 'medium', locale === 'ro' ? 'ro' : 'en')}
+        </p>
+      </div>
 
       {/* GDPR compliance status */}
       <section className="space-y-3">
@@ -717,14 +715,5 @@ async function PendingInvitationsLoader({
         expiresAt: inv.expiresAt.toISOString(),
       }))}
     />
-  )
-}
-
-function InfoRow({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-muted-foreground text-xs uppercase tracking-wide">{label}</dt>
-      <dd>{value || <span className="text-muted-foreground">—</span>}</dd>
-    </div>
   )
 }
