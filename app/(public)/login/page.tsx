@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { LoginForm } from './login-form'
 import { LanguageSwitcher } from '@/components/language-switcher'
@@ -50,4 +51,9 @@ export default async function LoginPage() {
       </main>
     </div>
   )
+}
+
+export const metadata: Metadata = {
+  title: 'Autentificare',
+  robots: { index: false, follow: false },
 }

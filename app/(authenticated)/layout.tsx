@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { AppNav, type NavEntry, type NavLink } from '@/components/app-nav'
@@ -214,4 +215,8 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
       </footer>
     </div>
   )
+}
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
 }

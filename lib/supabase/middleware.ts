@@ -54,7 +54,13 @@ const isPublicRoute =
     pathname.startsWith('/api/admin/cleanup-slow-queries') ||
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico' ||
-    pathname === '/suspended'
+    pathname === '/suspended' ||
+    // SEO files — must be reachable by Googlebot without a session,
+    // otherwise they get redirected to /login.
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
+    pathname.startsWith('/opengraph-image') ||
+    /^\/google[0-9a-f]+\.html$/.test(pathname)
 
   // Redirect unauthenticated users hitting protected routes to /login
   if (!user && !isPublicRoute) {

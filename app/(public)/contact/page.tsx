@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Mail, Monitor, Shield } from 'lucide-react'
@@ -164,4 +165,10 @@ export default function ContactPage() {
       </div>
     </div>
   )
+}
+
+export const metadata: Metadata = {
+  title: 'Contact și demo — software medicina muncii',
+  description: 'Solicitați acces sau o demonstrație Buzomed, platforma online pentru cabinete de medicina muncii. Răspundem în aceeași zi lucrătoare.',
+  alternates: { canonical: '/contact' },
 }

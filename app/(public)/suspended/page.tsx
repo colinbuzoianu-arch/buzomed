@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 export default function SuspendedPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--surface-muted))]">
@@ -27,4 +28,9 @@ export default function SuspendedPage() {
       </div>
     </div>
   )
+}
+
+export const metadata: Metadata = {
+  title: 'Cont suspendat',
+  robots: { index: false, follow: false },
 }

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -439,4 +440,10 @@ export default function TermsPage() {
       </div>
     </div>
   )
+}
+
+export const metadata: Metadata = {
+  title: 'Termeni și condiții',
+  description: 'Termenii și condițiile de utilizare a platformei Buzomed pentru medicina muncii.',
+  alternates: { canonical: '/terms' },
 }

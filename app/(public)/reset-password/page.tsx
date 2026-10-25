@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { BuzomedLogo } from '@/components/buzomed-logo'
@@ -52,4 +53,9 @@ export default async function ResetPasswordPage() {
       </main>
     </div>
   )
+}
+
+export const metadata: Metadata = {
+  title: 'Parolă nouă',
+  robots: { index: false, follow: false },
 }

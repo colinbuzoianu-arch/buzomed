@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/language-switcher'
@@ -56,4 +57,9 @@ export default async function ForgotPasswordPage() {
       </main>
     </div>
   )
+}
+
+export const metadata: Metadata = {
+  title: 'Resetare parolă',
+  robots: { index: false, follow: false },
 }

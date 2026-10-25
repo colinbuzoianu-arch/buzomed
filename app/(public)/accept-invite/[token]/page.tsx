@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { validateInvitationToken } from '@/lib/invitations/service'
@@ -154,4 +155,9 @@ function ErrorState({
       </div>
     </div>
   )
+}
+
+export const metadata: Metadata = {
+  title: 'Acceptă invitația',
+  robots: { index: false, follow: false },
 }

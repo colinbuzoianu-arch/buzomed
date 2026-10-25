@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -447,4 +448,10 @@ export default function PrivacyPage() {
       </div>
     </div>
   )
+}
+
+export const metadata: Metadata = {
+  title: 'Politica de confidențialitate',
+  description: 'Cum prelucrează Buzomed datele personale și medicale în conformitate cu GDPR.',
+  alternates: { canonical: '/privacy' },
 }

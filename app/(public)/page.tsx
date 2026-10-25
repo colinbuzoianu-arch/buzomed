@@ -5,11 +5,12 @@ import { redirect } from 'next/navigation'
 import { NavBar } from '@/components/landing/NavBar'
 import { LandingChat } from '@/components/landing/LandingChat'
 import { getCurrentUser } from '@/lib/auth'
+import { SITE_DESCRIPTION, SITE_URL } from '@/lib/site'
 
 export const metadata: Metadata = {
-  title: 'Buzomed — Medicina muncii, digitalizat',
-  description:
-    'Software pentru cabinete de medicina muncii. Gestionați angajați, programați examinări și generați documente automat.',
+  title: { absolute: 'Buzomed — Software și platformă pentru medicina muncii' },
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: '/' },
 }
 
 // ── Workflow card icons (inline SVG, no icon library dependency) ───────────
@@ -139,6 +140,82 @@ const tableRows = [
   { name: 'Ioana S.',  role: 'Contabil',  status: 'Expirat', date: '15 mar 2026', color: '#f87171' },
 ]
 
+
+// ── FAQ (visible on page + FAQPage structured data) ────────────────────────
+
+const faqs = [
+  {
+    q: 'Ce este Buzomed?',
+    a: 'Buzomed este o platformă online pentru medicina muncii — un software dedicat cabinetelor de medicina muncii din România. Reunește într-un singur loc evidența firmelor clientă și a angajaților, profilul de riscuri pe loc de muncă, programarea examinărilor, fișa de aptitudine, vaccinările, contractele și facturile.',
+  },
+  {
+    q: 'Pentru cine este acest software de medicina muncii?',
+    a: 'Pentru medicii de medicina muncii, cabinetele individuale și clinicile care oferă servicii de medicina muncii pentru firme. Platforma este gândită strict pentru fluxul de medicina muncii, nu pentru medicina generală.',
+  },
+  {
+    q: 'Generează Buzomed fișa de aptitudine conform HG 355/2007?',
+    a: 'Da. Fișa de aptitudine se completează automat cu datele angajatului, ale companiei, ale locului de muncă și ale medicului, în format A4 conform HG 355/2007, gata de tipărit sau de arhivat.',
+  },
+  {
+    q: 'Cum sunt urmărite scadențele examinărilor periodice?',
+    a: 'Platforma calculează automat data următoarei examinări în funcție de periodicitate și de tipul examinării (angajare, periodic, adaptare, reluare a muncii) și vă arată din timp angajații cu examinări scadente sau expirate.',
+  },
+  {
+    q: 'Pot importa angajații dintr-un fișier Excel?',
+    a: 'Da. Încărcați un fișier Excel sau CSV exportat din sistemul HR al firmei, iar coloanele sunt detectate automat, inclusiv pentru denumiri românești ambigue.',
+  },
+  {
+    q: 'Trebuie instalat ceva pe calculator?',
+    a: 'Nu. Buzomed este o aplicație web: funcționează direct în browser, pe calculator, tabletă sau telefon, fără instalare și fără server propriu în cabinet.',
+  },
+  {
+    q: 'Cum sunt protejate datele medicale?',
+    a: 'Platforma include funcții dedicate GDPR: evidența consimțământului, jurnal de audit pentru accesul la date, anonimizare și politici de retenție a datelor. Fiecare cabinet își vede doar propriile date.',
+  },
+]
+
+function StructuredData() {
+  const data = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'Buzomed',
+      url: SITE_URL,
+      description: SITE_DESCRIPTION,
+      applicationCategory: 'BusinessApplication',
+      applicationSubCategory: 'Software medicina muncii',
+      operatingSystem: 'Web',
+      inLanguage: 'ro',
+      image: `${SITE_URL}/buzomed_picture.jpg`,
+      publisher: { '@type': 'Organization', name: 'Verumsell SRL' },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Buzomed',
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon-512.png`,
+      parentOrganization: { '@type': 'Organization', name: 'Verumsell SRL' },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map((f) => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ]
+  return (
+    <script
+      type="application/ld+json"
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD, no user input
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, '\\u003c') }}
+    />
+  )
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default async function LandingPage() {
@@ -153,6 +230,7 @@ export default async function LandingPage() {
 
   return (
     <div style={{ fontFamily: 'inherit' }}>
+      <StructuredData />
       <NavBar />
 
       {/* ── Hero ─────────────────────────────────────────── */}
@@ -224,7 +302,7 @@ export default async function LandingPage() {
                 marginBottom: 20,
               }}
             >
-              Software construit pentru{' '}
+              Platforma software construită pentru{' '}
               <span style={{ color: '#7dd3fc' }}>medicina muncii.</span>
             </h1>
 
@@ -633,6 +711,55 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* ── FAQ ──────────────────────────────────────────── */}
+      <section style={{ background: 'white', padding: '96px 24px' }}>
+        <div className="max-w-4xl mx-auto">
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <p
+              style={{
+                color: '#1E4D8B',
+                fontWeight: 600,
+                fontSize: 13,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: 12,
+              }}
+            >
+              Întrebări frecvente
+            </p>
+            <h2
+              style={{
+                fontSize: 'clamp(26px, 3.5vw, 38px)',
+                fontWeight: 800,
+                color: '#0F1F3A',
+                letterSpacing: '-0.02em',
+                lineHeight: 1.2,
+              }}
+            >
+              Despre platforma de medicina muncii Buzomed
+            </h2>
+          </div>
+          <div style={{ display: 'grid', gap: 16 }}>
+            {faqs.map((f) => (
+              <div
+                key={f.q}
+                style={{
+                  background: '#F8FAFC',
+                  borderRadius: 14,
+                  padding: '22px 24px',
+                  border: '1px solid #E2E8F0',
+                }}
+              >
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0F1F3A', marginBottom: 8 }}>
+                  {f.q}
+                </h3>
+                <p style={{ fontSize: 15, lineHeight: 1.65, color: '#64748B' }}>{f.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA ──────────────────────────────────────────── */}
       <section
         style={{
@@ -704,7 +831,7 @@ export default async function LandingPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Image src="/buzomed-icon.png" width={22} height={22} alt="Buzomed" />
+            <Image src="/buzomed-icon.png" width={22} height={22} alt="Buzomed — software medicina muncii" />
             <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 500 }}>
               buzomed
             </span>

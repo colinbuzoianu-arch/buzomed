@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -70,4 +71,8 @@ export default async function HrPortalLayout({
       </footer>
     </div>
   )
+}
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
 }

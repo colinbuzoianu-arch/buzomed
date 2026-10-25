@@ -4,6 +4,7 @@ import { Fraunces, Manrope } from 'next/font/google'
 import { CookieNotice } from '@/components/cookie-notice'
 import { Toaster } from '@/components/ui/sonner'
 import { getLocale } from '@/lib/i18n'
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site'
 import './globals.css'
 
 const manrope = Manrope({
@@ -25,9 +26,42 @@ const fraunces = Fraunces({
  * home-screen pinning.
  */
 export const metadata: Metadata = {
-  title: 'Buzomed',
-  description: 'Occupational Health. Healthy Workplaces.',
-  applicationName: 'Buzomed',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'Buzomed — Software și platformă pentru medicina muncii',
+    template: '%s | Buzomed',
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [
+    'software medicina muncii',
+    'platforma medicina muncii',
+    'program medicina muncii',
+    'aplicatie medicina muncii',
+    'fisa de aptitudine',
+    'cabinet medicina muncii',
+    'HG 355/2007',
+  ],
+  openGraph: {
+    type: 'website',
+    locale: 'ro_RO',
+    siteName: SITE_NAME,
+    url: SITE_URL,
+    title: 'Buzomed — Software și platformă pentru medicina muncii',
+    description: SITE_DESCRIPTION,
+    images: [{ url: '/buzomed_picture.jpg', width: 1920, height: 1080, alt: 'Buzomed — software medicina muncii' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Buzomed — Software și platformă pentru medicina muncii',
+    description: SITE_DESCRIPTION,
+    images: ['/buzomed_picture.jpg'],
+  },
+  // Google Search Console HTML-tag verification. Set the token in Vercel
+  // as GOOGLE_SITE_VERIFICATION (just the content="…" value).
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
