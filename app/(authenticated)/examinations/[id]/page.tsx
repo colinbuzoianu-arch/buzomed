@@ -1,12 +1,10 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { DocumentsSection } from '@/app/(authenticated)/_components/documents-section'
-import { PatientContextPanel } from '@/components/examinations/patient-context-panel'
-import { RiskProfileGlanceCard } from '@/components/examinations/risk-profile-glance-card'
+import { ExaminationContextCard } from '@/components/examinations/examination-context-card'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { Button } from '@/components/ui/button'
 import { ExaminationStatusBadge } from '@/components/ui/examination-status-badge'
-import { VerdictBadge } from '@/components/ui/verdict-badge'
 import { requireUser } from '@/lib/auth'
 import { getSectionsForExamType } from '@/lib/examinations/document-templates'
 import { formatDate } from '@/lib/format-date'
@@ -397,125 +395,21 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Persistent, read-only context bar */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-4 border-b space-y-3">
-        <PatientContextPanel
-          requestSource={examination.requestSource}
-          examinationTypeName={examTypeName}
-          referringDocumentNumber={examination.referringDocumentNumber}
-          workplaceName={examination.workplace.name}
-          priorVerdict={priorExam?.verdict ?? null}
-          medicCurantName={examination.employee.medicCurantName}
-          medicCurantPhone={examination.employee.medicCurantPhone}
-          practitionerName={practitionerFullName}
-        />
-        <RiskProfileGlanceCard
-          workplace={examination.workplace}
-          hazardHintLabels={hazardHintLabels}
-        />
-
-        {/* Prior examination panel — shown when a previous signed exam exists */}
-        {priorExam && (
-          <details className="border rounded-lg overflow-hidden group">
-            <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/30 select-none list-none">
-              <span className="text-sm font-medium">{t('examinations.priorExam.title')}</span>
-              <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                {!priorExam.signedAt && (
-                  <span className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700">
-                    {t('examinations.priorExam.draftLabel')}
-                  </span>
-                )}
-                #{priorExam.examinationNumber}
-                {' — '}
-                {formatDate(
-                  priorExam.signedAt ?? priorExam.createdAt,
-                  'medium',
-                  locale === 'ro' ? 'ro' : 'en'
-                )}
-              </span>
-            </summary>
-            <div className="px-4 pb-4 pt-3 border-t space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">
-                    {t('examinations.priorExam.typeLabel')}
-                  </div>
-                  <div>
-                    {locale === 'en'
-                      ? (priorExam.examinationType.nameEn ?? priorExam.examinationType.nameRo)
-                      : priorExam.examinationType.nameRo}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">
-                    {priorExam.signedAt
-                      ? t('examinations.priorExam.signedLabel')
-                      : t('examinations.priorExam.createdLabel')}
-                  </div>
-                  <div>
-                    {formatDate(
-                      priorExam.signedAt ?? priorExam.createdAt,
-                      'medium',
-                      locale === 'ro' ? 'ro' : 'en'
-                    )}
-                  </div>
-                </div>
-                {priorExam.verdict && (
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">
-                      {t('examinations.priorExam.verdictLabel')}
-                    </div>
-                    <VerdictBadge verdict={priorExam.verdict} />
-                    {priorExam.verdictConditions && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {priorExam.verdictConditions}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Prior vital signs */}
-              {priorExam.vitalSigns &&
-                typeof priorExam.vitalSigns === 'object' &&
-                !Array.isArray(priorExam.vitalSigns) && (
-                  <div>
-                    <div className="text-xs font-medium text-muted-foreground mb-2">
-                      {t('examinations.priorExam.vitalSignsTitle')}
-                    </div>
-                    <PriorVitalSigns
-                      vitalSigns={priorExam.vitalSigns as Record<string, unknown>}
-                      t={t}
-                    />
-                  </div>
-                )}
-
-              {priorExam.clinicalFindings && (
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground mb-1">
-                    {t('examinations.form.fieldClinicalFindings')}
-                  </div>
-                  <div className="text-sm whitespace-pre-wrap text-muted-foreground">
-                    {priorExam.clinicalFindings}
-                  </div>
-                </div>
-              )}
-
-              {priorExam.recommendations && (
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground mb-1">
-                    {t('examinations.form.fieldRecommendations')}
-                  </div>
-                  <div className="text-sm whitespace-pre-wrap text-muted-foreground">
-                    {priorExam.recommendations}
-                  </div>
-                </div>
-              )}
-            </div>
-          </details>
-        )}
-      </div>
-      {/* end sticky context bar */}
+      {/* Compact, read-only context card */}
+      <ExaminationContextCard
+        requestSource={examination.requestSource}
+        examinationTypeName={examTypeName}
+        referringDocumentNumber={examination.referringDocumentNumber}
+        workplaceName={examination.workplace.name}
+        medicCurantName={examination.employee.medicCurantName}
+        medicCurantPhone={examination.employee.medicCurantPhone}
+        practitionerName={practitionerFullName}
+        workplace={examination.workplace}
+        hazardHintLabels={hazardHintLabels}
+        priorExam={priorExam}
+        locale={locale}
+        t={t}
+      />
 
       <ExaminationStepper
         examinationId={examination.id}
@@ -694,43 +588,6 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         }
         examinationActions={examinationActionsNode}
       />
-    </div>
-  )
-}
-
-function PriorVitalSigns({
-  vitalSigns,
-  t,
-}: {
-  vitalSigns: Record<string, unknown>
-  t: (k: string) => string
-}) {
-  const num = (k: string) => {
-    const v = vitalSigns[k]
-    return v !== undefined && v !== null && v !== '' ? String(v) : null
-  }
-  const rows = [
-    [t('examinations.form.fieldHeight'), num('height'), 'cm'],
-    [t('examinations.form.fieldWeight'), num('weight'), 'kg'],
-    [t('examinations.form.fieldBmi'), num('bmi'), ''],
-    [t('examinations.form.fieldBpSystolic'), num('bpSystolic'), 'mmHg'],
-    [t('examinations.form.fieldBpDiastolic'), num('bpDiastolic'), 'mmHg'],
-    [t('examinations.form.fieldPulse'), num('pulse'), 'bpm'],
-  ].filter(([, v]) => v !== null) as [string, string, string][]
-
-  if (rows.length === 0) return null
-
-  return (
-    <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-      {rows.map(([label, value, unit]) => (
-        <div key={label} className="flex gap-1">
-          <span className="text-muted-foreground text-xs">{label}:</span>
-          <span className="tabular-nums text-xs">
-            {value}
-            {unit && <span className="text-muted-foreground"> {unit}</span>}
-          </span>
-        </div>
-      ))}
     </div>
   )
 }
