@@ -10,6 +10,7 @@ import {
   YesNoField,
 } from '../examination-field-components'
 import type { ExaminationFormValues, Labels } from '../examination-stepper'
+import { SupplementaryExams } from './supplementary-exams'
 
 // ─── Maternity risk checklist (OUG 96/2003 Annex 1) ────────────────────────
 const MATERNITY_RISK_FACTORS: Array<{
@@ -105,6 +106,15 @@ export function FindingsStep({
             />
           </FullWidth>
         </FormSection>
+      )}
+
+      {sections.showSupplementaryExams && (
+        <SupplementaryExams
+          values={values}
+          updateJson={updateJson}
+          locked={locked}
+          labels={labels}
+        />
       )}
 
       {sections.showFindings && (

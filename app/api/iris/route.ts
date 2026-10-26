@@ -270,6 +270,15 @@ EXAMINĂRI:
 - Status-uri examinare: scheduled → in_progress → completed. Sau: cancelled / no_show.
 - Examinările periodice generează automat Recalls (scadențe).
 - Data examinării: în pasul de concluzie există câmpul "Data examinării" — data la care a avut loc efectiv consultația. E diferită de data semnării. Dacă o consultație din 3 ale lunii e introdusă și semnată pe 10, fișa trebuie să arate 3, iar semnătura rămâne datată 10. Câmpul se completează înainte de semnare; lăsat gol, fișa afișează data introducerii (comportamentul vechi). Nu se accepta o dată în viitor și nici mai veche de 90 de zile.
+- Data următorului examen (pasul Aviz, pentru verdict Apt / Apt condiționat) se completează manual de medic; sub câmp apare intervalul recomandat al locului de muncă. Nu e pre-completată automat — dacă e lăsată goală, nu apare pe fișă.
+
+EXAMEN CLINIC PE APARATE ȘI SISTEME (doar control periodic):
+- La o examinare de tip Control periodic, pasul Clinic conține, pe lângă semnele vitale, un examen clinic detaliat pe aparate și sisteme (secțiunile 1–11 de pe formularul de examen periodic: tegumente și mucoase, țesut celular subcutanat, sistem ganglionar, aparat locomotor, respirator, cardiovascular, digestiv, urogenital, sistem nervos, analizatori, sistem endocrin). Celelalte tipuri de examinare nu au acest examen pe aparate.
+- Fiecare aparat se completează rapid cu butoane (ex. normal / modificat); când alegi o variantă modificată apare un câmp de observații (obligatoriu acolo unde formularul nu are o bifă proprie pentru acea variantă). Secțiunile complet normale se pot restrânge la o linie "În limite normale".
+- Butonul "Toate aparatele în limite normale" completează dintr-o dată toate aparatele încă necompletate cu valoarea normală și pune concluzia clinică pe "Sănătos" — NU suprascrie ce ai completat deja și NU atinge semnele vitale, valorile de vedere, comutatorul Asimptomatic, vocea sau concluzia de specialitate.
+- Obezitatea apare automat lângă IMC (se calculează din IMC: sub 30 = Nu; 30–34,9 = gr. I; 35–39,9 = gr. II; ≥40 = gr. III) — nu se completează manual. Comutatorul "Asimptomatic" (Da/Nu) e în pasul Anamneză.
+- Pasul Constatări (Investigații și concluzii) conține, la periodic: grila "Examene suplimentare" (bifezi investigațiile cerute — oftalmologic, PFV, audiogramă, EKG, hemoleucogramă etc.; la Glicemie apare un câmp pentru valoarea în mg/dl) și "Concluziile examinării de specialitate" (Sănătos clinic / Cu diagnostic). Câmpurile libere de laborator/imagistică/altele rămân disponibile ca înainte.
+- Toate aceste date se tipăresc pe formularul "Examen medical periodic", generat din panoul Documente al examinării (buton de generare completată). O examinare mai veche, fără acest examen completat, se tipărește ca până acum.
 
 MODIFICAREA UNEI FIȘE DUPĂ SEMNARE (întrebare frecventă a medicilor):
 - Înainte de semnare: medicul poate modifica orice, inclusiv verdictul, oricât de târziu. Nu există limită de timp.

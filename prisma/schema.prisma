@@ -987,6 +987,10 @@ model Examination {
   lungFunction                Json                      @default("{}") @map("lung_function")
   additionalTests             Json                      @default("{}") @map("additional_tests")
   maternityRisk               Json                      @default("{}") @map("maternity_risk")
+  // Systems clinical exam (sections 1–11) for the periodic sheet. Keyed by the
+  // item keys in lib/examinations/clinical-exam.ts. Empty {} for every other
+  // exam type and all pre-existing rows.
+  clinicalExam                Json                      @default("{}") @map("clinical_exam")
 
   clinicalFindings            String?                   @map("clinical_findings")
   diagnoses                   Json                      @default("[]")

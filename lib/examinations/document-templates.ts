@@ -18,6 +18,10 @@ export interface ExamSectionConfig {
   showVerdict: boolean
   showMaternityRisk: boolean
   showCertificateFields: boolean
+  // Periodic-sheet-only sections (Examen medical periodic). true ONLY for
+  // control_periodic; false everywhere else so no other exam type changes.
+  showClinicalSystemsExam: boolean
+  showSupplementaryExams: boolean
 }
 
 const FISA_APTITUDINE: DocumentDescriptor = {
@@ -80,11 +84,19 @@ const FULL_CLINICAL: ExamSectionConfig = {
   showVerdict: true,
   showMaternityRisk: false,
   showCertificateFields: false,
+  showClinicalSystemsExam: false,
+  showSupplementaryExams: false,
 }
 
 const SECTION_CONFIGS: Record<string, ExamSectionConfig> = {
   angajare: { ...FULL_CLINICAL, showInitialIntake: true, showHearing: true, showLung: true },
-  control_periodic: { ...FULL_CLINICAL, showHearing: true, showLung: true },
+  control_periodic: {
+    ...FULL_CLINICAL,
+    showHearing: true,
+    showLung: true,
+    showClinicalSystemsExam: true,
+    showSupplementaryExams: true,
+  },
   reluare_munca: FULL_CLINICAL,
   adaptare: FULL_CLINICAL,
   schimbare_loc_munca: FULL_CLINICAL,
@@ -103,6 +115,8 @@ const SECTION_CONFIGS: Record<string, ExamSectionConfig> = {
     showVerdict: false,
     showMaternityRisk: true,
     showCertificateFields: false,
+    showClinicalSystemsExam: false,
+    showSupplementaryExams: false,
   },
   certificat_invatamant: {
     showAnamnesis: false,
@@ -117,6 +131,8 @@ const SECTION_CONFIGS: Record<string, ExamSectionConfig> = {
     showVerdict: false,
     showMaternityRisk: false,
     showCertificateFields: true,
+    showClinicalSystemsExam: false,
+    showSupplementaryExams: false,
   },
   certificat_magistratura: {
     showAnamnesis: false,
@@ -131,6 +147,8 @@ const SECTION_CONFIGS: Record<string, ExamSectionConfig> = {
     showVerdict: false,
     showMaternityRisk: false,
     showCertificateFields: true,
+    showClinicalSystemsExam: false,
+    showSupplementaryExams: false,
   },
 }
 

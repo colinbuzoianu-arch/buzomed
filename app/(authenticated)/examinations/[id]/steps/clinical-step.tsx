@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { computeObesityFromBmi } from '@/lib/examinations/clinical-exam'
 import type { ExamSectionConfig } from '@/lib/examinations/document-templates'
 import {
   CheckField,
@@ -12,6 +13,7 @@ import {
   getStr,
 } from '../examination-field-components'
 import type { ExaminationFormValues, Labels } from '../examination-stepper'
+import { ClinicalSystemsExam } from './clinical-systems-exam'
 
 interface Props {
   values: ExaminationFormValues
@@ -38,6 +40,14 @@ export function ClinicalStep({
 }: Props) {
   const ro = locked
   const bmi = useMemo(() => calculateBmi(values.vitalSigns), [values.vitalSigns])
+  // Obesity is derived from BMI and shown read-only (never stored); the PDF
+  // recomputes it the same way at print time.
+  const obesity = useMemo(() => {
+    const n = bmi ? parseFloat(bmi) : null
+    const { obese, grade } = computeObesityFromBmi(n)
+    if (n === null || Number.isNaN(n)) return ''
+    return obese ? `${labels.optYes} (gr. ${grade})` : labels.optNo
+  }, [bmi, labels.optYes, labels.optNo])
 
   return (
     <>
@@ -64,6 +74,9 @@ export function ClinicalStep({
             highlightTooltip={labels.prefillTooltip}
           />
           <Field label={labels.fieldBmi} value={bmi} onChange={() => {}} disabled type="number" />
+          {sections.showClinicalSystemsExam && (
+            <Field label={labels.obesityLabel} value={obesity} onChange={() => {}} disabled />
+          )}
           <Field
             label={labels.fieldBpSystolic}
             value={getNum(values.vitalSigns, 'bpSystolic')}
@@ -199,6 +212,15 @@ export function ClinicalStep({
             />
           </FullWidth>
         </FormSection>
+      )}
+
+      {sections.showClinicalSystemsExam && (
+        <ClinicalSystemsExam
+          values={values}
+          updateJson={updateJson}
+          locked={locked}
+          labels={labels}
+        />
       )}
     </>
   )

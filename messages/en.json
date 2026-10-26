@@ -1019,7 +1019,7 @@
       "fieldVerdictConditions": "Conditions / remarks",
       "fieldInaptTemporarUntil": "Temporarily unfit until",
       "fieldNextDueDate": "Next examination",
-      "fieldNextDueDateHelp": "Pre-filled to {months} months after signing. You can override.",
+      "fieldNextDueDateHelp": "Recommended interval for this workplace: {months} months. Enter the next examination date.",
       "verdict": {
         "apt": "Fit",
         "apt_conditionat": "Fit with conditions",
@@ -1098,7 +1098,20 @@
       "stepContinue": "Continue",
       "stepAutoSaved": "✓ Auto-saved",
       "examinedAtLabel": "Examination date",
-      "examinedAtHelp": "The date the consultation actually took place. Required to sign the fișă — correct it if it differs from today."
+      "examinedAtHelp": "The date the consultation actually took place. Required to sign the fișă — correct it if it differs from today.",
+      "clinExamSystemsTitle": "Clinical examination by systems",
+      "clinExamAllNormal": "All systems within normal limits",
+      "clinExamAllNormalToast": "{count} fields filled",
+      "clinExamNormalLine": "Within normal limits",
+      "clinExamEdit": "Edit",
+      "clinExamNoteRequired": "required",
+      "clinExamNotePlaceholder": "Notes",
+      "clinExamConclusionTitle": "Clinical examination conclusion",
+      "obesityLabel": "Obesity",
+      "asymptomaticLabel": "Asymptomatic",
+      "suppExamsTitle": "Supplementary exams",
+      "glycemiaLabel": "Glycemia (mg/dl)",
+      "specialtyConclusionTitle": "Specialty examination conclusion"
     },
     "actions": {
       "start": "Start examination",

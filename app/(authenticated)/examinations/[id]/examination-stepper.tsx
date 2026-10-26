@@ -43,6 +43,8 @@ export interface ExaminationFormValues {
   lungFunction: Record<string, unknown>
   additionalTests: Record<string, unknown>
   maternityRisk: Record<string, unknown>
+  /** Periodic-sheet systems exam (sections 1–11). Empty {} for other types. */
+  clinicalExam: Record<string, unknown>
   diagnoses: string[]
   clinicalFindings: string
   recommendations: string
@@ -152,6 +154,20 @@ export interface Labels {
   stepBack: string
   stepContinue: string
   stepAutoSaved: string
+  // Periodic clinical systems exam (Clinic + Anamneză, control_periodic only)
+  clinExamSystemsTitle: string
+  clinExamAllNormal: string
+  clinExamAllNormalToast: string
+  clinExamNormalLine: string
+  clinExamEdit: string
+  clinExamNoteRequired: string
+  clinExamNotePlaceholder: string
+  clinExamConclusionTitle: string
+  obesityLabel: string
+  asymptomaticLabel: string
+  suppExamsTitle: string
+  glycemiaLabel: string
+  specialtyConclusionTitle: string
 }
 
 interface Props {
@@ -232,13 +248,13 @@ export function ExaminationStepper({
   ) {
     setValues((prev) => {
       const current = prev[bucket] as unknown
-      if (typeof current === 'object' && current !== null && !Array.isArray(current)) {
-        return {
-          ...prev,
-          [bucket]: { ...(current as Record<string, unknown>), [key]: value },
-        }
-      }
-      return prev
+      // Initialize the bucket as an object if it's missing/empty rather than
+      // silently dropping the write (e.g. a freshly-defaulted clinicalExam {}).
+      const base =
+        typeof current === 'object' && current !== null && !Array.isArray(current)
+          ? (current as Record<string, unknown>)
+          : {}
+      return { ...prev, [bucket]: { ...base, [key]: value } }
     })
     const dotKey = `${String(bucket)}.${key}`
     setPrefillHighlighted((prev) => {
@@ -345,6 +361,7 @@ export function ExaminationStepper({
         lungFunction: normalizeNumeric(values.lungFunction, numericLungKeys),
         additionalTests: values.additionalTests,
         maternityRisk: values.maternityRisk,
+        clinicalExam: values.clinicalExam,
         diagnoses: values.diagnoses,
         clinicalFindings: values.clinicalFindings,
         recommendations: values.recommendations,

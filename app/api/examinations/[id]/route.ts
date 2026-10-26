@@ -7,8 +7,15 @@ import {
   canWriteAdministrative,
   canWriteClinical,
 } from '@/lib/permissions/tenant-data'
-import { asObject, optionalDate, optionalString } from '@/lib/validation'
+import { asObject, optionalDate } from '@/lib/validation'
 import { parseExaminedAt } from '@/lib/examinations/examined-at'
+import {
+  parseClinicalExamInput,
+  validateAdditionalTestsPeriodic,
+  validateAnamnesisPeriodic,
+  validateHearingTestPeriodic,
+  validateVisionTestPeriodic,
+} from '@/lib/examinations/clinical-exam'
 
 /**
  * Single examination operations.
@@ -56,7 +63,25 @@ const JSONB_FIELDS = [
   'additionalTests',
   'maternityRisk',
   'diagnoses',
+  'clinicalExam',
 ] as const
+
+// Per-field validators for JSONB sub-forms. A field not listed here is stored
+// as the client sends it (the long-standing "client is the source of truth for
+// the structure" contract). Listed fields run through a validator that either
+// fully governs the object (clinicalExam) or checks just the periodic-sheet
+// keys and passes everything else through (anamnesis/visionTest/hearingTest/
+// additionalTests). Each validator returns the value to store and pushes
+// human-readable messages onto `issues` for anything rejected.
+const JSONB_VALIDATORS: Partial<
+  Record<(typeof JSONB_FIELDS)[number], (value: object, issues: string[]) => unknown>
+> = {
+  clinicalExam: parseClinicalExamInput,
+  anamnesis: validateAnamnesisPeriodic,
+  visionTest: validateVisionTestPeriodic,
+  hearingTest: validateHearingTestPeriodic,
+  additionalTests: validateAdditionalTestsPeriodic,
+}
 
 const VALID_VERDICTS: ExaminationVerdict[] = [
   'apt',
@@ -181,17 +206,17 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     }
   }
 
-  // JSONB sub-forms: client sends the whole object, we store as-is.
-  // We don't merge — client is the source of truth for the structure
-  // and we trust it not to send junk. Validation can be added per-shape
-  // later when the JSONB schemas stabilize.
+  // JSONB sub-forms: the client sends the whole object and we store it as a
+  // whole-object replacement (no merge). Fields without a validator are still
+  // trusted as-is; fields in JSONB_VALIDATORS are sanitized first.
   for (const field of JSONB_FIELDS) {
     if (!(field in body)) continue
     const incoming = body[field]
     if (incoming === null) {
       updateData[field] = field === 'diagnoses' ? [] : {}
     } else if (typeof incoming === 'object') {
-      updateData[field] = incoming
+      const validator = JSONB_VALIDATORS[field]
+      updateData[field] = validator ? validator(incoming, issues) : incoming
     } else {
       issues.push(`${field} must be an object or array`)
     }

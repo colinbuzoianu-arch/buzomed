@@ -7,6 +7,7 @@ import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 import { EXAM_TYPE_DOCUMENTS } from '@/lib/examinations/document-templates'
 import { fillExaminationPdf } from '@/lib/examinations/pdf-fill'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
+import { buildPeriodicExamFields } from '@/lib/examinations/clinical-exam'
 
 interface RouteContext {
   params: Promise<{ id: string; docKey: string }>
@@ -92,12 +93,21 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
 
   const vs = (examination.vitalSigns ?? {}) as Record<string, unknown>
   const vt = (examination.visionTest ?? {}) as Record<string, unknown>
+  const ht = (examination.hearingTest ?? {}) as Record<string, unknown>
+  const an = (examination.anamnesis ?? {}) as Record<string, unknown>
+  const at = (examination.additionalTests ?? {}) as Record<string, unknown>
+  const ce = (examination.clinicalExam ?? {}) as Record<string, unknown>
   const str = (v: unknown): string =>
     v !== null && v !== undefined && v !== '' ? String(v) : ''
   // Same date the fișă page and fisa-pdf print — these templates include
   // fisa_aptitudine itself, so computing it differently here would make the
   // official form disagree with the other two renderings of the same fact.
   const examDate = formatDateRo(resolveExaminationDate(examination))
+  // Short numeric form (15.01.2026) for narrow date boxes that can't fit the
+  // long Romanian date — notably the periodic sheet's top-row `p_data_top`
+  // (55pt), where the long form wraps across lines. Same locale/timezone as
+  // formatDateRo so the day never drifts.
+  const examDateShort = formatDateRoShort(resolveExaminationDate(examination))
   const nextDueDate = examination.nextExaminationDueDate
     ? formatDateRo(examination.nextExaminationDueDate)
     : ''
@@ -169,21 +179,23 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       inapt: verdict === 'inapt',
     }
   } else if (docKey === 'examen_periodic') {
+    // Static (non-definition) fields. Vitals TA/AV and the distance/near
+    // vision, the systems-exam checkboxes/notes, obesity, asymptomatic,
+    // supplementary exams, the clinical conclusion text (concl_text) and the
+    // specialty conclusion are all derived from the clinical-exam definition
+    // below and merged in with the `p_` prefix.
     fields = {
       p_nume_angajat: `${examination.employee.lastName} ${examination.employee.firstName}`,
       p_nr_dosar: examination.examinationNumber,
-      p_data_top: examDate,
+      p_data_top: examDateShort,
       p_inaltime: str(vs.height),
       p_greutate: str(vs.weight),
       p_imc: str(vs.bmi),
       p_ta: vs.bpSystolic ? `${vs.bpSystolic}/${vs.bpDiastolic}` : '',
       p_av: str(vs.pulse),
-      p_av_vod: str(vt.right),
-      p_av_vos: str(vt.left),
-      p_av_corectie: str(vt.withCorrection),
-      p_vap_vod: str(vt.nearRight),
-      p_vap_vos: str(vt.nearLeft),
-      p_concl_text: examination.clinicalFindings ?? '',
+      // spec_text keeps the existing clinicalFindings so the fișă-de-aptitudine
+      // renderings that read clinicalFindings stay in agreement. concl_text now
+      // comes from clinicalExam.conclusionText (via the definition builder).
       p_spec_text: examination.clinicalFindings ?? '',
       p_recomandari: examination.recommendations ?? '',
       p_aviz_functie: examination.employee.jobTitle ?? '',
@@ -193,6 +205,18 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       p_apt_cond: verdict === 'apt_conditionat',
       p_inapt_temp: verdict === 'inapt_temporar',
       p_inapt: verdict === 'inapt',
+    }
+    // Definition-driven fields, prefixed with `p_` for the periodic sheet.
+    const periodicFields = buildPeriodicExamFields({
+      clinicalExam: ce,
+      visionTest: vt,
+      hearingTest: ht,
+      anamnesis: an,
+      additionalTests: at,
+      vitalSigns: vs,
+    })
+    for (const [key, value] of Object.entries(periodicFields)) {
+      fields[`p_${key}`] = value
     }
   } else if (docKey === 'dosar_medical') {
     const companyAddrDm = [
@@ -308,6 +332,16 @@ function formatDateRo(date: Date): string {
   return new Intl.DateTimeFormat('ro-RO', {
     day: 'numeric',
     month: 'long',
+    year: 'numeric',
+  }).format(date)
+}
+
+// Numeric 15.01.2026 form for narrow date boxes. Same locale/timezone as
+// formatDateRo, so the two never disagree on which day they render.
+function formatDateRoShort(date: Date): string {
+  return new Intl.DateTimeFormat('ro-RO', {
+    day: '2-digit',
+    month: '2-digit',
     year: 'numeric',
   }).format(date)
 }

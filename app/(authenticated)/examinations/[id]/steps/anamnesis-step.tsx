@@ -3,7 +3,14 @@
 import { Button } from '@/components/ui/button'
 import type { PrefillStatus } from '@/hooks/useExaminationPrefill'
 import type { ExamSectionConfig } from '@/lib/examinations/document-templates'
-import { Field, FormSection, FullWidth, getStr, SelectField } from '../examination-field-components'
+import {
+  Field,
+  FormSection,
+  FullWidth,
+  getStr,
+  SelectField,
+  YesNoField,
+} from '../examination-field-components'
 import type { ExaminationFormValues, Labels } from '../examination-stepper'
 
 interface Props {
@@ -80,6 +87,20 @@ export function AnamnesisStep({
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Asymptomatic toggle — periodic sheet only (asimpt_da / asimpt_nu). */}
+      {sections.showClinicalSystemsExam && (
+        <div className="rounded-lg border bg-card">
+          <YesNoField
+            label={labels.asymptomaticLabel}
+            value={getStr(values.anamnesis, 'asymptomatic')}
+            onChange={(v) => updateJson('anamnesis', 'asymptomatic', v)}
+            optYes={labels.optYes}
+            optNo={labels.optNo}
+            disabled={ro}
+          />
         </div>
       )}
 

@@ -428,6 +428,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           lungFunction: jsonOrEmpty(examination.lungFunction),
           additionalTests: jsonOrEmpty(examination.additionalTests),
           maternityRisk: jsonOrEmpty(examination.maternityRisk),
+          clinicalExam: jsonOrEmpty(examination.clinicalExam),
           diagnoses: jsonOrEmptyArray(examination.diagnoses) as string[],
           clinicalFindings: examination.clinicalFindings ?? '',
           recommendations: examination.recommendations ?? '',
@@ -557,6 +558,19 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           stepBack: t('examinations.form.stepBack'),
           stepContinue: t('examinations.form.stepContinue'),
           stepAutoSaved: t('examinations.form.stepAutoSaved'),
+          clinExamSystemsTitle: t('examinations.form.clinExamSystemsTitle'),
+          clinExamAllNormal: t('examinations.form.clinExamAllNormal'),
+          clinExamAllNormalToast: t('examinations.form.clinExamAllNormalToast'),
+          clinExamNormalLine: t('examinations.form.clinExamNormalLine'),
+          clinExamEdit: t('examinations.form.clinExamEdit'),
+          clinExamNoteRequired: t('examinations.form.clinExamNoteRequired'),
+          clinExamNotePlaceholder: t('examinations.form.clinExamNotePlaceholder'),
+          clinExamConclusionTitle: t('examinations.form.clinExamConclusionTitle'),
+          obesityLabel: t('examinations.form.obesityLabel'),
+          asymptomaticLabel: t('examinations.form.asymptomaticLabel'),
+          suppExamsTitle: t('examinations.form.suppExamsTitle'),
+          glycemiaLabel: t('examinations.form.glycemiaLabel'),
+          specialtyConclusionTitle: t('examinations.form.specialtyConclusionTitle'),
         }}
         documentsPanel={
           <DocumentsPanel

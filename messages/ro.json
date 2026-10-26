@@ -1019,7 +1019,7 @@
       "fieldVerdictConditions": "Condiții / mențiuni",
       "fieldInaptTemporarUntil": "Inapt temporar până la",
       "fieldNextDueDate": "Următoarea examinare",
-      "fieldNextDueDateHelp": "Pre-completat la {months} luni de la semnare. Poți modifica.",
+      "fieldNextDueDateHelp": "Interval recomandat pentru acest loc de muncă: {months} luni. Completează data următorului examen.",
       "verdict": {
         "apt": "Apt",
         "apt_conditionat": "Apt condiționat",
@@ -1098,7 +1098,20 @@
       "stepContinue": "Continuă",
       "stepAutoSaved": "✓ Salvat automat",
       "examinedAtLabel": "Data examinării",
-      "examinedAtHelp": "Data la care a avut loc efectiv consultația. Obligatorie pentru a semna fișa — corectează-o dacă diferă de ziua curentă."
+      "examinedAtHelp": "Data la care a avut loc efectiv consultația. Obligatorie pentru a semna fișa — corectează-o dacă diferă de ziua curentă.",
+      "clinExamSystemsTitle": "Examen clinic pe aparate și sisteme",
+      "clinExamAllNormal": "Toate aparatele în limite normale",
+      "clinExamAllNormalToast": "{count} câmpuri completate",
+      "clinExamNormalLine": "În limite normale",
+      "clinExamEdit": "Editează",
+      "clinExamNoteRequired": "obligatoriu",
+      "clinExamNotePlaceholder": "Observații",
+      "clinExamConclusionTitle": "Concluzii examen clinic",
+      "obesityLabel": "Obezitate",
+      "asymptomaticLabel": "Asimptomatic",
+      "suppExamsTitle": "Examene suplimentare",
+      "glycemiaLabel": "Glicemie (mg/dl)",
+      "specialtyConclusionTitle": "Concluziile examinării de specialitate"
     },
     "actions": {
       "start": "Începe examinarea",
