@@ -21,6 +21,7 @@ interface Props {
   examinationTypeCode: string
   defaultIntervalMonths: number
   jobTitle?: string | null
+  preSignChecklist?: ReactNode
   documentsPanel?: ReactNode
   documentsSection?: ReactNode
   examinationActions?: ReactNode
@@ -35,6 +36,7 @@ export function VerdictStep({
   examinationTypeCode,
   defaultIntervalMonths,
   jobTitle,
+  preSignChecklist,
   documentsPanel,
   documentsSection,
   examinationActions,
@@ -276,6 +278,7 @@ export function VerdictStep({
       {documentsPanel}
       {documentsSection}
 
+      {preSignChecklist}
       {examinationActions && <div className="flex justify-end">{examinationActions}</div>}
     </>
   )

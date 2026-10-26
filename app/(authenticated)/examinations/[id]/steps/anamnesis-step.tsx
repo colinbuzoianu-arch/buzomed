@@ -109,6 +109,7 @@ export function AnamnesisStep({
             optNo={labels.optNo}
             disabled={ro}
             sheetRef={ref('anamnesis.asymptomatic')}
+            dataSheetKey="anamnesis.asymptomatic"
           />
         </div>
       )}

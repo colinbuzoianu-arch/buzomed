@@ -26,11 +26,13 @@ import { InvestigationRecommender } from '@/components/ai/InvestigationRecommend
 import { Button } from '@/components/ui/button'
 import { useExaminationPrefill } from '@/hooks/useExaminationPrefill'
 import { getSectionsForExamType } from '@/lib/examinations/document-templates'
+import { computeSheetChecks } from '@/lib/examinations/sheet-checks'
 import { toastSuccess } from '@/lib/toast'
 import { calculateBmi, getStr } from './examination-field-components'
 import { AnamnesisStep } from './steps/anamnesis-step'
 import { ClinicalStep } from './steps/clinical-step'
 import { FindingsStep } from './steps/findings-step'
+import { PreSignChecklist } from './steps/pre-sign-checklist'
 import { VerdictStep } from './steps/verdict-step'
 
 /**
@@ -189,6 +191,16 @@ export interface Labels {
   sheetSmallBox: string
   sheetNoteOnly: string
   viewSheet: string
+  preSignTitle: string
+  preSignAllDone: string
+  preSignFisaBlock: string
+  preSignFoaieBlock: string
+  preSignDismiss: string
+  preSignUndismiss: string
+  preSignDismissed: string
+  preSignReverify: string
+  preSignNextDateInfo: string
+  preSignPrintWithout: string
 }
 
 interface Props {
@@ -200,6 +212,10 @@ interface Props {
   initialValues: ExaminationFormValues
   defaultIntervalMonths: number
   jobTitle?: string | null
+  employeeHasCnp?: boolean
+  companyAddressPresent?: boolean
+  employeeEditHref?: string
+  companyEditHref?: string
   labels: Labels
   hazardHintLabels?: Record<string, string>
   maternityRiskLabels?: Record<string, string>
@@ -222,6 +238,10 @@ export function ExaminationStepper({
   initialValues,
   defaultIntervalMonths,
   jobTitle,
+  employeeHasCnp = false,
+  companyAddressPresent = false,
+  employeeEditHref = '',
+  companyEditHref = '',
   labels,
   hazardHintLabels,
   maternityRiskLabels,
@@ -482,6 +502,23 @@ export function ExaminationStepper({
     [activeStep, handleSave, isDirty, locked, router, searchParams]
   )
 
+  // Jump from a pre-sign-checklist row to the field it names: switch to its
+  // step (auto-saving dirty changes), then scroll to and focus the element
+  // tagged with the matching data-sheet-key.
+  const jumpToField = useCallback(
+    async (step: number, fieldKey: string) => {
+      await goToStep(step)
+      setTimeout(() => {
+        const el = document.querySelector<HTMLElement>(`[data-sheet-key="${fieldKey}"]`)
+        if (!el) return
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        const focusable = el.querySelector<HTMLElement>('input, select, textarea, button')
+        focusable?.focus()
+      }, 80)
+    },
+    [goToStep]
+  )
+
   // ─── Keyboard shortcuts (ignored while typing in a field) ─────────────────
 
   useEffect(() => {
@@ -520,6 +557,52 @@ export function ExaminationStepper({
     { label: labels.stepFindings, Icon: ClipboardList },
     { label: labels.stepVerdict, Icon: Gavel },
   ]
+
+  // ─── Pre-sign checklist (control_periodic only) ───────────────────────────
+  const dismissedChecks = Array.isArray(
+    (values.clinicalExam as Record<string, unknown>)?.dismissedChecks
+  )
+    ? ((values.clinicalExam as Record<string, unknown>).dismissedChecks as string[])
+    : []
+
+  const preSignChecklist = isPeriodic ? (
+    <PreSignChecklist
+      checks={computeSheetChecks({
+        clinicalExam: values.clinicalExam,
+        visionTest: values.visionTest,
+        hearingTest: values.hearingTest,
+        anamnesis: values.anamnesis,
+        additionalTests: values.additionalTests,
+        vitalSigns: values.vitalSigns,
+        clinicalFindings: values.clinicalFindings,
+        employeeJobTitle: jobTitle,
+        employeeHasCnp,
+        companyAddressPresent,
+      })}
+      dismissedIds={dismissedChecks}
+      locked={locked}
+      showNextDateInfo={values.nextExaminationDueDate.trim() === ''}
+      employeeEditHref={employeeEditHref}
+      companyEditHref={companyEditHref}
+      onJump={(step, fieldKey) => void jumpToField(step, fieldKey)}
+      onDismiss={(id) =>
+        updateJson(
+          'clinicalExam',
+          'dismissedChecks',
+          dismissedChecks.includes(id) ? dismissedChecks : [...dismissedChecks, id]
+        )
+      }
+      onUndismiss={(id) =>
+        updateJson(
+          'clinicalExam',
+          'dismissedChecks',
+          dismissedChecks.filter((x) => x !== id)
+        )
+      }
+      onReverify={() => router.refresh()}
+      labels={labels}
+    />
+  ) : null
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[200px_minmax(0,1fr)_260px] gap-6 items-start">
@@ -654,6 +737,7 @@ export function ExaminationStepper({
             examinationTypeCode={examinationTypeCode}
             defaultIntervalMonths={defaultIntervalMonths}
             jobTitle={jobTitle}
+            preSignChecklist={preSignChecklist}
             documentsPanel={documentsPanel}
             documentsSection={documentsSection}
             examinationActions={examinationActions}

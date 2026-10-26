@@ -43,6 +43,8 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           firstName: true,
           lastName: true,
           jobTitle: true,
+          cnpEncrypted: true,
+          idDocumentNumber: true,
           medicCurantName: true,
           medicCurantPhone: true,
         },
@@ -55,7 +57,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           examinationIntervalMonths: true,
           riskAssessmentSignedByCompany: true,
           riskAssessmentSignedAt: true,
-          company: { select: { id: true, name: true } },
+          company: { select: { id: true, name: true, addressLine1: true, city: true } },
         },
       },
       examinationType: {
@@ -458,6 +460,16 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         }}
         defaultIntervalMonths={examination.workplace.examinationIntervalMonths}
         jobTitle={examination.employee.jobTitle}
+        employeeHasCnp={
+          !!(examination.employee.cnpEncrypted || examination.employee.idDocumentNumber)
+        }
+        companyAddressPresent={
+          !!(
+            examination.workplace.company.addressLine1 || examination.workplace.company.city
+          )
+        }
+        employeeEditHref={`/employees/${examination.employee.id}/edit`}
+        companyEditHref={`/companies/${examination.workplace.company.id}/edit`}
         hazardHintLabels={hazardHintLabels}
         labels={{
           sectionAnamnesis: t('examinations.form.sectionAnamnesis'),
@@ -584,6 +596,16 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           sheetSmallBox: t('examinations.form.sheetSmallBox'),
           sheetNoteOnly: t('examinations.form.sheetNoteOnly'),
           viewSheet: t('examinations.form.viewSheet'),
+          preSignTitle: t('examinations.form.preSignTitle'),
+          preSignAllDone: t('examinations.form.preSignAllDone'),
+          preSignFisaBlock: t('examinations.form.preSignFisaBlock'),
+          preSignFoaieBlock: t('examinations.form.preSignFoaieBlock'),
+          preSignDismiss: t('examinations.form.preSignDismiss'),
+          preSignUndismiss: t('examinations.form.preSignUndismiss'),
+          preSignDismissed: t('examinations.form.preSignDismissed'),
+          preSignReverify: t('examinations.form.preSignReverify'),
+          preSignNextDateInfo: t('examinations.form.preSignNextDateInfo'),
+          preSignPrintWithout: t('examinations.form.preSignPrintWithout'),
         }}
         documentsPanel={
           <DocumentsPanel

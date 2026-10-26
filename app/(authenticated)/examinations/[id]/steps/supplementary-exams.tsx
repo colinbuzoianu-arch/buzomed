@@ -78,7 +78,10 @@ export function SupplementaryExams({ values, updateJson, locked, labels }: Props
 
         {/* Glicemie value — only when the Glicemie exam is ordered. */}
         {orderedSet.has('glicemie') && (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+          <div
+            data-sheet-key="additionalTests.glycemia"
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1"
+          >
             <span className="inline-flex items-center gap-2 text-sm">
               {labels.glycemiaLabel}
               <SheetMarker sheetRef={getSheetRef('additionalTests.glycemia')} />
@@ -97,7 +100,7 @@ export function SupplementaryExams({ values, updateJson, locked, labels }: Props
       </div>
 
       {/* Concluziile examinării de specialitate (sănătos / diagnostic). */}
-      <div className="space-y-1.5">
+      <div data-sheet-key="clinicalExam.specialtyConclusion" className="space-y-1.5">
         <span className="inline-flex items-center gap-2 text-sm font-medium">
           {labels.specialtyConclusionTitle}
           <SheetMarker

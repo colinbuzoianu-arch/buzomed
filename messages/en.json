@@ -1122,7 +1122,17 @@
       "funcMissing": "Missing — the field will be left blank on the sheet.",
       "sheetSmallBox": "The box on the sheet is small — use one word or an abbreviation.",
       "sheetNoteOnly": "Nothing is ticked on the sheet — only the note is printed.",
-      "viewSheet": "View sheet"
+      "viewSheet": "View sheet",
+      "preSignTitle": "Pre-sign check",
+      "preSignAllDone": "All fields on the sheets are filled in",
+      "preSignFisaBlock": "Fitness certificate",
+      "preSignFoaieBlock": "Periodic examination sheet",
+      "preSignDismiss": "Leave blank",
+      "preSignUndismiss": "Undo",
+      "preSignDismissed": "Intentionally left blank",
+      "preSignReverify": "Re-check",
+      "preSignNextDateInfo": "The next examination date is computed automatically on signing.",
+      "preSignPrintWithout": "The fitness certificate will print without:"
     },
     "actions": {
       "start": "Start examination",

@@ -140,6 +140,7 @@ export function FindingsStep({
               maxLength={isPeriodic ? WIDE_FIELD_MAX_LENGTH : undefined}
               example={ref('clinicalFindings')?.example}
               hint={ref('clinicalFindings')?.hint}
+              dataSheetKey={isPeriodic ? 'clinicalFindings' : undefined}
             />
           </FullWidth>
           {!isPeriodic && (

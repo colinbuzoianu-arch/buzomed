@@ -757,8 +757,8 @@ function optionHasNoCheckbox(item: ClinicalChoiceItem, value: string): boolean {
  * The whole object is replaced on each PATCH, so requiredness is evaluated
  * against this same payload.
  */
-export function parseClinicalExamInput(input: unknown, issues: string[]): Record<string, string> {
-  const out: Record<string, string> = {}
+export function parseClinicalExamInput(input: unknown, issues: string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
   if (input === null || input === undefined) return out
   if (typeof input !== 'object' || Array.isArray(input)) {
     issues.push('clinicalExam must be an object')
@@ -767,9 +767,10 @@ export function parseClinicalExamInput(input: unknown, issues: string[]): Record
   const obj = input as Record<string, unknown>
 
   // Reject anything not in the whitelist — catch client bugs early rather than
-  // silently storing junk (owner preference).
+  // silently storing junk (owner preference). `dismissedChecks` (pre-sign
+  // checklist "lăsat gol intenționat") is allowed but handled separately below.
   for (const key of Object.keys(obj)) {
-    if (!CLINICAL_EXAM_WHITELIST.has(key)) {
+    if (key !== 'dismissedChecks' && !CLINICAL_EXAM_WHITELIST.has(key)) {
       issues.push(`clinicalExam: unknown field "${key}"`)
     }
   }
@@ -826,10 +827,37 @@ export function parseClinicalExamInput(input: unknown, issues: string[]): Record
   // checkbox) must carry a non-empty note.
   for (const item of CLINICAL_EXAM_STORED_ITEMS) {
     if (item.kind !== 'choice' || !item.noteKey) continue
-    const selected = out[item.key]
+    const selected = out[item.key] as string | undefined
     if (!selected) continue
     if (optionHasNoCheckbox(item, selected) && !out[item.noteKey]) {
       issues.push(`clinicalExam.${item.noteKey} is required when ${item.key} is "${selected}"`)
+    }
+  }
+
+  // dismissedChecks: pre-sign checklist ids the doctor marked "lăsat gol
+  // intenționat". Purely a UI annotation — never read by buildPeriodicExamFields
+  // or anything printed. Validated by shape and id scheme (mirrors the ids that
+  // computeSheetChecks in sheet-checks.ts produces), not by recomputing them.
+  if ('dismissedChecks' in obj && obj.dismissedChecks !== undefined && obj.dismissedChecks !== null) {
+    const raw = obj.dismissedChecks
+    if (!Array.isArray(raw)) {
+      issues.push('clinicalExam.dismissedChecks must be an array of strings')
+    } else if (raw.length > 100) {
+      issues.push('clinicalExam.dismissedChecks has too many entries (max 100)')
+    } else {
+      const idPattern =
+        /^(fisa:(jobTitle|cnp|companyAddress)|foaie:(section|note|field):[a-zA-Z0-9._]+)$/
+      const clean: string[] = []
+      const seen = new Set<string>()
+      for (const entry of raw) {
+        if (typeof entry !== 'string' || entry.length > 80 || !idPattern.test(entry)) {
+          issues.push(`clinicalExam.dismissedChecks contains an invalid id: ${String(entry)}`)
+        } else if (!seen.has(entry)) {
+          seen.add(entry)
+          clean.push(entry)
+        }
+      }
+      if (clean.length > 0) out.dismissedChecks = clean
     }
   }
 

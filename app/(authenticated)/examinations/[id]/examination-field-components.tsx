@@ -81,6 +81,7 @@ export function Field({
   example,
   hint,
   smallBoxHint,
+  dataSheetKey,
 }: {
   label: string
   value: string
@@ -100,12 +101,15 @@ export function Field({
   hint?: string
   /** Shown when the printed box is tiny (maxLength ≤ 15). */
   smallBoxHint?: string
+  /** Jump target for the pre-sign checklist. */
+  dataSheetKey?: string
 }) {
   const id = label.replace(/\s+/g, '-').toLowerCase()
   const placeholder = example ? `ex: ${example}` : undefined
   const overWarn = maxLength !== undefined && maxLength > 0 && value.length >= maxLength * 0.8
   return (
     <div
+      data-sheet-key={dataSheetKey}
       className={`space-y-2${highlighted ? ' border-l-4 border-amber-400 pl-2' : ''}`}
       title={highlighted ? highlightTooltip : undefined}
     >
@@ -179,6 +183,7 @@ export function CompactField({
   example,
   hint,
   widthClass = 'w-16',
+  dataSheetKey,
 }: {
   label: string
   value: string
@@ -192,11 +197,12 @@ export function CompactField({
   example?: string
   hint?: string
   widthClass?: string
+  dataSheetKey?: string
 }) {
   const id = `c-${label.replace(/\s+/g, '-').toLowerCase()}`
   const overWarn = maxLength !== undefined && maxLength > 0 && value.length >= maxLength * 0.8
   return (
-    <div className="inline-flex flex-col gap-0.5">
+    <div data-sheet-key={dataSheetKey} className="inline-flex flex-col gap-0.5">
       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
         {label}
         {sheetRef && <SheetMarker sheetRef={sheetRef} />}
@@ -280,6 +286,7 @@ export function YesNoField({
   optNo,
   disabled,
   sheetRef,
+  dataSheetKey,
 }: {
   label: string
   value: string
@@ -288,10 +295,11 @@ export function YesNoField({
   optNo: string
   disabled?: boolean
   sheetRef?: SheetRef
+  dataSheetKey?: string
 }) {
   const name = `yn-${label.replace(/\s+/g, '-').toLowerCase()}`
   return (
-    <div className="flex items-center justify-between px-3 py-2">
+    <div data-sheet-key={dataSheetKey} className="flex items-center justify-between px-3 py-2">
       {sheetRef ? (
         <span className="text-sm pr-4 inline-flex items-center gap-2">
           {label}

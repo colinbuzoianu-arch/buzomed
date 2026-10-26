@@ -130,7 +130,11 @@ export function ClinicalSystemsExam({ values, updateJson, locked, labels }: Prop
           const open = expanded[section.key]
           const normal = isSectionNormal(values, section)
           return (
-            <div key={section.key} className="rounded-lg border bg-card">
+            <div
+              key={section.key}
+              data-sheet-key={`section:${section.key}`}
+              className="rounded-lg border bg-card"
+            >
               <button
                 type="button"
                 onClick={() => setExpanded((p) => ({ ...p, [section.key]: !p[section.key] }))}
@@ -184,7 +188,10 @@ export function ClinicalSystemsExam({ values, updateJson, locked, labels }: Prop
       </div>
 
       {/* Concluzii examen clinic */}
-      <div className="rounded-lg border bg-card px-4 py-3 space-y-3">
+      <div
+        data-sheet-key="clinicalExam.conclusion"
+        className="rounded-lg border bg-card px-4 py-3 space-y-3"
+      >
         <h3 className="flex items-center gap-2 flex-wrap text-sm font-semibold">
           {labels.clinExamConclusionTitle}
           <SheetMarker sheetRef={{ printed: true, where: 'Concluzii examen clinic' }} />

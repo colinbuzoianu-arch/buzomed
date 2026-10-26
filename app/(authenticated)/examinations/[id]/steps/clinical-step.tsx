@@ -375,6 +375,7 @@ function CompactVitals({
           onChange={(v) => updateJson('vitalSigns', 'height', v)}
           disabled={ro}
           sheetRef={ref('vitalSigns.height')}
+          dataSheetKey="vitalSigns.height"
         />
         <CompactField
           label={labels.fieldWeight}
@@ -385,6 +386,7 @@ function CompactVitals({
           onChange={(v) => updateJson('vitalSigns', 'weight', v)}
           disabled={ro}
           sheetRef={ref('vitalSigns.weight')}
+          dataSheetKey="vitalSigns.weight"
         />
         <CompactField
           label={labels.fieldBmi}
@@ -411,6 +413,7 @@ function CompactVitals({
           disabled={ro}
           widthClass="w-14"
           sheetRef={ref('vitalSigns.bpSystolic')}
+          dataSheetKey="vitalSigns.bpSystolic"
         />
         <CompactField
           label={labels.fieldBpDiastolic}
@@ -430,6 +433,7 @@ function CompactVitals({
           onChange={(v) => updateJson('vitalSigns', 'pulse', v)}
           disabled={ro}
           sheetRef={ref('vitalSigns.pulse')}
+          dataSheetKey="vitalSigns.pulse"
         />
       </div>
       <NonPrintingGroup active heading={labels.sheetNonPrinting}>
@@ -468,6 +472,7 @@ function CompactVision({
           onChange={(v) => updateJson('visionTest', 'left', v)}
           disabled={ro}
           sheetRef={ref('visionTest.left')}
+          dataSheetKey="visionTest.left"
         />
         <CompactField
           label={labels.fieldVisionRight}
@@ -475,6 +480,7 @@ function CompactVision({
           onChange={(v) => updateJson('visionTest', 'right', v)}
           disabled={ro}
           sheetRef={ref('visionTest.right')}
+          dataSheetKey="visionTest.right"
         />
         <label className="inline-flex items-center gap-1.5 self-end pb-1.5 text-sm">
           <input

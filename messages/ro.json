@@ -1122,7 +1122,17 @@
       "funcMissing": "Lipsește — câmpul va rămâne gol pe foaie.",
       "sheetSmallBox": "Căsuța de pe foaie e mică — folosiți un cuvânt sau o abreviere.",
       "sheetNoteOnly": "Pe foaie nu se bifează nimic — se tipărește doar nota.",
-      "viewSheet": "Vezi foaia"
+      "viewSheet": "Vezi foaia",
+      "preSignTitle": "Verificare înainte de semnare",
+      "preSignAllDone": "Toate câmpurile de pe foi sunt completate",
+      "preSignFisaBlock": "Fișa de aptitudine",
+      "preSignFoaieBlock": "Foaia de examen periodic",
+      "preSignDismiss": "Lasă gol",
+      "preSignUndismiss": "Anulează",
+      "preSignDismissed": "Lăsate goale intenționat",
+      "preSignReverify": "Reverifică",
+      "preSignNextDateInfo": "Data următorului examen se calculează automat la semnare.",
+      "preSignPrintWithout": "Fișa de aptitudine va fi tipărită fără:"
     },
     "actions": {
       "start": "Începe examinarea",
