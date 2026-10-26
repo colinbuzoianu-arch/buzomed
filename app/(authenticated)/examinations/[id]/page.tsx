@@ -42,6 +42,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           id: true,
           firstName: true,
           lastName: true,
+          jobTitle: true,
           medicCurantName: true,
           medicCurantPhone: true,
         },
@@ -456,6 +457,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
               : new Date().toISOString().slice(0, 10),
         }}
         defaultIntervalMonths={examination.workplace.examinationIntervalMonths}
+        jobTitle={examination.employee.jobTitle}
         hazardHintLabels={hazardHintLabels}
         labels={{
           sectionAnamnesis: t('examinations.form.sectionAnamnesis'),
@@ -571,6 +573,17 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           suppExamsTitle: t('examinations.form.suppExamsTitle'),
           glycemiaLabel: t('examinations.form.glycemiaLabel'),
           specialtyConclusionTitle: t('examinations.form.specialtyConclusionTitle'),
+          sheetLegend: t('examinations.form.sheetLegend'),
+          sheetNonPrinting: t('examinations.form.sheetNonPrinting'),
+          sheetStepAnamnesis: t('examinations.form.sheetStepAnamnesis'),
+          sheetStepClinic: t('examinations.form.sheetStepClinic'),
+          sheetStepInvestigatii: t('examinations.form.sheetStepInvestigatii'),
+          sheetStepAviz: t('examinations.form.sheetStepAviz'),
+          funcLabel: t('examinations.form.funcLabel'),
+          funcMissing: t('examinations.form.funcMissing'),
+          sheetSmallBox: t('examinations.form.sheetSmallBox'),
+          sheetNoteOnly: t('examinations.form.sheetNoteOnly'),
+          viewSheet: t('examinations.form.viewSheet'),
         }}
         documentsPanel={
           <DocumentsPanel

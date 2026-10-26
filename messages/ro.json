@@ -1111,7 +1111,18 @@
       "asymptomaticLabel": "Asimptomatic",
       "suppExamsTitle": "Examene suplimentare",
       "glycemiaLabel": "Glicemie (mg/dl)",
-      "specialtyConclusionTitle": "Concluziile examinării de specialitate"
+      "specialtyConclusionTitle": "Concluziile examinării de specialitate",
+      "sheetLegend": "Pe foaie = apare pe „Examen medical periodic\" · câmpurile din chenarul punctat rămân doar în Buzomed",
+      "sheetNonPrinting": "Doar în dosarul din Buzomed — nu apare pe foaie",
+      "sheetStepAnamnesis": "Pe foaie: bifa Asimptomatic din antet.",
+      "sheetStepClinic": "Pe foaie: antetul (T, G, IMC, obezitate), punctele 1–11 și Concluzii examen clinic.",
+      "sheetStepInvestigatii": "Pe foaie: examenele suplimentare, glicemia și Concluziile examinării de specialitate.",
+      "sheetStepAviz": "Pe foaie: avizul, funcția, recomandările, data examinării și data următorului examen.",
+      "funcLabel": "Funcția",
+      "funcMissing": "Lipsește — câmpul va rămâne gol pe foaie.",
+      "sheetSmallBox": "Căsuța de pe foaie e mică — folosiți un cuvânt sau o abreviere.",
+      "sheetNoteOnly": "Pe foaie nu se bifează nimic — se tipărește doar nota.",
+      "viewSheet": "Vezi foaia"
     },
     "actions": {
       "start": "Începe examinarea",

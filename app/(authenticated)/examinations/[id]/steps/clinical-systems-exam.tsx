@@ -2,10 +2,13 @@
 
 import { CheckCheck } from 'lucide-react'
 import { useState } from 'react'
+import { SheetMarker } from '@/components/examinations/sheet-marker'
 import { Button } from '@/components/ui/button'
+import { clinicalItemSheetRef } from '@/lib/examinations/periodic-sheet-map'
 import {
   CLINICAL_ALL_NORMAL_ITEMS,
   CLINICAL_CONCLUSION_ITEMS,
+  CLINICAL_EXAM_EXAMPLES,
   CLINICAL_EXAM_SECTIONS,
   CLINICAL_EXAM_TEXT_DEFAULTS,
   type ClinicalChoiceItem,
@@ -84,12 +87,9 @@ function isSectionNormal(values: ExaminationFormValues, section: ClinicalSection
 export function ClinicalSystemsExam({ values, updateJson, locked, labels }: Props) {
   const ro = locked
 
-  // Per-section expand state; normal sections start collapsed to save height.
-  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {}
-    for (const s of CLINICAL_EXAM_SECTIONS) init[s.key] = !isSectionNormal(values, s)
-    return init
-  })
+  // Per-section expand state. All sections start collapsed; the doctor opens
+  // the ones they need via the section header.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   function handleAllNormal() {
     const current = values.clinicalExam ?? {}
@@ -136,9 +136,10 @@ export function ClinicalSystemsExam({ values, updateJson, locked, labels }: Prop
                 onClick={() => setExpanded((p) => ({ ...p, [section.key]: !p[section.key] }))}
                 className="flex w-full items-center justify-between gap-2 px-4 py-2 text-left"
               >
-                <span className="flex items-center gap-2 text-sm font-medium">
+                <span className="flex items-center gap-2 text-sm font-medium flex-wrap">
                   <span className="text-muted-foreground tabular-nums">{section.number}.</span>
                   {section.label}
+                  <SheetMarker sheetRef={clinicalItemSheetRef(section.number, section.label)} />
                   {!open && normal && (
                     <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-normal text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
                       ✓ {labels.clinExamNormalLine}
@@ -184,7 +185,10 @@ export function ClinicalSystemsExam({ values, updateJson, locked, labels }: Prop
 
       {/* Concluzii examen clinic */}
       <div className="rounded-lg border bg-card px-4 py-3 space-y-3">
-        <h3 className="text-sm font-semibold">{labels.clinExamConclusionTitle}</h3>
+        <h3 className="flex items-center gap-2 flex-wrap text-sm font-semibold">
+          {labels.clinExamConclusionTitle}
+          <SheetMarker sheetRef={{ printed: true, where: 'Concluzii examen clinic' }} />
+        </h3>
         {CLINICAL_CONCLUSION_ITEMS.map((item) => (
           <ClinicalItemRow
             key={item.key}
@@ -238,6 +242,7 @@ function ClinicalItemRow({
         value={value}
         onChange={(v) => updateJson(source, item.key, v)}
         disabled={disabled}
+        labels={labels}
       />
     )
   }
@@ -269,6 +274,8 @@ function ClinicalItemRow({
           onChange={(v) => updateJson('clinicalExam', choice.noteKey as string, v)}
           disabled={disabled}
           required={noteRequired}
+          example={CLINICAL_EXAM_EXAMPLES[choice.key]}
+          noteOnlyHint={noteRequired}
           labels={labels}
         />
       )}
@@ -316,28 +323,35 @@ function TextRow({
   value,
   onChange,
   disabled,
+  labels,
 }: {
   item: ClinicalTextItem
   value: string
   onChange: (v: string) => void
   disabled: boolean
+  labels: Labels
 }) {
-  const placeholder = CLINICAL_EXAM_TEXT_DEFAULTS[item.key] ?? ''
+  const example = CLINICAL_EXAM_EXAMPLES[item.key] ?? CLINICAL_EXAM_TEXT_DEFAULTS[item.key]
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span className="text-sm min-w-[7rem]">{item.label}</span>
-      <div className="flex-1 min-w-[10rem]">
-        <input
-          type="text"
-          value={value}
-          maxLength={item.maxLength}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm disabled:opacity-60"
-        />
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="text-sm min-w-[7rem]">{item.label}</span>
+        <div className="flex-1 min-w-[10rem]">
+          <input
+            type="text"
+            value={value}
+            maxLength={item.maxLength}
+            placeholder={example ? `ex: ${example}` : undefined}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm disabled:opacity-60"
+          />
+        </div>
+        <Counter length={value.length} max={item.maxLength} />
       </div>
-      <Counter length={value.length} max={item.maxLength} />
+      {item.maxLength <= 15 && (
+        <p className="pl-[7rem] text-[11px] text-muted-foreground">{labels.sheetSmallBox}</p>
+      )}
     </div>
   )
 }
@@ -349,6 +363,8 @@ function NoteRow({
   onChange,
   disabled,
   required,
+  example,
+  noteOnlyHint,
   labels,
 }: {
   noteKey: string
@@ -357,37 +373,47 @@ function NoteRow({
   onChange: (v: string) => void
   disabled: boolean
   required: boolean
+  example?: string
+  noteOnlyHint: boolean
   labels: Labels
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-[7rem]">
-      <div className="flex-1 min-w-[10rem]">
-        <input
-          type="text"
-          value={value}
-          maxLength={maxLength || undefined}
-          placeholder={labels.clinExamNotePlaceholder}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          aria-label={`${noteKey} ${labels.clinExamNotePlaceholder}`}
-          className={`h-8 w-full rounded-md border bg-background px-2 text-sm disabled:opacity-60 ${
-            required && value.trim() === '' ? 'border-amber-400' : 'border-input'
-          }`}
-        />
+    <div className="space-y-1 pl-[7rem]">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className="flex-1 min-w-[10rem]">
+          <input
+            type="text"
+            value={value}
+            maxLength={maxLength || undefined}
+            placeholder={example ? `ex: ${example}` : labels.clinExamNotePlaceholder}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            aria-label={`${noteKey} ${labels.clinExamNotePlaceholder}`}
+            className={`h-8 w-full rounded-md border bg-background px-2 text-sm disabled:opacity-60 ${
+              required && value.trim() === '' ? 'border-amber-400' : 'border-input'
+            }`}
+          />
+        </div>
+        {required && value.trim() === '' && (
+          <span className="text-xs text-amber-600">{labels.clinExamNoteRequired}</span>
+        )}
+        {maxLength > 0 && <Counter length={value.length} max={maxLength} />}
       </div>
-      {required && value.trim() === '' && (
-        <span className="text-xs text-amber-600">{labels.clinExamNoteRequired}</span>
+      {noteOnlyHint && <p className="text-[11px] text-muted-foreground">{labels.sheetNoteOnly}</p>}
+      {maxLength > 0 && maxLength <= 15 && (
+        <p className="text-[11px] text-muted-foreground">{labels.sheetSmallBox}</p>
       )}
-      {maxLength > 0 && <Counter length={value.length} max={maxLength} />}
     </div>
   )
 }
 
+/** n / max counter: muted normally, amber from 80% up (input stops at max). */
 function Counter({ length, max }: { length: number; max: number }) {
+  const warn = max > 0 && length >= max * 0.8
   return (
     <span
       className={`text-[11px] tabular-nums shrink-0 ${
-        length > max ? 'text-destructive' : 'text-muted-foreground/60'
+        warn ? 'text-amber-600' : 'text-muted-foreground/60'
       }`}
     >
       {length}/{max}

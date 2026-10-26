@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { SheetMarker } from '@/components/examinations/sheet-marker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { SheetRef } from '@/lib/examinations/periodic-sheet-map'
 
 /**
  * Shared field primitives + small value helpers used by every step of the
@@ -33,16 +35,19 @@ export function calculateBmi(vitalSigns: Record<string, unknown>): string {
 export function FormSection({
   title,
   hazardHint,
+  sheetRef,
   children,
 }: {
   title: string
   hazardHint?: string
+  sheetRef?: SheetRef
   children: React.ReactNode
 }) {
   return (
     <section className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <h2 className="text-xl font-semibold">{title}</h2>
+        {sheetRef && <SheetMarker sheetRef={sheetRef} />}
         {hazardHint && (
           <span
             title={hazardHint}
@@ -71,6 +76,11 @@ export function Field({
   disabled,
   highlighted,
   highlightTooltip,
+  sheetRef,
+  maxLength,
+  example,
+  hint,
+  smallBoxHint,
 }: {
   label: string
   value: string
@@ -81,20 +91,40 @@ export function Field({
   disabled?: boolean
   highlighted?: boolean
   highlightTooltip?: string
+  sheetRef?: SheetRef
+  /** When set, caps input and shows an n/max counter (amber from 80%). */
+  maxLength?: number
+  /** Short example shown as placeholder, prefixed „ex: ". */
+  example?: string
+  /** One-line muted help under the field. */
+  hint?: string
+  /** Shown when the printed box is tiny (maxLength ≤ 15). */
+  smallBoxHint?: string
 }) {
   const id = label.replace(/\s+/g, '-').toLowerCase()
+  const placeholder = example ? `ex: ${example}` : undefined
+  const overWarn = maxLength !== undefined && maxLength > 0 && value.length >= maxLength * 0.8
   return (
     <div
       className={`space-y-2${highlighted ? ' border-l-4 border-amber-400 pl-2' : ''}`}
       title={highlighted ? highlightTooltip : undefined}
     >
-      <Label htmlFor={id}>{label}</Label>
+      {sheetRef ? (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Label htmlFor={id}>{label}</Label>
+          <SheetMarker sheetRef={sheetRef} />
+        </div>
+      ) : (
+        <Label htmlFor={id}>{label}</Label>
+      )}
       {multiline ? (
         <textarea
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
+          maxLength={maxLength}
+          placeholder={placeholder}
           className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-60"
         />
       ) : (
@@ -105,7 +135,26 @@ export function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
+          maxLength={maxLength}
+          placeholder={placeholder}
         />
+      )}
+      {(hint || maxLength !== undefined) && (
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[11px] text-muted-foreground">{hint}</p>
+          {maxLength !== undefined && (
+            <span
+              className={`text-[11px] tabular-nums shrink-0 ${
+                overWarn ? 'text-amber-600' : 'text-muted-foreground/60'
+              }`}
+            >
+              {value.length}/{maxLength}
+            </span>
+          )}
+        </div>
+      )}
+      {maxLength !== undefined && maxLength <= 15 && smallBoxHint && (
+        <p className="text-[11px] text-muted-foreground">{smallBoxHint}</p>
       )}
     </div>
   )
@@ -117,17 +166,26 @@ export function SelectField({
   onChange,
   options,
   disabled,
+  sheetRef,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   options: { value: string; label: string }[]
   disabled?: boolean
+  sheetRef?: SheetRef
 }) {
   const id = label.replace(/\s+/g, '-').toLowerCase()
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      {sheetRef ? (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Label htmlFor={id}>{label}</Label>
+          <SheetMarker sheetRef={sheetRef} />
+        </div>
+      ) : (
+        <Label htmlFor={id}>{label}</Label>
+      )}
       <select
         id={id}
         value={value}
@@ -152,6 +210,7 @@ export function YesNoField({
   optYes,
   optNo,
   disabled,
+  sheetRef,
 }: {
   label: string
   value: string
@@ -159,11 +218,19 @@ export function YesNoField({
   optYes: string
   optNo: string
   disabled?: boolean
+  sheetRef?: SheetRef
 }) {
   const name = `yn-${label.replace(/\s+/g, '-').toLowerCase()}`
   return (
     <div className="flex items-center justify-between px-3 py-2">
-      <span className="text-sm pr-4">{label}</span>
+      {sheetRef ? (
+        <span className="text-sm pr-4 inline-flex items-center gap-2">
+          {label}
+          <SheetMarker sheetRef={sheetRef} />
+        </span>
+      ) : (
+        <span className="text-sm pr-4">{label}</span>
+      )}
       <div className="flex items-center gap-4 shrink-0">
         {(['da', 'nu'] as const).map((v) => (
           <label
@@ -193,13 +260,15 @@ export function CheckField({
   checked,
   onChange,
   disabled,
+  sheetRef,
 }: {
   label: string
   checked: boolean
   onChange: (v: boolean) => void
   disabled?: boolean
+  sheetRef?: SheetRef
 }) {
-  return (
+  const field = (
     <label className={`flex items-center gap-2 text-sm ${disabled ? 'opacity-60' : ''}`}>
       <input
         type="checkbox"
@@ -209,6 +278,13 @@ export function CheckField({
       />
       <span>{label}</span>
     </label>
+  )
+  if (!sheetRef) return field
+  return (
+    <div className="flex items-center gap-2">
+      {field}
+      <SheetMarker sheetRef={sheetRef} />
+    </div>
   )
 }
 

@@ -1,9 +1,11 @@
 'use client'
 
+import { SheetMarker } from '@/components/examinations/sheet-marker'
 import {
   CLINICAL_SPECIALTY_CONCLUSION,
   SUPPLEMENTARY_EXAMS,
 } from '@/lib/examinations/clinical-exam'
+import { getSheetRef } from '@/lib/examinations/periodic-sheet-map'
 import { CheckField, getStr } from '../examination-field-components'
 import type { ExaminationFormValues, Labels } from '../examination-stepper'
 
@@ -58,7 +60,10 @@ export function SupplementaryExams({ values, updateJson, locked, labels }: Props
   return (
     <section className="space-y-4">
       <div className="space-y-3">
-        <h2 className="text-xl font-semibold">{labels.suppExamsTitle}</h2>
+        <h2 className="flex items-center gap-2 flex-wrap text-xl font-semibold">
+          {labels.suppExamsTitle}
+          <SheetMarker sheetRef={getSheetRef('additionalTests.ordered')} />
+        </h2>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
           {SUPPLEMENTARY_EXAMS.map((exam) => (
             <CheckField
@@ -74,7 +79,10 @@ export function SupplementaryExams({ values, updateJson, locked, labels }: Props
         {/* Glicemie value — only when the Glicemie exam is ordered. */}
         {orderedSet.has('glicemie') && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
-            <span className="text-sm">{labels.glycemiaLabel}</span>
+            <span className="inline-flex items-center gap-2 text-sm">
+              {labels.glycemiaLabel}
+              <SheetMarker sheetRef={getSheetRef('additionalTests.glycemia')} />
+            </span>
             <input
               type="number"
               inputMode="numeric"
@@ -90,7 +98,12 @@ export function SupplementaryExams({ values, updateJson, locked, labels }: Props
 
       {/* Concluziile examinării de specialitate (sănătos / diagnostic). */}
       <div className="space-y-1.5">
-        <span className="text-sm font-medium">{labels.specialtyConclusionTitle}</span>
+        <span className="inline-flex items-center gap-2 text-sm font-medium">
+          {labels.specialtyConclusionTitle}
+          <SheetMarker
+            sheetRef={{ printed: true, where: 'Concluziile examinării de specialitate' }}
+          />
+        </span>
         <div className="inline-flex flex-wrap gap-1">
           {CLINICAL_SPECIALTY_CONCLUSION.options.map((o) => {
             const active = specValue === o.value

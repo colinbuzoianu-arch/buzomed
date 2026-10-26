@@ -49,6 +49,10 @@ interface ClinicalItemBase {
   label: string
   /** Where the value lives. Defaults to `clinicalExam`. */
   source?: ClinicalItemSource
+  /** Optional one-line help text shown under the field (UX spec Phase B). */
+  hint?: string
+  /** Optional short example shown as placeholder for free-text (UX spec Phase B). */
+  example?: string
 }
 
 export interface ClinicalChoiceItem extends ClinicalItemBase {
@@ -142,6 +146,32 @@ export const CLINICAL_EXAM_TEXT_DEFAULTS: Record<string, string> = {
 // Near-vision acuity / correction length caps (vap_* fields on the sheet).
 export const VISION_NEAR_ACUITY_MAX_LENGTH = 6
 export const VISION_NEAR_CORRECTION_MAX_LENGTH = 57
+
+// Short examples shown as the placeholder (prefixed „ex: ") for the clinical
+// exam's free-text inputs and notes, keyed by item `key`. For choice items
+// that have a note, the example is the note's placeholder.
+// TODO(doctor): review wording
+export const CLINICAL_EXAM_EXAMPLES: Record<string, string> = {
+  tegumente: 'paloare tegumentară',
+  ganglioni: 'adenopatie laterocervicală dr.',
+  locomotor: 'mobilitate limitată umăr stg.',
+  torace: 'emfizematos',
+  ampliatii: 'diminuate dr.',
+  sonoritate: 'hipersonor',
+  murmur: 'diminuat',
+  varice: 'absente',
+  ficat: 'hepatomegalie',
+  splina: 'palpabilă',
+  tranzit: 'normal',
+  mictiuni: 'polakiurie',
+  nistagmus: 'orizontal',
+  mers: 'normal',
+  fortaSegmentara: 'păstrată',
+  miscariInvoluntare: 'tremor fin',
+  nearCorrection: '+1,5 D ODS',
+  endocrin: 'tiroidă nepalpabilă',
+  conclusionText: 'HTA gr. I — control cardiologic',
+}
 
 // "În limite normale" note caps are tiny on the sheet — a couple of these note
 // boxes only fit ~10 characters. The UI will show a counter; validation cuts

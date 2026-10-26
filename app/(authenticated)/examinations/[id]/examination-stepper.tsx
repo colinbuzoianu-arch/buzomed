@@ -1,7 +1,16 @@
 'use client'
 
 import type { ExaminationVerdict } from '@prisma/client'
-import { Check, ClipboardList, Gavel, HeartPulse, Stethoscope } from 'lucide-react'
+import {
+  Check,
+  ClipboardList,
+  FileText,
+  Gavel,
+  HeartPulse,
+  Printer,
+  Stethoscope,
+  X,
+} from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   type ReactNode,
@@ -168,6 +177,18 @@ export interface Labels {
   suppExamsTitle: string
   glycemiaLabel: string
   specialtyConclusionTitle: string
+  // Periodic sheet map (UX spec Phase A)
+  sheetLegend: string
+  sheetNonPrinting: string
+  sheetStepAnamnesis: string
+  sheetStepClinic: string
+  sheetStepInvestigatii: string
+  sheetStepAviz: string
+  funcLabel: string
+  funcMissing: string
+  sheetSmallBox: string
+  sheetNoteOnly: string
+  viewSheet: string
 }
 
 interface Props {
@@ -178,6 +199,7 @@ interface Props {
   signed: boolean
   initialValues: ExaminationFormValues
   defaultIntervalMonths: number
+  jobTitle?: string | null
   labels: Labels
   hazardHintLabels?: Record<string, string>
   maternityRiskLabels?: Record<string, string>
@@ -199,6 +221,7 @@ export function ExaminationStepper({
   signed,
   initialValues,
   defaultIntervalMonths,
+  jobTitle,
   labels,
   hazardHintLabels,
   maternityRiskLabels,
@@ -228,6 +251,28 @@ export function ExaminationStepper({
   })
 
   const sections = getSectionsForExamType(examinationTypeCode)
+  const isPeriodic = sections.showClinicalSystemsExam
+
+  // Periodic-sheet legend, dismissible and remembered per browser.
+  const [legendDismissed, setLegendDismissed] = useState(false)
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('buzomed:periodicSheetLegendDismissed') === '1') {
+        setLegendDismissed(true)
+      }
+    } catch {
+      // ignore unavailable storage (private window, blocked cookies)
+    }
+  }, [])
+  function dismissLegend() {
+    setLegendDismissed(true)
+    try {
+      localStorage.setItem('buzomed:periodicSheetLegendDismissed', '1')
+    } catch {
+      // ignore
+    }
+  }
+
   const { suggestions, status: prefillStatus } = useExaminationPrefill(
     examinationId,
     prefillEnabled
@@ -411,6 +456,15 @@ export function ExaminationStepper({
     return () => clearTimeout(t)
   }, [savedAt])
 
+  // "Vezi foaia" (periodic): save first if dirty, then open the filled PDF.
+  const handleViewSheet = useCallback(async () => {
+    if (!locked && isDirty) {
+      const ok = await handleSave({ silent: true })
+      if (!ok) return // save failed — error already shown, don't open
+    }
+    window.open(`/api/examinations/${examinationId}/documents/examen_periodic`, '_blank')
+  }, [locked, isDirty, handleSave, examinationId])
+
   // ─── Step navigation (auto-saves dirty changes before switching) ──────────
 
   const goToStep = useCallback(
@@ -528,6 +582,22 @@ export function ExaminationStepper({
 
       {/* Active step content */}
       <div className="space-y-8 min-w-0">
+        {isPeriodic && !legendDismissed && (
+          <div className="flex items-start justify-between gap-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200">
+            <span className="flex items-start gap-2">
+              <Printer className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {labels.sheetLegend}
+            </span>
+            <button
+              type="button"
+              onClick={dismissLegend}
+              aria-label="Închide"
+              className="shrink-0 rounded p-0.5 hover:bg-sky-100 dark:hover:bg-sky-900"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
         {signed && (
           <div className="border border-green-300 bg-green-50 text-green-900 rounded-md px-4 py-3 text-sm">
             {labels.signedNotice}
@@ -583,6 +653,7 @@ export function ExaminationStepper({
             sections={sections}
             examinationTypeCode={examinationTypeCode}
             defaultIntervalMonths={defaultIntervalMonths}
+            jobTitle={jobTitle}
             documentsPanel={documentsPanel}
             documentsSection={documentsSection}
             examinationActions={examinationActions}
@@ -607,6 +678,17 @@ export function ExaminationStepper({
             </Button>
             <div className="flex items-center gap-3">
               {savedAt && <span className="text-xs text-green-700">{labels.savedToast}</span>}
+              {isPeriodic && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleViewSheet()}
+                  disabled={saving}
+                >
+                  <FileText className="h-4 w-4" />
+                  {labels.viewSheet}
+                </Button>
+              )}
               <Button type="button" onClick={() => void handleSave()} disabled={saving}>
                 {saving ? labels.saving : labels.saveButton}
               </Button>
@@ -618,6 +700,16 @@ export function ExaminationStepper({
               disabled={activeStep === STEP_COUNT - 1}
             >
               {labels.stepContinue} →
+            </Button>
+          </div>
+        )}
+
+        {/* When locked/signed there's no editing bar — still offer the sheet. */}
+        {locked && isPeriodic && (
+          <div className="flex justify-end sticky bottom-4 bg-background border rounded-md p-3 shadow-sm">
+            <Button type="button" variant="outline" onClick={() => void handleViewSheet()}>
+              <FileText className="h-4 w-4" />
+              {labels.viewSheet}
             </Button>
           </div>
         )}

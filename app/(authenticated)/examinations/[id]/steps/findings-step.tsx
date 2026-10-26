@@ -1,6 +1,8 @@
 'use client'
 
+import { NonPrintingGroup } from '@/components/examinations/sheet-marker'
 import type { ExamSectionConfig } from '@/lib/examinations/document-templates'
+import { getSheetRef, WIDE_FIELD_MAX_LENGTH } from '@/lib/examinations/periodic-sheet-map'
 import {
   DiagnosesField,
   Field,
@@ -73,10 +75,17 @@ export function FindingsStep({
   maternityRiskLabels,
 }: Props) {
   const ro = locked
+  const isPeriodic = sections.showClinicalSystemsExam
+  const ref = (k: string) => (isPeriodic ? getSheetRef(k) : undefined)
 
   return (
     <>
+      {isPeriodic && (
+        <p className="text-sm text-muted-foreground">{labels.sheetStepInvestigatii}</p>
+      )}
+
       {sections.showAdditionalTests && (
+        <NonPrintingGroup active={isPeriodic} heading={labels.sheetNonPrinting}>
         <FormSection title={labels.sectionAdditional} hazardHint={hazardHintLabels?.['additional']}>
           <FullWidth>
             <Field
@@ -106,6 +115,7 @@ export function FindingsStep({
             />
           </FullWidth>
         </FormSection>
+        </NonPrintingGroup>
       )}
 
       {sections.showSupplementaryExams && (
@@ -126,17 +136,23 @@ export function FindingsStep({
               onChange={(v) => updateTop('clinicalFindings', v)}
               multiline
               disabled={ro}
+              sheetRef={ref('clinicalFindings')}
+              maxLength={isPeriodic ? WIDE_FIELD_MAX_LENGTH : undefined}
+              example={ref('clinicalFindings')?.example}
+              hint={ref('clinicalFindings')?.hint}
             />
           </FullWidth>
-          <FullWidth>
-            <DiagnosesField
-              label={labels.fieldDiagnoses}
-              help={labels.fieldDiagnosesHelp}
-              value={values.diagnoses}
-              onChange={(v) => updateTop('diagnoses', v)}
-              disabled={ro}
-            />
-          </FullWidth>
+          {!isPeriodic && (
+            <FullWidth>
+              <DiagnosesField
+                label={labels.fieldDiagnoses}
+                help={labels.fieldDiagnosesHelp}
+                value={values.diagnoses}
+                onChange={(v) => updateTop('diagnoses', v)}
+                disabled={ro}
+              />
+            </FullWidth>
+          )}
           <FullWidth>
             <Field
               label={labels.fieldRecommendations}
@@ -144,17 +160,47 @@ export function FindingsStep({
               onChange={(v) => updateTop('recommendations', v)}
               multiline
               disabled={ro}
+              sheetRef={ref('recommendations')}
+              maxLength={isPeriodic ? WIDE_FIELD_MAX_LENGTH : undefined}
+              example={ref('recommendations')?.example}
+              hint={ref('recommendations')?.hint}
             />
           </FullWidth>
-          <FullWidth>
-            <Field
-              label={labels.fieldNotes}
-              value={values.notes}
-              onChange={(v) => updateTop('notes', v)}
-              multiline
-              disabled={ro}
-            />
-          </FullWidth>
+          {!isPeriodic && (
+            <FullWidth>
+              <Field
+                label={labels.fieldNotes}
+                value={values.notes}
+                onChange={(v) => updateTop('notes', v)}
+                multiline
+                disabled={ro}
+              />
+            </FullWidth>
+          )}
+          {/* Periodic: the non-printing fields (diagnoses + internal notes)
+              grouped together after the printing ones. */}
+          {isPeriodic && (
+            <FullWidth>
+              <NonPrintingGroup active heading={labels.sheetNonPrinting}>
+                <div className="grid grid-cols-1 gap-4">
+                  <DiagnosesField
+                    label={labels.fieldDiagnoses}
+                    help={labels.fieldDiagnosesHelp}
+                    value={values.diagnoses}
+                    onChange={(v) => updateTop('diagnoses', v)}
+                    disabled={ro}
+                  />
+                  <Field
+                    label={labels.fieldNotes}
+                    value={values.notes}
+                    onChange={(v) => updateTop('notes', v)}
+                    multiline
+                    disabled={ro}
+                  />
+                </div>
+              </NonPrintingGroup>
+            </FullWidth>
+          )}
         </FormSection>
       )}
 

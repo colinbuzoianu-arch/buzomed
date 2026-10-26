@@ -1111,7 +1111,18 @@
       "asymptomaticLabel": "Asymptomatic",
       "suppExamsTitle": "Supplementary exams",
       "glycemiaLabel": "Glycemia (mg/dl)",
-      "specialtyConclusionTitle": "Specialty examination conclusion"
+      "specialtyConclusionTitle": "Specialty examination conclusion",
+      "sheetLegend": "On the sheet = prints on „Examen medical periodic\" · fields in the dashed box stay only in Buzomed",
+      "sheetNonPrinting": "Only in the Buzomed record — does not print on the sheet",
+      "sheetStepAnamnesis": "On the sheet: the Asymptomatic checkbox in the header.",
+      "sheetStepClinic": "On the sheet: the header (H, W, BMI, obesity), items 1–11 and the clinical conclusion.",
+      "sheetStepInvestigatii": "On the sheet: the supplementary exams, glycemia and the specialty examination conclusion.",
+      "sheetStepAviz": "On the sheet: the verdict, the job function, recommendations, examination date and next examination date.",
+      "funcLabel": "Job function",
+      "funcMissing": "Missing — the field will be left blank on the sheet.",
+      "sheetSmallBox": "The box on the sheet is small — use one word or an abbreviation.",
+      "sheetNoteOnly": "Nothing is ticked on the sheet — only the note is printed.",
+      "viewSheet": "View sheet"
     },
     "actions": {
       "start": "Start examination",

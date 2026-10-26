@@ -3,6 +3,8 @@
 import { Button } from '@/components/ui/button'
 import type { PrefillStatus } from '@/hooks/useExaminationPrefill'
 import type { ExamSectionConfig } from '@/lib/examinations/document-templates'
+import { NonPrintingGroup } from '@/components/examinations/sheet-marker'
+import { getSheetRef } from '@/lib/examinations/periodic-sheet-map'
 import {
   Field,
   FormSection,
@@ -49,9 +51,15 @@ export function AnamnesisStep({
   onDismissPrefill,
 }: Props) {
   const ro = locked
+  const isPeriodic = sections.showClinicalSystemsExam
+  const ref = (k: string) => (isPeriodic ? getSheetRef(k) : undefined)
 
   return (
     <>
+      {isPeriodic && (
+        <p className="text-sm text-muted-foreground">{labels.sheetStepAnamnesis}</p>
+      )}
+
       {/* AI prefill — no prior signed exam available */}
       {prefillEnabled && !prefillDismissed && prefillStatus === 'done' && prefillCount === 0 && (
         <div className="flex items-center justify-between gap-2 border border-slate-200 bg-slate-50 rounded-md px-4 py-2.5 text-xs text-slate-500">
@@ -100,12 +108,14 @@ export function AnamnesisStep({
             optYes={labels.optYes}
             optNo={labels.optNo}
             disabled={ro}
+            sheetRef={ref('anamnesis.asymptomatic')}
           />
         </div>
       )}
 
       {sections.showAnamnesis && (
-        <FormSection title={labels.sectionAnamnesis}>
+        <NonPrintingGroup active={isPeriodic} heading={labels.sheetNonPrinting}>
+          <FormSection title={labels.sectionAnamnesis}>
           <FullWidth>
             <Field
               label={labels.fieldGeneralHistory}
@@ -173,7 +183,8 @@ export function AnamnesisStep({
               disabled={ro}
             />
           </FullWidth>
-        </FormSection>
+          </FormSection>
+        </NonPrintingGroup>
       )}
 
       {/* Initial Intake — Dosar Medical (angajare only) */}

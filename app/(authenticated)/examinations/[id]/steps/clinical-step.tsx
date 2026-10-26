@@ -1,8 +1,10 @@
 'use client'
 
 import { useMemo } from 'react'
+import { NonPrintingGroup } from '@/components/examinations/sheet-marker'
 import { computeObesityFromBmi } from '@/lib/examinations/clinical-exam'
 import type { ExamSectionConfig } from '@/lib/examinations/document-templates'
+import { COLOR_PERCEPTION_MAX_LENGTH, getSheetRef } from '@/lib/examinations/periodic-sheet-map'
 import {
   CheckField,
   calculateBmi,
@@ -49,8 +51,13 @@ export function ClinicalStep({
     return obese ? `${labels.optYes} (gr. ${grade})` : labels.optNo
   }, [bmi, labels.optYes, labels.optNo])
 
+  const isPeriodic = sections.showClinicalSystemsExam
+  const ref = (k: string) => (isPeriodic ? getSheetRef(k) : undefined)
+
   return (
     <>
+      {isPeriodic && <p className="text-sm text-muted-foreground">{labels.sheetStepClinic}</p>}
+
       {sections.showVitalSigns && (
         <FormSection title={labels.sectionVitalSigns}>
           <Field
@@ -62,6 +69,7 @@ export function ClinicalStep({
             disabled={ro}
             highlighted={isHighlighted('vitalSigns', 'height')}
             highlightTooltip={labels.prefillTooltip}
+            sheetRef={ref('vitalSigns.height')}
           />
           <Field
             label={labels.fieldWeight}
@@ -72,10 +80,24 @@ export function ClinicalStep({
             disabled={ro}
             highlighted={isHighlighted('vitalSigns', 'weight')}
             highlightTooltip={labels.prefillTooltip}
+            sheetRef={ref('vitalSigns.weight')}
           />
-          <Field label={labels.fieldBmi} value={bmi} onChange={() => {}} disabled type="number" />
+          <Field
+            label={labels.fieldBmi}
+            value={bmi}
+            onChange={() => {}}
+            disabled
+            type="number"
+            sheetRef={ref('vitalSigns.bmi')}
+          />
           {sections.showClinicalSystemsExam && (
-            <Field label={labels.obesityLabel} value={obesity} onChange={() => {}} disabled />
+            <Field
+              label={labels.obesityLabel}
+              value={obesity}
+              onChange={() => {}}
+              disabled
+              sheetRef={ref('computed.obesity')}
+            />
           )}
           <Field
             label={labels.fieldBpSystolic}
@@ -83,6 +105,7 @@ export function ClinicalStep({
             onChange={(v) => updateJson('vitalSigns', 'bpSystolic', v)}
             type="number"
             disabled={ro}
+            sheetRef={ref('vitalSigns.bpSystolic')}
           />
           <Field
             label={labels.fieldBpDiastolic}
@@ -90,6 +113,7 @@ export function ClinicalStep({
             onChange={(v) => updateJson('vitalSigns', 'bpDiastolic', v)}
             type="number"
             disabled={ro}
+            sheetRef={ref('vitalSigns.bpDiastolic')}
           />
           <Field
             label={labels.fieldPulse}
@@ -97,15 +121,18 @@ export function ClinicalStep({
             onChange={(v) => updateJson('vitalSigns', 'pulse', v)}
             type="number"
             disabled={ro}
+            sheetRef={ref('vitalSigns.pulse')}
           />
           <FullWidth>
-            <Field
-              label={labels.fieldAdditionalNotes}
-              value={getStr(values.vitalSigns, 'additionalNotes')}
-              onChange={(v) => updateJson('vitalSigns', 'additionalNotes', v)}
-              multiline
-              disabled={ro}
-            />
+            <NonPrintingGroup active={isPeriodic} heading={labels.sheetNonPrinting}>
+              <Field
+                label={labels.fieldAdditionalNotes}
+                value={getStr(values.vitalSigns, 'additionalNotes')}
+                onChange={(v) => updateJson('vitalSigns', 'additionalNotes', v)}
+                multiline
+                disabled={ro}
+              />
+            </NonPrintingGroup>
           </FullWidth>
         </FormSection>
       )}
@@ -117,12 +144,14 @@ export function ClinicalStep({
             value={getStr(values.visionTest, 'left')}
             onChange={(v) => updateJson('visionTest', 'left', v)}
             disabled={ro}
+            sheetRef={ref('visionTest.left')}
           />
           <Field
             label={labels.fieldVisionRight}
             value={getStr(values.visionTest, 'right')}
             onChange={(v) => updateJson('visionTest', 'right', v)}
             disabled={ro}
+            sheetRef={ref('visionTest.right')}
           />
           <FullWidth>
             <CheckField
@@ -130,6 +159,7 @@ export function ClinicalStep({
               checked={Boolean(values.visionTest.withCorrection)}
               onChange={(v) => updateJson('visionTest', 'withCorrection', v)}
               disabled={ro}
+              sheetRef={ref('visionTest.withCorrection')}
             />
           </FullWidth>
           <Field
@@ -137,20 +167,27 @@ export function ClinicalStep({
             value={getStr(values.visionTest, 'colorPerception')}
             onChange={(v) => updateJson('visionTest', 'colorPerception', v)}
             disabled={ro}
+            sheetRef={ref('visionTest.colorPerception')}
+            maxLength={isPeriodic ? COLOR_PERCEPTION_MAX_LENGTH : undefined}
+            example={ref('visionTest.colorPerception')?.example}
+            hint={ref('visionTest.colorPerception')?.hint}
           />
           <FullWidth>
-            <Field
-              label={labels.fieldAdditionalNotes}
-              value={getStr(values.visionTest, 'additionalNotes')}
-              onChange={(v) => updateJson('visionTest', 'additionalNotes', v)}
-              multiline
-              disabled={ro}
-            />
+            <NonPrintingGroup active={isPeriodic} heading={labels.sheetNonPrinting}>
+              <Field
+                label={labels.fieldAdditionalNotes}
+                value={getStr(values.visionTest, 'additionalNotes')}
+                onChange={(v) => updateJson('visionTest', 'additionalNotes', v)}
+                multiline
+                disabled={ro}
+              />
+            </NonPrintingGroup>
           </FullWidth>
         </FormSection>
       )}
 
       {sections.showHearing && (
+        <NonPrintingGroup active={isPeriodic} heading={labels.sheetNonPrinting}>
         <FormSection title={labels.sectionHearing} hazardHint={hazardHintLabels?.['hearing']}>
           <Field
             label={labels.fieldHearingLeft}
@@ -174,9 +211,11 @@ export function ClinicalStep({
             />
           </FullWidth>
         </FormSection>
+        </NonPrintingGroup>
       )}
 
       {sections.showLung && (
+        <NonPrintingGroup active={isPeriodic} heading={labels.sheetNonPrinting}>
         <FormSection title={labels.sectionLung} hazardHint={hazardHintLabels?.['lung']}>
           <Field
             label={labels.fieldLungFev1}
@@ -212,6 +251,7 @@ export function ClinicalStep({
             />
           </FullWidth>
         </FormSection>
+        </NonPrintingGroup>
       )}
 
       {sections.showClinicalSystemsExam && (
