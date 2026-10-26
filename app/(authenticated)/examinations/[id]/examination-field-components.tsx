@@ -160,6 +160,75 @@ export function Field({
   )
 }
 
+/**
+ * Compact labeled input for the dense periodic Clinic layout: a tiny label
+ * (with optional sheet marker) above a narrow input, so many fields fit on one
+ * wrapping row. Optional unit, character counter (amber from 80%), example
+ * placeholder and a one-line hint — same semantics as `Field`, just small.
+ */
+export function CompactField({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  step,
+  unit,
+  disabled,
+  sheetRef,
+  maxLength,
+  example,
+  hint,
+  widthClass = 'w-16',
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  type?: string
+  step?: string
+  unit?: string
+  disabled?: boolean
+  sheetRef?: SheetRef
+  maxLength?: number
+  example?: string
+  hint?: string
+  widthClass?: string
+}) {
+  const id = `c-${label.replace(/\s+/g, '-').toLowerCase()}`
+  const overWarn = maxLength !== undefined && maxLength > 0 && value.length >= maxLength * 0.8
+  return (
+    <div className="inline-flex flex-col gap-0.5">
+      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+        {label}
+        {sheetRef && <SheetMarker sheetRef={sheetRef} />}
+      </span>
+      <div className="inline-flex items-center gap-1">
+        <input
+          id={id}
+          type={type}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          maxLength={maxLength}
+          placeholder={example ? `ex: ${example}` : undefined}
+          className={`h-8 ${widthClass} rounded-md border border-input bg-background px-2 text-sm disabled:opacity-60`}
+        />
+        {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+        {maxLength !== undefined && (
+          <span
+            className={`text-[11px] tabular-nums shrink-0 ${
+              overWarn ? 'text-amber-600' : 'text-muted-foreground/60'
+            }`}
+          >
+            {value.length}/{maxLength}
+          </span>
+        )}
+      </div>
+      {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+    </div>
+  )
+}
+
 export function SelectField({
   label,
   value,
