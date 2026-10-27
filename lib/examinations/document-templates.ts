@@ -52,6 +52,7 @@ export const EXAM_TYPE_DOCUMENTS: Record<string, DocumentDescriptor[]> = {
   ],
   reluare_munca: [FISA_APTITUDINE, BILET_TRIMITERE],
   adaptare: [FISA_APTITUDINE, BILET_TRIMITERE],
+  supraveghere_speciala: [FISA_APTITUDINE, BILET_TRIMITERE],
   schimbare_loc_munca: [FISA_APTITUDINE, BILET_TRIMITERE],
   incetare_munca: [FISA_APTITUDINE, BILET_TRIMITERE],
   la_cerere: [
@@ -106,6 +107,7 @@ const SECTION_CONFIGS: Record<string, ExamSectionConfig> = {
   },
   reluare_munca: FULL_CLINICAL,
   adaptare: FULL_CLINICAL,
+  supraveghere_speciala: FULL_CLINICAL,
   schimbare_loc_munca: FULL_CLINICAL,
   incetare_munca: FULL_CLINICAL,
   la_cerere: FULL_CLINICAL,

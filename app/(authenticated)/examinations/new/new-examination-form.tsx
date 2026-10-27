@@ -9,10 +9,7 @@ import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
-  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -81,23 +78,6 @@ interface Props {
   preselectedEmployeeId?: string
   labels: Labels
 }
-
-const HG355_CODES = new Set([
-  'angajare',
-  'control_periodic',
-  'adaptare',
-  'reluare_munca',
-  'schimbare_loc_munca',
-  'incetare_munca',
-  'la_cerere',
-  'supraveghere_medicala_speciala',
-])
-
-const SPECIAL_CODES = new Set([
-  'protectia_maternitatii',
-  'certificat_invatamant',
-  'certificat_magistratura',
-])
 
 const REQUEST_SOURCES = [
   '',
@@ -266,27 +246,14 @@ export function NewExaminationForm({
                 <SelectValue placeholder={labels.fieldExaminationTypePlaceholder} />
               </SelectTrigger>
               <SelectContent position="popper">
-                <SelectGroup>
-                  <SelectLabel>{labels.typeGroupHg355}</SelectLabel>
-                  {examinationTypes
-                    .filter((tp) => HG355_CODES.has(tp.code) || !SPECIAL_CODES.has(tp.code))
-                    .map((tp) => (
-                      <SelectItem key={tp.id} value={tp.id}>
-                        {tp.name}
-                      </SelectItem>
-                    ))}
-                </SelectGroup>
-                <SelectSeparator />
-                <SelectGroup>
-                  <SelectLabel>{labels.typeGroupSpecial}</SelectLabel>
-                  {examinationTypes
-                    .filter((tp) => SPECIAL_CODES.has(tp.code))
-                    .map((tp) => (
-                      <SelectItem key={tp.id} value={tp.id}>
-                        {tp.name}
-                      </SelectItem>
-                    ))}
-                </SelectGroup>
+                {/* One flat list in the DB sort order — the active types are
+                    few enough that the former HG355/special grouping added
+                    only noise. */}
+                {examinationTypes.map((tp) => (
+                  <SelectItem key={tp.id} value={tp.id}>
+                    {tp.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

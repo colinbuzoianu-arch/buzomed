@@ -6,7 +6,14 @@ const prisma = new PrismaClient()
 
 // Romanian medicina muncii examination types per HG 355/2007 and subsequent legislation.
 // These map to the checkboxes on the official fișa de aptitudine form.
+//
+// Kept in sync with production (single DB): exactly 5 active types with
+// sortOrder 1–5 (the dropdown order), and 7 legacy types retained but
+// is_active = false (never delete/reactivate — historical examinations may
+// still reference them). isActive + sortOrder are part of the upsert so a
+// fresh seed reproduces production's state.
 const examinationTypes = [
+  // ── Active (shown in pickers, in this order) ──────────────────────────────
   {
     code: 'angajare',
     nameRo: 'Examen medical la angajare',
@@ -15,6 +22,8 @@ const examinationTypes = [
       'Examen efectuat înainte de angajare pentru a stabili aptitudinea în muncă a candidatului.',
     legalReference: 'HG 355/2007',
     defaultValidityMonths: 12,
+    isActive: true,
+    sortOrder: 1,
   },
   {
     code: 'control_periodic',
@@ -24,6 +33,8 @@ const examinationTypes = [
       'Control efectuat la intervale stabilite, pentru a urmări starea de sănătate a angajatului.',
     legalReference: 'HG 355/2007',
     defaultValidityMonths: 12,
+    isActive: true,
+    sortOrder: 2,
   },
   {
     code: 'adaptare',
@@ -32,6 +43,8 @@ const examinationTypes = [
     description: 'Examen efectuat după 30-45 zile de la angajare pentru a evalua adaptarea la post.',
     legalReference: 'HG 355/2007',
     defaultValidityMonths: 12,
+    isActive: true,
+    sortOrder: 3,
   },
   {
     code: 'reluare_munca',
@@ -41,6 +54,8 @@ const examinationTypes = [
       'Examen efectuat după întrerupere mai mare de 90 zile (concediu medical, accident, etc.).',
     legalReference: 'HG 355/2007',
     defaultValidityMonths: 12,
+    isActive: true,
+    sortOrder: 4,
   },
   {
     code: 'supraveghere_speciala',
@@ -49,7 +64,10 @@ const examinationTypes = [
     description: 'Pentru lucrători expuși la factori de risc deosebit (radiații, cancerigeni, etc.).',
     legalReference: 'HG 355/2007',
     defaultValidityMonths: 6,
+    isActive: true,
+    sortOrder: 5,
   },
+  // ── Legacy (retained but inactive — hidden from pickers) ──────────────────
   {
     code: 'schimbare_loc_munca',
     nameRo: 'Examen la schimbarea locului de muncă',
@@ -57,6 +75,59 @@ const examinationTypes = [
     description: 'Necesar la schimbarea postului sau a locului de muncă în cadrul aceleași companii.',
     legalReference: 'HG 355/2007',
     defaultValidityMonths: 12,
+    isActive: false,
+    sortOrder: 100,
+  },
+  {
+    code: 'incetare_munca',
+    nameRo: 'Examen la încetarea activității',
+    nameEn: 'Departure examination',
+    description: 'Examen efectuat la încetarea activității în condiții de expunere la noxe.',
+    legalReference: 'HG 355/2007',
+    defaultValidityMonths: 0,
+    isActive: false,
+    sortOrder: 100,
+  },
+  {
+    code: 'la_cerere',
+    nameRo: 'Examen la cerere',
+    nameEn: 'On-request examination',
+    description:
+      'Examen efectuat la cererea lucrătorului sau a angajatorului în afara intervalelor planificate.',
+    legalReference: 'HG 355/2007',
+    defaultValidityMonths: 0,
+    isActive: false,
+    sortOrder: 100,
+  },
+  {
+    code: 'protectia_maternitatii',
+    nameRo: 'Protecția maternității',
+    nameEn: 'Maternity protection',
+    description: 'Raport și informare privind protecția maternității la locul de muncă.',
+    legalReference: 'OUG 96/2003',
+    defaultValidityMonths: 0,
+    isActive: false,
+    sortOrder: 100,
+  },
+  {
+    code: 'certificat_invatamant',
+    nameRo: 'Certificat medical — Învățământ superior',
+    nameEn: 'Medical certificate — Higher education',
+    description: 'Certificat medical pentru ocuparea unui post didactic sau de cercetare.',
+    legalReference: 'Ord. MS 1234/2006',
+    defaultValidityMonths: 0,
+    isActive: false,
+    sortOrder: 100,
+  },
+  {
+    code: 'certificat_magistratura',
+    nameRo: 'Certificat medical — Magistratură',
+    nameEn: 'Medical certificate — Magistracy',
+    description: 'Certificat medical pentru admiterea la Institutul Național al Magistraturii.',
+    legalReference: 'H.C.S.M. nr. 93/2023',
+    defaultValidityMonths: 0,
+    isActive: false,
+    sortOrder: 100,
   },
   {
     code: 'alte',
@@ -65,6 +136,8 @@ const examinationTypes = [
     description: 'Examinări medicale care nu se încadrează în categoriile standard.',
     legalReference: null,
     defaultValidityMonths: 12,
+    isActive: false,
+    sortOrder: 100,
   },
 ]
 

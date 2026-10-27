@@ -127,7 +127,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       control_periodic: 'tip_Examen',
       adaptare: 'tip_Adapta',
       reluare_munca: 'tip_Reluar',
-      supraveghere_medicala_speciala: 'tip_Suprav',
+      supraveghere_speciala: 'tip_Suprav',
     }
     const typeCheckField =
       TYPE_CHECKBOX[examination.examinationType.code] ?? 'tip_Altele'

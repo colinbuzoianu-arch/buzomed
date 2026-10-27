@@ -32,7 +32,7 @@ export default async function NewWorkplacePage({ params }: PageProps) {
     }),
     prisma.examinationType.findMany({
       where: { isActive: true },
-      orderBy: { nameRo: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { nameRo: 'asc' }],
       select: { id: true, nameRo: true, nameEn: true },
     }),
   ])

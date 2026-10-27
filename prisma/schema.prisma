@@ -941,6 +941,7 @@ model ExaminationType {
   description             String?
   legalReference          String?         @map("legal_reference") // 'HG 355/2007 art. X'
   defaultValidityMonths   Int             @default(12) @map("default_validity_months")
+  sortOrder               Int             @default(100) @map("sort_order")
   isActive                Boolean         @default(true) @map("is_active")
   isSystem                Boolean         @default(true) @map("is_system")
   

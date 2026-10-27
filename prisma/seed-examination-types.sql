@@ -1,20 +1,21 @@
 -- Examination types catalog (HG 355/2007).
 --
--- Idempotent: uses ON CONFLICT (code) DO NOTHING so re-running is safe.
--- Run once per database. Future Examination Types added via this file
--- + super_admin UI (later session).
+-- Kept in sync with production (single DB). Exactly 5 active types with
+-- sort_order 1–5 (the dropdown order); the other 7 are retained but
+-- is_active = false (never delete/reactivate — historical examinations may
+-- still reference them).
 --
--- These are global (no tenantId) — every tenant uses the same legal
--- catalog. Tenant-specific customizations (e.g., a cabinet-defined sub-
--- category) can be added later via a tenant-scoped overlay table.
+-- Idempotent: ON CONFLICT (code) re-syncs sort_order + is_active so re-running
+-- brings an existing database in line without clobbering edited names.
+--
+-- These are global (no tenantId) — every tenant uses the same legal catalog.
 --
 -- Usage:
 --   psql $DATABASE_URL -f prisma/seed-examination-types.sql
--- or:
---   supabase db push --file prisma/seed-examination-types.sql
 
-INSERT INTO examination_types (id, code, name_ro, name_en, description, legal_reference, default_validity_months, is_active, is_system, created_at, updated_at)
+INSERT INTO examination_types (id, code, name_ro, name_en, description, legal_reference, default_validity_months, sort_order, is_active, is_system, created_at, updated_at)
 VALUES
+  -- ── Active (shown in pickers, in this order) ──────────────────────────────
   (
     gen_random_uuid(),
     'angajare',
@@ -22,11 +23,7 @@ VALUES
     'Pre-employment medical examination',
     'Examenul medical efectuat înainte de angajare pentru a stabili aptitudinea pentru postul vizat.',
     'HG 355/2007 art. 8',
-    12,
-    true,
-    true,
-    NOW(),
-    NOW()
+    12, 1, true, true, NOW(), NOW()
   ),
   (
     gen_random_uuid(),
@@ -35,24 +32,7 @@ VALUES
     'Periodic medical check-up',
     'Examen efectuat la intervale regulate pentru lucrătorii expuși la factori de risc profesional.',
     'HG 355/2007 art. 11',
-    12,
-    true,
-    true,
-    NOW(),
-    NOW()
-  ),
-  (
-    gen_random_uuid(),
-    'reluare_munca',
-    'Examen la reluarea activității',
-    'Return-to-work examination',
-    'Examen obligatoriu la reluarea activității după o întrerupere mai mare de 90 zile pentru motive medicale sau 6 luni pentru orice alte motive.',
-    'HG 355/2007 art. 14',
-    12,
-    true,
-    true,
-    NOW(),
-    NOW()
+    12, 2, true, true, NOW(), NOW()
   ),
   (
     gen_random_uuid(),
@@ -61,12 +41,27 @@ VALUES
     'Adaptation examination',
     'Examen efectuat după primele 30 de zile de la angajare la solicitarea medicului sau a angajatorului.',
     'HG 355/2007 art. 13',
-    12,
-    true,
-    true,
-    NOW(),
-    NOW()
+    12, 3, true, true, NOW(), NOW()
   ),
+  (
+    gen_random_uuid(),
+    'reluare_munca',
+    'Examen la reluarea activității',
+    'Return-to-work examination',
+    'Examen obligatoriu la reluarea activității după o întrerupere mai mare de 90 zile pentru motive medicale sau 6 luni pentru orice alte motive.',
+    'HG 355/2007 art. 14',
+    12, 4, true, true, NOW(), NOW()
+  ),
+  (
+    gen_random_uuid(),
+    'supraveghere_speciala',
+    'Supraveghere medicală specială',
+    'Special medical surveillance',
+    'Pentru lucrători expuși la factori de risc deosebit (radiații, cancerigeni, etc.).',
+    'HG 355/2007',
+    6, 5, true, true, NOW(), NOW()
+  ),
+  -- ── Legacy (retained but inactive — hidden from pickers) ──────────────────
   (
     gen_random_uuid(),
     'schimbare_loc_munca',
@@ -74,11 +69,7 @@ VALUES
     'Workplace change examination',
     'Examen la schimbarea felului muncii sau a condițiilor de muncă.',
     'HG 355/2007 art. 12',
-    12,
-    true,
-    true,
-    NOW(),
-    NOW()
+    12, 100, false, true, NOW(), NOW()
   ),
   (
     gen_random_uuid(),
@@ -87,11 +78,7 @@ VALUES
     'Departure examination',
     'Examen efectuat la încetarea activității în condiții de expunere la noxe.',
     'HG 355/2007',
-    0,
-    true,
-    true,
-    NOW(),
-    NOW()
+    0, 100, false, true, NOW(), NOW()
   ),
   (
     gen_random_uuid(),
@@ -100,11 +87,7 @@ VALUES
     'On-request examination',
     'Examen efectuat la cererea lucrătorului sau a angajatorului în afara intervalelor planificate.',
     'HG 355/2007',
-    0,
-    true,
-    true,
-    NOW(),
-    NOW()
+    0, 100, false, true, NOW(), NOW()
   ),
   (
     gen_random_uuid(),
@@ -113,11 +96,7 @@ VALUES
     'Maternity protection',
     'Raport și informare privind protecția maternității la locul de muncă.',
     'OUG 96/2003',
-    0,
-    true,
-    true,
-    NOW(),
-    NOW()
+    0, 100, false, true, NOW(), NOW()
   ),
   (
     gen_random_uuid(),
@@ -126,11 +105,7 @@ VALUES
     'Medical certificate — Higher education',
     'Certificat medical pentru ocuparea unui post didactic sau de cercetare.',
     'Ord. MS 1234/2006',
-    0,
-    true,
-    true,
-    NOW(),
-    NOW()
+    0, 100, false, true, NOW(), NOW()
   ),
   (
     gen_random_uuid(),
@@ -139,10 +114,18 @@ VALUES
     'Medical certificate — Magistracy',
     'Certificat medical pentru admiterea la Institutul Național al Magistraturii.',
     'H.C.S.M. nr. 93/2023',
-    0,
-    true,
-    true,
-    NOW(),
-    NOW()
+    0, 100, false, true, NOW(), NOW()
+  ),
+  (
+    gen_random_uuid(),
+    'alte',
+    'Alte examinări',
+    'Other examinations',
+    'Examinări medicale care nu se încadrează în categoriile standard.',
+    NULL,
+    12, 100, false, true, NOW(), NOW()
   )
-ON CONFLICT (code) DO NOTHING;
+ON CONFLICT (code) DO UPDATE SET
+  sort_order = EXCLUDED.sort_order,
+  is_active  = EXCLUDED.is_active,
+  updated_at = NOW();

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       : Promise.resolve([]),
     prisma.examinationType.findMany({
       where: { isActive: true },
-      orderBy: { nameRo: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { nameRo: 'asc' }],
       select: { id: true, nameRo: true },
     }),
     prisma.user.findMany({

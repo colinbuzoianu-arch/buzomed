@@ -27,7 +27,7 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
   const [examinationTypes, practitioners, workplaces] = await Promise.all([
     prisma.examinationType.findMany({
       where: { isActive: true },
-      orderBy: { nameRo: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { nameRo: 'asc' }],
       select: { id: true, code: true, nameRo: true, nameEn: true },
     }),
     prisma.user.findMany({
