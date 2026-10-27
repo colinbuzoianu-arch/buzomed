@@ -97,32 +97,36 @@ export function ReportControls({
         ))}
       </div>
 
-      <select
-        aria-label={allCompaniesLabel}
-        value={companyValue}
-        onChange={(e) => setParam(companyParam, e.target.value)}
-        className={SELECT_CLS}
-      >
-        <option value="">{allCompaniesLabel}</option>
-        {companies.map((c) => (
-          <option key={c.value} value={c.value}>
-            {c.label}
-          </option>
-        ))}
-      </select>
+      {companies.length > 0 && (
+        <select
+          aria-label={allCompaniesLabel}
+          value={companyValue}
+          onChange={(e) => setParam(companyParam, e.target.value)}
+          className={SELECT_CLS}
+        >
+          <option value="">{allCompaniesLabel}</option>
+          {companies.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      )}
 
-      <select
-        aria-label={groupByLabel}
-        value={groupValue}
-        onChange={(e) => setParam(groupParam, e.target.value)}
-        className={SELECT_CLS}
-      >
-        {groupOptions.map((o) => (
-          <option key={o.value} value={o.value}>
-            {groupByLabel}: {o.label}
-          </option>
-        ))}
-      </select>
+      {groupOptions.length > 0 && (
+        <select
+          aria-label={groupByLabel}
+          value={groupValue}
+          onChange={(e) => setParam(groupParam, e.target.value)}
+          className={SELECT_CLS}
+        >
+          {groupOptions.map((o) => (
+            <option key={o.value} value={o.value}>
+              {groupByLabel}: {o.label}
+            </option>
+          ))}
+        </select>
+      )}
 
       {trailing && <div className="ml-auto">{trailing}</div>}
     </div>

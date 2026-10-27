@@ -66,6 +66,77 @@ export interface ComplianceData {
   employeeList: ComplianceEmployee[]
 }
 
+// ─── Shared "valid fișă" definition ──────────────────────────────────────────
+// ONE source of truth for how a worker's fitness certificate is classified,
+// reused by the per-company report (computeComplianceData) and the tenant-wide
+// overview (computeTenantCompliance). Do not inline this rule anywhere else.
+
+export type FisaStatus = 'valid' | 'expired' | 'never_examined'
+
+/** A worker's latest signed examination (or null if never examined). */
+interface LatestExam {
+  nextExaminationDueDate: Date | null
+}
+
+export function classifyFisa(latestExam: LatestExam | null, today: Date): FisaStatus {
+  if (!latestExam) return 'never_examined'
+  const due = latestExam.nextExaminationDueDate
+  return due && due > today ? 'valid' : 'expired'
+}
+
+export interface FisaSummary {
+  total: number
+  valid: number
+  expired: number
+  neverExamined: number
+  expiring30: number
+  expiring60: number
+  expiring90: number
+}
+
+/**
+ * Aggregate a set of workers (each with their latest signed exam) into the
+ * snapshot counts. `expiringN` counts only VALID fișe whose due date falls
+ * within N days — identical to the per-company snapshot loop.
+ */
+export function summarizeFisa(
+  employees: Array<{ latestExam: LatestExam | null }>,
+  today: Date
+): FisaSummary {
+  const todayPlus30 = new Date(today.getTime() + 30 * 86_400_000)
+  const todayPlus60 = new Date(today.getTime() + 60 * 86_400_000)
+  const todayPlus90 = new Date(today.getTime() + 90 * 86_400_000)
+  const s: FisaSummary = {
+    total: employees.length,
+    valid: 0,
+    expired: 0,
+    neverExamined: 0,
+    expiring30: 0,
+    expiring60: 0,
+    expiring90: 0,
+  }
+  for (const emp of employees) {
+    const status = classifyFisa(emp.latestExam, today)
+    if (status === 'never_examined') {
+      s.neverExamined++
+    } else if (status === 'expired') {
+      s.expired++
+    } else {
+      s.valid++
+      // due is guaranteed > today for a 'valid' status.
+      const due = emp.latestExam?.nextExaminationDueDate as Date
+      if (due <= todayPlus30) s.expiring30++
+      if (due <= todayPlus60) s.expiring60++
+      if (due <= todayPlus90) s.expiring90++
+    }
+  }
+  return s
+}
+
+function coverageOf(valid: number, total: number): number | null {
+  return total > 0 ? Math.round((valid / total) * 1000) / 10 : null
+}
+
 export async function computeComplianceData(params: {
   companyId: string
   tenantId: string
@@ -178,35 +249,19 @@ export async function computeComplianceData(params: {
 
   // ── A. Snapshot metrics ──────────────────────────────────────────────────────
 
-  let employeesWithValidFisa = 0
-  let employeesWithExpiredFisa = 0
-  let employeesNeverExamined = 0
-  let expiringIn30Days = 0
-  let expiringIn60Days = 0
-  let expiringIn90Days = 0
-
-  for (const emp of employees) {
-    const latestExam = emp.examinations[0] ?? null
-    if (!latestExam) {
-      employeesNeverExamined++
-    } else {
-      const due = latestExam.nextExaminationDueDate
-      if (due && due > today) {
-        employeesWithValidFisa++
-        if (due <= todayPlus30) expiringIn30Days++
-        if (due <= todayPlus60) expiringIn60Days++
-        if (due <= todayPlus90) expiringIn90Days++
-      } else {
-        employeesWithExpiredFisa++
-      }
-    }
-  }
+  const snapshotSummary = summarizeFisa(
+    employees.map((e) => ({ latestExam: e.examinations[0] ?? null })),
+    today
+  )
+  const employeesWithValidFisa = snapshotSummary.valid
+  const employeesWithExpiredFisa = snapshotSummary.expired
+  const employeesNeverExamined = snapshotSummary.neverExamined
+  const expiringIn30Days = snapshotSummary.expiring30
+  const expiringIn60Days = snapshotSummary.expiring60
+  const expiringIn90Days = snapshotSummary.expiring90
 
   const totalActiveEmployees = employees.length
-  const coverageRate =
-    totalActiveEmployees > 0
-      ? Math.round((employeesWithValidFisa / totalActiveEmployees) * 1000) / 10
-      : null
+  const coverageRate = coverageOf(employeesWithValidFisa, totalActiveEmployees)
 
   // ── B. Annual metrics ────────────────────────────────────────────────────────
 
@@ -281,17 +336,10 @@ export async function computeComplianceData(params: {
     let expired = 0
     let neverExamined = 0
     for (const emp of wpEmps) {
-      const latestExam = emp.examinations[0] ?? null
-      if (!latestExam) {
-        neverExamined++
-      } else {
-        const due = latestExam.nextExaminationDueDate
-        if (due && due > today) {
-          validFisa++
-        } else {
-          expired++
-        }
-      }
+      const status = classifyFisa(emp.examinations[0] ?? null, today)
+      if (status === 'never_examined') neverExamined++
+      else if (status === 'valid') validFisa++
+      else expired++
     }
     const total = wpEmps.length
     return {
@@ -301,7 +349,7 @@ export async function computeComplianceData(params: {
       validFisa,
       expired,
       neverExamined,
-      coverageRate: total > 0 ? Math.round((validFisa / total) * 1000) / 10 : null,
+      coverageRate: coverageOf(validFisa, total),
     }
   })
 
@@ -311,13 +359,7 @@ export async function computeComplianceData(params: {
     .map((emp) => {
       const latestExam = emp.examinations[0] ?? null
       const wp = emp.workplaceAssignments[0]?.workplace ?? null
-      let status: ComplianceEmployee['status']
-      if (!latestExam) {
-        status = 'never_examined'
-      } else {
-        const due = latestExam.nextExaminationDueDate
-        status = due && due > today ? 'valid' : 'expired'
-      }
+      const status = classifyFisa(latestExam, today)
       return {
         id: emp.id,
         lastName: emp.lastName,
@@ -383,4 +425,93 @@ export async function computeComplianceData(params: {
     employeeList,
     forecast,
   }
+}
+
+// ─── Tenant-wide compliance (all companies, batched) ─────────────────────────
+
+export interface CompanyComplianceSummary {
+  companyId: string
+  companyName: string
+  total: number
+  valid: number
+  expired: number
+  neverExamined: number
+  coverageRate: number | null
+  expiring30: number
+  expiring60: number
+  expiring90: number
+}
+
+export interface TenantComplianceData {
+  companies: CompanyComplianceSummary[]
+  totals: FisaSummary & { coverageRate: number | null }
+  /** Pessimistic projected coverage % (no renewals), today / +30 / +60 / +90. */
+  projectedCoverage: { today: number | null; in30: number | null; in60: number | null; in90: number | null }
+}
+
+/**
+ * Compliance snapshot for every company of the tenant, in one employee query
+ * (+ latest signed exam each), reusing the SAME classifyFisa/summarizeFisa as
+ * computeComplianceData — so a company's coverage here equals its per-company
+ * report for any year (coverage is a today-based snapshot).
+ */
+export async function computeTenantCompliance(params: {
+  tenantId: string
+}): Promise<TenantComplianceData> {
+  const { tenantId } = params
+  const today = new Date()
+  today.setUTCHours(0, 0, 0, 0)
+
+  const employees = await prisma.employee.findMany({
+    where: { tenantId, isActive: true, deletedAt: null, archivedAt: null },
+    select: {
+      company: { select: { id: true, name: true } },
+      examinations: {
+        where: { deletedAt: null, signedAt: { not: null } },
+        orderBy: { signedAt: 'desc' },
+        take: 1,
+        select: { nextExaminationDueDate: true },
+      },
+    },
+  })
+
+  const byCompany = new Map<string, { name: string; emps: Array<{ latestExam: LatestExam | null }> }>()
+  for (const e of employees) {
+    if (!e.company) continue
+    const g = byCompany.get(e.company.id) ?? { name: e.company.name, emps: [] }
+    g.emps.push({ latestExam: e.examinations[0] ?? null })
+    byCompany.set(e.company.id, g)
+  }
+
+  const companies: CompanyComplianceSummary[] = Array.from(byCompany.entries()).map(([id, g]) => {
+    const s = summarizeFisa(g.emps, today)
+    return {
+      companyId: id,
+      companyName: g.name,
+      total: s.total,
+      valid: s.valid,
+      expired: s.expired,
+      neverExamined: s.neverExamined,
+      coverageRate: coverageOf(s.valid, s.total),
+      expiring30: s.expiring30,
+      expiring60: s.expiring60,
+      expiring90: s.expiring90,
+    }
+  })
+
+  const totalsSummary = summarizeFisa(
+    employees.filter((e) => e.company).map((e) => ({ latestExam: e.examinations[0] ?? null })),
+    today
+  )
+  const totals = { ...totalsSummary, coverageRate: coverageOf(totalsSummary.valid, totalsSummary.total) }
+
+  const projRate = (valid: number) => coverageOf(Math.max(0, valid), totalsSummary.total)
+  const projectedCoverage = {
+    today: totals.coverageRate,
+    in30: projRate(totalsSummary.valid - totalsSummary.expiring30),
+    in60: projRate(totalsSummary.valid - totalsSummary.expiring60),
+    in90: projRate(totalsSummary.valid - totalsSummary.expiring90),
+  }
+
+  return { companies, totals, projectedCoverage }
 }

@@ -1478,11 +1478,34 @@
     "exportCsv": "Export CSV",
     "nav": {
       "activity": "Activitate cabinet",
+      "compliance": "Conformitate",
       "expiration": "Scadente",
       "hazards": "Expuneri la noxe",
       "vaccinations": "Vaccinări",
       "practitioners": "Per practician",
       "regulatory": "Snapshot inspectie"
+    },
+    "compliance": {
+      "title": "Conformitate",
+      "subtitle": "Acoperirea fișelor de aptitudine, pe cabinet și pe fiecare companie.",
+      "year": "An",
+      "coverage": "Acoperire",
+      "valid": "Valabile",
+      "expired": "Expirate",
+      "never": "Fără examinare",
+      "employees": "Angajați",
+      "projectedTitle": "Acoperire proiectată",
+      "today": "Azi",
+      "in30": "În 30 zile",
+      "in60": "În 60 zile",
+      "in90": "În 90 zile",
+      "perCompanyTitle": "Pe companie",
+      "sortLabel": "Sortare",
+      "sortCoverage": "Acoperire",
+      "sortName": "Nume",
+      "sortEmployees": "Angajați",
+      "emptyTitle": "Niciun angajat activ",
+      "emptyDescription": "Adăugați companii și angajați pentru a vedea conformitatea."
     },
     "revenue": {
       "title": "Venituri facturate",
@@ -1538,7 +1561,11 @@
       "colWorkers": "Angajati expusi",
       "colExams": "Examinarile in interval",
       "empty": "Nicio noxa activa definita pentru locurile de munca.",
-      "exportCsv": "Export CSV"
+      "exportCsv": "Export CSV",
+      "groupBy": {
+        "hazard": "factor de risc",
+        "category": "categorie"
+      }
     },
     "vaccinations": {
       "title": "Raport vaccinări",
@@ -1571,7 +1598,11 @@
       "colAptConditionat": "Apt cond.",
       "colInaptTemporar": "Inapt temp.",
       "colInapt": "Inapt",
-      "exportCsv": "Export CSV"
+      "exportCsv": "Export CSV",
+      "groupBy": {
+        "practitioner": "practician",
+        "month": "lună"
+      }
     },
     "regulatory": {
       "title": "Snapshot inspectie DSP/ITM",

@@ -1,15 +1,24 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
-import { ALL_DATE_RANGES, parseDateRange, resolveDateRange } from '@/lib/reports/date-ranges'
+import {
+  ALL_DATE_RANGES,
+  monthBucketsForRange,
+  parseDateRange,
+  resolveDateRange,
+} from '@/lib/reports/date-ranges'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ChartCard } from '@/components/reports/chart-card'
+import { ReportControls } from '@/components/reports/report-controls'
+import { StackedBarChart, type VerdictRow } from '@/components/reports/charts/stacked-bar-chart'
 
 interface PageProps {
-  searchParams: Promise<{ range?: string }>
+  searchParams: Promise<{ range?: string; group?: string }>
 }
+
+const PRACT_GROUP_BYS = ['practitioner', 'month'] as const
 
 export default async function PractitionersReportPage({ searchParams }: PageProps) {
   const user = await requireUser()
@@ -30,6 +39,7 @@ export default async function PractitionersReportPage({ searchParams }: PageProp
   const sp = await searchParams
   const rangeKey = parseDateRange(sp.range)
   const range = resolveDateRange(rangeKey)
+  const groupBy: (typeof PRACT_GROUP_BYS)[number] = sp.group === 'month' ? 'month' : 'practitioner'
 
   const practitioners = await prisma.user.findMany({
     where: {
@@ -70,42 +80,89 @@ export default async function PractitionersReportPage({ searchParams }: PageProp
   const totalExams = rows.reduce((s, r) => s + r.total, 0)
   const exportHref = `/api/reports/practitioners-export?range=${rangeKey}`
 
+  // ── Chart data ──────────────────────────────────────────────────────────────
+  const verdictLabels = {
+    apt: t('reports.practitioners.colApt'),
+    apt_conditionat: t('reports.practitioners.colAptConditionat'),
+    inapt_temporar: t('reports.practitioners.colInaptTemporar'),
+    inapt: t('reports.practitioners.colInapt'),
+  }
+  const practitionerChart: VerdictRow[] = rows.map((r) => ({
+    label: r.name,
+    apt: r.apt,
+    apt_conditionat: r.apt_conditionat,
+    inapt_temporar: r.inapt_temporar,
+    inapt: r.inapt,
+  }))
+  // Month grouping: signed exams across all practitioners, stacked by verdict.
+  const monthFmt = new Intl.DateTimeFormat(locale === 'ro' ? 'ro-RO' : 'en-US', { year: 'numeric', month: 'short' })
+  const allExams = practitioners.flatMap((p) => p.examinationsAsPractitioner)
+  const monthChart: VerdictRow[] = monthBucketsForRange(range).map((b) => {
+    const inB = allExams.filter((e) => e.signedAt && e.signedAt >= b.from && e.signedAt < b.to)
+    return {
+      label: monthFmt.format(new Date(Date.UTC(b.year, b.month, 1))),
+      apt: inB.filter((e) => e.verdict === 'apt').length,
+      apt_conditionat: inB.filter((e) => e.verdict === 'apt_conditionat').length,
+      inapt_temporar: inB.filter((e) => e.verdict === 'inapt_temporar').length,
+      inapt: inB.filter((e) => e.verdict === 'inapt').length,
+    }
+  })
+  const chartData = groupBy === 'month' ? monthChart : practitionerChart
+  const chartLabels = {
+    chart: t('reports.view.chart'),
+    table: t('reports.view.table'),
+    exportCsv: t('reports.exportCsv'),
+  }
+  const practCsv = {
+    headers: [
+      t('reports.practitioners.colPractitioner'),
+      t('reports.practitioners.colRole'),
+      t('reports.practitioners.colTotal'),
+      t('reports.practitioners.colSigned'),
+      verdictLabels.apt,
+      verdictLabels.apt_conditionat,
+      verdictLabels.inapt_temporar,
+      verdictLabels.inapt,
+    ],
+    rows: rows.map((r) => [r.name, r.role, r.total, r.signed, r.apt, r.apt_conditionat, r.inapt_temporar, r.inapt] as Array<string | number>),
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight">
-            {t('reports.practitioners.title')}
-          </h1>
-          <p className="text-muted-foreground mt-1">{t('reports.practitioners.subtitle')}</p>
-        </div>
-        <a
-          href={exportHref}
-          download
-          className="inline-flex items-center gap-1.5 h-9 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-[hsl(var(--surface-muted))] transition-colors shrink-0"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M7 2v7m0 0L4.5 6.5M7 9l2.5-2.5M2 11h10"/>
-          </svg>
-          {t('reports.practitioners.exportCsv')}
-        </a>
+      <div>
+        <h1 className="font-display text-[28px] sm:text-[32px] font-normal tracking-tight">
+          {t('reports.practitioners.title')}
+        </h1>
+        <p className="text-muted-foreground mt-1">{t('reports.practitioners.subtitle')}</p>
       </div>
 
-      {/* Range selector */}
-      <div className="flex flex-wrap gap-2 text-sm">
-        <span className="text-muted-foreground self-center mr-1">{t('reports.range.label')}:</span>
-        {ALL_DATE_RANGES.map((key) => (
-          <Link
-            key={key}
-            href={`/reports/practitioners?range=${key}`}
-            className={`px-3 py-1 rounded-md border transition-colors ${
-              rangeKey === key ? 'bg-secondary font-medium' : 'hover:bg-muted'
-            }`}
+      {/* Controls: range + group-by (practitioner/month) */}
+      <ReportControls
+        storageKey="reports-practitioners"
+        primaryParam="range"
+        primaryOptions={ALL_DATE_RANGES.map((key) => ({ value: key, label: t(`reports.range.${key}`) }))}
+        primaryValue={rangeKey}
+        companies={[]}
+        companyParam="company"
+        companyValue=""
+        allCompaniesLabel={t('reports.controls.allCompanies')}
+        groupParam="group"
+        groupOptions={PRACT_GROUP_BYS.map((g) => ({ value: g, label: t(`reports.practitioners.groupBy.${g}`) }))}
+        groupValue={groupBy}
+        groupByLabel={t('reports.controls.groupBy')}
+        trailing={
+          <a
+            href={exportHref}
+            download
+            className="inline-flex items-center gap-1.5 h-9 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-[hsl(var(--surface-muted))] transition-colors"
           >
-            {t(`reports.range.${key}`)}
-          </Link>
-        ))}
-      </div>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M7 2v7m0 0L4.5 6.5M7 9l2.5-2.5M2 11h10"/>
+            </svg>
+            {t('reports.practitioners.exportCsv')}
+          </a>
+        }
+      />
 
       {totalExams === 0 ? (
         <EmptyState
@@ -114,7 +171,14 @@ export default async function PractitionersReportPage({ searchParams }: PageProp
           description={t('reports.practitioners.emptyDescription')}
         />
       ) : (
-        <>
+        <ChartCard
+          title={t('reports.practitioners.title')}
+          labels={chartLabels}
+          csv={practCsv}
+          filename={`buzomed-medici-${rangeKey}`}
+          chart={<StackedBarChart data={chartData} labels={verdictLabels} totalLabel={t('reports.practitioners.colTotal')} />}
+          table={
+          <>
           {/* Desktop table */}
           <div className="hidden md:block border rounded-lg overflow-x-auto">
             <table className="w-full text-sm min-w-[700px]">
@@ -171,7 +235,9 @@ export default async function PractitionersReportPage({ searchParams }: PageProp
               </div>
             ))}
           </div>
-        </>
+          </>
+          }
+        />
       )}
     </div>
   )

@@ -11,6 +11,7 @@ export default async function ReportsLayout({
 
   const navItems = [
     { href: '/reports', label: t('reports.nav.activity') },
+    { href: '/reports/compliance', label: t('reports.nav.compliance') },
     { href: '/reports/expiration', label: t('reports.nav.expiration') },
     { href: '/reports/hazards', label: t('reports.nav.hazards') },
     { href: '/reports/vaccinations', label: t('reports.nav.vaccinations') },

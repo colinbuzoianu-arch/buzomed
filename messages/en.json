@@ -1478,11 +1478,34 @@
     "exportCsv": "Export CSV",
     "nav": {
       "activity": "Cabinet activity",
+      "compliance": "Compliance",
       "expiration": "Expirations",
       "hazards": "Hazard exposure",
       "vaccinations": "Vaccinations",
       "practitioners": "By practitioner",
       "regulatory": "Inspection snapshot"
+    },
+    "compliance": {
+      "title": "Compliance",
+      "subtitle": "Fitness-certificate coverage, cabinet-wide and per company.",
+      "year": "Year",
+      "coverage": "Coverage",
+      "valid": "Valid",
+      "expired": "Expired",
+      "never": "No examination",
+      "employees": "Employees",
+      "projectedTitle": "Projected coverage",
+      "today": "Today",
+      "in30": "In 30 days",
+      "in60": "In 60 days",
+      "in90": "In 90 days",
+      "perCompanyTitle": "By company",
+      "sortLabel": "Sort",
+      "sortCoverage": "Coverage",
+      "sortName": "Name",
+      "sortEmployees": "Employees",
+      "emptyTitle": "No active employees",
+      "emptyDescription": "Add companies and employees to see compliance."
     },
     "revenue": {
       "title": "Billed revenue",
@@ -1538,7 +1561,11 @@
       "colWorkers": "Exposed workers",
       "colExams": "Exams in period",
       "empty": "No active hazards defined for any workplace.",
-      "exportCsv": "Export CSV"
+      "exportCsv": "Export CSV",
+      "groupBy": {
+        "hazard": "risk factor",
+        "category": "category"
+      }
     },
     "vaccinations": {
       "title": "Vaccination report",
@@ -1571,7 +1598,11 @@
       "colAptConditionat": "Cond. fit",
       "colInaptTemporar": "Temp. unfit",
       "colInapt": "Unfit",
-      "exportCsv": "Export CSV"
+      "exportCsv": "Export CSV",
+      "groupBy": {
+        "practitioner": "practitioner",
+        "month": "month"
+      }
     },
     "regulatory": {
       "title": "DSP/ITM inspection snapshot",

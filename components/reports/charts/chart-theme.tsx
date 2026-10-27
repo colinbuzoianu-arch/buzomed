@@ -26,6 +26,15 @@ export const VERDICT_COLOR: Record<VerdictKey, string> = {
 
 /** Neutral single hue for non-verdict magnitude series. */
 export const NEUTRAL_COLOR = 'var(--chart-neutral)'
+
+/** Categorical colours for hazard categories (distinct from the verdict hues). */
+export const CATEGORY_COLOR: Record<string, string> = {
+  fizic: 'var(--chart-cat-1)',
+  chimic: 'var(--chart-cat-2)',
+  biologic: 'var(--chart-cat-3)',
+  ergonomic: 'var(--chart-cat-4)',
+  psihosocial: 'var(--chart-cat-5)',
+}
 export const OVERDUE_COLOR = 'var(--chart-inapt)'
 export const SOON_COLOR = 'var(--chart-aptc)'
 export const AXIS_COLOR = 'var(--chart-axis)'
@@ -50,6 +59,11 @@ export function ChartThemeStyle() {
         --chart-axis: #64748b;
         --chart-grid: #e2e8f0;
         --chart-surface: #ffffff;
+        --chart-cat-1: #2563eb;
+        --chart-cat-2: #7c3aed;
+        --chart-cat-3: #0d9488;
+        --chart-cat-4: #db2777;
+        --chart-cat-5: #4f46e5;
       }
       .dark {
         --chart-apt: #34d399;
@@ -60,6 +74,11 @@ export function ChartThemeStyle() {
         --chart-axis: #94a3b8;
         --chart-grid: #1e293b;
         --chart-surface: #0b1220;
+        --chart-cat-1: #60a5fa;
+        --chart-cat-2: #a78bfa;
+        --chart-cat-3: #2dd4bf;
+        --chart-cat-4: #f472b6;
+        --chart-cat-5: #818cf8;
       }
     `}</style>
   )
