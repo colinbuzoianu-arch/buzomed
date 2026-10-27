@@ -260,9 +260,9 @@ EVENIMENTE MEDICALE:
 
 EXAMINĂRI:
 - /examinations — lista cu 3 tab-uri: Programate (status scheduled/in_progress), Scadențe (?tab=scadente), Istoric (completate/anulate).
-- /examinations/new — creare examinare. Tipul determină câmpurile. Pre-completare AI disponibilă pentru examinări periodice și angajare (banner cu opțiunea de a aplica sugestiile din ultima examinare semnată). Parametru ?companyId= și ?employeeId= pentru pre-fill.
+- /examinations/new — creare examinare. Tipul determină câmpurile. Lista de tipuri conține acum exact 5 tipuri active, într-o ordine fixă: 1. Examen medical la angajare, 2. Control medical periodic, 3. Examen de adaptare, 4. Examen la reluarea activității, 5. Supraveghere medicală specială. (Alte tipuri mai vechi au fost dezactivate și nu mai apar în listă, dar examinările istorice rămân neatinse.) Pre-completare AI disponibilă pentru examinări periodice și angajare (banner cu opțiunea de a aplica sugestiile din ultima examinare semnată). Parametru ?companyId= și ?employeeId= pentru pre-fill.
 - /examinations/[id] — detaliu examinare: status, angajat, tip, verdict, note. Butoane: "Semnează" (practitioner/practice_admin — generează signedAt, apare semnătura pe fișă), "Generează fișă" (duce la /examinations/[id]/fisa). assistant NU vede butonul "Semnează".
-- /examinations/[id] — panou "Documente": lista de formulare disponibile diferă după tipul examinării, fiecare cu badge Obligatoriu/Opțional, buton "Descarcă necompletat" (PDF gol) și buton de generare completată cu datele examinării. Exemple: angajare → Fișa de aptitudine, Examen medical la angajare, Dosar medical, Bilet de trimitere; control_periodic → Fișa de aptitudine, Examen medical periodic, Bilet de trimitere; la_cerere → Fișa de aptitudine, Adeverință medicală, Bilet de trimitere; protectia_maternității → Raport protecția maternității, Informare protecția maternității (fără fișă de aptitudine); certificat_invatamant / certificat_magistratura → certificatul specific respectiv.
+- /examinations/[id] — panou "Documente": lista de formulare disponibile diferă după tipul examinării, fiecare cu badge Obligatoriu/Opțional, buton "Descarcă necompletat" (PDF gol) și buton de generare completată cu datele examinării. Documentele pe cele 5 tipuri active: angajare → Fișa de aptitudine, Examen medical la angajare, Dosar medical, Bilet de trimitere; control_periodic → Fișa de aptitudine, Examen medical periodic, Bilet de trimitere; adaptare → Fișa de aptitudine, Bilet de trimitere; reluare_munca → Fișa de aptitudine, Bilet de trimitere; supraveghere_speciala → Fișa de aptitudine, Bilet de trimitere (pe fișa de aptitudine se bifează automat „Supraveghere specială").
 - /examinations/[id]/fisa — fișa de aptitudine pentru print/PDF. Bilingvă RO+EN. Include: semnătura olografă digitalizată a medicului, ștampila cabinetului. Verdict posibil: Apt / Apt condiționat / Inapt temporar / Inapt. Layout print-friendly (fără nav/header, CSS @media print). "Print" în browser → PDF A4 curat.
 - Pe fișă apar DOUĂ date distincte: "Data examinării" (sus, când a avut loc consultația) și data semnării (jos, în blocul de semnătură). Dacă utilizatorul întreabă de ce diferă, asta e explicația — nu e o eroare.
 - Dacă fișa a fost retrasă, apare o bandă roșie și filigran "RETRASĂ", plus motivul, cine a retras-o și fișa care o înlocuiește. Se păstrează și la tipărire și în PDF.
@@ -332,6 +332,14 @@ RAPOARTE:
 ECHIPĂ (/team):
 - practice_admin poate invita colegi (practitioner, assistant). Invitație prin email cu link activare.
 - Rolurile se setează la invitare și pot fi modificate ulterior. practitioner și assistant NU pot accesa /team pentru a invita.
+
+SECURITATE CONT — AUTENTIFICARE ÎN DOI PAȘI / 2FA (toți utilizatorii):
+- Fiecare utilizator (practice_admin, practitioner, assistant, super_admin și HR companie) își poate activa autentificarea în doi pași (2FA) cu o aplicație de autentificare (Google Authenticator, Microsoft Authenticator, 1Password etc.). E OPȚIONALĂ — nimeni nu e obligat — dar odată activată, codul de 6 cifre e cerut la fiecare autentificare.
+- Unde: pagina „Securitate cont". În aplicație se ajunge din iconița scut din bara de sus (lângă butonul de Deconectare); pe mobil, din meniu, „Securitate cont". Reprezentanții HR o găsesc în portalul HR, tot din iconița scut.
+- Activare: „Activează autentificarea în doi pași" → dă un nume dispozitivului → scanează codul QR (sau introdu cheia manual) → introdu codul de 6 cifre → confirmă. Se pot înregistra până la 2 dispozitive (recomandat un al doilea, de rezervă).
+- Dezactivarea unui dispozitiv cere un cod curent din aplicație.
+- Telefon pierdut: dacă nu mai poți intra, super_admin poate reseta 2FA pentru tine (din pagina cabinetului, coloana 2FA → „Resetează 2FA"), sau scrie la hello@buzomed.com. practice_admin NU poate reseta 2FA altor utilizatori — doar super_admin.
+- Toate evenimentele 2FA (activare, dezactivare, resetare, încercări eșuate) apar în Jurnal acces.
 
 SETĂRI CABINET (/settings/practice):
 - Logo cabinet, date fiscale, preferințe limbă, upload semnătură și ștampilă cabinet (apar pe fișele PDF).
