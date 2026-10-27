@@ -1450,13 +1450,30 @@
     },
     "monthly": {
       "title": "Evoluție lunară",
-      "month": "Lună"
+      "month": "Lună",
+      "period": "Perioadă"
     },
     "perCompany": {
       "title": "Pe companie",
       "company": "Companie",
       "report": "Raport",
       "viewDetail": "Detalii"
+    },
+    "controls": {
+      "allCompanies": "Toate companiile",
+      "groupBy": "Grupare"
+    },
+    "groupBy": {
+      "month": "lună",
+      "quarter": "trimestru"
+    },
+    "groupByExp": {
+      "month": "lună",
+      "company": "firmă"
+    },
+    "view": {
+      "chart": "Grafic",
+      "table": "Tabel"
     },
     "exportCsv": "Export CSV",
     "nav": {
@@ -1490,6 +1507,10 @@
     "expiration": {
       "title": "Scadente programari",
       "subtitle": "Angajati cu data scadentei de reexaminare apropiata sau depasita.",
+      "chartTitle": "Distribuția scadențelor",
+      "overdueBar": "Depășite",
+      "period": "Perioadă",
+      "dueCount": "Scadențe",
       "horizon": {
         "30": "Pana in 30 zile",
         "60": "Pana in 60 zile",

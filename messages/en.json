@@ -1450,13 +1450,30 @@
     },
     "monthly": {
       "title": "Monthly trend",
-      "month": "Month"
+      "month": "Month",
+      "period": "Period"
     },
     "perCompany": {
       "title": "By company",
       "company": "Company",
       "report": "Report",
       "viewDetail": "Details"
+    },
+    "controls": {
+      "allCompanies": "All companies",
+      "groupBy": "Group by"
+    },
+    "groupBy": {
+      "month": "month",
+      "quarter": "quarter"
+    },
+    "groupByExp": {
+      "month": "month",
+      "company": "company"
+    },
+    "view": {
+      "chart": "Chart",
+      "table": "Table"
     },
     "exportCsv": "Export CSV",
     "nav": {
@@ -1490,6 +1507,10 @@
     "expiration": {
       "title": "Examination expirations",
       "subtitle": "Employees with an upcoming or overdue re-examination date.",
+      "chartTitle": "Expiration distribution",
+      "overdueBar": "Overdue",
+      "period": "Period",
+      "dueCount": "Due",
       "horizon": {
         "30": "Within 30 days",
         "60": "Within 60 days",

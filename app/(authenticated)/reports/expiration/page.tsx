@@ -6,9 +6,16 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { RecallStatusBadge } from '@/components/ui/recall-status-badge'
 import { formatDate } from '@/lib/format-date'
+import {
+  EXPIRATION_GROUP_BYS,
+  parseExpirationGroupBy,
+} from '@/lib/reports/group-by'
+import { ChartCard } from '@/components/reports/chart-card'
+import { ReportControls } from '@/components/reports/report-controls'
+import { ExpirationBarChart, type ExpirationDatum } from '@/components/reports/charts/expiration-bar-chart'
 
 interface PageProps {
-  searchParams: Promise<{ horizon?: string }>
+  searchParams: Promise<{ horizon?: string; company?: string; group?: string }>
 }
 
 const HORIZONS = ['overdue', '30', '60', '90', '180'] as const
@@ -36,6 +43,9 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
 
   const sp = await searchParams
   const horizon = parseHorizon(sp.horizon)
+  const companyFilter = sp.company ?? ''
+  const groupBy = parseExpirationGroupBy(sp.group)
+  const companyWhere = companyFilter ? { workplace: { companyId: companyFilter } } : {}
 
   const today = new Date()
   today.setUTCHours(0, 0, 0, 0)
@@ -45,34 +55,65 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
     cutoff.setDate(cutoff.getDate() + Number(horizon))
   }
 
-  const exams = await prisma.examination.findMany({
-    where: {
-      tenantId: user.tenantId,
-      deletedAt: null,
-      status: { notIn: ['cancelled', 'no_show'] },
-      nextExaminationDueDate: {
-        not: null,
-        ...(horizon === 'overdue' ? { lt: today } : { lt: cutoff }),
+  // Chart horizon: overdue + next 12 calendar months, independent of the
+  // table's horizon selector.
+  const chartTo = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 12, 1))
+  const in30Days = new Date(today)
+  in30Days.setUTCDate(in30Days.getUTCDate() + 30)
+
+  const [exams, chartExams, companiesForFilter] = await Promise.all([
+    prisma.examination.findMany({
+      where: {
+        tenantId: user.tenantId,
+        deletedAt: null,
+        status: { notIn: ['cancelled', 'no_show'] },
+        nextExaminationDueDate: {
+          not: null,
+          ...(horizon === 'overdue' ? { lt: today } : { lt: cutoff }),
+        },
+        employee: { deletedAt: null },
+        ...companyWhere,
       },
-      employee: { deletedAt: null },
-    },
-    orderBy: { nextExaminationDueDate: 'asc' },
-    select: {
-      id: true,
-      examinationNumber: true,
-      createdAt: true,
-      nextExaminationDueDate: true,
-      employee: { select: { id: true, firstName: true, lastName: true } },
-      workplace: {
-        select: {
-          id: true,
-          name: true,
-          department: true,
-          company: { select: { id: true, name: true } },
+      orderBy: { nextExaminationDueDate: 'asc' },
+      select: {
+        id: true,
+        examinationNumber: true,
+        createdAt: true,
+        nextExaminationDueDate: true,
+        employee: { select: { id: true, firstName: true, lastName: true } },
+        workplace: {
+          select: {
+            id: true,
+            name: true,
+            department: true,
+            company: { select: { id: true, name: true } },
+          },
         },
       },
-    },
-  })
+    }),
+    // All open due exams (overdue + up to 12 months out) for the chart.
+    prisma.examination.findMany({
+      where: {
+        tenantId: user.tenantId,
+        deletedAt: null,
+        status: { notIn: ['cancelled', 'no_show'] },
+        nextExaminationDueDate: { not: null, lt: chartTo },
+        employee: { deletedAt: null },
+        ...companyWhere,
+      },
+      select: {
+        createdAt: true,
+        nextExaminationDueDate: true,
+        employee: { select: { id: true } },
+        workplace: { select: { company: { select: { id: true, name: true } } } },
+      },
+    }),
+    prisma.company.findMany({
+      where: { tenantId: user.tenantId, deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    }),
+  ])
 
   // Keep only the most recent exam per employee
   const byEmployee = new Map<string, (typeof exams)[number]>()
@@ -93,6 +134,75 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
   const toParam = cutoff.toISOString().slice(0, 10)
   const csvUrl = `/api/reports/expiration?horizon=${horizon}&from=${fromParam}&to=${toParam}`
 
+  // ── Chart: dedup latest exam per employee, then bucket by month or company.
+  const chartLatest = new Map<string, (typeof chartExams)[number]>()
+  for (const e of chartExams) {
+    const ex = chartLatest.get(e.employee.id)
+    if (!ex || e.createdAt > ex.createdAt) chartLatest.set(e.employee.id, e)
+  }
+  const chartMonthFmt = new Intl.DateTimeFormat(locale === 'ro' ? 'ro-RO' : 'en-US', {
+    month: 'short',
+    year: '2-digit',
+  })
+  let chartData: ExpirationDatum[]
+  if (groupBy === 'company') {
+    const m = new Map<string, { name: string; count: number }>()
+    for (const e of chartLatest.values()) {
+      const c = e.workplace.company
+      const ex = m.get(c.id) ?? { name: c.name, count: 0 }
+      ex.count += 1
+      m.set(c.id, ex)
+    }
+    chartData = Array.from(m.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12)
+      .map((x) => ({ label: x.name, value: x.count, tone: 'neutral' as const }))
+  } else {
+    const months: Array<{ y: number; mo: number }> = []
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + i, 1))
+      months.push({ y: d.getUTCFullYear(), mo: d.getUTCMonth() })
+    }
+    let overdue = 0
+    const counts = new Array<number>(12).fill(0)
+    for (const e of chartLatest.values()) {
+      const due = e.nextExaminationDueDate
+      if (!due) continue
+      if (due < today) {
+        overdue++
+        continue
+      }
+      const idx = months.findIndex((b) => b.y === due.getUTCFullYear() && b.mo === due.getUTCMonth())
+      if (idx >= 0) counts[idx]++
+    }
+    chartData = [
+      { label: t('reports.expiration.overdueBar'), value: overdue, tone: 'overdue', href: '/employees?recall=overdue' },
+      ...months.map((b, i) => {
+        const bucketFrom = new Date(Date.UTC(b.y, b.mo, 1))
+        const soon = bucketFrom < in30Days
+        return {
+          label: chartMonthFmt.format(bucketFrom),
+          value: counts[i],
+          tone: (soon ? 'soon' : 'neutral') as 'soon' | 'neutral',
+          href: soon ? '/employees?recall=soon' : undefined,
+        }
+      }),
+    ]
+  }
+  const chartHasData = chartData.some((d) => d.value > 0)
+  const chartCsv = {
+    headers: [
+      groupBy === 'company' ? t('reports.expiration.colCompany') : t('reports.expiration.period'),
+      t('reports.expiration.dueCount'),
+    ],
+    rows: chartData.map((d) => [d.label, d.value] as [string, number]),
+  }
+  const chartLabels = {
+    chart: t('reports.view.chart'),
+    table: t('reports.view.table'),
+    exportCsv: t('reports.exportCsv'),
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -100,23 +210,56 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
         <p className="text-muted-foreground mt-1">{t('reports.expiration.subtitle')}</p>
       </div>
 
-      {/* Horizon selector */}
-      <div className="flex flex-wrap gap-2 text-sm">
-        <span className="text-muted-foreground self-center mr-1">
-          {t('reports.expiration.horizon.label')}:
-        </span>
-        {HORIZONS.map((h) => (
-          <Link
-            key={h}
-            href={`/reports/expiration?horizon=${h}`}
-            className={`px-3 py-1 rounded-md border transition-colors ${
-              horizon === h ? 'bg-secondary font-medium' : 'hover:bg-muted'
-            }`}
-          >
-            {t(`reports.expiration.horizon.${h}`)}
-          </Link>
-        ))}
-      </div>
+      {/* Controls: horizon + company + group-by */}
+      <ReportControls
+        storageKey="reports-expiration"
+        primaryParam="horizon"
+        primaryOptions={HORIZONS.map((h) => ({ value: h, label: t(`reports.expiration.horizon.${h}`) }))}
+        primaryValue={horizon}
+        companies={companiesForFilter.map((c) => ({ value: c.id, label: c.name }))}
+        companyParam="company"
+        companyValue={companyFilter}
+        allCompaniesLabel={t('reports.controls.allCompanies')}
+        groupParam="group"
+        groupOptions={EXPIRATION_GROUP_BYS.map((g) => ({ value: g, label: t(`reports.groupByExp.${g}`) }))}
+        groupValue={groupBy}
+        groupByLabel={t('reports.controls.groupBy')}
+      />
+
+      {/* Distribution chart — overdue + next 12 months (or by company) */}
+      {chartHasData && (
+        <ChartCard
+          title={t('reports.expiration.chartTitle')}
+          labels={chartLabels}
+          csv={chartCsv}
+          filename={`buzomed-scadente-${groupBy}`}
+          chart={<ExpirationBarChart data={chartData} valueLabel={t('reports.expiration.dueCount')} />}
+          table={
+            <div className="border rounded-lg overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/30 text-xs uppercase tracking-wide">
+                  <tr>
+                    <th className="text-left px-4 py-2">
+                      {groupBy === 'company'
+                        ? t('reports.expiration.colCompany')
+                        : t('reports.expiration.period')}
+                    </th>
+                    <th className="text-right px-4 py-2">{t('reports.expiration.dueCount')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {chartData.map((d) => (
+                    <tr key={d.label}>
+                      <td className="px-4 py-2">{d.label}</td>
+                      <td className="px-4 py-2 text-right font-semibold tabular-nums">{d.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        />
+      )}
 
       {rows.length === 0 ? (
         <div className="rounded-lg border border-dashed py-12 text-center">

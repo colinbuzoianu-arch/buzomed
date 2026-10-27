@@ -12,10 +12,20 @@ import {
   resolveDateRange,
   monthBucketsForRange,
 } from '@/lib/reports/date-ranges'
+import {
+  OVERVIEW_GROUP_BYS,
+  parseOverviewGroupBy,
+  quarterOfMonth,
+} from '@/lib/reports/group-by'
+import { ChartCard } from '@/components/reports/chart-card'
+import { ReportControls } from '@/components/reports/report-controls'
+import { DonutChart } from '@/components/reports/charts/donut-chart'
+import { HorizontalBarChart } from '@/components/reports/charts/horizontal-bar-chart'
+import { StackedBarChart, type VerdictRow } from '@/components/reports/charts/stacked-bar-chart'
 import { prisma } from '@/lib/prisma'
 
 interface PageProps {
-  searchParams: Promise<{ range?: string }>
+  searchParams: Promise<{ range?: string; company?: string; group?: string }>
 }
 
 export default async function ReportsPage({ searchParams }: PageProps) {
@@ -38,15 +48,20 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const params = await searchParams
   const rangeKey = parseDateRange(params.range)
   const range = resolveDateRange(rangeKey)
+  const companyFilter = params.company ?? ''
+  const groupBy = parseOverviewGroupBy(params.group)
+
+  const companyWhere = companyFilter ? { workplace: { companyId: companyFilter } } : {}
 
   // Same query path as the API, inlined. Single page; no point doing
   // an HTTP round-trip when this is a server component.
-  const [examinations, invoices] = await Promise.all([
+  const [examinations, invoices, companiesForFilter] = await Promise.all([
     prisma.examination.findMany({
       where: {
         tenantId: user.tenantId,
         deletedAt: null,
         createdAt: { gte: range.from, lt: range.to },
+        ...companyWhere,
       },
       select: {
         id: true,
@@ -73,7 +88,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             // Revenue-per-company report — intermediary invoices are
             // excluded here (out of scope: no per-intermediary reporting
             // in this batch; see CLAUDE.md intermediary billing notes).
-            companyId: { not: null },
+            companyId: companyFilter ? companyFilter : { not: null },
           },
           select: {
             id: true,
@@ -83,6 +98,12 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           },
         })
       : Promise.resolve([]),
+
+    prisma.company.findMany({
+      where: { tenantId: user.tenantId, deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    }),
   ])
 
   // Headline counts.
@@ -116,6 +137,41 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       inapt: inB.filter((e) => e.verdict === 'inapt').length,
     }
   })
+
+  // Trend rows for the selected grouping (month or quarter) — one source for
+  // the stacked-bar chart, its table toggle, and the CSV export.
+  const trendFormatter = new Intl.DateTimeFormat(locale === 'ro' ? 'ro-RO' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+  })
+  type TrendRow = VerdictRow & { total: number }
+  let trendRows: TrendRow[]
+  if (groupBy === 'quarter') {
+    const qMap = new Map<string, TrendRow>()
+    for (const m of monthlyTrend) {
+      const q = quarterOfMonth(m.month)
+      const key = `${m.year}-${q}`
+      const existing =
+        qMap.get(key) ??
+        { label: `T${q + 1} ${m.year}`, total: 0, apt: 0, apt_conditionat: 0, inapt_temporar: 0, inapt: 0 }
+      existing.total += m.total
+      existing.apt += m.apt
+      existing.apt_conditionat += m.apt_conditionat
+      existing.inapt_temporar += m.inapt_temporar
+      existing.inapt += m.inapt
+      qMap.set(key, existing)
+    }
+    trendRows = Array.from(qMap.values())
+  } else {
+    trendRows = monthlyTrend.map((m) => ({
+      label: trendFormatter.format(new Date(Date.UTC(m.year, m.month, 1))),
+      total: m.total,
+      apt: m.apt,
+      apt_conditionat: m.apt_conditionat,
+      inapt_temporar: m.inapt_temporar,
+      inapt: m.inapt,
+    }))
+  }
 
   // Per-company breakdown.
   const perCompanyMap = new Map<
@@ -204,10 +260,49 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     { invoiced: 0, paid: 0 }
   )
 
-  const monthFormatter = new Intl.DateTimeFormat(
-    locale === 'ro' ? 'ro-RO' : 'en-US',
-    { year: 'numeric', month: 'short' }
-  )
+  const verdictLabels = {
+    apt: t('reports.headline.apt'),
+    apt_conditionat: t('reports.headline.aptConditionat'),
+    inapt_temporar: t('reports.headline.inapt_temporar'),
+    inapt: t('reports.headline.inapt'),
+  }
+  const donutData = [
+    { key: 'apt' as const, label: verdictLabels.apt, value: headline.apt },
+    { key: 'apt_conditionat' as const, label: verdictLabels.apt_conditionat, value: headline.apt_conditionat },
+    { key: 'inapt_temporar' as const, label: verdictLabels.inapt_temporar, value: headline.inapt_temporar },
+    { key: 'inapt' as const, label: verdictLabels.inapt, value: headline.inapt },
+  ].filter((d) => d.value > 0)
+  const perCompanyChart = perCompany.slice(0, 10).map((c) => ({ label: c.companyName, value: c.total }))
+
+  const chartLabels = {
+    chart: t('reports.view.chart'),
+    table: t('reports.view.table'),
+    exportCsv: t('reports.exportCsv'),
+  }
+
+  // CSV payloads (client download) — mirror the visible table rows exactly.
+  const trendCsv = {
+    headers: [
+      t('reports.monthly.period'),
+      t('reports.headline.total'),
+      verdictLabels.apt,
+      verdictLabels.apt_conditionat,
+      verdictLabels.inapt_temporar,
+      verdictLabels.inapt,
+    ],
+    rows: trendRows.map((r) => [r.label, r.total, r.apt, r.apt_conditionat, r.inapt_temporar, r.inapt]),
+  }
+  const perCompanyCsv = {
+    headers: [
+      t('reports.perCompany.company'),
+      t('reports.headline.total'),
+      verdictLabels.apt,
+      verdictLabels.apt_conditionat,
+      verdictLabels.inapt_temporar,
+      verdictLabels.inapt,
+    ],
+    rows: perCompany.map((c) => [c.companyName, c.total, c.apt, c.apt_conditionat, c.inapt_temporar, c.inapt]),
+  }
 
   return (
     <div className="space-y-8">
@@ -216,139 +311,129 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         <p className="text-muted-foreground mt-1">{t('reports.subtitle')}</p>
       </div>
 
-      {/* Range selector + export */}
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        {ALL_DATE_RANGES.map((key) => {
-          const active = rangeKey === key
-          return (
-            <Link
-              key={key}
-              href={`/reports?range=${key}`}
-              className={`px-3 py-1 rounded-md border ${
-                active ? 'bg-secondary font-medium' : 'hover:bg-muted'
-              }`}
-            >
-              {t(`reports.range.${key}`)}
-            </Link>
-          )
-        })}
-        <a
-          href={`/api/reports/activity-export?range=${rangeKey}`}
-          download
-          className="inline-flex items-center gap-1.5 h-9 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-[hsl(var(--surface-muted))] transition-colors ml-auto"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M7 2v7m0 0L4.5 6.5M7 9l2.5-2.5M2 11h10"/>
-          </svg>
-          {t('reports.exportCsv')}
-        </a>
-      </div>
+      {/* Controls: range + company + group-by (+ full activity export) */}
+      <ReportControls
+        storageKey="reports-overview"
+        primaryParam="range"
+        primaryOptions={ALL_DATE_RANGES.map((key) => ({ value: key, label: t(`reports.range.${key}`) }))}
+        primaryValue={rangeKey}
+        companies={companiesForFilter.map((c) => ({ value: c.id, label: c.name }))}
+        companyParam="company"
+        companyValue={companyFilter}
+        allCompaniesLabel={t('reports.controls.allCompanies')}
+        groupParam="group"
+        groupOptions={OVERVIEW_GROUP_BYS.map((g) => ({ value: g, label: t(`reports.groupBy.${g}`) }))}
+        groupValue={groupBy}
+        groupByLabel={t('reports.controls.groupBy')}
+        trailing={
+          <a
+            href={`/api/reports/activity-export?range=${rangeKey}`}
+            download
+            className="inline-flex items-center gap-1.5 h-9 rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-[hsl(var(--surface-muted))] transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M7 2v7m0 0L4.5 6.5M7 9l2.5-2.5M2 11h10"/>
+            </svg>
+            {t('reports.exportCsv')}
+          </a>
+        }
+      />
 
       {/* Headline */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">
           {t('reports.headline.title')}
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label={t('reports.headline.total')} value={headline.total} />
-          <StatCard
-            label={t('reports.headline.signed')}
-            value={headline.signed}
-            sublabel={
-              headline.total > 0
-                ? `${Math.round((headline.signed / headline.total) * 100)}%`
-                : null
-            }
-          />
-          <StatCard label={t('reports.headline.apt')} value={headline.apt} valueColor="text-emerald-700" />
-          <StatCard
-            label={t('reports.headline.aptConditionat')}
-            value={headline.apt_conditionat}
-            valueColor="text-amber-700"
-          />
-          <StatCard
-            label={t('reports.headline.inapt_temporar')}
-            value={headline.inapt_temporar}
-            valueColor="text-orange-700"
-          />
-          <StatCard
-            label={t('reports.headline.inapt')}
-            value={headline.inapt}
-            valueColor="text-red-700"
-          />
-          <Suspense fallback={<StatCardSkeleton />}>
-            <OverdueRecallsCard tenantId={user.tenantId} label={t('reports.headline.overdueRecalls')} />
-          </Suspense>
+        <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 content-start">
+            <StatCard label={t('reports.headline.total')} value={headline.total} />
+            <StatCard
+              label={t('reports.headline.signed')}
+              value={headline.signed}
+              sublabel={
+                headline.total > 0
+                  ? `${Math.round((headline.signed / headline.total) * 100)}%`
+                  : null
+              }
+            />
+            <StatCard label={t('reports.headline.apt')} value={headline.apt} valueColor="text-emerald-700" />
+            <StatCard
+              label={t('reports.headline.aptConditionat')}
+              value={headline.apt_conditionat}
+              valueColor="text-amber-700"
+            />
+            <StatCard
+              label={t('reports.headline.inapt_temporar')}
+              value={headline.inapt_temporar}
+              valueColor="text-orange-700"
+            />
+            <StatCard
+              label={t('reports.headline.inapt')}
+              value={headline.inapt}
+              valueColor="text-red-700"
+            />
+            <Suspense fallback={<StatCardSkeleton />}>
+              <OverdueRecallsCard tenantId={user.tenantId} label={t('reports.headline.overdueRecalls')} />
+            </Suspense>
+          </div>
+          {donutData.length > 0 && (
+            <DonutChart data={donutData} totalLabel={t('reports.headline.total')} />
+          )}
         </div>
       </section>
 
-      {/* Monthly trend */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">
-          {t('reports.monthly.title')}
-        </h2>
-        {monthlyTrend.length === 0 ? (
+      {/* Monthly / quarterly trend */}
+      {trendRows.length === 0 ? (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">{t('reports.monthly.title')}</h2>
           <EmptyState
             illustration="reports"
             title={t('reports.emptyTitle')}
             description={t('reports.emptyDescription')}
           />
-        ) : (
-          <>
-            <div className="hidden md:block border rounded-lg overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]">
-                <thead className="bg-muted/30 text-xs uppercase tracking-wide">
-                  <tr>
-                    <th className="text-left px-4 py-2">
-                      {t('reports.monthly.month')}
-                    </th>
-                    <th className="text-right px-4 py-2">
-                      {t('reports.headline.total')}
-                    </th>
-                    <th className="text-right px-4 py-2">
-                      {t('reports.headline.apt')}
-                    </th>
-                    <th className="text-right px-4 py-2">
-                      {t('reports.headline.aptConditionat')}
-                    </th>
-                    <th className="text-right px-4 py-2">
-                      {t('reports.headline.inapt_temporar')}
-                    </th>
-                    <th className="text-right px-4 py-2">
-                      {t('reports.headline.inapt')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {monthlyTrend.map((m) => {
-                    const label = monthFormatter.format(new Date(Date.UTC(m.year, m.month, 1)))
-                    return (
-                      <tr key={`${m.year}-${m.month}`}>
-                        <td className="px-4 py-2 capitalize">{label}</td>
-                        <td className="px-4 py-2 text-right font-semibold text-foreground">
-                          {m.total}
-                        </td>
+        </section>
+      ) : (
+        <ChartCard
+          title={t('reports.monthly.title')}
+          labels={chartLabels}
+          csv={trendCsv}
+          filename={`buzomed-trend-${rangeKey}`}
+          chart={
+            <StackedBarChart data={trendRows} labels={verdictLabels} totalLabel={t('reports.headline.total')} />
+          }
+          table={
+            <>
+              <div className="hidden md:block border rounded-lg overflow-x-auto">
+                <table className="w-full text-sm min-w-[600px]">
+                  <thead className="bg-muted/30 text-xs uppercase tracking-wide">
+                    <tr>
+                      <th className="text-left px-4 py-2">{t('reports.monthly.period')}</th>
+                      <th className="text-right px-4 py-2">{t('reports.headline.total')}</th>
+                      <th className="text-right px-4 py-2">{t('reports.headline.apt')}</th>
+                      <th className="text-right px-4 py-2">{t('reports.headline.aptConditionat')}</th>
+                      <th className="text-right px-4 py-2">{t('reports.headline.inapt_temporar')}</th>
+                      <th className="text-right px-4 py-2">{t('reports.headline.inapt')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {trendRows.map((m) => (
+                      <tr key={m.label}>
+                        <td className="px-4 py-2 capitalize">{m.label}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-foreground">{m.total}</td>
                         <td className="px-4 py-2 text-right font-semibold text-emerald-700">{m.apt}</td>
-                        <td className="px-4 py-2 text-right font-semibold text-amber-700">
-                          {m.apt_conditionat}
-                        </td>
-                        <td className="px-4 py-2 text-right font-semibold text-orange-700">
-                          {m.inapt_temporar}
-                        </td>
+                        <td className="px-4 py-2 text-right font-semibold text-amber-700">{m.apt_conditionat}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-orange-700">{m.inapt_temporar}</td>
                         <td className="px-4 py-2 text-right font-semibold text-red-700">{m.inapt}</td>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            <div className="md:hidden space-y-2">
-              {monthlyTrend.map((m) => {
-                const label = monthFormatter.format(new Date(Date.UTC(m.year, m.month, 1)))
-                return (
-                  <div key={`${m.year}-${m.month}`} className="border rounded-lg p-3">
-                    <div className="font-medium capitalize mb-2">{label}</div>
+              <div className="md:hidden space-y-2">
+                {trendRows.map((m) => (
+                  <div key={m.label} className="border rounded-lg p-3">
+                    <div className="font-medium capitalize mb-2">{m.label}</div>
                     <div className="grid grid-cols-3 gap-x-3 gap-y-2 text-xs">
                       <div className="text-center">
                         <div className="text-muted-foreground uppercase tracking-wide mb-0.5 text-[10px]">{t('reports.headline.total')}</div>
@@ -372,26 +457,32 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                       </div>
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          </>
-        )}
-      </section>
+                ))}
+              </div>
+            </>
+          }
+        />
+      )}
 
       {/* Per-company breakdown */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">
-          {t('reports.perCompany.title')}
-        </h2>
-        {perCompany.length === 0 ? (
+      {perCompany.length === 0 ? (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">{t('reports.perCompany.title')}</h2>
           <EmptyState
             illustration="reports"
             title={t('reports.emptyTitle')}
             description={t('reports.emptyDescription')}
           />
-        ) : (
-          <>
+        </section>
+      ) : (
+        <ChartCard
+          title={t('reports.perCompany.title')}
+          labels={chartLabels}
+          csv={perCompanyCsv}
+          filename={`buzomed-companii-${rangeKey}`}
+          chart={<HorizontalBarChart data={perCompanyChart} valueLabel={t('reports.headline.total')} />}
+          table={
+            <>
             <div className="hidden md:block border rounded-lg overflow-x-auto">
               <table className="w-full text-sm min-w-[600px]">
                 <thead className="bg-muted/30 text-xs uppercase tracking-wide">
@@ -494,9 +585,10 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                 </div>
               ))}
             </div>
-          </>
-        )}
-      </section>
+            </>
+          }
+        />
+      )}
       {/* Per-practitioner */}
       {perPractitioner.length > 0 && (
         <section className="space-y-3">
