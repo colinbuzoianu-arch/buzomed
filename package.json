@@ -1,8 +1,5 @@
 {
   "name": "buzomed",
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "version": "0.1.0",
   "private": true,
   "scripts": {
