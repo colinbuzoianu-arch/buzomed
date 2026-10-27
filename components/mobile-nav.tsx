@@ -12,6 +12,9 @@ interface Props {
   userName: string
   closeLabel: string
   logoutLabel: string
+  /** Optional "account security" link rendered above logout. */
+  accountHref?: string
+  accountLabel?: string
 }
 
 /**
@@ -28,7 +31,7 @@ interface Props {
  * sections here — no hover/click-away semantics needed since the
  * whole drawer is already a single open/closed state.
  */
-export function MobileNav({ items, userName, closeLabel, logoutLabel }: Props) {
+export function MobileNav({ items, userName, closeLabel, logoutLabel, accountHref, accountLabel }: Props) {
   const [open, setOpen] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
   const pathname = usePathname()
@@ -133,7 +136,15 @@ export function MobileNav({ items, userName, closeLabel, logoutLabel }: Props) {
                   </div>
                 )
               })}
-              <div className="px-4 py-3 border-t mt-2">
+              {accountHref && accountLabel && (
+                <Link
+                  href={accountHref}
+                  className="px-4 py-3 text-base hover:bg-muted transition-colors border-t mt-2"
+                >
+                  {accountLabel}
+                </Link>
+              )}
+              <div className={`px-4 py-3 ${accountHref ? '' : 'border-t mt-2'}`}>
                 <LogoutButton label={logoutLabel} />
               </div>
             </nav>

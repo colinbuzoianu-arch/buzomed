@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import { Suspense } from 'react'
 import type { UserRole } from '@prisma/client'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -8,7 +7,6 @@ import { requireRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { writeAuditLog } from '@/lib/audit/log'
-import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -21,7 +19,9 @@ import { invitableRoles } from '@/lib/permissions/invites'
 import { canManageUser, ASSIGNABLE_ROLES } from '@/lib/permissions/user-admin'
 import { TeamInviteSection } from '@/app/(authenticated)/team/team-invite-section'
 import { UserAdminActions } from '@/app/(authenticated)/team/user-admin-actions'
+import { createServiceClient } from '@/lib/supabase/admin'
 import { PlatformInvoicesTab } from './platform-invoices-tab'
+import { Reset2faButton } from './reset-2fa-button'
 import { TenantManagementActions } from './tenant-management-actions'
 import { TenantDetailsForm } from './tenant-details-form'
 import { SubscriptionActions } from './subscription-actions'
@@ -65,6 +65,27 @@ export default async function TenantDetailPage({ params }: PageProps) {
   })
 
   if (!tenant) notFound()
+
+  // Which users have a verified 2FA factor? Queried via the service-role admin
+  // API (factors live in Supabase Auth, not our DB). Best-effort: if the admin
+  // API is unavailable the page still renders, just without 2FA badges.
+  const mfaEnabledUserIds = new Set<string>()
+  await Promise.all(
+    tenant.users.map(async (u) => {
+      const authUserId = u.authUserId
+      if (!authUserId) return
+      try {
+        const admin = createServiceClient()
+        const { data } = await admin.auth.admin.mfa.listFactors({ userId: authUserId })
+        const hasVerified = (data?.factors ?? []).some(
+          (f) => f.status === 'verified' && f.factor_type === 'totp'
+        )
+        if (hasVerified) mfaEnabledUserIds.add(u.id)
+      } catch {
+        // ignore — treat as "unknown / not enabled"
+      }
+    })
+  )
 
   void writeAuditLog({
     tenantId: null,
@@ -381,6 +402,7 @@ export default async function TenantDetailPage({ params }: PageProps) {
                   <TableHead>{t('common.email')}</TableHead>
                   <TableHead>{t('tenantDetail.membersTable.roles')}</TableHead>
                   <TableHead>{t('tenantDetail.membersTable.accountStatus')}</TableHead>
+                  <TableHead>{t('account.security.twoFactorColumn')}</TableHead>
                   <TableHead>{t('tenantDetail.membersTable.lastSeen')}</TableHead>
                   <TableHead className="text-right">
                     {t('common.actions')}
@@ -427,6 +449,42 @@ export default async function TenantDetailPage({ params }: PageProps) {
                             ? t('tenantDetail.membersTable.activated')
                             : t('tenantDetail.membersTable.pending')}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const hasMfa = mfaEnabledUserIds.has(user.id)
+                          return (
+                            <div className="flex flex-col items-start gap-1">
+                              <span
+                                className={`inline-flex items-center gap-1.5 text-sm ${
+                                  hasMfa ? 'text-green-700' : 'text-muted-foreground'
+                                }`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    hasMfa ? 'bg-green-600' : 'bg-muted-foreground/40'
+                                  }`}
+                                />
+                                {hasMfa
+                                  ? t('account.security.twoFactorOn')
+                                  : t('account.security.twoFactorOff')}
+                              </span>
+                              {hasMfa && (
+                                <Reset2faButton
+                                  userId={user.id}
+                                  userDisplayName={`${user.firstName} ${user.lastName}`}
+                                  labels={{
+                                    resetButton: t('account.security.resetButton'),
+                                    confirm: t('account.security.resetConfirm'),
+                                    success: t('account.security.resetSuccess'),
+                                    error: t('account.security.resetError'),
+                                    resetting: t('account.security.resetting'),
+                                  }}
+                                />
+                              )}
+                            </div>
+                          )
+                        })()}
                       </TableCell>
                       <TableCell>
                         {user.lastLoginAt ? (

@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -53,6 +55,14 @@ export default async function HrPortalLayout({
             <span className="hidden md:block text-sm text-muted-foreground">
               {userDisplayName}
             </span>
+            <Link
+              href="/hr-portal/security"
+              title="Securitate cont"
+              aria-label="Securitate cont"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <ShieldCheck className="w-4 h-4" />
+            </Link>
             <LogoutButton label="Deconectare" />
           </div>
         </div>

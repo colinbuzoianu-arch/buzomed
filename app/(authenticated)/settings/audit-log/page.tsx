@@ -22,6 +22,10 @@ const ACTION_BADGE: Record<AuditAction, { label: string; cls: string }> = {
   login:    { label: 'Autentificare', cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
   logout:   { label: 'Deconectare', cls: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
   import:   { label: 'Import',      cls: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300' },
+  mfa_enabled:  { label: '2FA activat',    cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
+  mfa_disabled: { label: '2FA dezactivat', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' },
+  mfa_reset:    { label: '2FA resetat',    cls: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' },
+  mfa_failed:   { label: '2FA eșuat',      cls: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' },
 }
 
 const PAGE_SIZE = 200

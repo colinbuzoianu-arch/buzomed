@@ -170,7 +170,7 @@ const faqs = [
   },
   {
     q: 'Cum sunt protejate datele medicale?',
-    a: 'Platforma include funcții dedicate GDPR: evidența consimțământului, jurnal de audit pentru accesul la date, anonimizare și politici de retenție a datelor. Fiecare cabinet își vede doar propriile date.',
+    a: 'Platforma include funcții dedicate GDPR: evidența consimțământului, jurnal de audit pentru accesul la date, anonimizare și politici de retenție a datelor. Fiecare cabinet își vede doar propriile date. Autentificare în doi pași (2FA) opțională pentru fiecare utilizator.',
   },
 ]
 

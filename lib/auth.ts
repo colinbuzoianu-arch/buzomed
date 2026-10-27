@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import type { User as AppUser } from '@prisma/client'
 import { createHash } from 'node:crypto'
 import { writeAuditLog } from './audit/log'
+import { requiresSecondFactor, SECOND_FACTOR_PATH } from './mfa'
 
 /**
  * Returns the currently logged-in app User, or null if not authenticated.
@@ -76,6 +77,17 @@ export const getCurrentUser = cache(async (): Promise<AppUser | null> => {
 export async function requireUser(): Promise<AppUser> {
   const user = await getCurrentUser()
   if (!user) redirect('/login?reason=inactive')
+
+  // Defense in depth against the middleware: server actions and pages use the
+  // admin Prisma client (RLS bypassed), so app-level enforcement is what
+  // actually protects the data. A user who enrolled 2FA but has only cleared
+  // the password step (AAL1 → AAL2 pending) must finish at the 2FA step
+  // before any authenticated page renders.
+  const supabase = await createClient()
+  if (await requiresSecondFactor(supabase)) {
+    redirect(SECOND_FACTOR_PATH)
+  }
+
   return user
 }
 

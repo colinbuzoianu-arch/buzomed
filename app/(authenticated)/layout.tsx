@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
+import { ShieldCheck } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AppNav, type NavEntry, type NavLink } from '@/components/app-nav'
 import { BuzomedLogo } from '@/components/buzomed-logo'
@@ -132,6 +134,16 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
 
             <span className="w-px h-5 bg-border hidden lg:block" />
 
+            {/* Account security (optional 2FA) — available to every role */}
+            <Link
+              href="/settings/security"
+              title={t('nav.accountSecurity')}
+              aria-label={t('nav.accountSecurity')}
+              className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <ShieldCheck className="w-4 h-4" />
+            </Link>
+
             <div className="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold select-none">
               {initials}
             </div>
@@ -146,6 +158,8 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
               userName={userDisplayName}
               closeLabel={t('common.close')}
               logoutLabel={t('common.logout')}
+              accountHref="/settings/security"
+              accountLabel={t('nav.accountSecurity')}
             />
           </div>
         </div>

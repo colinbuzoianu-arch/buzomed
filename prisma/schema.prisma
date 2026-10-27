@@ -230,6 +230,11 @@ enum AuditAction {
   logout
   export
   import
+  // Two-factor authentication (TOTP) lifecycle.
+  mfa_enabled   // user enrolled + verified a factor
+  mfa_disabled  // user removed one of their own factors
+  mfa_reset     // super_admin removed a user's factors (lost device)
+  mfa_failed    // wrong/expired code at the 2FA login step
 }
 
 // ============================================================================

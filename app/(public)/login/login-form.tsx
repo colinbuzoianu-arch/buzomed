@@ -78,6 +78,16 @@ export function LoginForm({ labels }: LoginFormProps) {
         return
       }
 
+      // If the user has 2FA enrolled, the password only reached AAL1 — send
+      // them to the code step before the normal role-based redirect. Users
+      // without 2FA get nextLevel === 'aal1' and continue straight through.
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      if (aal && aal.currentLevel === 'aal1' && aal.nextLevel === 'aal2') {
+        router.push('/login/2fa')
+        router.refresh()
+        return
+      }
+
       router.push('/')
       router.refresh()
     } catch (err) {
