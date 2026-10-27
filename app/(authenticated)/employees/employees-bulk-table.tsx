@@ -1,12 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { AlertTriangle, Plus } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
+import { useState } from 'react'
 import { SortHeader } from '@/components/employees/sort-header'
+import { Button } from '@/components/ui/button'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,6 +17,8 @@ interface SerializedEmployee {
   jobTitle: string | null
   isActive: boolean
   archivedAt: string | null
+  /** cnpEncrypted OR idDocumentNumber present (never the value itself). */
+  hasIdNumber: boolean
   company: { name: string } | null
   workplaceAssignments: Array<{ workplace: { id: string; name: string } }>
   examinations: Array<{ completedAt: string | null; signedAt: string | null; status: string }>
@@ -31,6 +31,19 @@ interface WorkplaceOption {
   company: { name: string }
 }
 
+interface StatusLabels {
+  overdue: string // "Depășit de {n} zile"
+  soon: string // "În {n} zile"
+  ok: string // "La zi · {month}"
+  never: string
+  none: string
+  funcMissing: string
+  cnpMissing: string
+  newExam: string
+  lastExam: string // "Ultima examinare: {d}"
+  due: string // "Scadență: {d}"
+}
+
 interface Props {
   employees: SerializedEmployee[]
   workplaces: WorkplaceOption[]
@@ -38,6 +51,7 @@ interface Props {
   sort: string
   showArchived: boolean
   canWrite: boolean
+  labels: StatusLabels
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -47,6 +61,61 @@ function fmtDate(iso: string | null | undefined, locale: 'ro' | 'en' = 'ro'): st
   return new Date(iso).toLocaleDateString(locale === 'ro' ? 'ro-RO' : 'en-GB', {
     day: '2-digit', month: '2-digit', year: 'numeric',
   })
+}
+
+type StatusKind = 'overdue' | 'soon' | 'ok' | 'never' | 'none'
+
+interface StatusInfo {
+  kind: StatusKind
+  text: string
+  dotCls: string
+  textCls: string
+}
+
+/**
+ * Derive the single "Status" cell for an employee. Mirrors the priority
+ * buckets computed server-side so the colour/text agrees with the ordering.
+ */
+function statusInfo(e: SerializedEmployee, labels: StatusLabels): StatusInfo {
+  const recall = e.recalls[0]
+  const hasExam = e.examinations.length > 0
+  const nowMs = Date.now()
+  const dayMs = 86_400_000
+
+  if (recall) {
+    const due = new Date(recall.dueDate).getTime()
+    const diffDays = Math.round((due - nowMs) / dayMs)
+    if (recall.status === 'overdue' || due < nowMs) {
+      return {
+        kind: 'overdue',
+        text: labels.overdue.replace('{n}', String(Math.max(0, -diffDays))),
+        dotCls: 'bg-red-500',
+        textCls: 'text-red-700 dark:text-red-300',
+      }
+    }
+    if (diffDays <= 30) {
+      return {
+        kind: 'soon',
+        text: labels.soon.replace('{n}', String(Math.max(0, diffDays))),
+        dotCls: 'bg-amber-500',
+        textCls: 'text-amber-700 dark:text-amber-300',
+      }
+    }
+    if (!hasExam) {
+      return { kind: 'never', text: labels.never, dotCls: 'bg-muted-foreground/40', textCls: 'text-[hsl(var(--text-muted))]' }
+    }
+    const [y, m] = recall.dueDate.split('-')
+    return {
+      kind: 'ok',
+      text: labels.ok.replace('{month}', `${m}.${y}`),
+      dotCls: 'bg-muted-foreground/40',
+      textCls: 'text-[hsl(var(--text-muted))]',
+    }
+  }
+  if (!hasExam) {
+    return { kind: 'never', text: labels.never, dotCls: 'bg-muted-foreground/40', textCls: 'text-[hsl(var(--text-muted))]' }
+  }
+  return { kind: 'none', text: labels.none, dotCls: 'bg-muted-foreground/40', textCls: 'text-[hsl(var(--text-muted))]' }
 }
 
 const REASONS = [
@@ -62,7 +131,7 @@ const INPUT_CLS = 'flex h-9 w-full rounded-md border border-input bg-background 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function EmployeesBulkTable({ employees, workplaces, locale, sort, showArchived, canWrite }: Props) {
+export function EmployeesBulkTable({ employees, workplaces, locale, sort, showArchived, canWrite, labels }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [dialogOpen, setDialogOpen]   = useState(false)
   const [wpId, setWpId]               = useState('')
@@ -71,6 +140,7 @@ export function EmployeesBulkTable({ employees, workplaces, locale, sort, showAr
   const [assignResult, setAssignResult] = useState<{ success: number; failed: number } | null>(null)
 
   const sel = selectedIds.size
+  const showCheckbox = canWrite && !showArchived
 
   function toggleAll() {
     setSelectedIds(sel === employees.length ? new Set() : new Set(employees.map((e) => e.id)))
@@ -116,24 +186,26 @@ export function EmployeesBulkTable({ employees, workplaces, locale, sort, showAr
     }
   }
 
+  const thCls = 'text-left align-middle text-[10px] font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-muted))]'
+
   return (
     <>
-      {/* Desktop table */}
-      <div className="hidden md:block border rounded-lg overflow-hidden">
-        <Table>
+      {/* Desktop table — raw <table> so the header can stick on page scroll and
+          table-fixed columns truncate at their edge (no horizontal overflow). */}
+      <div className="hidden md:block border rounded-lg">
+        <table className="w-full table-fixed text-sm">
           <colgroup>
-            {canWrite && !showArchived && <col style={{ width: '40px' }} />}
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '18%' }} />
+            {showCheckbox && <col style={{ width: '36px' }} />}
+            <col style={{ width: '26%' }} />
+            <col style={{ width: '19%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '21%' }} />
+            <col style={{ width: '19%' }} />
           </colgroup>
-          <TableHeader>
-            <TableRow>
-              {canWrite && !showArchived && (
-                <TableHead className="pl-3 w-10">
+          <thead className="sticky top-14 z-20 bg-background">
+            <tr className="border-b">
+              {showCheckbox && (
+                <th className="pl-3 py-2">
                   <input
                     type="checkbox"
                     checked={sel === employees.length && employees.length > 0}
@@ -141,126 +213,119 @@ export function EmployeesBulkTable({ employees, workplaces, locale, sort, showAr
                     className="rounded"
                     aria-label="Selectează toți"
                   />
-                </TableHead>
+                </th>
               )}
-              <TableHead className="pl-4">
+              <th className={`${thCls} pl-4 py-2`}>
                 <SortHeader label="Nume" sortAsc="name_asc" sortDesc="name_desc" currentSort={sort} />
-              </TableHead>
-              <TableHead>
+              </th>
+              <th className={`${thCls} py-2`}>
                 <SortHeader label="Companie" sortAsc="company_asc" sortDesc="company_desc" currentSort={sort} />
-              </TableHead>
-              <TableHead>
+              </th>
+              <th className={`${thCls} py-2`}>
                 <SortHeader label="Funcție" sortAsc="jobTitle_asc" sortDesc="jobTitle_desc" currentSort={sort} />
-              </TableHead>
-              <TableHead>
-                <SortHeader label="Ultima examinare" sortAsc="lastExam_asc" sortDesc="lastExam_desc" currentSort={sort} />
-              </TableHead>
-              <TableHead>
-                <SortHeader label="Scadență" sortAsc="recall_asc" sortDesc="recall_desc" currentSort={sort} />
-              </TableHead>
-              <TableHead className="pr-4">
+              </th>
+              <th className={`${thCls} py-2`}>
+                <SortHeader label="Status" sortAsc="recall_asc" sortDesc="recall_desc" currentSort={sort} />
+              </th>
+              <th className={`${thCls} pr-4 py-2`}>
                 <SortHeader label="Loc de muncă" sortAsc="workplace_asc" sortDesc="workplace_desc" currentSort={sort} />
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
             {employees.map((e) => {
+              const wp = e.workplaceAssignments[0]?.workplace
+              const si = statusInfo(e, labels)
               const lastExam = e.examinations[0]
               const lastExamDate = lastExam?.signedAt ?? lastExam?.completedAt ?? null
               const recall = e.recalls[0]
-              const wp = e.workplaceAssignments[0]?.workplace
-
-              let recallUrgency: 'overdue' | 'soon' | 'ok' | null = null
-              if (recall) {
-                const diffDays = Math.floor((new Date(recall.dueDate).getTime() - Date.now()) / 86_400_000)
-                if (recall.status === 'overdue' || diffDays < 0) recallUrgency = 'overdue'
-                else if (diffDays <= 30) recallUrgency = 'soon'
-                else recallUrgency = 'ok'
-              }
+              const fullName = `${e.lastName} ${e.firstName}`
+              const tip = [
+                labels.lastExam.replace('{d}', fmtDate(lastExamDate, locale)),
+                recall ? labels.due.replace('{d}', fmtDate(recall.dueDate, locale)) : null,
+              ].filter(Boolean).join(' · ')
 
               return (
-                <TableRow key={e.id} className="group">
-                  {canWrite && !showArchived && (
-                    <TableCell className="pl-3 w-10" onClick={(ev) => ev.stopPropagation()}>
+                <tr key={e.id} className="group border-b last:border-0 hover:bg-muted/40 transition-colors">
+                  {showCheckbox && (
+                    <td className="pl-3 py-1.5 align-middle">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(e.id)}
                         onChange={() => toggleOne(e.id)}
                         className="rounded"
-                        aria-label={`Selectează ${e.lastName} ${e.firstName}`}
+                        aria-label={`Selectează ${fullName}`}
                       />
-                    </TableCell>
+                    </td>
                   )}
-                  <TableCell className="pl-4 py-3">
-                    <Link
-                      href={`/employees/${e.id}`}
-                      className="font-medium text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors"
-                    >
-                      <span className="block truncate max-w-[160px]">{e.lastName} {e.firstName}</span>
-                    </Link>
-                    {e.companyEmployeeId && (
-                      <span className="text-[10px] text-[hsl(var(--text-faint))] font-mono tabular-nums">
-                        #{e.companyEmployeeId}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="py-3">
-                    <span className="block truncate max-w-[130px] text-sm text-[hsl(var(--text-muted))]">
+                  <td className="pl-4 pr-2 py-1.5 align-middle">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Link
+                        href={`/employees/${e.id}`}
+                        title={fullName}
+                        className="min-w-0 font-medium text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors truncate"
+                      >
+                        {fullName}
+                      </Link>
+                      {e.companyEmployeeId && (
+                        <span className="text-[10px] text-[hsl(var(--text-faint))] font-mono tabular-nums shrink-0">
+                          #{e.companyEmployeeId}
+                        </span>
+                      )}
+                      {!e.jobTitle && (
+                        <span className="shrink-0 inline-flex" role="img" title={labels.funcMissing} aria-label={labels.funcMissing}>
+                          <AlertTriangle className="h-3 w-3 text-amber-500" aria-hidden />
+                        </span>
+                      )}
+                      {!e.hasIdNumber && (
+                        <span className="shrink-0 inline-flex" role="img" title={labels.cnpMissing} aria-label={labels.cnpMissing}>
+                          <AlertTriangle className="h-3 w-3 text-red-500" aria-hidden />
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="pr-2 py-1.5 align-middle">
+                    <span className="block truncate text-[hsl(var(--text-muted))]" title={e.company?.name ?? undefined}>
                       {e.company?.name ?? '—'}
                     </span>
-                  </TableCell>
-                  <TableCell className="py-3">
-                    <span className="block truncate max-w-[120px] text-sm text-[hsl(var(--text-muted))]">
+                  </td>
+                  <td className="pr-2 py-1.5 align-middle">
+                    <span className="block truncate text-[hsl(var(--text-muted))]" title={e.jobTitle ?? undefined}>
                       {e.jobTitle ?? '—'}
                     </span>
-                  </TableCell>
-                  <TableCell className="py-3">
-                    {lastExamDate ? (
-                      <span className="text-sm tabular-nums text-[hsl(var(--text-muted))]">
-                        {fmtDate(lastExamDate, locale)}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-[hsl(var(--text-faint))]">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="py-3">
-                    {recall ? (
-                      recallUrgency === 'overdue' ? (
-                        <span className="inline-flex items-center gap-1.5 rounded border border-red-200/70 bg-red-50/70 px-2 py-0.5 text-[11px] font-medium tabular-nums text-red-900">
-                          <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" aria-hidden />
-                          {fmtDate(recall.dueDate, locale)}
-                        </span>
-                      ) : recallUrgency === 'soon' ? (
-                        <span className="inline-flex items-center gap-1.5 rounded border border-amber-200/70 bg-amber-50/70 px-2 py-0.5 text-[11px] font-medium tabular-nums text-amber-900">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden />
-                          {fmtDate(recall.dueDate, locale)}
-                        </span>
-                      ) : (
-                        <span className="text-sm tabular-nums text-[hsl(var(--text-muted))]">
-                          {fmtDate(recall.dueDate, locale)}
-                        </span>
-                      )
-                    ) : (
-                      <span className="text-sm text-[hsl(var(--text-faint))]">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="py-3 pr-4">
+                  </td>
+                  <td className="pr-2 py-1.5 align-middle">
+                    <span className="inline-flex items-center gap-1.5 min-w-0" title={tip}>
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${si.dotCls}`} aria-hidden />
+                      <span className={`truncate text-[13px] tabular-nums ${si.textCls}`}>{si.text}</span>
+                    </span>
+                  </td>
+                  <td className="pr-4 py-1.5 align-middle relative">
                     {wp ? (
-                      <span className="block truncate max-w-[120px] text-sm text-[hsl(var(--text-muted))]">
+                      <span className="block truncate text-[hsl(var(--text-muted))]" title={wp.name}>
                         {wp.name}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded border border-amber-200/70 bg-amber-50/70 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                      <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-300 text-[13px]">
                         <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden />
                         Fără loc de muncă
                       </span>
                     )}
-                  </TableCell>
-                </TableRow>
+                    {canWrite && (
+                      <Link
+                        href={`/examinations/new?employeeId=${e.id}`}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-[11px] font-medium text-foreground shadow-sm hover:bg-muted whitespace-nowrap"
+                      >
+                        <Plus className="h-3 w-3" />
+                        {labels.newExam}
+                      </Link>
+                    )}
+                  </td>
+                </tr>
               )
             })}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
 
       {/* Mobile cards */}

@@ -529,6 +529,27 @@
       "workplacePlaceholder": "Workplace",
       "allWorkplaces": "All workplaces"
     },
+    "overview": {
+      "activi": "Active",
+      "overdue": "Overdue",
+      "soon": "Due in 30 days",
+      "never": "No examination",
+      "noWorkplace": "No workplace",
+      "missingData": "Missing data for certificate"
+    },
+    "statusCol": {
+      "header": "Status",
+      "overdue": "Overdue by {n} days",
+      "soon": "In {n} days",
+      "ok": "Up to date · {month}",
+      "never": "No examination",
+      "none": "No recall",
+      "funcMissing": "Job title missing",
+      "cnpMissing": "ID number missing",
+      "newExam": "New examination",
+      "lastExam": "Last examination: {d}",
+      "due": "Due: {d}"
+    },
     "title": "Employees",
     "subtitle": "People examined by this practice",
     "newButton": "New employee",

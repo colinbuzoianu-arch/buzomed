@@ -529,6 +529,27 @@
       "workplacePlaceholder": "Loc de muncă",
       "allWorkplaces": "Toate locurile de muncă"
     },
+    "overview": {
+      "activi": "Activi",
+      "overdue": "Depășiți",
+      "soon": "Scadenți în 30 zile",
+      "never": "Fără examinare",
+      "noWorkplace": "Fără loc de muncă",
+      "missingData": "Date lipsă pentru fișă"
+    },
+    "statusCol": {
+      "header": "Status",
+      "overdue": "Depășit de {n} zile",
+      "soon": "În {n} zile",
+      "ok": "La zi · {month}",
+      "never": "Fără examinare",
+      "none": "Fără scadență",
+      "funcMissing": "Funcție lipsă",
+      "cnpMissing": "CNP lipsă",
+      "newExam": "Examinare nouă",
+      "lastExam": "Ultima examinare: {d}",
+      "due": "Scadență: {d}"
+    },
     "title": "Angajați",
     "subtitle": "Persoane evaluate de cabinet",
     "newButton": "Angajat nou",

@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { CompanyFilter } from '@/components/employees/company-filter'
+import { EmployeeOverviewStrip } from '@/components/employees/employee-overview-strip'
 import { RecallFilter } from '@/components/employees/recall-filter'
 import { WorkplaceFilter } from '@/components/employees/workplace-filter'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,7 @@ interface PageProps {
     wp?: string
     company?: string
     recall?: string
+    status?: string
     sort?: string
     page?: string
   }>
@@ -47,7 +49,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   const wpFilter = params.wp ?? ''
   const companyFilter = params.company ?? ''
   const recallFilter = params.recall ?? ''
-  const sortRaw = params.sort ?? 'name_asc'
+  const statusFilter = params.status ?? ''
+  const sortRaw = params.sort ?? 'priority'
   const page = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1)
 
   type DbSortKey =
@@ -58,6 +61,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
     | 'jobTitle_asc'
     | 'jobTitle_desc'
   type ClientSortKey =
+    | 'priority'
     | 'lastExam_asc'
     | 'lastExam_desc'
     | 'recall_asc'
@@ -67,6 +71,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   type SortKey = DbSortKey | ClientSortKey
 
   const VALID_SORTS: SortKey[] = [
+    'priority',
     'name_asc',
     'name_desc',
     'company_asc',
@@ -81,7 +86,7 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
     'workplace_desc',
   ]
 
-  const sort: SortKey = VALID_SORTS.includes(sortRaw as SortKey) ? (sortRaw as SortKey) : 'name_asc'
+  const sort: SortKey = VALID_SORTS.includes(sortRaw as SortKey) ? (sortRaw as SortKey) : 'priority'
 
   const dbOrderBy: Record<DbSortKey, Prisma.EmployeeOrderByWithRelationInput[]> = {
     name_asc: [{ lastName: 'asc' }, { firstName: 'asc' }],
@@ -98,29 +103,51 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   const now = new Date()
   const soonThreshold = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
+  // Reusable where-fragments — shared by the list filters AND the overview
+  // tile counts so a tile's count always matches the list it links to.
+  const overdueWhere: Prisma.EmployeeWhereInput = {
+    recalls: {
+      some: {
+        deletedAt: null,
+        OR: [
+          { status: 'overdue' },
+          { dueDate: { lt: now }, status: { in: ['pending', 'scheduled'] } },
+        ],
+      },
+    },
+  }
+  const soonWhere: Prisma.EmployeeWhereInput = {
+    recalls: {
+      some: {
+        deletedAt: null,
+        status: { in: ['pending', 'scheduled'] },
+        dueDate: { gte: now, lte: soonThreshold },
+      },
+    },
+  }
+  // "No examination" = no completed, non-deleted examination on file.
+  const neverWhere: Prisma.EmployeeWhereInput = {
+    examinations: { none: { status: 'completed', deletedAt: null } },
+  }
+  const noWorkplaceWhere: Prisma.EmployeeWhereInput = {
+    workplaceAssignments: { none: { isCurrent: true } },
+  }
+  // "Missing data for the certificate": job title empty OR no identity number.
+  // Identity-number presence mirrors lib/employees/resolve-cnp.ts — present if
+  // cnpEncrypted OR idDocumentNumber is set (never decrypt here).
+  const missingDataWhere: Prisma.EmployeeWhereInput = {
+    OR: [
+      { jobTitle: null },
+      { jobTitle: '' },
+      { cnpEncrypted: null, idDocumentNumber: null },
+    ],
+  }
+
   const recallWhere: Prisma.EmployeeWhereInput =
     recallFilter === 'overdue'
-      ? {
-          recalls: {
-            some: {
-              deletedAt: null,
-              OR: [
-                { status: 'overdue' },
-                { dueDate: { lt: now }, status: { in: ['pending', 'scheduled'] } },
-              ],
-            },
-          },
-        }
+      ? overdueWhere
       : recallFilter === 'soon'
-        ? {
-            recalls: {
-              some: {
-                deletedAt: null,
-                status: { in: ['pending', 'scheduled'] },
-                dueDate: { gte: now, lte: soonThreshold },
-              },
-            },
-          }
+        ? soonWhere
         : recallFilter === 'ok'
           ? {
               recalls: {
@@ -138,6 +165,14 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
                 },
               }
             : {}
+
+  // New status filter (set only by the overview tiles).
+  const statusWhere: Prisma.EmployeeWhereInput =
+    statusFilter === 'never'
+      ? neverWhere
+      : statusFilter === 'missing_data'
+        ? missingDataWhere
+        : {}
 
   const employeeWhere: Prisma.EmployeeWhereInput = {
     tenantId: user.tenantId,
@@ -164,6 +199,17 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         : {}),
     ...(companyFilter ? { companyId: companyFilter } : {}),
     ...recallWhere,
+    ...statusWhere,
+  }
+
+  // Overview tile counts: tenant's active, non-deleted employees, respecting
+  // only the company filter (so the numbers stay stable as other filters
+  // change). Not computed on the archived tab, where the strip is hidden.
+  const countBase: Prisma.EmployeeWhereInput = {
+    tenantId: user.tenantId,
+    deletedAt: null,
+    archivedAt: null,
+    ...(companyFilter ? { companyId: companyFilter } : {}),
   }
 
   // DB-level pagination only applies to the 6 simple (DB-orderable) sorts.
@@ -171,7 +217,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   // filtered set fetched to sort correctly in memory — degrading those to
   // "no pagination" (full result, unchanged from before) rather than
   // producing subtly-wrong paginated results.
-  const [employees, employeeTotal, workplacesForFilter, companiesForFilter] = await Promise.all([
+  const [employees, employeeTotal, workplacesForFilter, companiesForFilter, overviewCounts] =
+    await Promise.all([
     prisma.employee.findMany({
       where: employeeWhere,
       orderBy,
@@ -184,6 +231,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         companyEmployeeId: true,
         isActive: true,
         archivedAt: true,
+        cnpEncrypted: true,
+        idDocumentNumber: true,
         company: { select: { name: true } },
         workplaceAssignments: {
           where: { isCurrent: true, endDate: null },
@@ -229,12 +278,54 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     }),
+    showArchived
+      ? Promise.resolve(null)
+      : Promise.all([
+          prisma.employee.count({ where: countBase }),
+          prisma.employee.count({ where: { ...countBase, ...overdueWhere } }),
+          prisma.employee.count({ where: { ...countBase, ...soonWhere } }),
+          prisma.employee.count({ where: { ...countBase, ...neverWhere } }),
+          prisma.employee.count({ where: { ...countBase, ...noWorkplaceWhere } }),
+          prisma.employee.count({ where: { ...countBase, ...missingDataWhere } }),
+        ]).then(([activi, overdue, soon, never, noWorkplace, missingData]) => ({
+          activi,
+          overdue,
+          soon,
+          never,
+          noWorkplace,
+          missingData,
+        })),
   ])
 
   // Client-side sort for columns that can't be ordered in DB (join-dependent)
   let sortedEmployees = [...employees]
 
-  if (sort === 'lastExam_asc' || sort === 'lastExam_desc') {
+  if (sort === 'priority') {
+    // Default triage order: overdue (most overdue first) → soon (soonest
+    // first) → never examined → ok (soonest due first) → none; ties by name.
+    const nowMs = now.getTime()
+    const soonMs = soonThreshold.getTime()
+    const rank = (e: (typeof employees)[number]): { bucket: number; key: number } => {
+      const recall = e.recalls[0]
+      const hasExam = e.examinations.length > 0
+      if (recall) {
+        const due = new Date(recall.dueDate).getTime()
+        if (recall.status === 'overdue' || due < nowMs) return { bucket: 0, key: due }
+        if (due <= soonMs) return { bucket: 1, key: due }
+        if (!hasExam) return { bucket: 2, key: 0 }
+        return { bucket: 3, key: due }
+      }
+      if (!hasExam) return { bucket: 2, key: 0 }
+      return { bucket: 4, key: 0 }
+    }
+    sortedEmployees.sort((a, b) => {
+      const ra = rank(a)
+      const rb = rank(b)
+      if (ra.bucket !== rb.bucket) return ra.bucket - rb.bucket
+      if (ra.key !== rb.key) return ra.key - rb.key
+      return `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'ro')
+    })
+  } else if (sort === 'lastExam_asc' || sort === 'lastExam_desc') {
     sortedEmployees.sort((a, b) => {
       const aDate = a.examinations[0]?.signedAt ?? a.examinations[0]?.completedAt ?? null
       const bDate = b.examinations[0]?.signedAt ?? b.examinations[0]?.completedAt ?? null
@@ -267,9 +358,19 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
 
   const totalPages = employeeTotal !== null ? Math.ceil(employeeTotal / PAGE_SIZE) : null
 
-  // Serialize dates so the client component receives plain strings (RSC serialization requirement)
+  // Serialize dates so the client component receives plain strings (RSC
+  // serialization requirement). Identity-number presence is reduced to a
+  // boolean here — the encrypted CNP is never sent to the client.
   const serializedEmployees = sortedEmployees.map((e) => ({
-    ...e,
+    id: e.id,
+    firstName: e.firstName,
+    lastName: e.lastName,
+    jobTitle: e.jobTitle,
+    companyEmployeeId: e.companyEmployeeId,
+    isActive: e.isActive,
+    company: e.company,
+    workplaceAssignments: e.workplaceAssignments,
+    hasIdNumber: Boolean(e.cnpEncrypted) || Boolean(e.idDocumentNumber),
     archivedAt: e.archivedAt ? e.archivedAt.toISOString() : null,
     examinations: e.examinations.map((ex) => ({
       completedAt: ex.completedAt ? ex.completedAt.toISOString() : null,
@@ -314,6 +415,23 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
           </div>
         )}
       </div>
+
+      {!showArchived && overviewCounts && (
+        <EmployeeOverviewStrip
+          counts={overviewCounts}
+          recall={recallFilter}
+          status={statusFilter}
+          wp={wpFilter}
+          labels={{
+            activi: t('employees.overview.activi'),
+            overdue: t('employees.overview.overdue'),
+            soon: t('employees.overview.soon'),
+            never: t('employees.overview.never'),
+            noWorkplace: t('employees.overview.noWorkplace'),
+            missingData: t('employees.overview.missingData'),
+          }}
+        />
+      )}
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
         {/* Tab-uri activi/arhivați */}
@@ -367,7 +485,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
               ...(q ? [['q', q]] : []),
               ...(wpFilter ? [['wp', wpFilter]] : []),
               ...(recallFilter ? [['recall', recallFilter]] : []),
-              ...(sortRaw !== 'name_asc' ? [['sort', sortRaw]] : []),
+              ...(statusFilter ? [['status', statusFilter]] : []),
+              ...(sortRaw !== 'priority' ? [['sort', sortRaw]] : []),
             ]).toString()}`}
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-[hsl(var(--surface-tinted))] px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
           >
@@ -386,7 +505,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
               ...(q ? [['q', q]] : []),
               ...(companyFilter ? [['company', companyFilter]] : []),
               ...(recallFilter ? [['recall', recallFilter]] : []),
-              ...(sortRaw !== 'name_asc' ? [['sort', sortRaw]] : []),
+              ...(statusFilter ? [['status', statusFilter]] : []),
+              ...(sortRaw !== 'priority' ? [['sort', sortRaw]] : []),
             ]).toString()}`}
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-[hsl(var(--surface-tinted))] px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
           >
@@ -408,7 +528,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
               ...(q ? [['q', q]] : []),
               ...(companyFilter ? [['company', companyFilter]] : []),
               ...(wpFilter ? [['wp', wpFilter]] : []),
-              ...(sortRaw !== 'name_asc' ? [['sort', sortRaw]] : []),
+              ...(statusFilter ? [['status', statusFilter]] : []),
+              ...(sortRaw !== 'priority' ? [['sort', sortRaw]] : []),
             ]).toString()}`}
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-[hsl(var(--surface-tinted))] px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
           >
@@ -458,6 +579,18 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
           sort={sort}
           showArchived={showArchived}
           canWrite={caps.canWriteAdministrative}
+          labels={{
+            overdue: t('employees.statusCol.overdue'),
+            soon: t('employees.statusCol.soon'),
+            ok: t('employees.statusCol.ok'),
+            never: t('employees.statusCol.never'),
+            none: t('employees.statusCol.none'),
+            funcMissing: t('employees.statusCol.funcMissing'),
+            cnpMissing: t('employees.statusCol.cnpMissing'),
+            newExam: t('employees.statusCol.newExam'),
+            lastExam: t('employees.statusCol.lastExam'),
+            due: t('employees.statusCol.due'),
+          }}
         />
       )}
 
