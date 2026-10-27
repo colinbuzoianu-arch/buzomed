@@ -4,10 +4,12 @@ import { KeyRound } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { toastError, toastSuccess } from '@/lib/toast'
 
 interface Labels {
   resetButton: string
-  confirm: string // "{name}" placeholder
+  confirm: string
+  /** "{count}" placeholder for the number of factors removed. */
   success: string
   error: string
   resetting: string
@@ -25,33 +27,30 @@ export function Reset2faButton({
 }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   async function handleReset() {
-    if (!confirm(labels.confirm.replace('{name}', userDisplayName))) return
+    if (!confirm(labels.confirm)) return
     setBusy(true)
-    setError(null)
     try {
-      const res = await fetch(`/api/super-admin/users/${userId}/reset-2fa`, { method: 'POST' })
+      const res = await fetch(`/api/super-admin/users/${userId}/reset-mfa`, { method: 'POST' })
       if (!res.ok) {
-        setError(labels.error)
+        toastError(labels.error)
         setBusy(false)
         return
       }
+      const data = (await res.json().catch(() => ({}))) as { removed?: number }
+      toastSuccess(labels.success.replace('{count}', String(data.removed ?? 0)), userDisplayName)
       router.refresh()
     } catch {
-      setError(labels.error)
+      toastError(labels.error)
       setBusy(false)
     }
   }
 
   return (
-    <span className="inline-flex flex-col items-end gap-0.5">
-      <Button variant="outline" size="sm" onClick={handleReset} disabled={busy}>
-        <KeyRound className="h-3.5 w-3.5 mr-1" />
-        {busy ? labels.resetting : labels.resetButton}
-      </Button>
-      {error && <span className="text-[11px] text-destructive">{error}</span>}
-    </span>
+    <Button variant="outline" size="sm" onClick={handleReset} disabled={busy}>
+      <KeyRound className="h-3.5 w-3.5 mr-1" />
+      {busy ? labels.resetting : labels.resetButton}
+    </Button>
   )
 }

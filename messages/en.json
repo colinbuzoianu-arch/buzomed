@@ -104,8 +104,8 @@
       "twoFactorOn": "Enabled",
       "twoFactorOff": "Off",
       "resetButton": "Reset 2FA",
-      "resetConfirm": "Reset two-factor authentication for {name}? All devices will be removed and the user will sign in with their password only.",
-      "resetSuccess": "2FA has been reset.",
+      "resetConfirm": "The user will be able to sign in with their password only until they set up 2FA again. Have you verified the person's identity?",
+      "resetSuccess": "2FA reset — {count} device(s) removed.",
       "resetError": "Reset failed. Please try again.",
       "resetting": "Resetting..."
     }

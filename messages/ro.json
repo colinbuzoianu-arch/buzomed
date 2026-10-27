@@ -104,8 +104,8 @@
       "twoFactorOn": "Activat",
       "twoFactorOff": "Inactiv",
       "resetButton": "Resetează 2FA",
-      "resetConfirm": "Resetezi autentificarea în doi pași pentru {name}? Toate dispozitivele vor fi eliminate și utilizatorul se va putea autentifica doar cu parola.",
-      "resetSuccess": "2FA a fost resetat.",
+      "resetConfirm": "Utilizatorul va putea intra doar cu parola până își configurează din nou 2FA. Ați verificat identitatea persoanei?",
+      "resetSuccess": "2FA resetat — {count} dispozitiv(e) eliminate.",
       "resetError": "Resetarea a eșuat. Mai încearcă.",
       "resetting": "Se resetează..."
     }
