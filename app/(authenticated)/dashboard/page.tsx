@@ -7,6 +7,12 @@ import DashboardOverview from '@/components/dashboard/dashboard-overview'
 import { DashboardOverviewSkeleton } from '@/components/dashboard/dashboard-overview-skeleton'
 import DashboardStats from '@/components/dashboard/dashboard-stats'
 import { DashboardStatsSkeleton } from '@/components/dashboard/dashboard-stats-skeleton'
+import {
+  ControlsCardSkeleton,
+  TodayAgendaSkeleton,
+} from '@/components/dashboard/dashboard-lists-skeleton'
+import TodayAgenda from '@/components/dashboard/today-agenda'
+import ControlsCard from '@/components/dashboard/controls-card'
 import { DashboardGreeting } from '@/components/dashboard-greeting'
 import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
@@ -77,6 +83,16 @@ export default async function DashboardPage() {
       <Suspense fallback={<DashboardStatsSkeleton />}>
         <DashboardStats tenantId={tenantId} t={t} />
       </Suspense>
+
+      {/* Named lists — today's agenda (left) + control buckets (right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Suspense fallback={<TodayAgendaSkeleton />}>
+          <TodayAgenda tenantId={tenantId} locale={locale === 'en' ? 'en' : 'ro'} t={t} />
+        </Suspense>
+        <Suspense fallback={<ControlsCardSkeleton />}>
+          <ControlsCard tenantId={tenantId} locale={locale === 'en' ? 'en' : 'ro'} t={t} />
+        </Suspense>
+      </div>
 
       {/* Quick actions */}
       <section className="space-y-3">

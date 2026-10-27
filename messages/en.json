@@ -1,4 +1,17 @@
 {
+  "search": {
+    "trigger": "Search…",
+    "placeholder": "Search employees, companies, examinations…",
+    "recent": "Recent",
+    "groupEmployees": "Employees",
+    "groupCompanies": "Companies",
+    "groupExaminations": "Examinations",
+    "groupWorkplaces": "Workplaces",
+    "empty": "No results",
+    "minChars": "Type at least 2 characters",
+    "footerHint": "Enter to open · Shift+Enter new examination",
+    "loading": "Searching…"
+  },
   "common": {
     "yes": "Yes",
     "no": "No",
@@ -1044,7 +1057,8 @@
       "scheduled": "Scheduled",
       "in_progress": "In progress",
       "completed": "Completed",
-      "scadente": "Due"
+      "scadente": "Due",
+      "avize": "Certificates"
     },
     "status": {
       "scheduled": "Scheduled",
@@ -1317,6 +1331,57 @@
       "supersededByLabel": "Superseded by certificate no."
     },
     "exportCsv": "Export CSV",
+    "filters": {
+      "searchPlaceholder": "Search name or exam no.…",
+      "clearAll": "Clear filters",
+      "noMatches": "No examinations match the filters",
+      "period": "Period",
+      "periods": {
+        "azi": "Today",
+        "7zile": "Last 7 days",
+        "luna": "This month",
+        "luna_trecuta": "Last month",
+        "an": "This year",
+        "custom": "Custom range"
+      },
+      "type": "Type",
+      "verdict": "Verdict",
+      "verdicts": {
+        "apt": "Fit",
+        "apt_conditionat": "Fit with conditions",
+        "inapt_temporar": "Temporarily unfit",
+        "inapt": "Unfit",
+        "none": "No verdict"
+      },
+      "company": "Company",
+      "practitioner": "Doctor",
+      "sign": "Signing",
+      "signs": {
+        "semnate": "Signed",
+        "nesemnate": "Unsigned",
+        "retrase": "Withdrawn"
+      },
+      "from": "From",
+      "to": "To"
+    },
+    "avize": {
+      "includeRevoked": "Include withdrawn",
+      "downloadAll": "Download all (PDF)",
+      "downloadAllHint": "Select a company and a period (max. 200 certificates).",
+      "downloadOne": "Download certificate (PDF)",
+      "empty": "No certificates issued in the selected filter",
+      "revoked": "withdrawn",
+      "colNumber": "Cert. no.",
+      "colDate": "Examination date",
+      "colWorker": "Employee",
+      "colCompany": "Company",
+      "colWorkplace": "Workplace",
+      "colType": "Type",
+      "colVerdict": "Verdict",
+      "colConditions": "Conditions",
+      "colValidUntil": "Valid until",
+      "colDoctor": "Doctor"
+    },
     "priorExam": {
       "title": "Prior Examination",
       "signedLabel": "Signed on",
@@ -1768,7 +1833,27 @@
     "companies": "companies",
     "employees": "employees",
     "viewFullReport": "Full report",
-    "requiresCall": "Requires a call"
+    "requiresCall": "Requires a call",
+    "todayAgenda": {
+      "title": "Today's appointments",
+      "viewAll": "View all",
+      "empty": "No appointments today",
+      "schedule": "Schedule",
+      "start": "Start",
+      "continue": "Continue",
+      "more": "+{n} more"
+    },
+    "controls": {
+      "title": "Controls",
+      "viewAll": "View all",
+      "tabOverdue": "Overdue",
+      "tabSoon": "Due in 30 days",
+      "emptyOverdue": "No overdue controls",
+      "emptySoon": "No controls in the next 30 days",
+      "daysOverdue": "{n}d",
+      "daysLeft": "{n}d",
+      "dueToday": "Today"
+    }
   },
   "contracts": {
     "sectionTitle": "Contracts",

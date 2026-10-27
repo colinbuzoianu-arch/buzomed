@@ -1,28 +1,27 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import type { ExaminationStatus } from '@prisma/client'
+import type { ExaminationStatus, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
+import { buildExaminationListWhere, readExamListFilters } from '@/lib/examinations/list-filters'
+import { buildAvizeWhere, readAvizeFilters } from '@/lib/examinations/avize-filters'
+import { resolveExaminationDate } from '@/lib/examinations/examined-at'
 import { renderCsv, sanitizeFilename, type CsvRow } from '@/lib/reports/csv'
 
 /**
  * CSV export of the examinations list.
  *
- * Mirrors the filters available on the /examinations page so what
- * downloads matches what the user sees:
+ * Shares `buildExaminationListWhere` with the on-screen list so the file
+ * contains exactly the rows the user sees for any filter combination.
  *
- *   - status: optional ExaminationStatus
- *   - companyId: optional Company filter
- *   - from / to: optional ISO date range (inclusive `from`, exclusive `to`)
+ * Backwards-compatible: the per-company report links here with
+ * `companyId` + `from`/`to` and no `period`. That legacy shape keeps its
+ * original `createdAt`-range semantics (so the report's numbers don't move);
+ * only once the new list filters are used does the period switch to the
+ * examination-date chain used on screen.
  *
- * No pagination — exports the full filtered set. We cap at 10,000 rows
- * defensively; if a cabinet has more than 10k exams matching the
- * filter, they should narrow it first. (10k rows is ~2-3 MB CSV — well
- * within Excel's tolerance and our function execution time budget.)
- *
- * Authorization: same as the page — canReadTenantData. Assistants CAN
- * export because they can already see the data in the table view; CSV
- * just transposes it to a different format.
+ * Authorization: same as the page — canReadTenantData. Assistants can export
+ * because they can already see the data in the table view.
  */
 
 const VALID_STATUSES: ExaminationStatus[] = [
@@ -35,49 +34,66 @@ const VALID_STATUSES: ExaminationStatus[] = [
 
 const EXPORT_LIMIT = 10_000
 
+const VERDICT_LABEL: Record<string, string> = {
+  apt: 'Apt',
+  apt_conditionat: 'Apt condiționat',
+  inapt_temporar: 'Inapt temporar',
+  inapt: 'Inapt',
+}
+
+function parseDateParam(raw: string | null): Date | null {
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null
+  const d = new Date(`${raw}T00:00:00.000Z`)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
 export async function GET(request: NextRequest) {
   const auth = await getApiUser()
   if (!auth.user) {
-    return NextResponse.json(
-      { error: 'unauthorized', reason: auth.reason },
-      { status: 401 }
-    )
+    return NextResponse.json({ error: 'unauthorized', reason: auth.reason }, { status: 401 })
   }
   if (!auth.user.tenantId || !canReadTenantData(auth.user, auth.user.tenantId)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
+  const tenantId = auth.user.tenantId
 
   const { searchParams } = new URL(request.url)
+
+  // „Avize emise" register export — its own where (signedAt period, verdict
+  // present, revoked included by default) and column set (no PDF column).
+  if (searchParams.get('register') === 'avize') {
+    return exportAvizeRegister(tenantId, searchParams)
+  }
+
   const statusParam = searchParams.get('status')
   const status =
     statusParam && VALID_STATUSES.includes(statusParam as ExaminationStatus)
       ? (statusParam as ExaminationStatus)
       : null
-  const companyId = searchParams.get('companyId') || null
 
-  // Date range parsing. We accept YYYY-MM-DD here, matching the
-  // examinations page's filter UI (currently none, but the export
-  // route is also called by the per-company report which DOES filter
-  // by date).
-  function parseDateParam(raw: string | null): Date | null {
-    if (!raw) return null
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null
-    const d = new Date(`${raw}T00:00:00.000Z`)
-    return isNaN(d.getTime()) ? null : d
-  }
-  const fromDate = parseDateParam(searchParams.get('from'))
-  const toDate = parseDateParam(searchParams.get('to'))
-  // For `to`, advance one day so it's an exclusive upper bound.
-  const toBound = toDate ? new Date(toDate.getTime() + 86_400_000) : null
+  const filters = readExamListFilters(Object.fromEntries(searchParams.entries()))
 
-  const examinations = await prisma.examination.findMany({
-    where: {
-      tenantId: auth.user.tenantId,
+  // Legacy per-company report path: from/to without any new filter → keep the
+  // original createdAt-range behaviour so that report's numbers stay stable.
+  const legacyMode =
+    !filters.period &&
+    !filters.type &&
+    !filters.verdict &&
+    !filters.practitionerId &&
+    !filters.sign &&
+    !filters.search &&
+    (searchParams.get('from') || searchParams.get('to'))
+
+  let where: Prisma.ExaminationWhereInput
+  if (legacyMode) {
+    const fromDate = parseDateParam(searchParams.get('from'))
+    const toDate = parseDateParam(searchParams.get('to'))
+    const toBound = toDate ? new Date(toDate.getTime() + 86_400_000) : null
+    where = {
+      tenantId,
       deletedAt: null,
       ...(status ? { status } : {}),
-      ...(companyId
-        ? { workplace: { companyId, deletedAt: null } }
-        : {}),
+      ...(filters.companyId ? { workplace: { companyId: filters.companyId, deletedAt: null } } : {}),
       ...(fromDate || toBound
         ? {
             createdAt: {
@@ -86,72 +102,59 @@ export async function GET(request: NextRequest) {
             },
           }
         : {}),
-    },
-    orderBy: [{ createdAt: 'desc' }],
+    }
+  } else {
+    where = await buildExaminationListWhere(tenantId, status, filters)
+  }
+
+  const examinations = await prisma.examination.findMany({
+    where,
+    orderBy: [{ scheduledAt: 'desc' }, { createdAt: 'desc' }],
     take: EXPORT_LIMIT,
     select: {
       examinationNumber: true,
-      createdAt: true,
-      scheduledAt: true,
+      examinedAt: true,
       completedAt: true,
+      scheduledAt: true,
+      createdAt: true,
       signedAt: true,
-      status: true,
       verdict: true,
-      nextExaminationDueDate: true,
+      verdictConditions: true,
       employee: { select: { firstName: true, lastName: true } },
       workplace: {
-        select: {
-          name: true,
-          department: true,
-          company: { select: { name: true } },
-        },
+        select: { name: true, company: { select: { name: true } } },
       },
-      examinationType: { select: { nameRo: true, code: true } },
+      examinationType: { select: { nameRo: true } },
       practitioner: { select: { firstName: true, lastName: true } },
     },
   })
 
-  // Header row. Romanian-first since this is a Romania-only product.
-  // Bilingual headers (Ro / En) inline keep the file usable by non-RO
-  // speakers without needing a separate export.
   const headers: CsvRow = [
-    'Număr / Number',
-    'Data deschidere / Created',
-    'Data programare / Scheduled',
-    'Data finalizare / Completed',
-    'Data semnare / Signed',
-    'Status',
-    'Verdict',
-    'Următoarea scadență / Next due',
-    'Angajat / Worker',
-    'Companie / Company',
-    'Loc de muncă / Workplace',
-    'Departament / Department',
-    'Tip examen / Exam type',
-    'Cod / Code',
-    'Medic / Practitioner',
+    'Nr.',
+    'Data',
+    'Angajat',
+    'Companie',
+    'Loc de muncă',
+    'Tip',
+    'Aviz',
+    'Condiții',
+    'Medic',
+    'Semnat la',
   ]
 
   const rows: CsvRow[] = [headers]
   for (const e of examinations) {
     rows.push([
       e.examinationNumber,
-      e.createdAt,
-      e.scheduledAt,
-      e.completedAt,
-      e.signedAt,
-      e.status,
-      e.verdict ?? '',
-      e.nextExaminationDueDate,
+      resolveExaminationDate(e),
       `${e.employee.lastName} ${e.employee.firstName}`,
       e.workplace.company.name,
       e.workplace.name,
-      e.workplace.department ?? '',
       e.examinationType.nameRo,
-      e.examinationType.code,
-      e.practitioner
-        ? `${e.practitioner.lastName} ${e.practitioner.firstName}`
-        : '',
+      e.verdict ? (VERDICT_LABEL[e.verdict] ?? e.verdict) : '',
+      e.verdictConditions ?? '',
+      e.practitioner ? `${e.practitioner.lastName} ${e.practitioner.firstName}` : '',
+      e.signedAt,
     ])
   }
 
@@ -163,8 +166,76 @@ export async function GET(request: NextRequest) {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="${filename}"`,
-      // Discourage caching — the same URL produces different content
-      // as new exams get added.
+      'Cache-Control': 'no-store',
+    },
+  })
+}
+
+/** CSV of the „Avize emise" register — the list columns minus the PDF link. */
+async function exportAvizeRegister(
+  tenantId: string,
+  searchParams: URLSearchParams
+): Promise<NextResponse> {
+  const filters = readAvizeFilters(Object.fromEntries(searchParams.entries()))
+  const where = buildAvizeWhere(tenantId, filters)
+
+  const examinations = await prisma.examination.findMany({
+    where,
+    orderBy: [{ signedAt: 'desc' }],
+    take: EXPORT_LIMIT,
+    select: {
+      examinationNumber: true,
+      examinedAt: true,
+      completedAt: true,
+      createdAt: true,
+      verdict: true,
+      verdictConditions: true,
+      nextExaminationDueDate: true,
+      revokedAt: true,
+      employee: { select: { firstName: true, lastName: true } },
+      workplace: { select: { name: true, company: { select: { name: true } } } },
+      examinationType: { select: { nameRo: true } },
+      practitioner: { select: { firstName: true, lastName: true } },
+    },
+  })
+
+  const headers: CsvRow = [
+    'Nr. fișă',
+    'Data examinării',
+    'Angajat',
+    'Companie',
+    'Loc de muncă',
+    'Tip',
+    'Aviz',
+    'Condiții',
+    'Valabil până la',
+    'Medic',
+    'Retrasă',
+  ]
+
+  const rows: CsvRow[] = [headers]
+  for (const e of examinations) {
+    rows.push([
+      e.examinationNumber,
+      resolveExaminationDate(e),
+      `${e.employee.lastName} ${e.employee.firstName}`,
+      e.workplace.company.name,
+      e.workplace.name,
+      e.examinationType.nameRo,
+      e.verdict ? (VERDICT_LABEL[e.verdict] ?? e.verdict) : '',
+      e.verdictConditions ?? '',
+      e.nextExaminationDueDate,
+      e.practitioner ? `${e.practitioner.lastName} ${e.practitioner.firstName}` : '',
+      e.revokedAt ? 'Da' : '',
+    ])
+  }
+
+  const stamp = new Date().toISOString().slice(0, 10)
+  const filename = sanitizeFilename(`avize_${stamp}.csv`)
+  return new NextResponse(renderCsv(rows), {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
       'Cache-Control': 'no-store',
     },
   })

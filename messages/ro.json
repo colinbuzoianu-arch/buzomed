@@ -1,4 +1,17 @@
 {
+  "search": {
+    "trigger": "Caută…",
+    "placeholder": "Caută angajați, firme, examinări…",
+    "recent": "Recente",
+    "groupEmployees": "Angajați",
+    "groupCompanies": "Firme",
+    "groupExaminations": "Examinări",
+    "groupWorkplaces": "Locuri de muncă",
+    "empty": "Niciun rezultat",
+    "minChars": "Tastează cel puțin 2 caractere",
+    "footerHint": "Enter deschide · Shift+Enter examinare nouă",
+    "loading": "Se caută…"
+  },
   "common": {
     "yes": "Da",
     "no": "Nu",
@@ -1044,7 +1057,8 @@
       "scheduled": "Programate",
       "in_progress": "În curs",
       "completed": "Finalizate",
-      "scadente": "Scadențe"
+      "scadente": "Scadențe",
+      "avize": "Avize"
     },
     "status": {
       "scheduled": "Programată",
@@ -1317,6 +1331,57 @@
       "supersededByLabel": "Înlocuită de fișa nr."
     },
     "exportCsv": "Exportă CSV",
+    "filters": {
+      "searchPlaceholder": "Caută nume sau nr. examinare…",
+      "clearAll": "Șterge filtrele",
+      "noMatches": "Nicio examinare nu corespunde filtrelor",
+      "period": "Perioadă",
+      "periods": {
+        "azi": "Azi",
+        "7zile": "Ultimele 7 zile",
+        "luna": "Luna curentă",
+        "luna_trecuta": "Luna trecută",
+        "an": "Anul curent",
+        "custom": "Interval personalizat"
+      },
+      "type": "Tip",
+      "verdict": "Aviz",
+      "verdicts": {
+        "apt": "Apt",
+        "apt_conditionat": "Apt condiționat",
+        "inapt_temporar": "Inapt temporar",
+        "inapt": "Inapt",
+        "none": "Fără aviz"
+      },
+      "company": "Companie",
+      "practitioner": "Medic",
+      "sign": "Semnare",
+      "signs": {
+        "semnate": "Semnate",
+        "nesemnate": "Nesemnate",
+        "retrase": "Retrase"
+      },
+      "from": "De la",
+      "to": "Până la"
+    },
+    "avize": {
+      "includeRevoked": "Include retrase",
+      "downloadAll": "Descarcă toate (PDF)",
+      "downloadAllHint": "Selectează o companie și o perioadă (max. 200 fișe).",
+      "downloadOne": "Descarcă fișa (PDF)",
+      "empty": "Nicio fișă emisă în filtrul selectat",
+      "revoked": "retrasă",
+      "colNumber": "Nr. fișă",
+      "colDate": "Data examinării",
+      "colWorker": "Angajat",
+      "colCompany": "Companie",
+      "colWorkplace": "Loc de muncă",
+      "colType": "Tip",
+      "colVerdict": "Aviz",
+      "colConditions": "Condiții",
+      "colValidUntil": "Valabil până la",
+      "colDoctor": "Medic"
+    },
     "priorExam": {
       "title": "Examinare anterioară",
       "signedLabel": "Semnată la",
@@ -1768,7 +1833,27 @@
     "companies": "companii",
     "employees": "angajați",
     "viewFullReport": "Raport complet",
-    "requiresCall": "Necesită apel telefonic"
+    "requiresCall": "Necesită apel telefonic",
+    "todayAgenda": {
+      "title": "Programări azi",
+      "viewAll": "Vezi toate",
+      "empty": "Nicio programare azi",
+      "schedule": "Programează",
+      "start": "Începe",
+      "continue": "Continuă",
+      "more": "+{n} altele"
+    },
+    "controls": {
+      "title": "Controale",
+      "viewAll": "Vezi toate",
+      "tabOverdue": "Depășite",
+      "tabSoon": "Expiră în 30 zile",
+      "emptyOverdue": "Niciun control depășit",
+      "emptySoon": "Niciun control în următoarele 30 de zile",
+      "daysOverdue": "{n}z",
+      "daysLeft": "{n}z",
+      "dueToday": "Azi"
+    }
   },
   "contracts": {
     "sectionTitle": "Contracte",

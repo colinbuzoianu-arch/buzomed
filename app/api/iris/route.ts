@@ -111,7 +111,7 @@ HARTĂ NAVIGARE (path intern → ce spui utilizatorului implicit; menționezi ș
 - /employees/merge → tab Angajați → buton "Combină angajați duplicați" (practice_admin, practitioner și assistant)
 - /employees/[id] → click pe numele angajatului din listă; acolo sunt tab-urile Examinări, Vaccinări, Evenimente, Documente
 - /employees/[id]/edit → pe profilul angajatului → buton "Editează"
-- /examinations → tab "Examinări"; sub-tab-uri Programate, Scadențe, Istoric
+- /examinations → tab "Examinări"; sub-tab-uri Scadențe, Programate, În curs, Finalizate, Avize, Toate
 - /examinations/new → tab Examinări → buton "+ Examinare nouă"
 - /examinations/bulk → tab Examinări → buton "Programare în masă"
 - /examinations/[id] → click pe examinare din listă → butoanele "Semnează", "Vizualizează fișa" și, pentru o fișă deja semnată, "Retrage fișa" (dacă are rolul potrivit)
@@ -138,12 +138,20 @@ Folosește pagina curentă ("${context.currentPage}") ca să înțelegi unde e u
 - Dacă e pe /super-admin → sub-pagini: /super-admin/tenants/new, /super-admin/tenants/[id] (include tab-ul "Facturi platformă"), /super-admin/system-health
 Dacă nu știi pagina curentă sau e "/", răspunde generic cu URL-urile corecte.
 
+CĂUTARE GLOBALĂ (⌘K / Ctrl K):
+- În bara de sus (lângă selectorul de limbă) e un buton „Caută…" cu scurtătura Ctrl K (⌘K pe Mac). Se deschide și apăsând Ctrl K / ⌘K oriunde în aplicație, sau tasta „/" când nu scrii într-un câmp. Nu apare pentru super_admin.
+- Caută simultan, în cabinetul curent: Angajați (nume în ambele ordini, matricolă, funcție), Firme (nume, CUI), Examinări (după numărul fișei, ex. „2026/0123" sau „0123") și Locuri de muncă (nume + firmă). Caută fără diacritice — „puscas" găsește „Pușcaș".
+- Dacă tastezi exact 13 cifre, caută angajatul după CNP (securizat, prin hash — nu afișează CNP-ul).
+- Navigare din tastatură: săgeți sus/jos, Enter deschide rezultatul. Pe un angajat, Shift+Enter deschide direct o examinare nouă pentru el. Reține ultimele 5 rezultate deschise.
+
 CE ȘTII DESPRE BUZOMED — PAGINI ȘI FLUXURI:
 
 DASHBOARD (/dashboard):
 - Prima pagină după login (super_admin e redirecționat automat la /super-admin).
 - Afișează un salut cu numele utilizatorului și numele cabinetului.
 - 4 carduri de acțiune rapidă cu numărul curent de: recalls restante (link → /examinations?tab=scadente&horizon=overdue), examinări programate azi, examinări în progres, examinări completate nesemnate.
+- Cardul „Programări azi" (stânga): lista examinărilor programate sau în curs azi (ora Bucureștiului), cu ora, numele angajatului, firma, tipul și un buton „Începe"/„Continuă"; click pe rând deschide examinarea. Gol → „Nicio programare azi".
+- Cardul „Controale" (dreapta): două file — „Depășite" și „Expiră în 30 zile" — cu numărul de controale și lista cu nume, firmă, scadență și un badge cu zilele; click pe rând deschide angajatul. „Vezi toate" duce la Scadențe.
 - Butoane de acces rapid: + Angajat nou (/employees/new), + Companie nouă (/companies/new), + Examinare nouă (/examinations/new), Programare în masă (/examinations/bulk).
 - Banner trial (dacă abonamentul e în trial): afișează zilele rămase și link spre /settings/billing.
 
@@ -259,7 +267,8 @@ EVENIMENTE MEDICALE:
 - Accidente de muncă (Legea 319/2006): câmpuri suplimentare: natura leziunii, zile incapacitate, număr raport ITM. Bifă "Necesită raport ITHS" → badge amber până se marchează depus.
 
 EXAMINĂRI:
-- /examinations — lista cu 3 tab-uri: Programate (status scheduled/in_progress), Scadențe (?tab=scadente), Istoric (completate/anulate).
+- /examinations — lista cu tab-urile: Scadențe (implicit), Programate, În curs, Finalizate, Avize și Toate. Fiecare tab are un contor; numerele contoarelor rămân pe total (nu se schimbă când filtrezi lista).
+- FILTRE PE LISTĂ (tab-urile Programate, În curs, Finalizate, Toate): sub tab-uri e o bară de filtre cu „chips" (fiecare un mic dropdown, cu „×" ca să-l golești): Perioadă (azi, ultimele 7 zile, luna curentă, luna trecută, anul curent, interval personalizat — pe data examinării), Tip (cele 5 tipuri active), Aviz (apt / apt condiționat / inapt temporar / inapt / fără aviz), Companie, Medic, Semnare (semnate / nesemnate / retrase). Plus o casetă de căutare după nume angajat sau numărul examinării (fără diacritice). Toate filtrele stau în adresa paginii (se pot da bookmark/share). Butonul „Exportă CSV" descarcă exact rândurile filtrate.
 - /examinations/new — creare examinare. Tipul determină câmpurile. Lista de tipuri conține acum exact 5 tipuri active, într-o ordine fixă: 1. Examen medical la angajare, 2. Control medical periodic, 3. Examen de adaptare, 4. Examen la reluarea activității, 5. Supraveghere medicală specială. (Alte tipuri mai vechi au fost dezactivate și nu mai apar în listă, dar examinările istorice rămân neatinse.) Pre-completare AI disponibilă pentru examinări periodice și angajare (banner cu opțiunea de a aplica sugestiile din ultima examinare semnată). Parametru ?companyId= și ?employeeId= pentru pre-fill.
 - /examinations/[id] — detaliu examinare: status, angajat, tip, verdict, note. Butoane: "Semnează" (practitioner/practice_admin — generează signedAt, apare semnătura pe fișă), "Generează fișă" (duce la /examinations/[id]/fisa). assistant NU vede butonul "Semnează".
 - /examinations/[id] — panou "Documente": lista de formulare disponibile diferă după tipul examinării, fiecare cu badge Obligatoriu/Opțional, buton "Descarcă necompletat" (PDF gol) și buton de generare completată cu datele examinării. Documentele pe cele 5 tipuri active: angajare → Fișa de aptitudine, Examen medical la angajare, Dosar medical, Bilet de trimitere; control_periodic → Fișa de aptitudine, Examen medical periodic, Bilet de trimitere; adaptare → Fișa de aptitudine, Bilet de trimitere; reluare_munca → Fișa de aptitudine, Bilet de trimitere; supraveghere_speciala → Fișa de aptitudine, Bilet de trimitere (pe fișa de aptitudine se bifează automat „Supraveghere specială").
@@ -313,6 +322,14 @@ RETRAGEREA UNEI FIȘE (retragere):
 - Scadențele derivate din fișa retrasă se anulează automat (programarea se baza pe un verdict pe care cabinetul nu-l mai susține). Scadențele deja finalizate sau anulate rămân neatinse.
 - Retragerea e definitivă. NU există anulare a retragerii. Dacă a fost o greșeală, calea e o examinare nouă.
 - Retragerea apare în Jurnal acces cu acțiunea "Retragere".
+
+AVIZE EMISE — REGISTRUL FIȘELOR (tab-ul „Avize", /examinations?tab=avize):
+- Registru al fișelor de aptitudine emise: examinările semnate care au un verdict, cele mai noi primele. Util pentru întrebarea HR „ce fișe mi-ați trimis luna asta?".
+- Coloane: nr. fișă, data examinării, angajat, companie, loc de muncă, tip, aviz, condiții, valabil până la, medic și un link PDF pentru fiecare fișă.
+- Fișele retrase apar tăiate cu o linie și marcate „retrasă", cu link către fișa care le înlocuiește. Filtrul „Include retrase" e pornit implicit (registrul e complet); îl poți opri.
+- Filtre (aceleași chips ca la listă): Perioadă (pe data semnării), Companie, Aviz.
+- Butonul „Descarcă toate (PDF)" unește într-un singur PDF toate fișele din filtru. Cere obligatoriu o companie ȘI o perioadă, maximum 200 de fișe — altfel butonul e inactiv și explică la trecerea cu mouse-ul. Paginile din PDF-ul unit sunt identice cu fișele descărcate individual.
+- Butonul „Exportă CSV" descarcă registrul (aceleași coloane, fără PDF).
 
 SCADENȚE (/examinations?tab=scadente):
 - URL principal pentru scadențe. Vechiul /recalls redirecționează automat aici (e un shim pentru bookmarks).

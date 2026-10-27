@@ -9,6 +9,7 @@ import { IrisPanel } from '@/components/iris/iris-panel'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { LogoutButton } from '@/components/logout-button'
 import { MobileNav } from '@/components/mobile-nav'
+import { GlobalSearch } from '@/components/search/global-search'
 import { SubscriptionBanner } from '@/components/subscription-banner'
 import { TenantLogo } from '@/components/tenant-logo'
 import { requireUser } from '@/lib/auth'
@@ -121,14 +122,24 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* Command palette hint — visual signal only, not wired yet */}
-            <span
-              className="hidden lg:inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2 py-1 text-[11px] text-[hsl(var(--text-faint))] font-mono"
-              aria-hidden
-            >
-              <span>⌘</span>
-              <span>K</span>
-            </span>
+            {/* Global search (⌘K / Ctrl K) — tenant users only, not super_admin */}
+            {hasTenant && !isSuperAdmin && (
+              <GlobalSearch
+                labels={{
+                  trigger: t('search.trigger'),
+                  placeholder: t('search.placeholder'),
+                  recent: t('search.recent'),
+                  groupEmployees: t('search.groupEmployees'),
+                  groupCompanies: t('search.groupCompanies'),
+                  groupExaminations: t('search.groupExaminations'),
+                  groupWorkplaces: t('search.groupWorkplaces'),
+                  empty: t('search.empty'),
+                  minChars: t('search.minChars'),
+                  footerHint: t('search.footerHint'),
+                  loading: t('search.loading'),
+                }}
+              />
+            )}
 
             <LanguageSwitcher currentLocale={locale} />
 

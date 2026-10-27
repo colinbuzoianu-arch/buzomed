@@ -2,6 +2,7 @@ import type { ExaminationStatus, RecallStatus } from '@prisma/client'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
+import AvizeView from '@/components/examinations/avize-view'
 import ExaminationsListView from '@/components/examinations/examinations-list-view'
 import { ExaminationsListViewSkeleton } from '@/components/examinations/examinations-list-view-skeleton'
 import ScadenteView from '@/components/examinations/scadente-view'
@@ -49,9 +50,9 @@ import { prisma } from '@/lib/prisma'
  * its own Suspense boundary instead of blocking the shell.
  */
 
-type Tab = 'scadente' | 'programate' | 'in_curs' | 'finalizate' | 'toate'
+type Tab = 'scadente' | 'programate' | 'in_curs' | 'finalizate' | 'avize' | 'toate'
 
-const VALID_TABS: Tab[] = ['scadente', 'programate', 'in_curs', 'finalizate', 'toate']
+const VALID_TABS: Tab[] = ['scadente', 'programate', 'in_curs', 'finalizate', 'avize', 'toate']
 
 /** Map our tab labels to the underlying ExaminationStatus filter. */
 function tabToStatus(tab: Tab): ExaminationStatus | null {
@@ -131,7 +132,7 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
   // For scadente, count from recalls (pending + overdue, with the
   // soft-deleted-source-exam filter) — one groupBy instead of two counts,
   // since the only difference between them is the status value.
-  const [examCounts, scadenteCounts] = await Promise.all([
+  const [examCounts, scadenteCounts, avizeCount] = await Promise.all([
     prisma.examination.groupBy({
       by: ['status'],
       where: { tenantId: user.tenantId, deletedAt: null },
@@ -146,6 +147,16 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
         OR: [{ createdFromExaminationId: null }, { createdFromExamination: { deletedAt: null } }],
       },
       _count: true,
+    }),
+    // „Avize emise" register total — signed examinations that carry a verdict
+    // (revoked included; the register is meant to be complete).
+    prisma.examination.count({
+      where: {
+        tenantId: user.tenantId,
+        deletedAt: null,
+        signedAt: { not: null },
+        verdict: { not: null },
+      },
     }),
   ])
 
@@ -185,14 +196,9 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
       label: t('examinations.tabs.completed'),
       count: countByStatus('completed'),
     },
+    { key: 'avize', label: t('examinations.tabs.avize'), count: avizeCount },
     { key: 'toate', label: t('examinations.tabs.all'), count: totalExams },
   ]
-
-  // CSV export URL — when on an exam tab, scope to that status.
-  const exportStatus = tabToStatus(tab)
-  const exportUrl = exportStatus
-    ? `/api/examinations/export?status=${exportStatus}`
-    : '/api/examinations/export'
 
   return (
     <div className="space-y-6">
@@ -206,11 +212,6 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {tab !== 'scadente' && (
-            <a href={exportUrl} className="text-sm border rounded-md px-3 py-2 hover:bg-muted">
-              {t('examinations.exportCsv')}
-            </a>
-          )}
           {caps.canWriteAdministrative && (
             <Button asChild variant="outline">
               <Link href="/examinations/bulk">Programare în masă</Link>
@@ -255,7 +256,17 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
         })}
       </div>
 
-      {tab === 'scadente' ? (
+      {tab === 'avize' ? (
+        <Suspense fallback={<ExaminationsListViewSkeleton />}>
+          <AvizeView
+            tenantId={user.tenantId}
+            locale={locale}
+            t={t}
+            page={page}
+            searchParams={params}
+          />
+        </Suspense>
+      ) : tab === 'scadente' ? (
         <Suspense fallback={<ScadenteViewSkeleton />}>
           <ScadenteView
             tenantId={user.tenantId}
@@ -276,11 +287,11 @@ export default async function ExaminationsPage({ searchParams }: PageProps) {
           <ExaminationsListView
             tenantId={user.tenantId}
             status={tabToStatus(tab)}
+            tab={tab}
             locale={locale}
             canWrite={caps.canWriteAdministrative}
             t={t}
             page={page}
-            total={exportStatus ? countByStatus(exportStatus) : totalExams}
             searchParams={params}
           />
         </Suspense>
