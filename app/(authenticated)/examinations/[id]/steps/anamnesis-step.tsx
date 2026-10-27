@@ -14,6 +14,7 @@ import {
   YesNoField,
 } from '../examination-field-components'
 import type { ExaminationFormValues, Labels } from '../examination-stepper'
+import { type DosarIdentity, DosarMedicalIntake } from './dosar-medical-intake'
 
 interface Props {
   values: ExaminationFormValues
@@ -33,6 +34,8 @@ interface Props {
   showPrefillBanner: boolean
   onApplyPrefill: () => void
   onDismissPrefill: () => void
+  /** Present for angajare — drives the Dosar-medical reorganisation. */
+  dosarIdentity?: DosarIdentity
 }
 
 export function AnamnesisStep({
@@ -49,10 +52,13 @@ export function AnamnesisStep({
   showPrefillBanner,
   onApplyPrefill,
   onDismissPrefill,
+  dosarIdentity,
 }: Props) {
   const ro = locked
   const isPeriodic = sections.showClinicalSystemsExam
   const ref = (k: string) => (isPeriodic ? getSheetRef(k) : undefined)
+  // angajare reorganises the whole step around the Dosar medical sheet.
+  const isDosar = sections.showInitialIntake && !!dosarIdentity
 
   return (
     <>
@@ -114,7 +120,17 @@ export function AnamnesisStep({
         </div>
       )}
 
-      {sections.showAnamnesis && (
+      {isDosar && dosarIdentity && (
+        <DosarMedicalIntake
+          values={values}
+          updateJson={updateJson}
+          locked={locked}
+          labels={labels}
+          identity={dosarIdentity}
+        />
+      )}
+
+      {!isDosar && sections.showAnamnesis && (
         <NonPrintingGroup active={isPeriodic} heading={labels.sheetNonPrinting}>
           <FormSection title={labels.sectionAnamnesis}>
           <FullWidth>
@@ -188,8 +204,9 @@ export function AnamnesisStep({
         </NonPrintingGroup>
       )}
 
-      {/* Initial Intake — Dosar Medical (angajare only) */}
-      {sections.showInitialIntake && (
+      {/* Initial Intake — Dosar Medical (angajare only; superseded by the
+          reorganised DosarMedicalIntake when the identity data is present). */}
+      {!isDosar && sections.showInitialIntake && (
         <FormSection title={labels.sectionInitialIntake}>
           <FullWidth>
             <Field

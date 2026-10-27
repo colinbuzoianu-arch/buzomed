@@ -271,14 +271,33 @@ EXAMINĂRI:
 - Examinările periodice generează automat Recalls (scadențe).
 - Data examinării: în pasul de concluzie există câmpul "Data examinării" — data la care a avut loc efectiv consultația. E diferită de data semnării. Dacă o consultație din 3 ale lunii e introdusă și semnată pe 10, fișa trebuie să arate 3, iar semnătura rămâne datată 10. Câmpul se completează înainte de semnare; lăsat gol, fișa afișează data introducerii (comportamentul vechi). Nu se accepta o dată în viitor și nici mai veche de 90 de zile.
 - Data următorului examen (pasul Aviz, pentru verdict Apt / Apt condiționat) se completează manual de medic; sub câmp apare intervalul recomandat al locului de muncă. Nu e pre-completată automat — dacă e lăsată goală, nu apare pe fișă.
+- DE CE E GRI BUTONUL "SEMNEAZĂ": butonul rămâne inactiv până sunt completate cerințele de semnare, iar sub el scrie exact ce mai lipsește. Ca să poți semna îți trebuie: un verdict ales (pasul Aviz) ȘI data examinării completată (pasul Aviz); în plus, pentru verdict "Inapt temporar", data până la care e valabil. O examinare anulată sau cu neprezentare nu se poate semna deloc. (assistant nu vede butonul.)
 
-EXAMEN CLINIC PE APARATE ȘI SISTEME (doar control periodic):
-- La o examinare de tip Control periodic, pasul Clinic conține, pe lângă semnele vitale, un examen clinic detaliat pe aparate și sisteme (secțiunile 1–11 de pe formularul de examen periodic: tegumente și mucoase, țesut celular subcutanat, sistem ganglionar, aparat locomotor, respirator, cardiovascular, digestiv, urogenital, sistem nervos, analizatori, sistem endocrin). Celelalte tipuri de examinare nu au acest examen pe aparate.
+EXAMEN CLINIC PE APARATE ȘI SISTEME (control periodic și angajare):
+- La examinările de tip Control periodic și Angajare, pasul Clinic conține, pe lângă semnele vitale, un examen clinic detaliat pe aparate și sisteme (secțiunile 1–11 de pe formular: tegumente și mucoase, țesut celular subcutanat, sistem ganglionar, aparat locomotor, respirator, cardiovascular, digestiv, urogenital, sistem nervos, analizatori, sistem endocrin). Celelalte tipuri de examinare nu au acest examen pe aparate.
 - Fiecare aparat se completează rapid cu butoane (ex. normal / modificat); când alegi o variantă modificată apare un câmp de observații (obligatoriu acolo unde formularul nu are o bifă proprie pentru acea variantă). Secțiunile complet normale se pot restrânge la o linie "În limite normale".
 - Butonul "Toate aparatele în limite normale" completează dintr-o dată toate aparatele încă necompletate cu valoarea normală și pune concluzia clinică pe "Sănătos" — NU suprascrie ce ai completat deja și NU atinge semnele vitale, valorile de vedere, comutatorul Asimptomatic, vocea sau concluzia de specialitate.
 - Obezitatea apare automat lângă IMC (se calculează din IMC: sub 30 = Nu; 30–34,9 = gr. I; 35–39,9 = gr. II; ≥40 = gr. III) — nu se completează manual. Comutatorul "Asimptomatic" (Da/Nu) e în pasul Anamneză.
 - Pasul Constatări (Investigații și concluzii) conține, la periodic: grila "Examene suplimentare" (bifezi investigațiile cerute — oftalmologic, PFV, audiogramă, EKG, hemoleucogramă etc.; la Glicemie apare un câmp pentru valoarea în mg/dl) și "Concluziile examinării de specialitate" (Sănătos clinic / Cu diagnostic). Câmpurile libere de laborator/imagistică/altele rămân disponibile ca înainte.
-- Toate aceste date se tipăresc pe formularul "Examen medical periodic", generat din panoul Documente al examinării (buton de generare completată). O examinare mai veche, fără acest examen completat, se tipărește ca până acum.
+- Toate aceste date se tipăresc pe formularul "Examen medical periodic" (la periodic) sau "Examen medical la angajare" (la angajare), generat din panoul Documente al examinării (buton de generare completată). O examinare mai veche, fără acest examen completat, se tipărește ca până acum.
+
+UNDE APARE FIECARE CÂMP PE FOI — ETICHETE COLORATE (control periodic și angajare):
+- Lângă câmpurile din formular apar etichete mici care arată unde se tipărește valoarea. La trecerea cu mouse-ul, fiecare etichetă are o descriere scurtă.
+- Etichetă albastră "Pe foaie" (iconiță de imprimantă) = câmpul apare pe fișa de examen (Examen medical periodic / Examen medical la angajare), cu secțiunea exactă (ex. §6, Antet, Analizatori).
+- Câmpurile dintr-un chenar punctat "Doar în Buzomed" NU se tipăresc pe nicio foaie (ex. valorile de audiometrie sau spirometrie — pentru foaie se bifează doar investigația la Examene suplimentare).
+- Doar la angajare: etichetă roz "Dosar" (iconiță de document) = câmpul apare exclusiv pe Dosarul medical (anexa de la angajare), nu pe fișa de examen.
+- Sus, pe pași, apare o legendă care explică etichetele; se poate închide și rămâne închisă în browserul respectiv.
+
+VERIFICARE ÎNAINTE DE SEMNARE (pasul Aviz, control periodic și angajare):
+- În pasul Aviz, deasupra butonului Semnează, apare o listă orientativă cu ce a mai rămas necompletat pe foi. NU blochează semnarea — doar atrage atenția.
+- Rândurile roșii = date care lipsesc din fișa de aptitudine sau din dosar și se corectează la angajat/firmă (funcția, CNP, adresa firmei; la angajare și adresa angajatului, data nașterii) — au link direct către pagina de editare.
+- Rândurile gri = câmpuri goale pe foaia de examen sau pe dosar; click pe rând te duce direct la câmpul respectiv în pași.
+- Orice rând se poate marca "lăsat gol intenționat"; rândurile ascunse astfel se pot reafișa.
+
+DOSAR MEDICAL (doar angajare):
+- La o examinare de tip Angajare, pasul Anamneză e organizat ca Dosarul medical. Sus e un card de identitate (unitate, secție, ocupație, nume, prenume, sex, data nașterii, vârstă, CNP, adresă, telefon, handicap) preluat automat din fișa angajatului și a companiei — e doar pentru citire, cu linkuri "Corectează la angajat" / "Corectează la firmă" dacă ceva e greșit.
+- Urmează tabelul "Ruta profesională" (până la 4 rânduri: firmă, post de muncă, perioadă, funcție, noxă) și secțiunile de declarații: formare profesională, activități la locul de muncă, medic de familie, grad de invaliditate, evidență ITM, antecedente heredo-colaterale și personale, condiții de viață (fumat / alcool / cafea / droguri / energizante, alergii, sport, tratamente) și boli profesionale / accidente de muncă / stagiu militar.
+- Toate aceste date se tipăresc pe formularul "Dosar medical", generat din panoul Documente al examinării. Câmpurile marcate cu eticheta roz "Dosar" apar doar pe acest dosar, nu pe fișa de examen.
 
 MODIFICAREA UNEI FIȘE DUPĂ SEMNARE (întrebare frecventă a medicilor):
 - Înainte de semnare: medicul poate modifica orice, inclusiv verdictul, oricât de târziu. Nu există limită de timp.

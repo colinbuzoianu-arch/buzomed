@@ -43,6 +43,12 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           firstName: true,
           lastName: true,
           jobTitle: true,
+          birthDate: true,
+          gender: true,
+          addressLine1: true,
+          city: true,
+          phone: true,
+          disabilityDegree: true,
           cnpEncrypted: true,
           idDocumentNumber: true,
           medicCurantName: true,
@@ -53,6 +59,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         select: {
           id: true,
           name: true,
+          department: true,
           riskProfile: true,
           examinationIntervalMonths: true,
           riskAssessmentSignedByCompany: true,
@@ -206,6 +213,42 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
       : ''
   }`
 
+  // Read-only identity shown on the Dosar-medical block (angajare).
+  const emp = examination.employee
+  const birth = emp.birthDate
+  let dosarAge = ''
+  if (birth) {
+    const when = examination.examinedAt ?? new Date()
+    let age = when.getFullYear() - birth.getFullYear()
+    const monthDiff = when.getMonth() - birth.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && when.getDate() < birth.getDate())) age--
+    dosarAge = String(age)
+  }
+  const disabilityLabels: Record<string, string> = {
+    usor: 'Ușor',
+    mediu: 'Mediu',
+    accentuat: 'Accentuat',
+    grav: 'Grav',
+  }
+  const dosarIdentity = {
+    unitate: examination.workplace.company.name,
+    sectia: examination.workplace.department ?? '',
+    nume: emp.lastName,
+    prenume: emp.firstName,
+    dataNasterii: birth ? formatDate(birth, 'medium', 'ro') : '',
+    varsta: dosarAge,
+    sex: emp.gender ?? '',
+    adresa: [emp.addressLine1, emp.city].filter(Boolean).join(', '),
+    telefon: emp.phone ?? '',
+    ocupatia: emp.jobTitle ?? '',
+    cnpPresent: !!(emp.cnpEncrypted || emp.idDocumentNumber),
+    disabilityLabel: emp.disabilityDegree
+      ? (disabilityLabels[emp.disabilityDegree] ?? emp.disabilityDegree)
+      : null,
+    employeeEditHref: `/employees/${emp.id}/edit`,
+    companyEditHref: `/companies/${examination.workplace.company.id}/edit`,
+  }
+
   const examinationActionsNode =
     caps.canWriteAdministrative && !isLocked ? (
       <ExaminationActions
@@ -213,6 +256,10 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         examinationNumber={examination.examinationNumber}
         currentStatus={examination.status}
         verdictSet={examination.verdict !== null}
+        examinedAtSet={examination.examinedAt !== null}
+        inaptTemporarUntilMissing={
+          examination.verdict === 'inapt_temporar' && examination.inaptTemporarUntil === null
+        }
         canWriteClinical={caps.canWriteClinical}
         labels={{
           start: t('examinations.actions.start'),
@@ -227,6 +274,11 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           signRequirementsNotMet: t('examinations.actions.signRequirementsNotMet'),
           signNote: t('examinations.actions.signNote'),
           signNoteNoSignature: t('examinations.actions.signNoteNoSignature'),
+          signTodoIntro: t('examinations.actions.signTodoIntro'),
+          signNeedsVerdict: t('examinations.actions.signNeedsVerdict'),
+          signNeedsExamDate: t('examinations.actions.signNeedsExamDate'),
+          signNeedsInaptUntil: t('examinations.actions.signNeedsInaptUntil'),
+          signBlockedStatus: t('examinations.actions.signBlockedStatus'),
           errorMessage: t('examinations.form.errorMessage'),
         }}
         practitionerHasSignature={!!examination.practitioner?.signatureImageUrl}
@@ -470,6 +522,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         }
         employeeEditHref={`/employees/${examination.employee.id}/edit`}
         companyEditHref={`/companies/${examination.workplace.company.id}/edit`}
+        dosarIdentity={dosarIdentity}
         hazardHintLabels={hazardHintLabels}
         labels={{
           sectionAnamnesis: t('examinations.form.sectionAnamnesis'),
@@ -586,6 +639,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           glycemiaLabel: t('examinations.form.glycemiaLabel'),
           specialtyConclusionTitle: t('examinations.form.specialtyConclusionTitle'),
           sheetLegend: t('examinations.form.sheetLegend'),
+          dosarLegend: t('examinations.form.dosarLegend'),
           sheetNonPrinting: t('examinations.form.sheetNonPrinting'),
           sheetStepAnamnesis: t('examinations.form.sheetStepAnamnesis'),
           sheetStepClinic: t('examinations.form.sheetStepClinic'),
@@ -606,6 +660,18 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           preSignReverify: t('examinations.form.preSignReverify'),
           preSignNextDateInfo: t('examinations.form.preSignNextDateInfo'),
           preSignPrintWithout: t('examinations.form.preSignPrintWithout'),
+          sheetName: t(
+            examination.examinationType.code === 'angajare'
+              ? 'examinations.form.sheetNameAngajare'
+              : 'examinations.form.sheetNamePeriodic'
+          ),
+          dosarTitle: t('examinations.form.dosarTitle'),
+          dosarIdentitySection: t('examinations.form.dosarIdentitySection'),
+          dosarFixEmployee: t('examinations.form.dosarFixEmployee'),
+          dosarFixCompany: t('examinations.form.dosarFixCompany'),
+          dosarCnpPresent: t('examinations.form.dosarCnpPresent'),
+          dosarRutaTitle: t('examinations.form.dosarRutaTitle'),
+          dosarRutaLegacy: t('examinations.form.dosarRutaLegacy'),
         }}
         documentsPanel={
           <DocumentsPanel

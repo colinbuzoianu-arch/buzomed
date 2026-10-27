@@ -18,31 +18,31 @@
     },
     "nume": {
       "page": 0,
-      "x": 137.0,
+      "x": 137,
       "y_bottom": 728.89,
-      "x2": 247.0,
+      "x2": 247,
       "y_top": 739.89,
       "type": "text"
     },
     "prenume": {
       "page": 0,
-      "x": 292.0,
+      "x": 292,
       "y_bottom": 728.89,
-      "x2": 402.0,
+      "x2": 402,
       "y_top": 739.89,
       "type": "text"
     },
     "sex": {
       "page": 0,
-      "x": 432.0,
+      "x": 432,
       "y_bottom": 728.89,
-      "x2": 502.0,
+      "x2": 502,
       "y_top": 739.89,
       "type": "text"
     },
     "domiciliu": {
       "page": 0,
-      "x": 124.0,
+      "x": 124,
       "y_bottom": 712.89,
       "x2": 553.28,
       "y_top": 723.89,
@@ -50,15 +50,15 @@
     },
     "ocupatia": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 696.89,
-      "x2": 232.0,
+      "x2": 232,
       "y_top": 707.89,
       "type": "text"
     },
     "societatea": {
       "page": 0,
-      "x": 307.0,
+      "x": 307,
       "y_bottom": 696.89,
       "x2": 553.28,
       "y_top": 707.89,
@@ -66,7 +66,7 @@
     },
     "suferind_de": {
       "page": 0,
-      "x": 40.0,
+      "x": 40,
       "y_bottom": 628.89,
       "x2": 555.28,
       "y_top": 666.89,
@@ -74,7 +74,7 @@
     },
     "recomandari": {
       "page": 0,
-      "x": 40.0,
+      "x": 40,
       "y_bottom": 553.89,
       "x2": 555.28,
       "y_top": 591.89,
@@ -82,7 +82,7 @@
     },
     "scopul": {
       "page": 0,
-      "x": 227.0,
+      "x": 227,
       "y_bottom": 528.89,
       "x2": 553.28,
       "y_top": 539.89,
@@ -90,9 +90,9 @@
     },
     "data_elib": {
       "page": 0,
-      "x": 177.0,
+      "x": 177,
       "y_bottom": 503.89,
-      "x2": 267.0,
+      "x2": 267,
       "y_top": 514.89,
       "type": "text"
     }
@@ -172,7 +172,7 @@
     },
     "diagnostic_prezumtiv": {
       "page": 0,
-      "x": 50.0,
+      "x": 50,
       "y_bottom": 515.89,
       "x2": 545.28,
       "y_top": 570.89,
@@ -180,7 +180,7 @@
     },
     "motivul_trimiterii": {
       "page": 0,
-      "x": 50.0,
+      "x": 50,
       "y_bottom": 453.89,
       "x2": 545.28,
       "y_top": 498.89,
@@ -188,7 +188,7 @@
     },
     "investigatii_tratamente": {
       "page": 0,
-      "x": 50.0,
+      "x": 50,
       "y_bottom": 411.89,
       "x2": 545.28,
       "y_top": 436.89,
@@ -204,9 +204,9 @@
     },
     "semnatura_pacient": {
       "page": 0,
-      "x": 70.0,
+      "x": 70,
       "y_bottom": 257.89,
-      "x2": 230.0,
+      "x2": 230,
       "y_top": 302.89,
       "type": "text"
     },
@@ -222,73 +222,73 @@
   "Certificat-Medical-Invatamant-BLANK.pdf": {
     "judet": {
       "page": 0,
-      "x": 420.0,
+      "x": 420,
       "y_bottom": 800.89,
-      "x2": 563.0,
+      "x2": 563,
       "y_top": 811.89,
       "type": "text"
     },
     "localitate": {
       "page": 0,
-      "x": 420.0,
+      "x": 420,
       "y_bottom": 788.89,
-      "x2": 563.0,
+      "x2": 563,
       "y_top": 799.89,
       "type": "text"
     },
     "nr_cert": {
       "page": 0,
-      "x": 97.0,
+      "x": 97,
       "y_bottom": 685.89,
-      "x2": 157.0,
+      "x2": 157,
       "y_top": 696.89,
       "type": "text"
     },
     "data_cert": {
       "page": 0,
-      "x": 194.0,
+      "x": 194,
       "y_bottom": 685.89,
-      "x2": 274.0,
+      "x2": 274,
       "y_top": 696.89,
       "type": "text"
     },
     "nume": {
       "page": 0,
-      "x": 92.0,
+      "x": 92,
       "y_bottom": 647.89,
-      "x2": 232.0,
+      "x2": 232,
       "y_top": 658.89,
       "type": "text"
     },
     "prenume": {
       "page": 0,
-      "x": 287.0,
+      "x": 287,
       "y_bottom": 647.89,
-      "x2": 427.0,
+      "x2": 427,
       "y_top": 658.89,
       "type": "text"
     },
     "cnp": {
       "page": 0,
-      "x": 87.0,
+      "x": 87,
       "y_bottom": 629.89,
-      "x2": 287.0,
+      "x2": 287,
       "y_top": 640.89,
       "type": "text"
     },
     "apt": {
       "page": 0,
-      "x": 107.0,
+      "x": 107,
       "y_bottom": 606.89,
-      "x2": 118.0,
+      "x2": 118,
       "y_top": 617.89,
       "type": "checkbox"
     },
     "inapt": {
       "page": 0,
-      "x": 107.0,
+      "x": 107,
       "y_bottom": 588.89,
-      "x2": 118.0,
+      "x2": 118,
       "y_top": 599.89,
       "type": "checkbox"
     }
@@ -296,103 +296,103 @@
   "Certificat-Medical-Magistratura-BLANK.pdf": {
     "judet": {
       "page": 0,
-      "x": 420.0,
+      "x": 420,
       "y_bottom": 800.89,
-      "x2": 563.0,
+      "x2": 563,
       "y_top": 811.89,
       "type": "text"
     },
     "localitate": {
       "page": 0,
-      "x": 420.0,
+      "x": 420,
       "y_bottom": 788.89,
-      "x2": 563.0,
+      "x2": 563,
       "y_top": 799.89,
       "type": "text"
     },
     "nr_cert": {
       "page": 0,
-      "x": 97.0,
+      "x": 97,
       "y_bottom": 699.89,
-      "x2": 157.0,
+      "x2": 157,
       "y_top": 710.89,
       "type": "text"
     },
     "data_cert": {
       "page": 0,
-      "x": 194.0,
+      "x": 194,
       "y_bottom": 699.89,
-      "x2": 274.0,
+      "x2": 274,
       "y_top": 710.89,
       "type": "text"
     },
     "nume": {
       "page": 0,
-      "x": 92.0,
+      "x": 92,
       "y_bottom": 661.89,
-      "x2": 232.0,
+      "x2": 232,
       "y_top": 672.89,
       "type": "text"
     },
     "prenume": {
       "page": 0,
-      "x": 287.0,
+      "x": 287,
       "y_bottom": 661.89,
-      "x2": 427.0,
+      "x2": 427,
       "y_top": 672.89,
       "type": "text"
     },
     "cnp": {
       "page": 0,
-      "x": 87.0,
+      "x": 87,
       "y_bottom": 645.89,
-      "x2": 287.0,
+      "x2": 287,
       "y_top": 656.89,
       "type": "text"
     },
     "ocupatie": {
       "page": 0,
-      "x": 157.0,
+      "x": 157,
       "y_bottom": 629.89,
-      "x2": 357.0,
+      "x2": 357,
       "y_top": 640.89,
       "type": "text"
     },
     "apt": {
       "page": 0,
-      "x": 177.0,
+      "x": 177,
       "y_bottom": 608.89,
-      "x2": 188.0,
+      "x2": 188,
       "y_top": 619.89,
       "type": "checkbox"
     },
     "apt_cond": {
       "page": 0,
-      "x": 177.0,
+      "x": 177,
       "y_bottom": 590.89,
-      "x2": 188.0,
+      "x2": 188,
       "y_top": 601.89,
       "type": "checkbox"
     },
     "inapt_temp": {
       "page": 0,
-      "x": 177.0,
+      "x": 177,
       "y_bottom": 572.89,
-      "x2": 188.0,
+      "x2": 188,
       "y_top": 583.89,
       "type": "checkbox"
     },
     "inapt": {
       "page": 0,
-      "x": 177.0,
+      "x": 177,
       "y_bottom": 554.89,
-      "x2": 188.0,
+      "x2": 188,
       "y_top": 565.89,
       "type": "checkbox"
     },
     "recomandari": {
       "page": 0,
-      "x": 62.0,
+      "x": 62,
       "y_bottom": 473.89,
       "x2": 533.28,
       "y_top": 503.89,
@@ -402,498 +402,658 @@
   "Dosar-Medical-BLANK.pdf": {
     "unitate": {
       "page": 0,
-      "x": 76.0,
-      "y_bottom": 742.89,
-      "x2": 557.28,
-      "y_top": 753.89,
+      "x": 71.5,
+      "y_bottom": 788,
+      "x2": 563.28,
+      "y_top": 801,
       "type": "text"
     },
     "punct_lucru": {
       "page": 0,
-      "x": 106.0,
-      "y_bottom": 728.89,
-      "x2": 186.0,
-      "y_top": 739.89,
+      "x": 103.5,
+      "y_bottom": 768,
+      "x2": 250,
+      "y_top": 781,
       "type": "text"
     },
     "sectia": {
       "page": 0,
-      "x": 228.0,
-      "y_bottom": 728.89,
-      "x2": 308.0,
-      "y_top": 739.89,
+      "x": 297.51,
+      "y_bottom": 768,
+      "x2": 400,
+      "y_top": 781,
       "type": "text"
     },
     "adresa_unitate": {
       "page": 0,
-      "x": 352.0,
-      "y_bottom": 728.89,
-      "x2": 559.28,
-      "y_top": 739.89,
+      "x": 449.51,
+      "y_bottom": 768,
+      "x2": 563.28,
+      "y_top": 781,
       "type": "text"
     },
     "nume": {
       "page": 0,
-      "x": 71.0,
-      "y_bottom": 714.89,
-      "x2": 211.0,
-      "y_top": 725.89,
+      "x": 66,
+      "y_bottom": 748,
+      "x2": 270,
+      "y_top": 761,
       "type": "text"
     },
     "prenume": {
       "page": 0,
-      "x": 269.0,
-      "y_bottom": 714.89,
-      "x2": 559.28,
-      "y_top": 725.89,
+      "x": 332.51,
+      "y_bottom": 748,
+      "x2": 563.28,
+      "y_top": 761,
       "type": "text"
     },
     "varsta": {
       "page": 0,
-      "x": 76.0,
-      "y_bottom": 700.89,
-      "x2": 111.0,
-      "y_top": 711.89,
+      "x": 68.52,
+      "y_bottom": 728,
+      "x2": 120,
+      "y_top": 741,
       "type": "text"
     },
     "data_nasterii": {
       "page": 0,
-      "x": 184.0,
-      "y_bottom": 700.89,
-      "x2": 264.0,
-      "y_top": 711.89,
+      "x": 195.02,
+      "y_bottom": 728,
+      "x2": 285,
+      "y_top": 741,
       "type": "text"
     },
     "cnp": {
       "page": 0,
-      "x": 344.0,
-      "y_bottom": 700.89,
-      "x2": 434.0,
-      "y_top": 711.89,
+      "x": 369.01,
+      "y_bottom": 728,
+      "x2": 470,
+      "y_top": 741,
       "type": "text"
     },
     "sex": {
       "page": 0,
-      "x": 466.0,
-      "y_bottom": 700.89,
-      "x2": 559.28,
-      "y_top": 711.89,
+      "x": 503.01,
+      "y_bottom": 728,
+      "x2": 563.28,
+      "y_top": 741,
       "type": "text"
     },
     "adresa_pacient": {
       "page": 0,
-      "x": 78.0,
-      "y_bottom": 686.89,
-      "x2": 258.0,
-      "y_top": 697.89,
+      "x": 71.51,
+      "y_bottom": 708,
+      "x2": 400,
+      "y_top": 721,
       "type": "text"
     },
     "telefon": {
       "page": 0,
-      "x": 306.0,
-      "y_bottom": 686.89,
-      "x2": 559.28,
-      "y_top": 697.89,
+      "x": 451,
+      "y_bottom": 708,
+      "x2": 563.28,
+      "y_top": 721,
       "type": "text"
     },
     "ocupatia": {
       "page": 0,
-      "x": 136.0,
-      "y_bottom": 672.89,
-      "x2": 246.0,
-      "y_top": 683.89,
+      "x": 111.51,
+      "y_bottom": 688,
+      "x2": 300,
+      "y_top": 701,
       "type": "text"
     },
     "formare": {
       "page": 0,
-      "x": 356.0,
-      "y_bottom": 672.89,
-      "x2": 559.28,
-      "y_top": 683.89,
+      "x": 413.02,
+      "y_bottom": 688,
+      "x2": 563.28,
+      "y_top": 701,
+      "type": "text"
+    },
+    "ruta_1_firma": {
+      "page": 0,
+      "x": 32,
+      "y_bottom": 632,
+      "x2": 182,
+      "y_top": 645,
+      "type": "text"
+    },
+    "ruta_1_post": {
+      "page": 0,
+      "x": 182,
+      "y_bottom": 632,
+      "x2": 302,
+      "y_top": 645,
+      "type": "text"
+    },
+    "ruta_1_perioada": {
+      "page": 0,
+      "x": 302,
+      "y_bottom": 632,
+      "x2": 392,
+      "y_top": 645,
+      "type": "text"
+    },
+    "ruta_1_functia": {
+      "page": 0,
+      "x": 392,
+      "y_bottom": 632,
+      "x2": 482,
+      "y_top": 645,
+      "type": "text"
+    },
+    "ruta_1_noxa": {
+      "page": 0,
+      "x": 482,
+      "y_bottom": 632,
+      "x2": 563.28,
+      "y_top": 645,
+      "type": "text"
+    },
+    "ruta_2_firma": {
+      "page": 0,
+      "x": 32,
+      "y_bottom": 616,
+      "x2": 182,
+      "y_top": 629,
+      "type": "text"
+    },
+    "ruta_2_post": {
+      "page": 0,
+      "x": 182,
+      "y_bottom": 616,
+      "x2": 302,
+      "y_top": 629,
+      "type": "text"
+    },
+    "ruta_2_perioada": {
+      "page": 0,
+      "x": 302,
+      "y_bottom": 616,
+      "x2": 392,
+      "y_top": 629,
+      "type": "text"
+    },
+    "ruta_2_functia": {
+      "page": 0,
+      "x": 392,
+      "y_bottom": 616,
+      "x2": 482,
+      "y_top": 629,
+      "type": "text"
+    },
+    "ruta_2_noxa": {
+      "page": 0,
+      "x": 482,
+      "y_bottom": 616,
+      "x2": 563.28,
+      "y_top": 629,
+      "type": "text"
+    },
+    "ruta_3_firma": {
+      "page": 0,
+      "x": 32,
+      "y_bottom": 600,
+      "x2": 182,
+      "y_top": 613,
+      "type": "text"
+    },
+    "ruta_3_post": {
+      "page": 0,
+      "x": 182,
+      "y_bottom": 600,
+      "x2": 302,
+      "y_top": 613,
+      "type": "text"
+    },
+    "ruta_3_perioada": {
+      "page": 0,
+      "x": 302,
+      "y_bottom": 600,
+      "x2": 392,
+      "y_top": 613,
+      "type": "text"
+    },
+    "ruta_3_functia": {
+      "page": 0,
+      "x": 392,
+      "y_bottom": 600,
+      "x2": 482,
+      "y_top": 613,
+      "type": "text"
+    },
+    "ruta_3_noxa": {
+      "page": 0,
+      "x": 482,
+      "y_bottom": 600,
+      "x2": 563.28,
+      "y_top": 613,
+      "type": "text"
+    },
+    "ruta_4_firma": {
+      "page": 0,
+      "x": 32,
+      "y_bottom": 584,
+      "x2": 182,
+      "y_top": 597,
+      "type": "text"
+    },
+    "ruta_4_post": {
+      "page": 0,
+      "x": 182,
+      "y_bottom": 584,
+      "x2": 302,
+      "y_top": 597,
+      "type": "text"
+    },
+    "ruta_4_perioada": {
+      "page": 0,
+      "x": 302,
+      "y_bottom": 584,
+      "x2": 392,
+      "y_top": 597,
+      "type": "text"
+    },
+    "ruta_4_functia": {
+      "page": 0,
+      "x": 392,
+      "y_bottom": 584,
+      "x2": 482,
+      "y_top": 597,
+      "type": "text"
+    },
+    "ruta_4_noxa": {
+      "page": 0,
+      "x": 482,
+      "y_bottom": 584,
+      "x2": 563.28,
+      "y_top": 597,
       "type": "text"
     },
     "activitati_loc_munca": {
       "page": 0,
-      "x": 211.0,
-      "y_bottom": 600.89,
-      "x2": 559.28,
-      "y_top": 611.89,
+      "x": 204.53,
+      "y_bottom": 562,
+      "x2": 563.28,
+      "y_top": 575,
       "type": "text"
     },
     "medic_familie": {
       "page": 0,
-      "x": 116.0,
-      "y_bottom": 586.89,
-      "x2": 559.28,
-      "y_top": 597.89,
+      "x": 110.52,
+      "y_bottom": 542,
+      "x2": 563.28,
+      "y_top": 555,
       "type": "text"
     },
     "handicap_nu": {
       "page": 0,
-      "x": 229.0,
-      "y_bottom": 527.89,
-      "x2": 238.0,
-      "y_top": 536.89,
+      "x": 203.59,
+      "y_bottom": 462,
+      "x2": 212.59,
+      "y_top": 471,
       "type": "checkbox"
     },
     "handicap_da": {
       "page": 0,
-      "x": 264.0,
-      "y_bottom": 527.89,
-      "x2": 273.0,
-      "y_top": 536.89,
+      "x": 238.1,
+      "y_bottom": 462,
+      "x2": 247.1,
+      "y_top": 471,
       "type": "checkbox"
     },
     "invalid_nu": {
       "page": 0,
-      "x": 391.0,
-      "y_bottom": 527.89,
-      "x2": 400.0,
-      "y_top": 536.89,
+      "x": 136.05,
+      "y_bottom": 442,
+      "x2": 145.05,
+      "y_top": 451,
       "type": "checkbox"
     },
     "invalid_da": {
       "page": 0,
-      "x": 426.0,
-      "y_bottom": 527.89,
-      "x2": 435.0,
-      "y_top": 536.89,
+      "x": 170.55,
+      "y_bottom": 442,
+      "x2": 179.55,
+      "y_top": 451,
       "type": "checkbox"
     },
     "grad_inv": {
       "page": 0,
-      "x": 461.0,
-      "y_bottom": 527.89,
-      "x2": 559.28,
-      "y_top": 538.89,
+      "x": 206.05,
+      "y_bottom": 441,
+      "x2": 256.05,
+      "y_top": 454,
       "type": "text"
     },
     "itm_nu": {
       "page": 0,
-      "x": 86.0,
-      "y_bottom": 513.89,
-      "x2": 95.0,
-      "y_top": 522.89,
+      "x": 318.05,
+      "y_bottom": 442,
+      "x2": 327.05,
+      "y_top": 451,
       "type": "checkbox"
     },
     "itm_da": {
       "page": 0,
-      "x": 121.0,
-      "y_bottom": 513.89,
-      "x2": 130.0,
-      "y_top": 522.89,
+      "x": 352.55,
+      "y_bottom": 442,
+      "x2": 361.55,
+      "y_top": 451,
       "type": "checkbox"
     },
     "semnatura_pacient": {
       "page": 0,
-      "x": 211.0,
-      "y_bottom": 513.89,
-      "x2": 341.0,
-      "y_top": 527.89,
+      "x": 84.52,
+      "y_bottom": 421,
+      "x2": 300,
+      "y_top": 434,
       "type": "text"
     },
     "antec_heredo": {
       "page": 0,
-      "x": 36.0,
-      "y_bottom": 487.89,
-      "x2": 559.28,
-      "y_top": 501.89,
+      "x": 200.51,
+      "y_bottom": 399,
+      "x2": 430,
+      "y_top": 412,
       "type": "text"
     },
     "heredo_fara_imp": {
       "page": 0,
-      "x": 171.0,
-      "y_bottom": 471.89,
-      "x2": 180.0,
-      "y_top": 480.89,
+      "x": 541.39,
+      "y_bottom": 400,
+      "x2": 550.39,
+      "y_top": 409,
       "type": "checkbox"
     },
     "ap_um": {
       "page": 0,
-      "x": 61.0,
-      "y_bottom": 446.89,
-      "x2": 111.0,
-      "y_top": 457.89,
+      "x": 52.5,
+      "y_bottom": 364,
+      "x2": 112.5,
+      "y_top": 377,
       "type": "text"
     },
     "ap_n": {
       "page": 0,
-      "x": 134.0,
-      "y_bottom": 446.89,
-      "x2": 184.0,
-      "y_top": 457.89,
+      "x": 135.5,
+      "y_bottom": 364,
+      "x2": 195.5,
+      "y_top": 377,
       "type": "text"
     },
     "ap_a": {
       "page": 0,
-      "x": 207.0,
-      "y_bottom": 446.89,
-      "x2": 257.0,
-      "y_top": 457.89,
+      "x": 218,
+      "y_bottom": 364,
+      "x2": 278,
+      "y_top": 377,
       "type": "text"
     },
     "ap_s": {
       "page": 0,
-      "x": 280.0,
-      "y_bottom": 446.89,
-      "x2": 330.0,
-      "y_top": 457.89,
+      "x": 300.5,
+      "y_bottom": 364,
+      "x2": 360.5,
+      "y_top": 377,
       "type": "text"
     },
     "neaga_patologice": {
       "page": 0,
-      "x": 126.0,
-      "y_bottom": 435.89,
-      "x2": 135.0,
-      "y_top": 444.89,
+      "x": 439,
+      "y_bottom": 365,
+      "x2": 448,
+      "y_top": 374,
       "type": "checkbox"
     },
     "ap_recomandari": {
       "page": 0,
-      "x": 228.0,
-      "y_bottom": 435.89,
-      "x2": 559.28,
-      "y_top": 446.89,
+      "x": 94.03,
+      "y_bottom": 344,
+      "x2": 563.28,
+      "y_top": 357,
       "type": "text"
     },
     "fumat_nu": {
       "page": 0,
-      "x": 87.0,
-      "y_bottom": 410.89,
-      "x2": 96.0,
-      "y_top": 419.89,
+      "x": 82.01,
+      "y_bottom": 307,
+      "x2": 91.01,
+      "y_top": 316,
       "type": "checkbox"
     },
     "fumat_da": {
       "page": 0,
-      "x": 122.0,
-      "y_bottom": 410.89,
-      "x2": 131.0,
-      "y_top": 419.89,
+      "x": 116.51,
+      "y_bottom": 307,
+      "x2": 125.51,
+      "y_top": 316,
       "type": "checkbox"
     },
     "fumat_ocaz": {
       "page": 0,
-      "x": 186.0,
-      "y_bottom": 410.89,
-      "x2": 195.0,
-      "y_top": 419.89,
+      "x": 178.53,
+      "y_bottom": 307,
+      "x2": 187.53,
+      "y_top": 316,
       "type": "checkbox"
     },
     "tigari_zi": {
       "page": 0,
-      "x": 276.0,
-      "y_bottom": 410.89,
-      "x2": 326.0,
-      "y_top": 421.89,
+      "x": 254.05,
+      "y_bottom": 306,
+      "x2": 290.05,
+      "y_top": 319,
       "type": "text"
     },
     "nefumeaza_ani": {
       "page": 0,
-      "x": 121.0,
-      "y_bottom": 399.89,
-      "x2": 161.0,
-      "y_top": 410.89,
+      "x": 367.58,
+      "y_bottom": 306,
+      "x2": 397.58,
+      "y_top": 319,
       "type": "text"
     },
     "alcool_nu": {
       "page": 0,
-      "x": 87.0,
-      "y_bottom": 388.89,
-      "x2": 96.0,
-      "y_top": 397.89,
+      "x": 81.01,
+      "y_bottom": 287,
+      "x2": 90.01,
+      "y_top": 296,
       "type": "checkbox"
     },
     "alcool_da": {
       "page": 0,
-      "x": 122.0,
-      "y_bottom": 388.89,
-      "x2": 131.0,
-      "y_top": 397.89,
+      "x": 115.51,
+      "y_bottom": 287,
+      "x2": 124.51,
+      "y_top": 296,
       "type": "checkbox"
     },
     "alcool_ocaz": {
       "page": 0,
-      "x": 186.0,
-      "y_bottom": 388.89,
-      "x2": 195.0,
-      "y_top": 397.89,
+      "x": 177.54,
+      "y_bottom": 287,
+      "x2": 186.54,
+      "y_top": 296,
       "type": "checkbox"
     },
     "cafea_nu": {
       "page": 0,
-      "x": 249.0,
-      "y_bottom": 388.89,
-      "x2": 258.0,
-      "y_top": 397.89,
+      "x": 80.52,
+      "y_bottom": 267,
+      "x2": 89.52,
+      "y_top": 276,
       "type": "checkbox"
     },
     "cafea_da": {
       "page": 0,
-      "x": 284.0,
-      "y_bottom": 388.89,
-      "x2": 293.0,
-      "y_top": 397.89,
+      "x": 115.02,
+      "y_bottom": 267,
+      "x2": 124.02,
+      "y_top": 276,
       "type": "checkbox"
     },
     "cafea_ocaz": {
       "page": 0,
-      "x": 351.0,
-      "y_bottom": 388.89,
-      "x2": 360.0,
-      "y_top": 397.89,
+      "x": 177.04,
+      "y_bottom": 267,
+      "x2": 186.04,
+      "y_top": 276,
       "type": "checkbox"
     },
     "droguri_nu": {
       "page": 0,
-      "x": 423.0,
-      "y_bottom": 388.89,
-      "x2": 432.0,
-      "y_top": 397.89,
+      "x": 86.01,
+      "y_bottom": 247,
+      "x2": 95.01,
+      "y_top": 256,
       "type": "checkbox"
     },
     "droguri_da": {
       "page": 0,
-      "x": 458.0,
-      "y_bottom": 388.89,
-      "x2": 467.0,
-      "y_top": 397.89,
+      "x": 120.51,
+      "y_bottom": 247,
+      "x2": 129.51,
+      "y_top": 256,
       "type": "checkbox"
     },
     "droguri_ocaz": {
       "page": 0,
-      "x": 524.0,
-      "y_bottom": 388.89,
-      "x2": 533.0,
-      "y_top": 397.89,
+      "x": 182.53,
+      "y_bottom": 247,
+      "x2": 191.53,
+      "y_top": 256,
       "type": "checkbox"
     },
     "energ_nu": {
       "page": 0,
-      "x": 106.0,
-      "y_bottom": 377.89,
-      "x2": 115.0,
-      "y_top": 386.89,
+      "x": 99.53,
+      "y_bottom": 227,
+      "x2": 108.53,
+      "y_top": 236,
       "type": "checkbox"
     },
     "energ_da": {
       "page": 0,
-      "x": 141.0,
-      "y_bottom": 377.89,
-      "x2": 150.0,
-      "y_top": 386.89,
+      "x": 134.03,
+      "y_bottom": 227,
+      "x2": 143.03,
+      "y_top": 236,
       "type": "checkbox"
     },
     "energ_ocaz": {
       "page": 0,
-      "x": 206.0,
-      "y_bottom": 377.89,
-      "x2": 215.0,
-      "y_top": 386.89,
+      "x": 196.05,
+      "y_bottom": 227,
+      "x2": 205.05,
+      "y_top": 236,
       "type": "checkbox"
     },
     "alergii": {
       "page": 0,
-      "x": 80.0,
-      "y_bottom": 366.89,
-      "x2": 200.0,
-      "y_top": 377.89,
+      "x": 65.51,
+      "y_bottom": 206,
+      "x2": 563.28,
+      "y_top": 219,
       "type": "text"
     },
     "sport_perf": {
       "page": 0,
-      "x": 316.0,
-      "y_bottom": 366.89,
-      "x2": 559.28,
-      "y_top": 377.89,
+      "x": 125.55,
+      "y_bottom": 186,
+      "x2": 563.28,
+      "y_top": 199,
       "type": "text"
     },
     "tratamente": {
       "page": 0,
-      "x": 131.0,
-      "y_bottom": 355.89,
-      "x2": 559.28,
-      "y_top": 366.89,
+      "x": 117.03,
+      "y_bottom": 166,
+      "x2": 563.28,
+      "y_top": 179,
       "type": "text"
     },
     "bp_da": {
       "page": 0,
-      "x": 139.0,
-      "y_bottom": 341.89,
-      "x2": 148.0,
-      "y_top": 350.89,
+      "x": 131.51,
+      "y_bottom": 145,
+      "x2": 140.51,
+      "y_top": 154,
       "type": "checkbox"
     },
     "bp_nu": {
       "page": 0,
-      "x": 171.0,
-      "y_bottom": 341.89,
-      "x2": 180.0,
-      "y_top": 350.89,
+      "x": 166.51,
+      "y_bottom": 145,
+      "x2": 175.51,
+      "y_top": 154,
       "type": "checkbox"
     },
     "bp_dg": {
       "page": 0,
-      "x": 208.0,
-      "y_bottom": 341.89,
-      "x2": 348.0,
-      "y_top": 352.89,
+      "x": 203.51,
+      "y_bottom": 144,
+      "x2": 433.51,
+      "y_top": 157,
       "type": "text"
     },
     "bp_an": {
       "page": 0,
-      "x": 382.0,
-      "y_bottom": 341.89,
-      "x2": 559.28,
-      "y_top": 352.89,
+      "x": 468.03,
+      "y_bottom": 144,
+      "x2": 518.03,
+      "y_top": 157,
       "type": "text"
     },
     "am_da": {
       "page": 0,
-      "x": 151.0,
-      "y_bottom": 327.89,
-      "x2": 160.0,
-      "y_top": 336.89,
+      "x": 146.03,
+      "y_bottom": 125,
+      "x2": 155.03,
+      "y_top": 134,
       "type": "checkbox"
     },
     "am_nu": {
       "page": 0,
-      "x": 184.0,
-      "y_bottom": 327.89,
-      "x2": 193.0,
-      "y_top": 336.89,
+      "x": 181.02,
+      "y_bottom": 125,
+      "x2": 190.02,
+      "y_top": 134,
       "type": "checkbox"
     },
     "am_dg": {
       "page": 0,
-      "x": 220.0,
-      "y_bottom": 327.89,
-      "x2": 350.0,
-      "y_top": 338.89,
+      "x": 218.03,
+      "y_bottom": 124,
+      "x2": 448.03,
+      "y_top": 137,
       "type": "text"
     },
     "am_an": {
       "page": 0,
-      "x": 384.0,
-      "y_bottom": 327.89,
-      "x2": 559.28,
-      "y_top": 338.89,
+      "x": 482.54,
+      "y_bottom": 124,
+      "x2": 532.54,
+      "y_top": 137,
       "type": "text"
     },
     "stagiu_da": {
       "page": 0,
-      "x": 129.0,
-      "y_bottom": 313.89,
-      "x2": 138.0,
-      "y_top": 322.89,
+      "x": 118.01,
+      "y_bottom": 105,
+      "x2": 127.01,
+      "y_top": 114,
       "type": "checkbox"
     },
     "stagiu_nu": {
       "page": 0,
-      "x": 164.0,
-      "y_bottom": 313.89,
-      "x2": 173.0,
-      "y_top": 322.89,
+      "x": 153.01,
+      "y_bottom": 105,
+      "x2": 162.01,
+      "y_top": 114,
       "type": "checkbox"
     }
   },
@@ -1516,23 +1676,23 @@
     },
     "concl_sanatos": {
       "page": 0,
-      "x": 207.0,
+      "x": 207,
       "y_bottom": 437.89,
-      "x2": 215.0,
+      "x2": 215,
       "y_top": 445.89,
       "type": "checkbox"
     },
     "concl_diag": {
       "page": 0,
-      "x": 347.0,
+      "x": 347,
       "y_bottom": 437.89,
-      "x2": 355.0,
+      "x2": 355,
       "y_top": 445.89,
       "type": "checkbox"
     },
     "concl_text": {
       "page": 0,
-      "x": 32.0,
+      "x": 32,
       "y_bottom": 415.89,
       "x2": 563.28,
       "y_top": 433.89,
@@ -1764,23 +1924,23 @@
     },
     "spec_sanatos": {
       "page": 0,
-      "x": 207.0,
+      "x": 207,
       "y_bottom": 275.89,
-      "x2": 215.0,
+      "x2": 215,
       "y_top": 283.89,
       "type": "checkbox"
     },
     "spec_diag": {
       "page": 0,
-      "x": 347.0,
+      "x": 347,
       "y_bottom": 275.89,
-      "x2": 355.0,
+      "x2": 355,
       "y_top": 283.89,
       "type": "checkbox"
     },
     "spec_text": {
       "page": 0,
-      "x": 32.0,
+      "x": 32,
       "y_bottom": 253.89,
       "x2": 563.28,
       "y_top": 271.89,
@@ -1796,39 +1956,39 @@
     },
     "apt": {
       "page": 0,
-      "x": 62.0,
+      "x": 62,
       "y_bottom": 211.89,
-      "x2": 70.0,
+      "x2": 70,
       "y_top": 219.89,
       "type": "checkbox"
     },
     "apt_cond": {
       "page": 0,
-      "x": 127.0,
+      "x": 127,
       "y_bottom": 199.89,
-      "x2": 135.0,
+      "x2": 135,
       "y_top": 207.89,
       "type": "checkbox"
     },
     "inapt_temp": {
       "page": 0,
-      "x": 122.0,
+      "x": 122,
       "y_bottom": 187.89,
-      "x2": 130.0,
+      "x2": 130,
       "y_top": 195.89,
       "type": "checkbox"
     },
     "inapt": {
       "page": 0,
-      "x": 67.0,
+      "x": 67,
       "y_bottom": 175.89,
-      "x2": 75.0,
+      "x2": 75,
       "y_top": 183.89,
       "type": "checkbox"
     },
     "recomandari": {
       "page": 0,
-      "x": 32.0,
+      "x": 32,
       "y_bottom": 139.89,
       "x2": 563.28,
       "y_top": 157.89,
@@ -2470,23 +2630,23 @@
     },
     "p_concl_sanatos": {
       "page": 0,
-      "x": 207.0,
+      "x": 207,
       "y_bottom": 437.89,
-      "x2": 215.0,
+      "x2": 215,
       "y_top": 445.89,
       "type": "checkbox"
     },
     "p_concl_diag": {
       "page": 0,
-      "x": 347.0,
+      "x": 347,
       "y_bottom": 437.89,
-      "x2": 355.0,
+      "x2": 355,
       "y_top": 445.89,
       "type": "checkbox"
     },
     "p_concl_text": {
       "page": 0,
-      "x": 32.0,
+      "x": 32,
       "y_bottom": 415.89,
       "x2": 563.28,
       "y_top": 433.89,
@@ -2718,23 +2878,23 @@
     },
     "p_spec_sanatos": {
       "page": 0,
-      "x": 207.0,
+      "x": 207,
       "y_bottom": 275.89,
-      "x2": 215.0,
+      "x2": 215,
       "y_top": 283.89,
       "type": "checkbox"
     },
     "p_spec_diag": {
       "page": 0,
-      "x": 347.0,
+      "x": 347,
       "y_bottom": 275.89,
-      "x2": 355.0,
+      "x2": 355,
       "y_top": 283.89,
       "type": "checkbox"
     },
     "p_spec_text": {
       "page": 0,
-      "x": 32.0,
+      "x": 32,
       "y_bottom": 253.89,
       "x2": 563.28,
       "y_top": 271.89,
@@ -2750,39 +2910,39 @@
     },
     "p_apt": {
       "page": 0,
-      "x": 62.0,
+      "x": 62,
       "y_bottom": 211.89,
-      "x2": 70.0,
+      "x2": 70,
       "y_top": 219.89,
       "type": "checkbox"
     },
     "p_apt_cond": {
       "page": 0,
-      "x": 127.0,
+      "x": 127,
       "y_bottom": 199.89,
-      "x2": 135.0,
+      "x2": 135,
       "y_top": 207.89,
       "type": "checkbox"
     },
     "p_inapt_temp": {
       "page": 0,
-      "x": 122.0,
+      "x": 122,
       "y_bottom": 187.89,
-      "x2": 130.0,
+      "x2": 130,
       "y_top": 195.89,
       "type": "checkbox"
     },
     "p_inapt": {
       "page": 0,
-      "x": 67.0,
+      "x": 67,
       "y_bottom": 175.89,
-      "x2": 75.0,
+      "x2": 75,
       "y_top": 183.89,
       "type": "checkbox"
     },
     "p_recomandari": {
       "page": 0,
-      "x": 32.0,
+      "x": 32,
       "y_bottom": 139.89,
       "x2": 563.28,
       "y_top": 157.89,
@@ -2840,9 +3000,9 @@
     },
     "tip_Suprav_A": {
       "page": 0,
-      "x": 416.0,
+      "x": 416,
       "y_bottom": 784.89,
-      "x2": 424.0,
+      "x2": 424,
       "y_top": 792.89,
       "type": "checkbox"
     },
@@ -2856,47 +3016,47 @@
     },
     "societate_A": {
       "page": 0,
-      "x": 82.0,
+      "x": 82,
       "y_bottom": 741.89,
-      "x2": 282.0,
+      "x2": 282,
       "y_top": 752.89,
       "type": "text"
     },
     "adresa_A": {
       "page": 0,
-      "x": 74.0,
+      "x": 74,
       "y_bottom": 727.89,
-      "x2": 324.0,
+      "x2": 324,
       "y_top": 738.89,
       "type": "text"
     },
     "nume_A": {
       "page": 0,
-      "x": 62.0,
+      "x": 62,
       "y_bottom": 713.89,
-      "x2": 172.0,
+      "x2": 172,
       "y_top": 724.89,
       "type": "text"
     },
     "prenume_A": {
       "page": 0,
-      "x": 225.0,
+      "x": 225,
       "y_bottom": 713.89,
-      "x2": 335.0,
+      "x2": 335,
       "y_top": 724.89,
       "type": "text"
     },
     "cnp_A": {
       "page": 0,
-      "x": 57.0,
+      "x": 57,
       "y_bottom": 699.89,
-      "x2": 207.0,
+      "x2": 207,
       "y_top": 710.89,
       "type": "text"
     },
     "ocupatia_A": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 685.89,
       "x2": 558.28,
       "y_top": 696.89,
@@ -2904,7 +3064,7 @@
     },
     "post_A": {
       "page": 0,
-      "x": 152.0,
+      "x": 152,
       "y_bottom": 671.89,
       "x2": 558.28,
       "y_top": 682.89,
@@ -2912,15 +3072,15 @@
     },
     "apt_A": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 639.89,
-      "x2": 142.0,
+      "x2": 142,
       "y_top": 649.89,
       "type": "checkbox"
     },
     "recomandari_A": {
       "page": 0,
-      "x": 152.0,
+      "x": 152,
       "y_bottom": 639.89,
       "x2": 558.28,
       "y_top": 669.89,
@@ -2928,41 +3088,41 @@
     },
     "apt_cond_A": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 625.89,
-      "x2": 142.0,
+      "x2": 142,
       "y_top": 635.89,
       "type": "checkbox"
     },
     "inapt_temp_A": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 611.89,
-      "x2": 142.0,
+      "x2": 142,
       "y_top": 621.89,
       "type": "checkbox"
     },
     "inapt_A": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 597.89,
-      "x2": 142.0,
+      "x2": 142,
       "y_top": 607.89,
       "type": "checkbox"
     },
     "data_A": {
       "page": 0,
-      "x": 60.0,
+      "x": 60,
       "y_bottom": 579.89,
-      "x2": 140.0,
+      "x2": 140,
       "y_top": 590.89,
       "type": "text"
     },
     "data_urm_A": {
       "page": 0,
-      "x": 202.0,
+      "x": 202,
       "y_bottom": 565.89,
-      "x2": 282.0,
+      "x2": 282,
       "y_top": 576.89,
       "type": "text"
     },
@@ -3000,9 +3160,9 @@
     },
     "tip_Suprav_B": {
       "page": 0,
-      "x": 416.0,
+      "x": 416,
       "y_bottom": 368.94,
-      "x2": 424.0,
+      "x2": 424,
       "y_top": 376.94,
       "type": "checkbox"
     },
@@ -3016,47 +3176,47 @@
     },
     "societate_B": {
       "page": 0,
-      "x": 82.0,
+      "x": 82,
       "y_bottom": 325.94,
-      "x2": 282.0,
+      "x2": 282,
       "y_top": 336.94,
       "type": "text"
     },
     "adresa_B": {
       "page": 0,
-      "x": 74.0,
+      "x": 74,
       "y_bottom": 311.94,
-      "x2": 324.0,
+      "x2": 324,
       "y_top": 322.94,
       "type": "text"
     },
     "nume_B": {
       "page": 0,
-      "x": 62.0,
+      "x": 62,
       "y_bottom": 297.94,
-      "x2": 172.0,
+      "x2": 172,
       "y_top": 308.94,
       "type": "text"
     },
     "prenume_B": {
       "page": 0,
-      "x": 225.0,
+      "x": 225,
       "y_bottom": 297.94,
-      "x2": 335.0,
+      "x2": 335,
       "y_top": 308.94,
       "type": "text"
     },
     "cnp_B": {
       "page": 0,
-      "x": 57.0,
+      "x": 57,
       "y_bottom": 283.94,
-      "x2": 207.0,
+      "x2": 207,
       "y_top": 294.94,
       "type": "text"
     },
     "ocupatia_B": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 269.94,
       "x2": 558.28,
       "y_top": 280.94,
@@ -3064,7 +3224,7 @@
     },
     "post_B": {
       "page": 0,
-      "x": 152.0,
+      "x": 152,
       "y_bottom": 255.94,
       "x2": 558.28,
       "y_top": 266.94,
@@ -3072,15 +3232,15 @@
     },
     "apt_B": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 223.94,
-      "x2": 142.0,
+      "x2": 142,
       "y_top": 233.94,
       "type": "checkbox"
     },
     "recomandari_B": {
       "page": 0,
-      "x": 152.0,
+      "x": 152,
       "y_bottom": 223.94,
       "x2": 558.28,
       "y_top": 253.94,
@@ -3088,41 +3248,41 @@
     },
     "apt_cond_B": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 209.94,
-      "x2": 142.0,
+      "x2": 142,
       "y_top": 219.94,
       "type": "checkbox"
     },
     "inapt_temp_B": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 195.94,
-      "x2": 142.0,
+      "x2": 142,
       "y_top": 205.94,
       "type": "checkbox"
     },
     "inapt_B": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 181.94,
-      "x2": 142.0,
+      "x2": 142,
       "y_top": 191.94,
       "type": "checkbox"
     },
     "data_B": {
       "page": 0,
-      "x": 60.0,
+      "x": 60,
       "y_bottom": 163.94,
-      "x2": 140.0,
+      "x2": 140,
       "y_top": 174.94,
       "type": "text"
     },
     "data_urm_B": {
       "page": 0,
-      "x": 202.0,
+      "x": 202,
       "y_bottom": 149.94,
-      "x2": 282.0,
+      "x2": 282,
       "y_top": 160.94,
       "type": "text"
     }
@@ -3130,39 +3290,39 @@
   "Informare-Protectia-Maternitatii-BLANK.pdf": {
     "nr_inf": {
       "page": 0,
-      "x": 97.0,
+      "x": 97,
       "y_bottom": 723.89,
-      "x2": 157.0,
+      "x2": 157,
       "y_top": 734.89,
       "type": "text"
     },
     "data_inf": {
       "page": 0,
-      "x": 194.0,
+      "x": 194,
       "y_bottom": 723.89,
-      "x2": 274.0,
+      "x2": 274,
       "y_top": 734.89,
       "type": "text"
     },
     "inf_nume": {
       "page": 0,
-      "x": 67.0,
+      "x": 67,
       "y_bottom": 678.89,
-      "x2": 197.0,
+      "x2": 197,
       "y_top": 689.89,
       "type": "text"
     },
     "inf_prenume": {
       "page": 0,
-      "x": 247.0,
+      "x": 247,
       "y_bottom": 678.89,
-      "x2": 377.0,
+      "x2": 377,
       "y_top": 689.89,
       "type": "text"
     },
     "inf_cnp": {
       "page": 0,
-      "x": 410.0,
+      "x": 410,
       "y_bottom": 678.89,
       "x2": 558.28,
       "y_top": 689.89,
@@ -3170,7 +3330,7 @@
     },
     "inf_domiciliu": {
       "page": 0,
-      "x": 122.0,
+      "x": 122,
       "y_bottom": 664.89,
       "x2": 558.28,
       "y_top": 675.89,
@@ -3178,23 +3338,23 @@
     },
     "inf_functie": {
       "page": 0,
-      "x": 242.0,
+      "x": 242,
       "y_bottom": 650.89,
-      "x2": 372.0,
+      "x2": 372,
       "y_top": 661.89,
       "type": "text"
     },
     "inf_localitate": {
       "page": 0,
-      "x": 94.0,
+      "x": 94,
       "y_bottom": 636.89,
-      "x2": 184.0,
+      "x2": 184,
       "y_top": 647.89,
       "type": "text"
     },
     "inf_strada": {
       "page": 0,
-      "x": 224.0,
+      "x": 224,
       "y_bottom": 636.89,
       "x2": 558.28,
       "y_top": 647.89,
@@ -3202,71 +3362,71 @@
     },
     "inf_loc_munca": {
       "page": 0,
-      "x": 262.0,
+      "x": 262,
       "y_bottom": 604.89,
-      "x2": 342.0,
+      "x2": 342,
       "y_top": 615.89,
       "type": "text"
     },
     "inf_risc_nu": {
       "page": 0,
-      "x": 308.0,
+      "x": 308,
       "y_bottom": 593.89,
-      "x2": 317.0,
+      "x2": 317,
       "y_top": 602.89,
       "type": "checkbox"
     },
     "inf_risc_da": {
       "page": 0,
-      "x": 348.0,
+      "x": 348,
       "y_bottom": 593.89,
-      "x2": 357.0,
+      "x2": 357,
       "y_top": 602.89,
       "type": "checkbox"
     },
     "inf_risc_desc": {
       "page": 0,
-      "x": 95.0,
+      "x": 95,
       "y_bottom": 575.89,
-      "x2": 175.0,
+      "x2": 175,
       "y_top": 586.89,
       "type": "text"
     },
     "inf_ag_fizici": {
       "page": 0,
-      "x": 310.0,
+      "x": 310,
       "y_bottom": 575.89,
-      "x2": 319.0,
+      "x2": 319,
       "y_top": 584.89,
       "type": "checkbox"
     },
     "inf_ag_bio": {
       "page": 0,
-      "x": 372.0,
+      "x": 372,
       "y_bottom": 575.89,
-      "x2": 381.0,
+      "x2": 381,
       "y_top": 584.89,
       "type": "checkbox"
     },
     "inf_ag_chim": {
       "page": 0,
-      "x": 427.0,
+      "x": 427,
       "y_bottom": 575.89,
-      "x2": 436.0,
+      "x2": 436,
       "y_top": 584.89,
       "type": "checkbox"
     },
     "inf_ag_proc": {
       "page": 0,
-      "x": 77.0,
+      "x": 77,
       "y_bottom": 563.89,
-      "x2": 86.0,
+      "x2": 86,
       "y_top": 572.89,
       "type": "checkbox"
     },
     "inf_conditii": {
       "page": 0,
-      "x": 190.0,
+      "x": 190,
       "y_bottom": 563.89,
       "x2": 558.28,
       "y_top": 574.89,
@@ -3274,63 +3434,63 @@
     },
     "inf_nr_raport": {
       "page": 0,
-      "x": 252.0,
+      "x": 252,
       "y_bottom": 545.89,
-      "x2": 312.0,
+      "x2": 312,
       "y_top": 556.89,
       "type": "text"
     },
     "inf_data_raport": {
       "page": 0,
-      "x": 354.0,
+      "x": 354,
       "y_bottom": 545.89,
-      "x2": 434.0,
+      "x2": 434,
       "y_top": 556.89,
       "type": "text"
     },
     "inf_prejudicii_nu": {
       "page": 0,
-      "x": 348.0,
+      "x": 348,
       "y_bottom": 534.89,
-      "x2": 357.0,
+      "x2": 357,
       "y_top": 543.89,
       "type": "checkbox"
     },
     "inf_prejudicii_da": {
       "page": 0,
-      "x": 388.0,
+      "x": 388,
       "y_bottom": 534.89,
-      "x2": 397.0,
+      "x2": 397,
       "y_top": 543.89,
       "type": "checkbox"
     },
     "inf_primele_sapt": {
       "page": 0,
-      "x": 124.0,
+      "x": 124,
       "y_bottom": 504.89,
-      "x2": 133.0,
+      "x2": 133,
       "y_top": 513.89,
       "type": "checkbox"
     },
     "inf_ultimele_luni": {
       "page": 0,
-      "x": 104.0,
+      "x": 104,
       "y_bottom": 493.89,
-      "x2": 113.0,
+      "x2": 113,
       "y_top": 502.89,
       "type": "checkbox"
     },
     "inf_sau": {
       "page": 0,
-      "x": 67.0,
+      "x": 67,
       "y_bottom": 482.89,
-      "x2": 76.0,
+      "x2": 76,
       "y_top": 491.89,
       "type": "checkbox"
     },
     "inf_sau_text": {
       "page": 0,
-      "x": 87.0,
+      "x": 87,
       "y_bottom": 482.89,
       "x2": 558.28,
       "y_top": 493.89,
@@ -3338,7 +3498,7 @@
     },
     "inf_masuri_supl": {
       "page": 0,
-      "x": 36.0,
+      "x": 36,
       "y_bottom": 452.89,
       "x2": 559.28,
       "y_top": 477.89,
@@ -3346,7 +3506,7 @@
     },
     "inf_obligatii": {
       "page": 0,
-      "x": 36.0,
+      "x": 36,
       "y_bottom": 402.89,
       "x2": 559.28,
       "y_top": 427.89,
@@ -3354,63 +3514,63 @@
     },
     "inf_mod_program_nu": {
       "page": 0,
-      "x": 156.0,
+      "x": 156,
       "y_bottom": 352.89,
-      "x2": 165.0,
+      "x2": 165,
       "y_top": 361.89,
       "type": "checkbox"
     },
     "inf_mod_program_da": {
       "page": 0,
-      "x": 192.0,
+      "x": 192,
       "y_bottom": 352.89,
-      "x2": 201.0,
+      "x2": 201,
       "y_top": 361.89,
       "type": "checkbox"
     },
     "inf_mod_conditii_nu": {
       "page": 0,
-      "x": 156.0,
+      "x": 156,
       "y_bottom": 340.89,
-      "x2": 165.0,
+      "x2": 165,
       "y_top": 349.89,
       "type": "checkbox"
     },
     "inf_mod_conditii_da": {
       "page": 0,
-      "x": 192.0,
+      "x": 192,
       "y_bottom": 340.89,
-      "x2": 201.0,
+      "x2": 201,
       "y_top": 349.89,
       "type": "checkbox"
     },
     "inf_repartizata_la": {
       "page": 0,
-      "x": 217.0,
+      "x": 217,
       "y_bottom": 328.89,
-      "x2": 297.0,
+      "x2": 297,
       "y_top": 339.89,
       "type": "text"
     },
     "inf_mod_loc_nu": {
       "page": 0,
-      "x": 320.0,
+      "x": 320,
       "y_bottom": 328.89,
-      "x2": 329.0,
+      "x2": 329,
       "y_top": 337.89,
       "type": "checkbox"
     },
     "inf_mod_loc_da": {
       "page": 0,
-      "x": 356.0,
+      "x": 356,
       "y_bottom": 328.89,
-      "x2": 365.0,
+      "x2": 365,
       "y_top": 337.89,
       "type": "checkbox"
     },
     "inf_motive_schimb": {
       "page": 1,
-      "x": 36.0,
+      "x": 36,
       "y_bottom": 776.89,
       "x2": 559.28,
       "y_top": 801.89,
@@ -3418,7 +3578,7 @@
     },
     "inf_rec_concediu": {
       "page": 1,
-      "x": 332.0,
+      "x": 332,
       "y_bottom": 736.89,
       "x2": 558.28,
       "y_top": 747.89,
@@ -3426,9 +3586,9 @@
     },
     "inf_perioada_concediu": {
       "page": 1,
-      "x": 222.0,
+      "x": 222,
       "y_bottom": 725.89,
-      "x2": 302.0,
+      "x2": 302,
       "y_top": 736.89,
       "type": "text"
     }
@@ -3444,31 +3604,31 @@
     },
     "nr_raport": {
       "page": 0,
-      "x": 97.0,
+      "x": 97,
       "y_bottom": 728.89,
-      "x2": 157.0,
+      "x2": 157,
       "y_top": 739.89,
       "type": "text"
     },
     "data_raport": {
       "page": 0,
-      "x": 194.0,
+      "x": 194,
       "y_bottom": 728.89,
-      "x2": 274.0,
+      "x2": 274,
       "y_top": 739.89,
       "type": "text"
     },
     "data_incheiat": {
       "page": 0,
-      "x": 97.0,
+      "x": 97,
       "y_bottom": 710.89,
-      "x2": 177.0,
+      "x2": 177,
       "y_top": 721.89,
       "type": "text"
     },
     "adresa_nr": {
       "page": 0,
-      "x": 392.0,
+      "x": 392,
       "y_bottom": 710.89,
       "x2": 558.28,
       "y_top": 721.89,
@@ -3476,7 +3636,7 @@
     },
     "salariata_1": {
       "page": 0,
-      "x": 207.0,
+      "x": 207,
       "y_bottom": 696.89,
       "x2": 558.28,
       "y_top": 707.89,
@@ -3484,15 +3644,15 @@
     },
     "data_evaluare": {
       "page": 0,
-      "x": 152.0,
+      "x": 152,
       "y_bottom": 680.89,
-      "x2": 232.0,
+      "x2": 232,
       "y_top": 691.89,
       "type": "text"
     },
     "salariata_2": {
       "page": 0,
-      "x": 372.0,
+      "x": 372,
       "y_bottom": 680.89,
       "x2": 558.28,
       "y_top": 691.89,
@@ -3500,15 +3660,15 @@
     },
     "societate_evaluare": {
       "page": 0,
-      "x": 122.0,
+      "x": 122,
       "y_bottom": 666.89,
-      "x2": 252.0,
+      "x2": 252,
       "y_top": 677.89,
       "type": "text"
     },
     "functia_eval": {
       "page": 0,
-      "x": 318.0,
+      "x": 318,
       "y_bottom": 666.89,
       "x2": 558.28,
       "y_top": 677.89,
@@ -3516,15 +3676,15 @@
     },
     "punct_lucru_eval": {
       "page": 0,
-      "x": 297.0,
+      "x": 297,
       "y_bottom": 650.89,
-      "x2": 367.0,
+      "x2": 367,
       "y_top": 661.89,
       "type": "text"
     },
     "localitate_eval": {
       "page": 0,
-      "x": 464.0,
+      "x": 464,
       "y_bottom": 650.89,
       "x2": 558.28,
       "y_top": 661.89,
@@ -3532,15 +3692,15 @@
     },
     "adresa_eval": {
       "page": 0,
-      "x": 74.0,
+      "x": 74,
       "y_bottom": 636.89,
-      "x2": 254.0,
+      "x2": 254,
       "y_top": 647.89,
       "type": "text"
     },
     "reprezentant_eval": {
       "page": 0,
-      "x": 110.0,
+      "x": 110,
       "y_bottom": 622.89,
       "x2": 558.28,
       "y_top": 633.89,
@@ -3548,15 +3708,15 @@
     },
     "domeniu_activitate": {
       "page": 0,
-      "x": 207.0,
+      "x": 207,
       "y_bottom": 579.89,
-      "x2": 267.0,
+      "x2": 267,
       "y_top": 590.89,
       "type": "text"
     },
     "cod_caen": {
       "page": 0,
-      "x": 324.0,
+      "x": 324,
       "y_bottom": 579.89,
       "x2": 558.28,
       "y_top": 590.89,
@@ -3564,23 +3724,23 @@
     },
     "locul_munca_eval": {
       "page": 0,
-      "x": 162.0,
+      "x": 162,
       "y_bottom": 565.89,
-      "x2": 232.0,
+      "x2": 232,
       "y_top": 576.89,
       "type": "text"
     },
     "localitate_lm": {
       "page": 0,
-      "x": 340.0,
+      "x": 340,
       "y_bottom": 565.89,
-      "x2": 420.0,
+      "x2": 420,
       "y_top": 576.89,
       "type": "text"
     },
     "adresa_lm": {
       "page": 0,
-      "x": 36.0,
+      "x": 36,
       "y_bottom": 553.89,
       "x2": 559.28,
       "y_top": 564.89,
@@ -3588,15 +3748,15 @@
     },
     "functie_sal": {
       "page": 0,
-      "x": 132.0,
+      "x": 132,
       "y_bottom": 539.89,
-      "x2": 232.0,
+      "x2": 232,
       "y_top": 550.89,
       "type": "text"
     },
     "cod_cor": {
       "page": 0,
-      "x": 290.0,
+      "x": 290,
       "y_bottom": 539.89,
       "x2": 558.28,
       "y_top": 550.89,
@@ -3604,7 +3764,7 @@
     },
     "activitate_evaluata": {
       "page": 0,
-      "x": 197.0,
+      "x": 197,
       "y_bottom": 525.89,
       "x2": 558.28,
       "y_top": 536.89,
@@ -3916,31 +4076,31 @@
     },
     "c_a": {
       "page": 1,
-      "x": 84.0,
+      "x": 84,
       "y_bottom": 652.89,
-      "x2": 174.0,
+      "x2": 174,
       "y_top": 663.89,
       "type": "text"
     },
     "c_b": {
       "page": 1,
-      "x": 84.0,
+      "x": 84,
       "y_bottom": 639.89,
-      "x2": 174.0,
+      "x2": 174,
       "y_top": 650.89,
       "type": "text"
     },
     "c_c": {
       "page": 1,
-      "x": 84.0,
+      "x": 84,
       "y_bottom": 626.89,
-      "x2": 174.0,
+      "x2": 174,
       "y_top": 637.89,
       "type": "text"
     },
     "c_d": {
       "page": 1,
-      "x": 342.0,
+      "x": 342,
       "y_bottom": 611.89,
       "x2": 558.28,
       "y_top": 622.89,
@@ -3948,7 +4108,7 @@
     },
     "consecinta": {
       "page": 1,
-      "x": 107.0,
+      "x": 107,
       "y_bottom": 597.89,
       "x2": 558.28,
       "y_top": 608.89,
@@ -3956,7 +4116,7 @@
     },
     "masuri_prevenire": {
       "page": 1,
-      "x": 36.0,
+      "x": 36,
       "y_bottom": 569.89,
       "x2": 559.28,
       "y_top": 599.89,
@@ -3964,7 +4124,7 @@
     },
     "recomandari_suplim": {
       "page": 1,
-      "x": 36.0,
+      "x": 36,
       "y_bottom": 513.89,
       "x2": 559.28,
       "y_top": 533.89,
@@ -3972,7 +4132,7 @@
     },
     "cunoscut_1": {
       "page": 1,
-      "x": 212.0,
+      "x": 212,
       "y_bottom": 413.89,
       "x2": 558.28,
       "y_top": 424.89,
@@ -3980,7 +4140,7 @@
     },
     "cunoscut_2": {
       "page": 1,
-      "x": 212.0,
+      "x": 212,
       "y_bottom": 399.89,
       "x2": 558.28,
       "y_top": 410.89,
@@ -3988,7 +4148,7 @@
     },
     "cunoscut_3": {
       "page": 1,
-      "x": 212.0,
+      "x": 212,
       "y_bottom": 385.89,
       "x2": 558.28,
       "y_top": 396.89,

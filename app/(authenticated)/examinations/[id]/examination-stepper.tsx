@@ -31,6 +31,7 @@ import { toastSuccess } from '@/lib/toast'
 import { calculateBmi, getStr } from './examination-field-components'
 import { AnamnesisStep } from './steps/anamnesis-step'
 import { ClinicalStep } from './steps/clinical-step'
+import type { DosarIdentity } from './steps/dosar-medical-intake'
 import { FindingsStep } from './steps/findings-step'
 import { PreSignChecklist } from './steps/pre-sign-checklist'
 import { VerdictStep } from './steps/verdict-step'
@@ -181,6 +182,7 @@ export interface Labels {
   specialtyConclusionTitle: string
   // Periodic sheet map (UX spec Phase A)
   sheetLegend: string
+  dosarLegend: string
   sheetNonPrinting: string
   sheetStepAnamnesis: string
   sheetStepClinic: string
@@ -201,6 +203,14 @@ export interface Labels {
   preSignReverify: string
   preSignNextDateInfo: string
   preSignPrintWithout: string
+  sheetName: string
+  dosarTitle: string
+  dosarIdentitySection: string
+  dosarFixEmployee: string
+  dosarFixCompany: string
+  dosarCnpPresent: string
+  dosarRutaTitle: string
+  dosarRutaLegacy: string
 }
 
 interface Props {
@@ -216,6 +226,7 @@ interface Props {
   companyAddressPresent?: boolean
   employeeEditHref?: string
   companyEditHref?: string
+  dosarIdentity?: DosarIdentity
   labels: Labels
   hazardHintLabels?: Record<string, string>
   maternityRiskLabels?: Record<string, string>
@@ -242,6 +253,7 @@ export function ExaminationStepper({
   companyAddressPresent = false,
   employeeEditHref = '',
   companyEditHref = '',
+  dosarIdentity,
   labels,
   hazardHintLabels,
   maternityRiskLabels,
@@ -476,14 +488,21 @@ export function ExaminationStepper({
     return () => clearTimeout(t)
   }, [savedAt])
 
-  // "Vezi foaia" (periodic): save first if dirty, then open the filled PDF.
+  // The clinical sheet for this exam type (angajare vs periodic).
+  const clinicalSheetDocKey =
+    examinationTypeCode === 'angajare' ? 'examen_angajare' : 'examen_periodic'
+
+  // "Vezi foaia": save first if dirty, then open the filled clinical sheet.
   const handleViewSheet = useCallback(async () => {
     if (!locked && isDirty) {
       const ok = await handleSave({ silent: true })
       if (!ok) return // save failed — error already shown, don't open
     }
-    window.open(`/api/examinations/${examinationId}/documents/examen_periodic`, '_blank')
-  }, [locked, isDirty, handleSave, examinationId])
+    window.open(
+      `/api/examinations/${examinationId}/documents/${clinicalSheetDocKey}`,
+      '_blank'
+    )
+  }, [locked, isDirty, handleSave, examinationId, clinicalSheetDocKey])
 
   // ─── Step navigation (auto-saves dirty changes before switching) ──────────
 
@@ -578,9 +597,13 @@ export function ExaminationStepper({
         employeeJobTitle: jobTitle,
         employeeHasCnp,
         companyAddressPresent,
+        isAngajare: examinationTypeCode === 'angajare',
+        employeeAddressPresent: dosarIdentity ? dosarIdentity.adresa !== '' : undefined,
+        birthDatePresent: dosarIdentity ? dosarIdentity.dataNasterii !== '' : undefined,
       })}
       dismissedIds={dismissedChecks}
       locked={locked}
+      sheetName={labels.sheetName}
       showNextDateInfo={values.nextExaminationDueDate.trim() === ''}
       employeeEditHref={employeeEditHref}
       companyEditHref={companyEditHref}
@@ -666,19 +689,27 @@ export function ExaminationStepper({
       {/* Active step content */}
       <div className="space-y-8 min-w-0">
         {isPeriodic && !legendDismissed && (
-          <div className="flex items-start justify-between gap-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200">
-            <span className="flex items-start gap-2">
-              <Printer className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              {labels.sheetLegend}
-            </span>
-            <button
-              type="button"
-              onClick={dismissLegend}
-              aria-label="Închide"
-              className="shrink-0 rounded p-0.5 hover:bg-sky-100 dark:hover:bg-sky-900"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+          <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200">
+            <div className="flex items-start justify-between gap-3">
+              <span className="flex items-start gap-2">
+                <Printer className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {labels.sheetLegend.replace('{sheet}', labels.sheetName)}
+              </span>
+              <button
+                type="button"
+                onClick={dismissLegend}
+                aria-label="Închide"
+                className="shrink-0 rounded p-0.5 hover:bg-sky-100 dark:hover:bg-sky-900"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {examinationTypeCode === 'angajare' && (
+              <span className="mt-1.5 flex items-start gap-2 text-rose-700 dark:text-rose-300">
+                <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {labels.dosarLegend}
+              </span>
+            )}
           </div>
         )}
         {signed && (
@@ -702,6 +733,7 @@ export function ExaminationStepper({
             showPrefillBanner={showPrefillBanner}
             onApplyPrefill={handleApplyPrefill}
             onDismissPrefill={() => setPrefillDismissed(true)}
+            dosarIdentity={dosarIdentity}
           />
         )}
         {activeStep === 1 && (

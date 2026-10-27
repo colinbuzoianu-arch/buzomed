@@ -12,6 +12,10 @@ interface Props {
   examinationNumber?: string
   currentStatus: ExaminationStatus
   verdictSet: boolean
+  /** Whether the consultation date (examinedAt) has been saved. */
+  examinedAtSet: boolean
+  /** verdict === inapt_temporar but the "valabil până la" date is missing. */
+  inaptTemporarUntilMissing: boolean
   canWriteClinical: boolean
   labels: {
     start: string
@@ -26,6 +30,11 @@ interface Props {
     signRequirementsNotMet: string
     signNote: string
     signNoteNoSignature: string
+    signTodoIntro: string
+    signNeedsVerdict: string
+    signNeedsExamDate: string
+    signNeedsInaptUntil: string
+    signBlockedStatus: string
     errorMessage: string
   }
   practitionerHasSignature: boolean
@@ -36,6 +45,8 @@ export function ExaminationActions({
   examinationNumber,
   currentStatus,
   verdictSet,
+  examinedAtSet,
+  inaptTemporarUntilMissing,
   canWriteClinical,
   labels,
   practitionerHasSignature,
@@ -83,11 +94,23 @@ export function ExaminationActions({
   const canStart = currentStatus === 'scheduled'
   const canCancel =
     currentStatus === 'scheduled' || currentStatus === 'in_progress'
-  const canSign =
-    (currentStatus === 'scheduled' ||
-      currentStatus === 'in_progress' ||
-      currentStatus === 'completed') &&
-    verdictSet
+
+  // Everything the sign route (app/api/examinations/[id]/sign) requires before
+  // it will issue the fișă, mirrored here so the greyed-out button can always
+  // say exactly what is still missing instead of failing on click.
+  const statusSignable =
+    currentStatus === 'scheduled' ||
+    currentStatus === 'in_progress' ||
+    currentStatus === 'completed'
+  const signTodos: string[] = []
+  if (!statusSignable) {
+    signTodos.push(labels.signBlockedStatus)
+  } else {
+    if (!verdictSet) signTodos.push(labels.signNeedsVerdict)
+    if (!examinedAtSet) signTodos.push(labels.signNeedsExamDate)
+    if (inaptTemporarUntilMissing) signTodos.push(labels.signNeedsInaptUntil)
+  }
+  const canSign = signTodos.length === 0
 
   return (
     <div className="flex flex-col items-end gap-1">
@@ -149,6 +172,21 @@ export function ExaminationActions({
         )}
       </div>
       {error && <span className="text-xs text-destructive">{error}</span>}
+      {/* Why the Semnează button is greyed out — what the user must still do. */}
+      {canWriteClinical && !canSign && busy === null && signTodos.length > 0 && (
+        <div className="text-right max-w-[260px]">
+          <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
+            {labels.signTodoIntro}
+          </p>
+          <ul className="mt-0.5 space-y-0.5">
+            {signTodos.map((todo) => (
+              <li key={todo} className="text-[11px] text-amber-700/90 dark:text-amber-400/90 leading-relaxed">
+                {todo}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {canWriteClinical && (
         <p className="text-[11px] text-[hsl(var(--text-faint))] text-right max-w-[260px] leading-relaxed">
           {!practitionerHasSignature

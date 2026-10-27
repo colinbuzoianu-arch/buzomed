@@ -1,18 +1,28 @@
 'use client'
 
-import { Printer } from 'lucide-react'
-import { type SheetRef, shortWhere } from '@/lib/examinations/periodic-sheet-map'
+import { FileText, Printer } from 'lucide-react'
+import { isDosarSheet, type SheetRef, shortWhere } from '@/lib/examinations/periodic-sheet-map'
 
 /**
- * Small "Pe foaie · §N" pill shown next to inputs that print on the periodic
- * sheet. Renders nothing for a non-printing ref, so callers can pass the ref
+ * Small "Pe foaie · §N" pill shown next to inputs that print on a sheet.
+ * Renders nothing for a non-printing ref, so callers can pass the ref
  * unconditionally. The tooltip (full location + hint) shows on hover AND
  * keyboard focus via a pure-CSS popover, with a native `title` as fallback.
+ *
+ * Two colour variants distinguish the two sheets an angajare exam prints:
+ *  - sky  (printer icon)   → the examination sheet (fișa de examen / periodic)
+ *  - rose (document icon)  → the Dosar medical (fields exclusive to the dossier)
  */
 export function SheetMarker({ sheetRef }: { sheetRef?: SheetRef }) {
   if (!sheetRef?.printed || !sheetRef.where) return null
   const label = shortWhere(sheetRef.where)
   const tip = [sheetRef.where, sheetRef.hint].filter(Boolean).join(' — ')
+  const dosar = isDosarSheet(sheetRef)
+  const Icon = dosar ? FileText : Printer
+  const pillTone = dosar
+    ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300'
+    : 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-300'
+  const srPrefix = dosar ? 'Pe dosarul medical' : 'Pe foaie'
   // Deliberately a non-interactive <span>, not a <button>: these markers sit
   // inside other buttons (e.g. the systems-exam section toggle) and a nested
   // <button> is invalid HTML that breaks hydration in production. The hover
@@ -22,11 +32,13 @@ export function SheetMarker({ sheetRef }: { sheetRef?: SheetRef }) {
     <span className="group/sm relative inline-flex align-middle">
       <span
         title={tip}
-        className="inline-flex cursor-help items-center gap-1 rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[11px] leading-none text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-300"
+        className={`inline-flex cursor-help items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] leading-none ${pillTone}`}
       >
-        <Printer className="h-3 w-3 shrink-0" aria-hidden="true" />
+        <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
         {label}
-        <span className="sr-only">Pe foaie: {tip}</span>
+        <span className="sr-only">
+          {srPrefix}: {tip}
+        </span>
       </span>
       <span
         role="tooltip"

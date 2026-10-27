@@ -835,7 +835,7 @@ export function parseClinicalExamInput(input: unknown, issues: string[]): Record
   }
 
   // dismissedChecks: pre-sign checklist ids the doctor marked "lăsat gol
-  // intenționat". Purely a UI annotation — never read by buildPeriodicExamFields
+  // intenționat". Purely a UI annotation — never read by buildClinicalSheetFields
   // or anything printed. Validated by shape and id scheme (mirrors the ids that
   // computeSheetChecks in sheet-checks.ts produces), not by recomputing them.
   if ('dismissedChecks' in obj && obj.dismissedChecks !== undefined && obj.dismissedChecks !== null) {
@@ -846,7 +846,7 @@ export function parseClinicalExamInput(input: unknown, issues: string[]): Record
       issues.push('clinicalExam.dismissedChecks has too many entries (max 100)')
     } else {
       const idPattern =
-        /^(fisa:(jobTitle|cnp|companyAddress)|foaie:(section|note|field):[a-zA-Z0-9._]+)$/
+        /^(fisa:(jobTitle|cnp|companyAddress|employeeAddress|birthDate)|foaie:(section|note|field|dosar):[a-zA-Z0-9._]+)$/
       const clean: string[] = []
       const seen = new Set<string>()
       for (const entry of raw) {
@@ -985,14 +985,14 @@ export function validateAdditionalTestsPeriodic(
 }
 
 // ---------------------------------------------------------------------------
-// PDF field builder (Phase 4). Produces the periodic sheet's fields from this
-// definition, keyed WITHOUT the `p_` prefix — the PDF route adds `p_` for the
-// periodic sheet, which is what makes reusing this for the angajare sheet
-// (same keys, no prefix) a later one-line change. Empty values emit nothing,
-// so an examination with an empty clinicalExam prints no systems-exam marks.
+// PDF field builder. Produces the clinical sheet's fields from this definition,
+// keyed WITHOUT any prefix. The periodic route adds the `p_` prefix for the
+// "Examen medical periodic" sheet; the angajare route uses the bare keys as-is
+// for "Examen medical la angajare" (same 119 positions). Empty values emit
+// nothing, so an examination with an empty clinicalExam prints no marks.
 // ---------------------------------------------------------------------------
 
-export interface PeriodicExamPdfInput {
+export interface ClinicalSheetPdfInput {
   clinicalExam: Record<string, unknown>
   visionTest: Record<string, unknown>
   hearingTest: Record<string, unknown>
@@ -1001,8 +1001,8 @@ export interface PeriodicExamPdfInput {
   vitalSigns: Record<string, unknown>
 }
 
-export function buildPeriodicExamFields(
-  input: PeriodicExamPdfInput
+export function buildClinicalSheetFields(
+  input: ClinicalSheetPdfInput
 ): Record<string, string | boolean> {
   const fields: Record<string, string | boolean> = {}
   const s = (o: Record<string, unknown>, k: string): string => {

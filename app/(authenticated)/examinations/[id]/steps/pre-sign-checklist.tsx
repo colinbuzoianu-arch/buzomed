@@ -16,6 +16,8 @@ interface Props {
   checks: SheetCheck[]
   dismissedIds: string[]
   locked: boolean
+  /** Name of the clinical sheet (e.g. "Examen medical la angajare"). */
+  sheetName: string
   showNextDateInfo: boolean
   employeeEditHref: string
   companyEditHref: string
@@ -30,12 +32,15 @@ const FISA_SHORT: Record<string, string> = {
   'fisa:jobTitle': 'Funcție',
   'fisa:cnp': 'CNP',
   'fisa:companyAddress': 'Adresa firmei',
+  'fisa:employeeAddress': 'Adresa angajatului',
+  'fisa:birthDate': 'Data nașterii',
 }
 
 export function PreSignChecklist({
   checks,
   dismissedIds,
   locked,
+  sheetName,
   showNextDateInfo,
   employeeEditHref,
   companyEditHref,
@@ -121,7 +126,7 @@ export function PreSignChecklist({
       {foaie.length > 0 && (
         <div className="rounded-md border border-dashed p-3">
           <span className="mb-2 block text-xs font-semibold text-muted-foreground">
-            {labels.preSignFoaieBlock}
+            {labels.preSignFoaieBlock}: {sheetName}
           </span>
           <ul className="space-y-1">
             {foaie.map((c) => (

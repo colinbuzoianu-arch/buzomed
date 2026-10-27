@@ -46,6 +46,10 @@ export interface SheetCheckInput {
   employeeJobTitle: string | null | undefined
   employeeHasCnp: boolean
   companyAddressPresent: boolean
+  /** angajare prints a Dosar medical too — add its checks. */
+  isAngajare?: boolean
+  employeeAddressPresent?: boolean
+  birthDatePresent?: boolean
 }
 
 // Stepper step indices (AnamnesisStep, ClinicalStep, FindingsStep, VerdictStep).
@@ -260,6 +264,71 @@ export function computeSheetChecks(input: SheetCheckInput): SheetCheck[] {
       step: STEP_INVESTIG,
       fieldKey: 'additionalTests.glycemia',
     })
+  }
+
+  // ─── Dosar medical (angajare only) ────────────────────────────────────────
+  if (input.isAngajare) {
+    // Employee-derived, red (fix at the employee record).
+    if (input.employeeAddressPresent === false) {
+      checks.push({
+        id: 'fisa:employeeAddress',
+        level: 'fisa',
+        label: 'Adresa angajatului lipsește',
+        step: STEP_ANAMNESIS,
+        fieldKey: 'employee.address',
+      })
+    }
+    if (input.birthDatePresent === false) {
+      checks.push({
+        id: 'fisa:birthDate',
+        level: 'fisa',
+        label: 'Data nașterii lipsește',
+        step: STEP_ANAMNESIS,
+        fieldKey: 'employee.birthDate',
+      })
+    }
+
+    // Dosar declaration choices that are still unset, grey.
+    const dosarChoice = (key: string, label: string) => {
+      if (s(anamnesis, key) === '') {
+        checks.push({
+          id: `foaie:dosar:${key}`,
+          level: 'foaie',
+          label: `Dosar: ${label}`,
+          step: STEP_ANAMNESIS,
+          fieldKey: `anamnesis.${key}`,
+        })
+      }
+    }
+    dosarChoice('intake_evidenta_itm', 'evidență ITM')
+    dosarChoice('intake_fumat', 'fumat')
+    dosarChoice('intake_alcool', 'alcool')
+    dosarChoice('intake_boli_profesionale', 'boli profesionale')
+    dosarChoice('intake_accidente_munca', 'accidente de muncă')
+    dosarChoice('intake_stagiu_militar', 'stagiul militar')
+
+    // Ruta profesională empty (string blank, or no filled row).
+    const ruta = anamnesis.intake_ruta_profesionala
+    const rutaEmpty =
+      ruta == null ||
+      (typeof ruta === 'string' && ruta.trim() === '') ||
+      (Array.isArray(ruta) &&
+        ruta.every(
+          (r) =>
+            !r ||
+            Object.values(r as Record<string, unknown>).every(
+              (v) => typeof v !== 'string' || v.trim() === ''
+            )
+        ))
+    if (rutaEmpty) {
+      checks.push({
+        id: 'foaie:dosar:ruta',
+        level: 'foaie',
+        label: 'Dosar: ruta profesională',
+        step: STEP_ANAMNESIS,
+        fieldKey: 'anamnesis.intake_ruta_profesionala',
+      })
+    }
   }
 
   return checks

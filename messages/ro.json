@@ -1112,7 +1112,10 @@
       "suppExamsTitle": "Examene suplimentare",
       "glycemiaLabel": "Glicemie (mg/dl)",
       "specialtyConclusionTitle": "Concluziile examinării de specialitate",
-      "sheetLegend": "Pe foaie = apare pe „Examen medical periodic\" · câmpurile din chenarul punctat rămân doar în Buzomed",
+      "sheetLegend": "Pe foaie = apare pe „{sheet}\" · câmpurile din chenarul punctat rămân doar în Buzomed",
+      "dosarLegend": "Dosar = apare pe Dosarul medical (anexa de la angajare), nu pe fișa de examen",
+      "sheetNamePeriodic": "Examen medical periodic",
+      "sheetNameAngajare": "Examen medical la angajare",
       "sheetNonPrinting": "Doar în dosarul din Buzomed — nu apare pe foaie",
       "sheetStepAnamnesis": "Pe foaie: bifa Asimptomatic din antet.",
       "sheetStepClinic": "Pe foaie: antetul (T, G, IMC, obezitate), punctele 1–11 și Concluzii examen clinic.",
@@ -1126,13 +1129,20 @@
       "preSignTitle": "Verificare înainte de semnare",
       "preSignAllDone": "Toate câmpurile de pe foi sunt completate",
       "preSignFisaBlock": "Fișa de aptitudine",
-      "preSignFoaieBlock": "Foaia de examen periodic",
+      "preSignFoaieBlock": "Pe foaie",
       "preSignDismiss": "Lasă gol",
       "preSignUndismiss": "Anulează",
       "preSignDismissed": "Lăsate goale intenționat",
       "preSignReverify": "Reverifică",
       "preSignNextDateInfo": "Data următorului examen se calculează automat la semnare.",
-      "preSignPrintWithout": "Fișa de aptitudine va fi tipărită fără:"
+      "preSignPrintWithout": "Fișa de aptitudine va fi tipărită fără:",
+      "dosarTitle": "Dosar medical",
+      "dosarIdentitySection": "Date de identificare (din fișa angajatului)",
+      "dosarFixEmployee": "Corectează la angajat",
+      "dosarFixCompany": "Corectează la firmă",
+      "dosarCnpPresent": "✓ pe fișă",
+      "dosarRutaTitle": "Ruta profesională",
+      "dosarRutaLegacy": "Text vechi"
     },
     "actions": {
       "start": "Începe examinarea",
@@ -1146,7 +1156,12 @@
       "signConfirm": "După semnare, examinarea devine definitivă și nu mai poate fi modificată. Continui?",
       "signRequirementsNotMet": "Setează verdictul înainte de a semna.",
       "signNote": "Semnarea marchează fișa ca finalizată. Aplicați semnătura olografă și stampila pe exemplarul tipărit.",
-      "signNoteNoSignature": "Nu ați urcat semnătura în Setări. Aplicați semnătura olografă pe exemplarul tipărit."
+      "signNoteNoSignature": "Nu ați urcat semnătura în Setări. Aplicați semnătura olografă pe exemplarul tipărit.",
+      "signTodoIntro": "Mai e nevoie, ca să poți semna:",
+      "signNeedsVerdict": "• Alege un verdict în pasul Aviz.",
+      "signNeedsExamDate": "• Completează data examinării în pasul Aviz.",
+      "signNeedsInaptUntil": "• Pentru „Inapt temporar\", setează data până la care e valabil.",
+      "signBlockedStatus": "Examinarea e anulată sau neprezentare — nu poate fi semnată."
     },
     "fisa": {
       "title": "Fișă de aptitudine în muncă",

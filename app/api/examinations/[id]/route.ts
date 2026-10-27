@@ -16,6 +16,7 @@ import {
   validateHearingTestPeriodic,
   validateVisionTestPeriodic,
 } from '@/lib/examinations/clinical-exam'
+import { validateDosarAnamnesis } from '@/lib/examinations/dosar-medical'
 
 /**
  * Single examination operations.
@@ -77,7 +78,9 @@ const JSONB_VALIDATORS: Partial<
   Record<(typeof JSONB_FIELDS)[number], (value: object, issues: string[]) => unknown>
 > = {
   clinicalExam: parseClinicalExamInput,
-  anamnesis: validateAnamnesisPeriodic,
+  // Anamneză carries both the periodic "asymptomatic" key and the angajare
+  // Dosar-medical intake_* keys; validate both (each ignores keys it doesn't own).
+  anamnesis: (value, issues) => validateDosarAnamnesis(validateAnamnesisPeriodic(value, issues), issues),
   visionTest: validateVisionTestPeriodic,
   hearingTest: validateHearingTestPeriodic,
   additionalTests: validateAdditionalTestsPeriodic,

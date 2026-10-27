@@ -205,5 +205,18 @@ export function shortWhere(where: string): string {
   if (where.startsWith('Aviz')) return 'Aviz'
   if (where.startsWith('Concluzii')) return 'Concluzii'
   if (where.startsWith('Data următorului')) return 'Data urm.'
+  if (where.startsWith('Dosar')) return 'Dosar'
   return where
+}
+
+/** Sheet ref for a field that prints on the Dosar medical sheet (angajare). */
+export const DOSAR_SHEET_REF: SheetRef = {
+  printed: true,
+  where: 'Dosar medical',
+  hint: 'Apare pe Dosarul medical, nu pe fișa de examen.',
+}
+
+/** True when a ref points at the Dosar medical sheet (angajare-only). */
+export function isDosarSheet(ref: SheetRef): boolean {
+  return !!ref.where && ref.where.startsWith('Dosar')
 }

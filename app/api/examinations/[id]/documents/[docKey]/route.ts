@@ -7,7 +7,8 @@ import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 import { EXAM_TYPE_DOCUMENTS } from '@/lib/examinations/document-templates'
 import { fillExaminationPdf } from '@/lib/examinations/pdf-fill'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
-import { buildPeriodicExamFields } from '@/lib/examinations/clinical-exam'
+import { buildClinicalSheetFields } from '@/lib/examinations/clinical-exam'
+import { buildDosarFields } from '@/lib/examinations/dosar-medical'
 
 interface RouteContext {
   params: Promise<{ id: string; docKey: string }>
@@ -38,6 +39,11 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
           idDocumentNumber: true,
           cnpEncrypted: true,
           jobTitle: true,
+          addressLine1: true,
+          city: true,
+          phone: true,
+          medicCurantName: true,
+          disabilityDegree: true,
         },
       },
       workplace: { include: { company: true } },
@@ -156,18 +162,14 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
     fields = {
       nume_angajat: `${examination.employee.lastName} ${examination.employee.firstName}`,
       nr_dosar: examination.examinationNumber,
-      data_top: examDate,
+      data_top: examDateShort,
       inaltime: str(vs.height),
       greutate: str(vs.weight),
       imc: str(vs.bmi),
       ta: vs.bpSystolic ? `${vs.bpSystolic}/${vs.bpDiastolic}` : '',
       av: str(vs.pulse),
-      av_vod: str(vt.right),
-      av_vos: str(vt.left),
-      av_corectie: str(vt.withCorrection),
-      vap_vod: str(vt.nearRight),
-      vap_vos: str(vt.nearLeft),
-      concl_text: examination.clinicalFindings ?? '',
+      // spec_text keeps clinicalFindings (agrees with the fișă de aptitudine);
+      // concl_text + vision + obesity + supplementary come from the builder.
       spec_text: examination.clinicalFindings ?? '',
       recomandari: examination.recommendations ?? '',
       aviz_functie: examination.employee.jobTitle ?? '',
@@ -178,6 +180,18 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       inapt_temp: verdict === 'inapt_temporar',
       inapt: verdict === 'inapt',
     }
+    // Definition-driven fields, bare keys (no prefix) for the angajare sheet.
+    Object.assign(
+      fields,
+      buildClinicalSheetFields({
+        clinicalExam: ce,
+        visionTest: vt,
+        hearingTest: ht,
+        anamnesis: an,
+        additionalTests: at,
+        vitalSigns: vs,
+      })
+    )
   } else if (docKey === 'examen_periodic') {
     // Static (non-definition) fields. Vitals TA/AV and the distance/near
     // vision, the systems-exam checkboxes/notes, obesity, asymptomatic,
@@ -207,7 +221,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       p_inapt: verdict === 'inapt',
     }
     // Definition-driven fields, prefixed with `p_` for the periodic sheet.
-    const periodicFields = buildPeriodicExamFields({
+    const periodicFields = buildClinicalSheetFields({
       clinicalExam: ce,
       visionTest: vt,
       hearingTest: ht,
@@ -219,21 +233,51 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
       fields[`p_${key}`] = value
     }
   } else if (docKey === 'dosar_medical') {
-    const companyAddrDm = [
-      examination.workplace.company.addressLine1,
-      examination.workplace.company.city,
-    ].filter(Boolean).join(', ')
+    // Every Dosar field is derived from the one definition. buildDosarFields
+    // already collapses whitespace/newlines on each value (so a company name
+    // with a newline no longer prints a stray line under "Nume" — the Robotoy
+    // bug). cnpValue comes from resolveEmployeeCnp above (audited).
+    const emp = examination.employee
+    const birth = emp.birthDate
+    const examWhen = resolveExaminationDate(examination)
+    const varsta =
+      birth != null
+        ? String(
+            examWhen.getFullYear() -
+              new Date(birth).getFullYear() -
+              (examWhen <
+              new Date(examWhen.getFullYear(), new Date(birth).getMonth(), new Date(birth).getDate())
+                ? 1
+                : 0)
+          )
+        : ''
     fields = {
-      unitate: examination.workplace.company.name,
-      punct_lucru: examination.workplace.name,
-      adresa_unitate: companyAddrDm,
-      nume: examination.employee.lastName,
-      prenume: examination.employee.firstName,
-      data_nasterii: examination.employee.birthDate
-        ? formatDateRo(examination.employee.birthDate)
-        : '',
-      sex: examination.employee.gender ?? '',
-      ocupatia: examination.employee.jobTitle ?? '',
+      sex: emp.gender ?? '',
+      ...buildDosarFields({
+        anamnesis: an,
+        companyName: examination.workplace.company.name,
+        workplaceName: examination.workplace.name,
+        department: examination.workplace.department ?? '',
+        companyAddress: [
+          examination.workplace.company.addressLine1,
+          examination.workplace.company.city,
+        ]
+          .filter(Boolean)
+          .join(', '),
+        lastName: emp.lastName,
+        firstName: emp.firstName,
+        varsta,
+        dataNasterii: birth ? formatDateRo(birth) : '',
+        cnp: cnpValue,
+        employeeAddress: [emp.addressLine1, emp.city].filter(Boolean).join(', '),
+        phone: emp.phone ?? '',
+        jobTitle: emp.jobTitle ?? '',
+        gender: emp.gender ?? null,
+        disabilityDegree: emp.disabilityDegree ?? null,
+        medicCurantName: emp.medicCurantName ?? null,
+        familyHistory: str(an.familyHistory),
+        allergies: str(an.allergies),
+      }),
     }
   } else if (docKey === 'bilet_trimitere') {
     const birthYear = examination.employee.birthDate

@@ -89,7 +89,14 @@ const FULL_CLINICAL: ExamSectionConfig = {
 }
 
 const SECTION_CONFIGS: Record<string, ExamSectionConfig> = {
-  angajare: { ...FULL_CLINICAL, showInitialIntake: true, showHearing: true, showLung: true },
+  angajare: {
+    ...FULL_CLINICAL,
+    showInitialIntake: true,
+    showHearing: true,
+    showLung: true,
+    showClinicalSystemsExam: true,
+    showSupplementaryExams: true,
+  },
   control_periodic: {
     ...FULL_CLINICAL,
     showHearing: true,
