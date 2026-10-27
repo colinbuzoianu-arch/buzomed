@@ -703,6 +703,40 @@
       "medicalEvents": "Evenimente",
       "documents": "Documente"
     },
+    "detailTabs": {
+      "dosar": "Dosar",
+      "avize": "Avize",
+      "ruta": "Rută profesională",
+      "personal": "Date personale"
+    },
+    "statusPill": {
+      "overdue": "Depășit de {n} zile",
+      "soon": "Scadent în {n} zile",
+      "ok": "Apt până la {month}",
+      "never": "Fără examinare",
+      "none": "Fără scadență"
+    },
+    "summary": {
+      "lastVerdict": "Ultimul aviz",
+      "nextControl": "Următorul control",
+      "risks": "Riscuri loc de muncă",
+      "cautions": "Cave/alergii",
+      "chronic": "Boli cronice"
+    },
+    "detail": {
+      "lastFisa": "Ultima fișă",
+      "revoked": "Retrasă",
+      "signed": "Semnată",
+      "openExam": "Deschide"
+    },
+    "avize": {
+      "nr": "Nr.",
+      "date": "Dată",
+      "type": "Tip",
+      "verdict": "Aviz",
+      "conditions": "Condiții",
+      "validUntil": "Valabil până la"
+    },
     "downloadFisaTitle": "Descarcă fișa PDF",
     "cnp": {
       "revealButton": "Afișează",

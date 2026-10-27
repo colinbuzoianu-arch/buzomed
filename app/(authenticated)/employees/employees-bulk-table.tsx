@@ -4,6 +4,7 @@ import { AlertTriangle, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { SortHeader } from '@/components/employees/sort-header'
+import { computeEmployeeStatus, STATUS_DOT, STATUS_TEXT } from '@/components/employees/employee-status'
 import { Button } from '@/components/ui/button'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -77,45 +78,18 @@ interface StatusInfo {
  * buckets computed server-side so the colour/text agrees with the ordering.
  */
 function statusInfo(e: SerializedEmployee, labels: StatusLabels): StatusInfo {
-  const recall = e.recalls[0]
-  const hasExam = e.examinations.length > 0
-  const nowMs = Date.now()
-  const dayMs = 86_400_000
-
-  if (recall) {
-    const due = new Date(recall.dueDate).getTime()
-    const diffDays = Math.round((due - nowMs) / dayMs)
-    if (recall.status === 'overdue' || due < nowMs) {
-      return {
-        kind: 'overdue',
-        text: labels.overdue.replace('{n}', String(Math.max(0, -diffDays))),
-        dotCls: 'bg-red-500',
-        textCls: 'text-red-700 dark:text-red-300',
-      }
-    }
-    if (diffDays <= 30) {
-      return {
-        kind: 'soon',
-        text: labels.soon.replace('{n}', String(Math.max(0, diffDays))),
-        dotCls: 'bg-amber-500',
-        textCls: 'text-amber-700 dark:text-amber-300',
-      }
-    }
-    if (!hasExam) {
-      return { kind: 'never', text: labels.never, dotCls: 'bg-muted-foreground/40', textCls: 'text-[hsl(var(--text-muted))]' }
-    }
-    const [y, m] = recall.dueDate.split('-')
-    return {
-      kind: 'ok',
-      text: labels.ok.replace('{month}', `${m}.${y}`),
-      dotCls: 'bg-muted-foreground/40',
-      textCls: 'text-[hsl(var(--text-muted))]',
-    }
-  }
-  if (!hasExam) {
-    return { kind: 'never', text: labels.never, dotCls: 'bg-muted-foreground/40', textCls: 'text-[hsl(var(--text-muted))]' }
-  }
-  return { kind: 'none', text: labels.none, dotCls: 'bg-muted-foreground/40', textCls: 'text-[hsl(var(--text-muted))]' }
+  const s = computeEmployeeStatus({ recall: e.recalls[0] ?? null, hasExam: e.examinations.length > 0 })
+  const text =
+    s.kind === 'overdue'
+      ? labels.overdue.replace('{n}', String(s.days))
+      : s.kind === 'soon'
+        ? labels.soon.replace('{n}', String(s.days))
+        : s.kind === 'ok'
+          ? labels.ok.replace('{month}', s.month)
+          : s.kind === 'never'
+            ? labels.never
+            : labels.none
+  return { kind: s.kind, text, dotCls: STATUS_DOT[s.kind], textCls: STATUS_TEXT[s.kind] }
 }
 
 const REASONS = [

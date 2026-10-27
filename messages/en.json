@@ -703,6 +703,40 @@
       "medicalEvents": "Events",
       "documents": "Documents"
     },
+    "detailTabs": {
+      "dosar": "File",
+      "avize": "Certificates",
+      "ruta": "Work history",
+      "personal": "Personal data"
+    },
+    "statusPill": {
+      "overdue": "Overdue by {n} days",
+      "soon": "Due in {n} days",
+      "ok": "Fit until {month}",
+      "never": "No examination",
+      "none": "No recall"
+    },
+    "summary": {
+      "lastVerdict": "Last verdict",
+      "nextControl": "Next control",
+      "risks": "Workplace hazards",
+      "cautions": "Cautions/allergies",
+      "chronic": "Chronic conditions"
+    },
+    "detail": {
+      "lastFisa": "Latest certificate",
+      "revoked": "Revoked",
+      "signed": "Signed",
+      "openExam": "Open"
+    },
+    "avize": {
+      "nr": "No.",
+      "date": "Date",
+      "type": "Type",
+      "verdict": "Verdict",
+      "conditions": "Conditions",
+      "validUntil": "Valid until"
+    },
     "downloadFisaTitle": "Download fișa PDF",
     "cnp": {
       "revealButton": "Show",
