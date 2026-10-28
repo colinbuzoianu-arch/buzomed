@@ -874,7 +874,10 @@
       "noticeRecallType": "The \"periodic check-up\" examination type is missing from the catalog — external certificate due dates were not registered.",
       "committingBatches": "Importing in batches…",
       "importHistoryLink": "Import history",
-      "viewInHistory": "View in history"
+      "viewInHistory": "View in history",
+      "updateExisting": "Update existing employees with the file's data",
+      "updateExistingHelp": "Overwrites only non-empty, changed fields (workplace, job title, email, etc.). Empty cells never erase data. CNP, name, birth date and medical data are never changed.",
+      "summaryUpdated": "Updated"
     },
     "merge": {
       "title": "Merge duplicate employees",

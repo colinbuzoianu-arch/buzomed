@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "tsx scripts/check-sandbox-isolation.ts && biome check .",
     "format": "biome format --write .",
+    "test": "node --import tsx --test \"lib/**/*.test.ts\"",
     "seed": "prisma db seed"
   },
   "dependencies": {

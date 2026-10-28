@@ -874,7 +874,10 @@
       "noticeRecallType": "Tipul de examinare „control periodic” lipsește din catalog — scadențele fișelor externe nu au fost înregistrate.",
       "committingBatches": "Se importă în loturi…",
       "importHistoryLink": "Istoric importuri",
-      "viewInHistory": "Vezi în istoric"
+      "viewInHistory": "Vezi în istoric",
+      "updateExisting": "Actualizează angajații existenți cu datele din fișier",
+      "updateExistingHelp": "Suprascrie doar câmpurile completate și diferite (loc de muncă, funcție, email etc.). Celulele goale nu șterg date. Nu se modifică CNP, nume, data nașterii sau datele medicale.",
+      "summaryUpdated": "Actualizați"
     },
     "merge": {
       "title": "Combină angajați duplicați",

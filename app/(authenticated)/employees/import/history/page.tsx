@@ -60,6 +60,7 @@ export default async function ImportHistoryPage() {
       status: true,
       totalRows: true,
       created: true,
+      updated: true,
       skipped: true,
       failed: true,
       companiesCreated: true,
@@ -109,6 +110,7 @@ export default async function ImportHistoryPage() {
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Create</TableHead>
+                <TableHead className="text-right">Actualizați</TableHead>
                 <TableHead className="text-right">Sărite</TableHead>
                 <TableHead className="text-right">Eșuate</TableHead>
                 <TableHead />
@@ -137,6 +139,9 @@ export default async function ImportHistoryPage() {
                     <TableCell className="text-right text-sm tabular-nums">{j.totalRows}</TableCell>
                     <TableCell className="text-right text-sm tabular-nums text-green-700">
                       {j.created}
+                    </TableCell>
+                    <TableCell className="text-right text-sm tabular-nums text-green-700">
+                      {j.updated}
                     </TableCell>
                     <TableCell className="text-right text-sm tabular-nums">{j.skipped}</TableCell>
                     <TableCell className="text-right text-sm tabular-nums text-destructive">

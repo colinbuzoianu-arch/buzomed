@@ -70,6 +70,7 @@ interface DiffResult {
 interface CommitSummary {
   total: number
   created: number
+  updated: number
   skipped: number
   failed: number
   companiesCreated: number
@@ -287,6 +288,10 @@ export function ImportClient({ companies, locale, labels }: Props) {
   const [sheetNotes, setSheetNotes] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [skipDuplicates, setSkipDuplicates] = useState(true)
+  // Opt-in: overwrite existing employees with the file's data instead of
+  // skipping them (prompt-import-update.md). Default off so other users'
+  // imports keep today's skip behaviour.
+  const [updateExisting, setUpdateExisting] = useState(false)
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null)
   const [diffLoading, setDiffLoading] = useState(false)
   const [aiMappingLoading, setAiMappingLoading] = useState(false)
@@ -570,6 +575,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
     const acc: CommitSummary = {
       total: 0,
       created: 0,
+      updated: 0,
       skipped: 0,
       failed: 0,
       companiesCreated: 0,
@@ -619,6 +625,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
               hireDate: r.hireDate,
               fitnessValidUntil: r.fitnessValidUntil,
               skipIfDuplicate: skipDuplicates,
+              updateExisting,
               companyName: r.companyName ?? null,
               cui: r.cui ?? null,
               companyAddress: r.companyAddress ?? null,
@@ -639,6 +646,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
         const s: CommitSummary = data.summary
         acc.total += s.total
         acc.created += s.created
+        acc.updated += s.updated ?? 0
         acc.skipped += s.skipped
         acc.failed += s.failed
         acc.companiesCreated += s.companiesCreated
@@ -725,8 +733,15 @@ export function ImportClient({ companies, locale, labels }: Props) {
               .replace('{skipped}', String(s.skipped))
               .replace('{failed}', String(s.failed))}
           </p>
-          <div className="grid grid-cols-3 gap-3 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
             <StatBox label={labels.rowsValid} value={s.created} tone="success" />
+            {s.updated > 0 && (
+              <StatBox
+                label={labels.summaryUpdated ?? 'Actualizați'}
+                value={s.updated}
+                tone="success"
+              />
+            )}
             <StatBox label={labels.rowsDuplicate} value={s.skipped} />
             <StatBox
               label={labels.rowsWithIssues}
@@ -1224,17 +1239,37 @@ export function ImportClient({ companies, locale, labels }: Props) {
           )}
           {diffResult && <RosterDiffPanel result={diffResult} labels={labels} />}
 
-          <div className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              id="skip-duplicates"
-              checked={skipDuplicates}
-              onChange={(e) => setSkipDuplicates(e.target.checked)}
-              disabled={phase === 'committing'}
-            />
-            <Label htmlFor="skip-duplicates" className="font-normal">
-              {skipDuplicates ? labels.skipDuplicates : labels.importAnywayDuplicates}
-            </Label>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                id="skip-duplicates"
+                checked={skipDuplicates}
+                onChange={(e) => setSkipDuplicates(e.target.checked)}
+                disabled={phase === 'committing' || updateExisting}
+              />
+              <Label htmlFor="skip-duplicates" className="font-normal">
+                {skipDuplicates ? labels.skipDuplicates : labels.importAnywayDuplicates}
+              </Label>
+            </div>
+            <div className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                id="update-existing"
+                checked={updateExisting}
+                onChange={(e) => setUpdateExisting(e.target.checked)}
+                disabled={phase === 'committing'}
+                className="mt-0.5"
+              />
+              <Label htmlFor="update-existing" className="font-normal">
+                {labels.updateExisting ??
+                  'Actualizează angajații existenți cu datele din fișier'}
+                <span className="block text-xs text-muted-foreground">
+                  {labels.updateExistingHelp ??
+                    'Suprascrie doar câmpurile completate și diferite (loc de muncă, funcție, email etc.). Celulele goale nu șterg date. Nu se modifică CNP, nume, data nașterii sau datele medicale.'}
+                </span>
+              </Label>
+            </div>
           </div>
 
           <PreviewTable rows={rows} labels={labels} extendedMode={extendedMode} />

@@ -20,10 +20,11 @@ import { CancelImportButton } from './cancel-import-button'
 
 interface RowResult {
   rowNumber: number
-  outcome: 'created' | 'skipped' | 'failed'
+  outcome: 'created' | 'updated' | 'skipped' | 'failed'
   reason?: string
   warning?: string
   employeeId?: string
+  changed?: string[]
 }
 
 interface PageProps {
@@ -57,8 +58,22 @@ function StatCard({ label, value, tone }: { label: string; value: number; tone?:
 
 const OUTCOME_LABEL: Record<string, string> = {
   created: 'Creat',
+  updated: 'Actualizat',
   skipped: 'Sărit',
   failed: 'Eșuat',
+}
+
+// Romanian labels for the updated-field names surfaced per row.
+const FIELD_LABEL: Record<string, string> = {
+  workplace: 'loc de muncă',
+  jobTitle: 'funcție',
+  companyEmployeeId: 'marcă',
+  email: 'email',
+  phone: 'telefon',
+  city: 'oraș',
+  notes: 'mențiuni',
+  company: 'companie',
+  hireDate: 'data angajării',
 }
 
 export default async function ImportHistoryDetailPage({ params }: PageProps) {
@@ -102,6 +117,7 @@ export default async function ImportHistoryDetailPage({ params }: PageProps) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total rânduri" value={job.totalRows} />
         <StatCard label="Create" value={job.created} tone="ok" />
+        <StatCard label="Actualizați" value={job.updated} tone="ok" />
         <StatCard label="Sărite" value={job.skipped} />
         <StatCard label="Eșuate" value={job.failed} tone="bad" />
         <StatCard label="Companii create" value={job.companiesCreated} />
@@ -162,7 +178,7 @@ export default async function ImportHistoryDetailPage({ params }: PageProps) {
                   <TableCell>
                     <span
                       className={`text-xs font-medium ${
-                        r.outcome === 'created'
+                        r.outcome === 'created' || r.outcome === 'updated'
                           ? 'text-green-700'
                           : r.outcome === 'failed'
                             ? 'text-destructive'
@@ -173,7 +189,15 @@ export default async function ImportHistoryDetailPage({ params }: PageProps) {
                     </span>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {[r.reason, r.warning].filter(Boolean).join(' · ') || '—'}
+                    {[
+                      r.reason,
+                      r.warning,
+                      r.changed && r.changed.length > 0
+                        ? r.changed.map((f) => FIELD_LABEL[f] ?? f).join(', ')
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || '—'}
                   </TableCell>
                   <TableCell className="text-xs">
                     {r.employeeId ? (

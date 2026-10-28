@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { type NextRequest, NextResponse } from 'next/server'
+import { getRequestMeta, writeAuditLog } from '@/lib/audit/log'
 import { getApiUser } from '@/lib/auth'
 import { encryptCnp, isCnpEncryptionConfigured } from '@/lib/crypto/cnp-cipher'
 import { hashCnp } from '@/lib/crypto/cnp-hash'
@@ -12,6 +13,10 @@ import {
   parseFlexibleDate,
   workplaceKey,
 } from '@/lib/employees/import-normalize'
+import {
+  computeEmployeeFieldUpdates,
+  type UpdatableEmployeeField,
+} from '@/lib/employees/import-update'
 import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { prisma } from '@/lib/prisma'
 import { logSystemError } from '@/lib/system-log/error-log'
@@ -54,10 +59,15 @@ interface ImportRow {
   department: string | null
   jobTitle: string | null
   city: string | null
+  phone: string | null
   notes: string | null
   hireDate: string | null
   fitnessValidUntil: string | null
   skipIfDuplicate: boolean
+  // When true, a row matched to an existing employee UPDATES that employee
+  // in place (prompt-import-update.md) instead of being skipped. Takes
+  // precedence over skipIfDuplicate.
+  updateExisting: boolean
   // Extended columns
   companyName: string | null
   cui: string | null
@@ -67,11 +77,14 @@ interface ImportRow {
 
 interface RowOutcome {
   rowNumber: number
-  outcome: 'created' | 'skipped' | 'failed'
+  outcome: 'created' | 'updated' | 'skipped' | 'failed'
   reason?: string
   employeeId?: string
   duplicateEmployeeId?: string
   warning?: string
+  // For an 'updated' row: which fields the import changed (field names only,
+  // never values — the audit log holds old → new, PII-free).
+  changed?: string[]
 }
 
 const MAX_ROWS_PER_IMPORT = 500
@@ -176,6 +189,7 @@ export async function POST(request: NextRequest) {
         typeof r.department === 'string' && r.department.trim() ? r.department.trim() : null,
       jobTitle: typeof r.jobTitle === 'string' && r.jobTitle.trim() ? r.jobTitle.trim() : null,
       city: typeof r.city === 'string' && r.city.trim() ? r.city.trim() : null,
+      phone: typeof r.phone === 'string' && r.phone.trim() ? r.phone.trim() : null,
       notes:
         typeof r.notes === 'string' && r.notes.trim() ? r.notes.trim().slice(0, NOTES_MAX) : null,
       hireDate: typeof r.hireDate === 'string' && r.hireDate.trim() ? r.hireDate.trim() : null,
@@ -184,6 +198,7 @@ export async function POST(request: NextRequest) {
           ? r.fitnessValidUntil.trim()
           : null,
       skipIfDuplicate: r.skipIfDuplicate !== false,
+      updateExisting: r.updateExisting === true,
       companyName:
         typeof r.companyName === 'string' && r.companyName.trim() ? r.companyName.trim() : null,
       cui: typeof r.cui === 'string' && r.cui.trim() ? r.cui.trim() : null,
@@ -329,8 +344,12 @@ export async function POST(request: NextRequest) {
     importJobId = job.id
   }
 
+  // Audit log context (shared by every per-row update entry).
+  const requestMeta = getRequestMeta(request)
+
   // Running tallies (declared before the helpers that mutate them).
   let created = 0,
+    updated = 0,
     skipped = 0,
     failed = 0
   let companiesCreated = 0,
@@ -548,10 +567,194 @@ export async function POST(request: NextRequest) {
       const duplicate = dupByCnp ?? dupByName ?? dupByEmail
 
       // Hire date → assignment start date (spec §2). Invalid/future ⇒ today.
-      let startDate = new Date()
+      let parsedHireDate: Date | null = null
       if (row.hireDate) {
         const p = parseFlexibleDate(row.hireDate)
-        if (p.status === 'valid' && !isFutureDate(p.date)) startDate = p.date
+        if (p.status === 'valid' && !isFutureDate(p.date)) parsedHireDate = p.date
+      }
+      const startDate = parsedHireDate ?? new Date()
+
+      // ── 4a. UPDATE existing employee in place (prompt-import-update.md) ─
+      // When the operator chose "update existing" and this row matches an
+      // existing employee, overwrite the changed fields instead of skipping.
+      // Everything for one employee runs in ONE transaction; nothing is ever
+      // deleted. Precedence: updateExisting wins over skipIfDuplicate.
+      if (duplicate && row.updateExisting) {
+        const today = new Date()
+        const upd = await prisma.$transaction(async (tx) => {
+          const existing = await tx.employee.findFirst({
+            where: { id: duplicate, tenantId, deletedAt: null },
+            select: {
+              id: true,
+              companyId: true,
+              companyEmployeeId: true,
+              jobTitle: true,
+              email: true,
+              phone: true,
+              city: true,
+              notes: true,
+            },
+          })
+          // Vanished between pre-load and now (soft-deleted concurrently).
+          if (!existing) return null
+
+          // Scalar fields — only non-empty, genuinely different values.
+          const { data, changed, changes } = computeEmployeeFieldUpdates(
+            {
+              companyEmployeeId: existing.companyEmployeeId,
+              jobTitle: existing.jobTitle,
+              email: existing.email,
+              phone: existing.phone,
+              city: existing.city,
+              notes: existing.notes,
+            },
+            {
+              companyEmployeeId: row.companyEmployeeId,
+              jobTitle: row.jobTitle,
+              email: row.email,
+              phone: row.phone,
+              city: row.city,
+              notes: row.notes,
+            }
+          )
+          const changedFields: string[] = [...changed]
+          const auditChanges: Record<string, { old: unknown; new: unknown }> = {}
+          for (const f of changed) {
+            const c = changes[f as UpdatableEmployeeField]
+            if (c) auditChanges[f] = { old: c.old, new: c.new }
+          }
+
+          const employeeData: Prisma.EmployeeUpdateInput = { ...data }
+          // Attach the resolved company only when the employee has none —
+          // never silently move an employee to a different company.
+          if (!existing.companyId && resolvedCompanyId) {
+            employeeData.company = { connect: { id: resolvedCompanyId } }
+            changedFields.push('company')
+          }
+
+          // ── Workplace assignment ──────────────────────────────────────
+          if (resolvedWorkplaceId) {
+            const current = await tx.employeeWorkplaceAssignment.findFirst({
+              where: { employeeId: existing.id, isCurrent: true },
+              select: { id: true, workplaceId: true, startDate: true },
+            })
+            if (!current) {
+              // No assignment yet — just create one (spec: "just create one").
+              await tx.employeeWorkplaceAssignment.create({
+                data: {
+                  tenantId,
+                  employeeId: existing.id,
+                  workplaceId: resolvedWorkplaceId,
+                  startDate,
+                  isCurrent: true,
+                  reasonForChange: 'hired',
+                },
+              })
+              changedFields.push('workplace')
+              auditChanges.workplace = { old: null, new: resolvedWorkplaceId }
+            } else if (current.workplaceId !== resolvedWorkplaceId) {
+              // Workplace changed — close the old assignment (NEVER delete)
+              // and open a new current one on the new workplace.
+              await tx.employeeWorkplaceAssignment.update({
+                where: { id: current.id },
+                data: { isCurrent: false, endDate: today },
+              })
+              await tx.employeeWorkplaceAssignment.create({
+                data: {
+                  tenantId,
+                  employeeId: existing.id,
+                  workplaceId: resolvedWorkplaceId,
+                  startDate: today,
+                  isCurrent: true,
+                  reasonForChange: 'department_change',
+                },
+              })
+              // Pending/overdue recalls on the OLD workplace follow the
+              // employee to the new one. Completed recalls stay untouched.
+              await tx.recall.updateMany({
+                where: {
+                  tenantId,
+                  employeeId: existing.id,
+                  workplaceId: current.workplaceId,
+                  status: { in: ['pending', 'overdue'] },
+                  deletedAt: null,
+                },
+                data: { workplaceId: resolvedWorkplaceId },
+              })
+              changedFields.push('workplace')
+              auditChanges.workplace = { old: current.workplaceId, new: resolvedWorkplaceId }
+            } else if (
+              parsedHireDate &&
+              current.startDate.getTime() !== parsedHireDate.getTime()
+            ) {
+              // Same workplace, but the file carries a different (valid) hire
+              // date — correct the current assignment's start date.
+              await tx.employeeWorkplaceAssignment.update({
+                where: { id: current.id },
+                data: { startDate: parsedHireDate },
+              })
+              changedFields.push('hireDate')
+              auditChanges.hireDate = {
+                old: current.startDate.toISOString().slice(0, 10),
+                new: parsedHireDate.toISOString().slice(0, 10),
+              }
+            }
+          }
+
+          if (Object.keys(employeeData).length > 0) {
+            await tx.employee.update({ where: { id: existing.id }, data: employeeData })
+          }
+
+          return { employeeId: existing.id, changedFields, auditChanges }
+        })
+
+        if (!upd) {
+          // Employee disappeared — treat as a skip, not a failure.
+          results.push({
+            rowNumber: row.rowNumber,
+            outcome: 'skipped',
+            reason: 'duplicate_vanished',
+          })
+          skipped++
+          continue
+        }
+
+        if (upd.changedFields.length === 0) {
+          // Nothing actually differed — keep the import idempotent (spec §5):
+          // a re-run of the same file reports 0 updates.
+          results.push({
+            rowNumber: row.rowNumber,
+            outcome: 'skipped',
+            reason: 'no_changes',
+            duplicateEmployeeId: upd.employeeId,
+            warning: rowWarning,
+          })
+          skipped++
+          continue
+        }
+
+        // One audit entry per updated employee, old → new (never any CNP).
+        void writeAuditLog({
+          tenantId,
+          userId,
+          action: 'update',
+          entityType: 'employee',
+          entityId: upd.employeeId,
+          entitySummary: `Actualizat din import „${fileName ?? 'fișier'}" — ${upd.changedFields.join(', ')}`,
+          changes: { importJobId, fields: upd.auditChanges },
+          ipAddress: requestMeta.ipAddress,
+          userAgent: requestMeta.userAgent,
+        })
+
+        results.push({
+          rowNumber: row.rowNumber,
+          outcome: 'updated',
+          employeeId: upd.employeeId,
+          changed: upd.changedFields,
+          warning: rowWarning,
+        })
+        updated++
+        continue
       }
 
       if (duplicate && row.skipIfDuplicate) {
@@ -715,7 +918,7 @@ export async function POST(request: NextRequest) {
   const flags: string[] = []
   if (rowsWithoutWorkplace > 0 && anyRowHadWorkplaceName)
     flags.push('workplace_data_present_but_unassigned')
-  if (created === 0 && rows.length > 0) flags.push('zero_rows_created')
+  if (created === 0 && updated === 0 && rows.length > 0) flags.push('zero_rows_created')
   if (failed > rows.length * 0.5) flags.push('high_failure_rate')
   if (companiesCreated > 0 && fallbackCompanyId) flags.push('unexpected_company_creation')
   if (anyCnp && !encryptionConfigured) flags.push('cnp_encryption_not_configured')
@@ -738,6 +941,7 @@ export async function POST(request: NextRequest) {
       where: { id: importJobId },
       data: {
         created: { increment: created },
+        updated: { increment: updated },
         skipped: { increment: skipped },
         failed: { increment: failed },
         companiesCreated: { increment: companiesCreated },
@@ -773,6 +977,7 @@ export async function POST(request: NextRequest) {
     summary: {
       total: rows.length,
       created,
+      updated,
       skipped,
       failed,
       companiesCreated,

@@ -175,6 +175,9 @@ export default async function ImportEmployeesPage() {
           committingBatches: t('employees.import.committingBatches'),
           importHistoryLink: t('employees.import.importHistoryLink'),
           viewInHistory: t('employees.import.viewInHistory'),
+          updateExisting: t('employees.import.updateExisting'),
+          updateExistingHelp: t('employees.import.updateExistingHelp'),
+          summaryUpdated: t('employees.import.summaryUpdated'),
         }}
       />
     </div>

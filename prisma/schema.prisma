@@ -1492,6 +1492,9 @@ model ImportJob {
 
   totalRows            Int      @map("total_rows")
   created              Int
+  // In-place updates of existing employees (prompt-import-update.md). Older
+  // rows predate this column and default to 0.
+  updated              Int      @default(0)
   skipped              Int
   failed               Int
   companiesCreated     Int      @map("companies_created")
