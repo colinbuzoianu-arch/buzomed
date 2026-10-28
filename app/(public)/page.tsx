@@ -133,14 +133,6 @@ const workflowCards = [
   },
 ]
 
-const tableRows = [
-  { name: 'Andrei M.', role: 'Operator',  status: 'Apt',     date: '14 mai 2026', color: '#4ade80' },
-  { name: 'Elena P.',  role: 'Tehnician', status: 'Scadent', date: '02 iun 2026', color: '#fbbf24' },
-  { name: 'Mihai D.',  role: 'Manager',   status: 'Apt',     date: '28 apr 2026', color: '#4ade80' },
-  { name: 'Ioana S.',  role: 'Contabil',  status: 'Expirat', date: '15 mar 2026', color: '#f87171' },
-]
-
-
 // ── FAQ (visible on page + FAQPage structured data) ────────────────────────
 
 const faqs = [
@@ -547,166 +539,62 @@ export default async function LandingPage() {
             </p>
           </div>
 
-          {/* Browser chrome mockup */}
-          <div
-            style={{
-              maxWidth: 860,
-              margin: '0 auto',
-              borderRadius: 16,
-              overflow: 'hidden',
-              boxShadow: '0 32px 80px rgba(0,0,0,0.55)',
-              border: '1px solid rgba(255,255,255,0.07)',
-            }}
-          >
-            {/* Title bar */}
-            <div
+          {/* Demo call-to-action — explore the live sandbox or book a demo */}
+          <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, justifyContent: 'center' }}>
+              <a
+                href="/sandbox"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '14px 28px',
+                  borderRadius: 10,
+                  background: '#2E6BD6',
+                  color: 'white',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  boxShadow: '0 8px 24px rgba(46,107,214,0.35)',
+                }}
+              >
+                Explorează aplicația
+              </a>
+              <a
+                href="/contact"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '14px 28px',
+                  borderRadius: 10,
+                  background: 'transparent',
+                  color: 'white',
+                  fontSize: 16,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                }}
+              >
+                Solicită o demonstrație
+              </a>
+            </div>
+            <p
               style={{
-                background: '#1E293B',
-                padding: '10px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                marginTop: 22,
+                fontSize: 15,
+                lineHeight: 1.6,
+                color: 'rgba(255,255,255,0.6)',
+                maxWidth: 520,
+                marginLeft: 'auto',
+                marginRight: 'auto',
               }}
             >
-              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#FF5F57' }} />
-              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#FFBD2E' }} />
-              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#28C840' }} />
-              <div
-                style={{
-                  flex: 1,
-                  margin: '0 12px',
-                  background: 'rgba(255,255,255,0.05)',
-                  borderRadius: 6,
-                  height: 24,
-                  display: 'flex',
-                  alignItems: 'center',
-                  paddingLeft: 12,
-                }}
-              >
-                <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 12 }}>
-                  app.buzomed.com/employees
-                </span>
-              </div>
-            </div>
-
-            {/* App body */}
-            <div style={{ background: '#0F172A', display: 'flex', minHeight: 340 }}>
-              {/* Sidebar */}
-              <div
-                style={{
-                  width: 52,
-                  background: '#1E293B',
-                  borderRight: '1px solid rgba(255,255,255,0.05)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  paddingTop: 16,
-                  gap: 8,
-                  flexShrink: 0,
-                }}
-              >
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: i === 1 ? '#1E4D8B' : 'rgba(255,255,255,0.05)',
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Main content */}
-              <div style={{ flex: 1, padding: '20px 24px', minWidth: 0 }}>
-                {/* Stats */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 12,
-                    marginBottom: 24,
-                  }}
-                >
-                  {[
-                    { label: 'Angajați activi',        value: '247', color: '#7dd3fc' },
-                    { label: 'Examinări luna aceasta',  value: '38',  color: '#86efac' },
-                    { label: 'Scadențe apropiate',      value: '12',  color: '#fcd34d' },
-                  ].map((stat) => (
-                    <div
-                      key={stat.label}
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        borderRadius: 10,
-                        padding: '12px 14px',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                      }}
-                    >
-                      <div
-                        style={{ fontSize: 22, fontWeight: 700, color: stat.color, marginBottom: 2 }}
-                      >
-                        {stat.value}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.3 }}>
-                        {stat.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Table header */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1.5fr 1fr 1.2fr',
-                    gap: 8,
-                    padding: '0 10px',
-                    marginBottom: 6,
-                  }}
-                >
-                  {['Angajat', 'Post', 'Status', 'Examinare'].map((h) => (
-                    <span
-                      key={h}
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 600,
-                        color: 'rgba(255,255,255,0.28)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.06em',
-                      }}
-                    >
-                      {h}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Table rows */}
-                {tableRows.map((row) => (
-                  <div
-                    key={row.name}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '2fr 1.5fr 1fr 1.2fr',
-                      gap: 8,
-                      padding: '9px 10px',
-                      borderRadius: 8,
-                      marginBottom: 4,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.04)',
-                    }}
-                  >
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.82)', fontWeight: 500 }}>
-                      {row.name}
-                    </span>
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{row.role}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: row.color }}>{row.status}</span>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)' }}>{row.date}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+              Explorează gratuit Buzomed într-un mediu demonstrativ, cu date fictive. Fără cont și fără
+              a afecta date reale.
+            </p>
           </div>
         </div>
       </section>

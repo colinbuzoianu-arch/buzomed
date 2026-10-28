@@ -32,7 +32,7 @@ export default function SandboxLayout({ children }: { children: React.ReactNode 
     { href: '#', label: t('nav.settings') },
   ]
 
-  const userDisplayName = 'Dr. Ana Demo — Cabinet Demo'
+  const userDisplayName = 'Dr. Maria Demo — Cabinet Demo'
 
   return (
     <SandboxStoreProvider>
@@ -52,7 +52,7 @@ export default function SandboxLayout({ children }: { children: React.ReactNode 
                 {userDisplayName}
               </span>
               <div className="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold select-none">
-                AD
+                MD
               </div>
               <SandboxMobileNav enabled={enabled} disabled={disabled} userName={userDisplayName} />
             </div>

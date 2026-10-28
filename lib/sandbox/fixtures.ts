@@ -425,9 +425,9 @@ export function buildFixtures(now: Date = new Date()): SandboxData {
 
   const practitioner = {
     id: fakeId('practnr1', 1),
-    firstName: 'Ana',
+    firstName: 'Maria',
     lastName: 'Demo',
-    displayName: 'Dr. Ana Demo',
+    displayName: 'Dr. Maria Demo',
   }
   const cabinetName = 'Cabinet Demo'
 
