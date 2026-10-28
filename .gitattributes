@@ -1,0 +1,3 @@
+# Sandbox sample PDFs are binary — never apply line-ending conversion or
+# text diffs (some are mostly-ASCII and git would otherwise misdetect them).
+public/sandbox/pdfs/*.pdf binary

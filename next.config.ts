@@ -18,6 +18,23 @@ const nextConfig: NextConfig = {
 
   // Don't advertise the framework in response headers.
   poweredByHeader: false,
+
+  async headers() {
+    // Sandbox-only headers (the public demo). Keep the rest of the app on its
+    // existing headers. `SANDBOX_FRAME_ANCESTORS` is a space-separated list
+    // that replaces the default allowed embedders (e.g. the Wix site domain).
+    const ancestors =
+      process.env.SANDBOX_FRAME_ANCESTORS ||
+      "'self' https://*.wixsite.com https://*.wix.com";
+    const sandboxHeaders = [
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+      { key: "Content-Security-Policy", value: `frame-ancestors ${ancestors}` },
+    ];
+    return [
+      { source: "/sandbox", headers: sandboxHeaders },
+      { source: "/sandbox/:path*", headers: sandboxHeaders },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -234,6 +234,9 @@ interface Props {
   documentsPanel?: ReactNode
   documentsSection?: ReactNode
   examinationActions?: ReactNode
+  /** Optional note shown under the „Vezi foaia" action (used by the sandbox
+   *  demo to explain that a sample sheet opens). Real pages omit it. */
+  viewSheetNote?: ReactNode
 }
 
 const STEP_COUNT = 4
@@ -261,6 +264,7 @@ export function ExaminationStepper({
   documentsPanel,
   documentsSection,
   examinationActions,
+  viewSheetNote,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -828,6 +832,10 @@ export function ExaminationStepper({
               {labels.viewSheet}
             </Button>
           </div>
+        )}
+
+        {viewSheetNote && isPeriodic && (
+          <p className="text-xs text-muted-foreground text-right -mt-4">{viewSheetNote}</p>
         )}
       </div>
 

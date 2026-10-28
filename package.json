@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "biome check .",
+    "lint": "tsx scripts/check-sandbox-isolation.ts && biome check .",
     "format": "biome format --write .",
     "seed": "prisma db seed"
   },

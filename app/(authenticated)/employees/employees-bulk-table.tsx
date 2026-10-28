@@ -53,6 +53,11 @@ interface Props {
   showArchived: boolean
   canWrite: boolean
   labels: StatusLabels
+  /** Display-only mode: rows are not links (used by the public sandbox demo).
+   *  Default false → the real app is unchanged. */
+  readOnly?: boolean
+  /** Tooltip shown on non-clickable rows in readOnly mode. */
+  readOnlyTooltip?: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -105,7 +110,7 @@ const INPUT_CLS = 'flex h-9 w-full rounded-md border border-input bg-background 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function EmployeesBulkTable({ employees, workplaces, locale, sort, showArchived, canWrite, labels }: Props) {
+export function EmployeesBulkTable({ employees, workplaces, locale, sort, showArchived, canWrite, labels, readOnly = false, readOnlyTooltip }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [dialogOpen, setDialogOpen]   = useState(false)
   const [wpId, setWpId]               = useState('')
@@ -114,7 +119,7 @@ export function EmployeesBulkTable({ employees, workplaces, locale, sort, showAr
   const [assignResult, setAssignResult] = useState<{ success: number; failed: number } | null>(null)
 
   const sel = selectedIds.size
-  const showCheckbox = canWrite && !showArchived
+  const showCheckbox = canWrite && !showArchived && !readOnly
 
   function toggleAll() {
     setSelectedIds(sel === employees.length ? new Set() : new Set(employees.map((e) => e.id)))
@@ -220,7 +225,11 @@ export function EmployeesBulkTable({ employees, workplaces, locale, sort, showAr
               ].filter(Boolean).join(' · ')
 
               return (
-                <tr key={e.id} className="group border-b last:border-0 hover:bg-muted/40 transition-colors">
+                <tr
+                  key={e.id}
+                  title={readOnly ? readOnlyTooltip : undefined}
+                  className={`group border-b last:border-0 hover:bg-muted/40 transition-colors ${readOnly ? 'cursor-default' : ''}`}
+                >
                   {showCheckbox && (
                     <td className="pl-3 py-1.5 align-middle">
                       <input
@@ -234,13 +243,19 @@ export function EmployeesBulkTable({ employees, workplaces, locale, sort, showAr
                   )}
                   <td className="pl-4 pr-2 py-1.5 align-middle">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <Link
-                        href={`/employees/${e.id}`}
-                        title={fullName}
-                        className="min-w-0 font-medium text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors truncate"
-                      >
-                        {fullName}
-                      </Link>
+                      {readOnly ? (
+                        <span className="min-w-0 font-medium text-foreground truncate" title={fullName}>
+                          {fullName}
+                        </span>
+                      ) : (
+                        <Link
+                          href={`/employees/${e.id}`}
+                          title={fullName}
+                          className="min-w-0 font-medium text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors truncate"
+                        >
+                          {fullName}
+                        </Link>
+                      )}
                       {e.companyEmployeeId && (
                         <span className="text-[10px] text-[hsl(var(--text-faint))] font-mono tabular-nums shrink-0">
                           #{e.companyEmployeeId}
@@ -318,12 +333,8 @@ export function EmployeesBulkTable({ employees, workplaces, locale, sort, showAr
             else recallUrgency = 'ok'
           }
 
-          return (
-            <Link
-              key={e.id}
-              href={`/employees/${e.id}`}
-              className="block border rounded-lg p-4 hover:bg-[hsl(var(--surface-tinted))] transition-colors"
-            >
+          const cardInner = (
+            <>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-foreground truncate">{e.lastName} {e.firstName}</div>
@@ -374,6 +385,24 @@ export function EmployeesBulkTable({ employees, workplaces, locale, sort, showAr
                   )}
                 </div>
               </div>
+            </>
+          )
+
+          return readOnly ? (
+            <div
+              key={e.id}
+              title={readOnlyTooltip}
+              className="block border rounded-lg p-4 cursor-default"
+            >
+              {cardInner}
+            </div>
+          ) : (
+            <Link
+              key={e.id}
+              href={`/employees/${e.id}`}
+              className="block border rounded-lg p-4 hover:bg-[hsl(var(--surface-tinted))] transition-colors"
+            >
+              {cardInner}
             </Link>
           )
         })}

@@ -1,6 +1,6 @@
 import type { Translator } from '@/lib/i18n'
 import { prisma } from '@/lib/prisma'
-import { StatCard } from './dashboard-cards'
+import { DashboardStatsView } from './dashboard-stats-view'
 
 export default async function DashboardStats({ tenantId, t }: { tenantId: string; t: Translator }) {
   // Today's boundaries in UTC
@@ -78,42 +78,9 @@ export default async function DashboardStats({ tenantId, t }: { tenantId: string
     ])
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-[11px] font-medium uppercase tracking-[0.1em] text-[hsl(var(--text-muted))]">
-        {t('dashboard.today')}
-      </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <StatCard
-          href="/examinations?tab=programate"
-          label={t('dashboard.scheduledToday')}
-          value={todayExams}
-          accent="primary"
-        />
-        <StatCard
-          href="/examinations?tab=programate"
-          label={t('dashboard.scheduledThisWeek')}
-          value={thisWeekExams}
-          accent="primary"
-        />
-        <StatCard
-          href="/examinations?tab=scadente&horizon=thisWeek"
-          label={t('dashboard.dueThisWeek')}
-          value={pendingRecalls}
-          accent="warning"
-        />
-        <StatCard
-          href="/examinations?tab=toate"
-          label={t('dashboard.thisMonthExams')}
-          value={thisMonthExams}
-          accent="muted"
-        />
-        <StatCard
-          href="/employees"
-          label={t('dashboard.activeWorkers')}
-          value={employeeCount}
-          accent="positive"
-        />
-      </div>
-    </section>
+    <DashboardStatsView
+      counts={{ todayExams, thisWeekExams, pendingRecalls, thisMonthExams, employeeCount }}
+      t={t}
+    />
   )
 }

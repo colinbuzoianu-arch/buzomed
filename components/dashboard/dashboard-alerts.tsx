@@ -1,6 +1,6 @@
 import type { Translator } from '@/lib/i18n'
 import { prisma } from '@/lib/prisma'
-import { AlertCard } from './dashboard-cards'
+import { DashboardAlertsView } from './dashboard-alerts-view'
 
 export default async function DashboardAlerts({
   tenantId,
@@ -41,43 +41,7 @@ export default async function DashboardAlerts({
     }),
   ])
 
-  const urgentCount = overdueRecalls + inProgressExams + unsignedCompleted
-  if (urgentCount === 0) return null
-
   return (
-    <section className="space-y-3">
-      <h2 className="text-[11px] font-medium uppercase tracking-[0.1em] text-[hsl(var(--text-muted))]">
-        {t('dashboard.needsAttention')}
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {overdueRecalls > 0 && (
-          <AlertCard
-            href="/examinations?tab=scadente&horizon=overdue"
-            label={t('dashboard.overdueRecalls')}
-            value={overdueRecalls}
-            tone="destructive"
-            description={t('dashboard.overdueRecallsDesc')}
-          />
-        )}
-        {inProgressExams > 0 && (
-          <AlertCard
-            href="/examinations?tab=in_curs"
-            label={t('dashboard.inProgress')}
-            value={inProgressExams}
-            tone="warning"
-            description={t('dashboard.inProgressDesc')}
-          />
-        )}
-        {unsignedCompleted > 0 && (
-          <AlertCard
-            href="/examinations?tab=finalizate"
-            label={t('dashboard.unsignedFise')}
-            value={unsignedCompleted}
-            tone="warning"
-            description={t('dashboard.unsignedFiseDesc')}
-          />
-        )}
-      </div>
-    </section>
+    <DashboardAlertsView counts={{ overdueRecalls, inProgressExams, unsignedCompleted }} t={t} />
   )
 }

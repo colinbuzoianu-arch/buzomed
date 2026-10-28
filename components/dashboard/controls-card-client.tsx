@@ -32,12 +32,15 @@ export function ControlsCardClient({
   overdueCount,
   soonCount,
   labels,
+  basePath = '',
 }: {
   overdue: ControlRow[]
   soon: ControlRow[]
   overdueCount: number
   soonCount: number
   labels: Labels
+  /** Prefix for internal hrefs: '' for the real app, '/sandbox' for the demo. */
+  basePath?: string
 }) {
   const [tab, setTab] = useState<'overdue' | 'soon'>(
     overdueCount > 0 || soonCount === 0 ? 'overdue' : 'soon'
@@ -47,8 +50,8 @@ export function ControlsCardClient({
   const empty = tab === 'overdue' ? labels.emptyOverdue : labels.emptySoon
   const viewAllHref =
     tab === 'overdue'
-      ? '/examinations?tab=scadente&horizon=overdue'
-      : '/examinations?tab=scadente&horizon=thisMonth'
+      ? `${basePath}/examinations?tab=scadente&horizon=overdue`
+      : `${basePath}/examinations?tab=scadente&horizon=thisMonth`
 
   function badge(days: number): { text: string; cls: string } {
     if (days < 0) {
@@ -81,7 +84,9 @@ export function ControlsCardClient({
           onClick={() => setTab('overdue')}
           className={cn(
             'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-            tab === 'overdue' ? 'bg-destructive/10 text-destructive' : 'text-muted-foreground hover:bg-muted'
+            tab === 'overdue'
+              ? 'bg-destructive/10 text-destructive'
+              : 'text-muted-foreground hover:bg-muted'
           )}
         >
           {labels.tabOverdue} ({overdueCount})
@@ -107,7 +112,7 @@ export function ControlsCardClient({
             return (
               <li key={r.id}>
                 <Link
-                  href={`/employees/${r.employeeId}`}
+                  href={`${basePath}/employees/${r.employeeId}`}
                   className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
                 >
                   <span className="min-w-0 flex-1">

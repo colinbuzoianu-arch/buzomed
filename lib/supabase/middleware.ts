@@ -44,6 +44,10 @@ const isPublicRoute =
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/accept-invite') ||
+    // Public, no-backend interactive demo. Everything under /sandbox runs in
+    // the browser against fixtures; it has no session and must never redirect
+    // to /login. See docs/sandbox-spec.md.
+    pathname.startsWith('/sandbox') ||
     pathname.startsWith('/api/invitations/accept') ||
     pathname.startsWith('/api/landing-chat') ||
     pathname.startsWith('/api/register-request') ||
