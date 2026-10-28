@@ -400,6 +400,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
           email: r.email,
           companyEmployeeId: r.companyEmployeeId,
           department: r.department,
+          workplaceName: r.workplaceName,
           cnp: r.cnp,
         })),
       }),

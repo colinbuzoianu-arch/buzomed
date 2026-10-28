@@ -4,7 +4,11 @@ import { isCnpEncryptionConfigured } from '@/lib/crypto/cnp-cipher'
 import { hashCnp } from '@/lib/crypto/cnp-hash'
 import { validateCnp } from '@/lib/crypto/cnp-validation'
 import { getOrCreateTenantCnpSalt } from '@/lib/crypto/tenant-salt'
-import { normalizeCnpInput } from '@/lib/employees/import-normalize'
+import {
+  normalizeCnpInput,
+  normalizeWorkplaceValue,
+  workplaceKey,
+} from '@/lib/employees/import-normalize'
 import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { prisma } from '@/lib/prisma'
 import { logSystemError } from '@/lib/system-log/error-log'
@@ -19,12 +23,14 @@ import { asObject } from '@/lib/validation'
  *
  *   - new      : in the file, no matching employee currently at this company
  *   - leaving  : currently at this company, not matched by any file row
- *   - moved    : matched in both, but their file department maps to a
- *                different workplace than the one currently assigned
- *   - unchanged: matched, same workplace (or neither has a workplace)
+ *   - moved    : matched in both, but the file's workplace (resolved exactly
+ *                like the commit route — workplaceName ?? department, same
+ *                normalization, including workplaces that would be CREATED)
+ *                differs from the one currently assigned
+ *   - unchanged: matched, same workplace (or the row carries no workplace)
  *
- * Matching order:
- *   1. companyEmployeeId (most reliable)
+ * Matching order (identical to the commit route):
+ *   1. cnpHash
  *   2. normalized firstName + lastName
  *   3. email
  *
@@ -40,6 +46,7 @@ interface InputRow {
   email: string | null
   companyEmployeeId: string | null
   department: string | null
+  workplaceName: string | null
   cnp: string | null
 }
 
@@ -82,17 +89,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'company_not_found' }, { status: 404 })
     }
 
-    // Build workplace name resolver (same algorithm as commit route)
-    const workplaceByDept = new Map<string, string>()
-    const workplaceByName = new Map<string, string>()
+    // Workplace resolver — the SAME find-or-create logic the commit route uses
+    // (lib/employees/import-normalize.workplaceKey for lookup, and
+    // normalizeWorkplaceValue for the name a missing workplace would be
+    // created with). A label that matches no existing workplace resolves to
+    // the name it WOULD be created as, so an employee moving onto a brand-new
+    // workplace is correctly counted as "moved", not "unchanged".
+    const workplaceIndex = new Map<string, { id: string; name: string }>()
     for (const w of company.workplaces) {
-      workplaceByName.set(w.name.toLowerCase(), w.name)
-      if (w.department) workplaceByDept.set(w.department.toLowerCase(), w.name)
+      workplaceIndex.set(workplaceKey(w.name), { id: w.id, name: w.name })
+      if (w.department) workplaceIndex.set(workplaceKey(w.department), { id: w.id, name: w.name })
     }
-    function resolveWorkplaceName(dept: string | null): string | null {
-      if (!dept) return null
-      const key = dept.toLowerCase().trim()
-      return workplaceByDept.get(key) ?? workplaceByName.get(key) ?? null
+    // Resolve a row's workplace exactly like commit: workplaceName wins,
+    // otherwise the department value stands in for it.
+    function resolveWorkplace(
+      workplaceName: string | null,
+      department: string | null
+    ): { id: string | null; name: string } | null {
+      const label = workplaceName ?? department
+      if (!label) return null
+      const found = workplaceIndex.get(workplaceKey(label))
+      if (found) return { id: found.id, name: found.name }
+      // Not found — this is a workplace the commit would create.
+      return { id: null, name: normalizeWorkplaceValue(label) }
     }
 
     // Load current active employees at this company via their current assignments
@@ -114,20 +133,16 @@ export async function POST(request: NextRequest) {
             cnpHash: true,
           },
         },
-        workplace: { select: { name: true } },
+        workplace: { select: { id: true, name: true } },
       },
     })
 
     type Assignment = (typeof currentAssignments)[0]
 
-    const currentByEmpId = new Map<string, Assignment>()
     const currentByName = new Map<string, Assignment>()
     const currentByEmail = new Map<string, Assignment>()
     const currentByCnpHash = new Map<string, Assignment>()
     for (const a of currentAssignments) {
-      if (a.employee.companyEmployeeId) {
-        currentByEmpId.set(a.employee.companyEmployeeId, a)
-      }
       const nameKey = `${a.employee.firstName.toLowerCase()}|${a.employee.lastName.toLowerCase()}`
       currentByName.set(nameKey, a)
       if (a.employee.email) {
@@ -151,6 +166,8 @@ export async function POST(request: NextRequest) {
         companyEmployeeId:
           typeof obj.companyEmployeeId === 'string' ? obj.companyEmployeeId.trim() || null : null,
         department: typeof obj.department === 'string' ? obj.department.trim() || null : null,
+        workplaceName:
+          typeof obj.workplaceName === 'string' ? obj.workplaceName.trim() || null : null,
         cnp: cnpRaw || null,
       }
     })
@@ -191,13 +208,11 @@ export async function POST(request: NextRequest) {
     for (const row of rows) {
       if (!row.firstName || !row.lastName) continue
 
+      // Matching order identical to the commit route: cnpHash → name → email.
       let match: Assignment | null = null
       const rowCnpHash = cnpHashFor(row.cnp)
       if (rowCnpHash) {
         match = currentByCnpHash.get(rowCnpHash) ?? null
-      }
-      if (!match && row.companyEmployeeId) {
-        match = currentByEmpId.get(row.companyEmployeeId) ?? null
       }
       if (!match) {
         const nameKey = `${row.firstName.toLowerCase()}|${row.lastName.toLowerCase()}`
@@ -207,24 +222,33 @@ export async function POST(request: NextRequest) {
         match = currentByEmail.get(row.email) ?? null
       }
 
+      const target = resolveWorkplace(row.workplaceName, row.department)
+
       if (!match) {
         newEmployees.push({
           rowNumber: row.rowNumber,
           firstName: row.firstName,
           lastName: row.lastName,
-          toWorkplace: resolveWorkplaceName(row.department),
+          toWorkplace: target?.name ?? null,
         })
       } else {
         matchedIds.add(match.employee.id)
-        const currentWp = match.workplace.name
-        const fileWp = resolveWorkplaceName(row.department)
-        if (fileWp && fileWp !== currentWp) {
+        const currentWp = match.workplace
+        // Same workplace when the resolved target is the current one — by id
+        // for existing workplaces, else by normalized name (a to-be-created
+        // workplace that happens to normalize to the current one's name).
+        const sameWorkplace =
+          target != null &&
+          (target.id != null
+            ? target.id === currentWp.id
+            : workplaceKey(target.name) === workplaceKey(currentWp.name))
+        if (target && !sameWorkplace) {
           movedEmployees.push({
             rowNumber: row.rowNumber,
             firstName: match.employee.firstName,
             lastName: match.employee.lastName,
-            fromWorkplace: currentWp,
-            toWorkplace: fileWp,
+            fromWorkplace: currentWp.name,
+            toWorkplace: target.name,
           })
         } else {
           unchanged++
