@@ -6,6 +6,8 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { WorkplaceForm } from '../workplace-form'
 import { buildWorkplaceFormLabels } from '../form-labels'
+import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -25,7 +27,7 @@ export default async function NewWorkplacePage({ params }: PageProps) {
   }
 
   const { id } = await params
-  const [company, examinationTypes] = await Promise.all([
+  const [company, examinationTypes, workSites, siblingWorkplaces] = await Promise.all([
     prisma.company.findFirst({
       where: { id, tenantId: user.tenantId, deletedAt: null },
       select: { id: true, name: true, caenCode: true },
@@ -35,10 +37,26 @@ export default async function NewWorkplacePage({ params }: PageProps) {
       orderBy: [{ sortOrder: 'asc' }, { nameRo: 'asc' }],
       select: { id: true, nameRo: true, nameEn: true },
     }),
+    prisma.workSite.findMany({
+      where: { companyId: id, tenantId: user.tenantId, deletedAt: null, isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    }),
+    // Existing workplaces whose risk profile can be copied into the new one.
+    prisma.workplace.findMany({
+      where: { companyId: id, tenantId: user.tenantId, deletedAt: null },
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+      select: { id: true, name: true, riskProfile: true, workSite: { select: { name: true } } },
+    }),
   ])
   if (!company) notFound()
 
   const labels = buildWorkplaceFormLabels(t)
+  const copyableWorkplaces = siblingWorkplaces.map((w) => ({
+    id: w.id,
+    label: formatWorkplaceLabel(w),
+    riskProfile: parseRiskProfile(w.riskProfile),
+  }))
 
   return (
     <div className="space-y-6">
@@ -56,6 +74,8 @@ export default async function NewWorkplacePage({ params }: PageProps) {
         companyId={company.id}
         labels={labels}
         examinationTypes={examinationTypes}
+        workSites={workSites}
+        copyableWorkplaces={copyableWorkplaces}
         locale={locale}
         companyCaenCode={company.caenCode}
       />

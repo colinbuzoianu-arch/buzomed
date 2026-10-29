@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/format-date'
 import { avizePdfReady, buildAvizeWhere, readAvizeFilters } from '@/lib/examinations/avize-filters'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
 import { prisma } from '@/lib/prisma'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import { AvizeFilterBar, type AvizeFilterLabels } from './avize-filter-bar'
 
 const EXAMINATIONS_PATH = '/examinations'
@@ -52,7 +53,11 @@ export default async function AvizeView(props: {
         revokedAt: true,
         employee: { select: { firstName: true, lastName: true } },
         workplace: {
-          select: { name: true, company: { select: { name: true } } },
+          select: {
+            name: true,
+            company: { select: { name: true } },
+            workSite: { select: { name: true } },
+          },
         },
         examinationType: { select: { nameRo: true, nameEn: true } },
         practitioner: { select: { firstName: true, lastName: true } },
@@ -175,7 +180,7 @@ export default async function AvizeView(props: {
                       {e.employee.lastName} {e.employee.firstName}
                     </td>
                     <td className="px-3 py-2.5">{e.workplace.company.name}</td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{e.workplace.name}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{formatWorkplaceLabel(e.workplace)}</td>
                     <td className="px-3 py-2.5 text-muted-foreground">{type}</td>
                     <td className="px-3 py-2.5">
                       {e.verdict && <VerdictBadge verdict={e.verdict} />}

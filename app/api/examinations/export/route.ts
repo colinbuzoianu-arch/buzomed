@@ -7,6 +7,7 @@ import { buildExaminationListWhere, readExamListFilters } from '@/lib/examinatio
 import { buildAvizeWhere, readAvizeFilters } from '@/lib/examinations/avize-filters'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
 import { renderCsv, sanitizeFilename, type CsvRow } from '@/lib/reports/csv'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 
 /**
  * CSV export of the examinations list.
@@ -122,7 +123,11 @@ export async function GET(request: NextRequest) {
       verdictConditions: true,
       employee: { select: { firstName: true, lastName: true } },
       workplace: {
-        select: { name: true, company: { select: { name: true } } },
+        select: {
+          name: true,
+          company: { select: { name: true } },
+          workSite: { select: { name: true } },
+        },
       },
       examinationType: { select: { nameRo: true } },
       practitioner: { select: { firstName: true, lastName: true } },
@@ -149,7 +154,7 @@ export async function GET(request: NextRequest) {
       resolveExaminationDate(e),
       `${e.employee.lastName} ${e.employee.firstName}`,
       e.workplace.company.name,
-      e.workplace.name,
+      formatWorkplaceLabel(e.workplace),
       e.examinationType.nameRo,
       e.verdict ? (VERDICT_LABEL[e.verdict] ?? e.verdict) : '',
       e.verdictConditions ?? '',
@@ -193,7 +198,13 @@ async function exportAvizeRegister(
       nextExaminationDueDate: true,
       revokedAt: true,
       employee: { select: { firstName: true, lastName: true } },
-      workplace: { select: { name: true, company: { select: { name: true } } } },
+      workplace: {
+        select: {
+          name: true,
+          company: { select: { name: true } },
+          workSite: { select: { name: true } },
+        },
+      },
       examinationType: { select: { nameRo: true } },
       practitioner: { select: { firstName: true, lastName: true } },
     },
@@ -220,7 +231,7 @@ async function exportAvizeRegister(
       resolveExaminationDate(e),
       `${e.employee.lastName} ${e.employee.firstName}`,
       e.workplace.company.name,
-      e.workplace.name,
+      formatWorkplaceLabel(e.workplace),
       e.examinationType.nameRo,
       e.verdict ? (VERDICT_LABEL[e.verdict] ?? e.verdict) : '',
       e.verdictConditions ?? '',

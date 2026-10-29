@@ -44,6 +44,7 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
       },
       include: {
         company: { select: { id: true, name: true } },
+        workSite: { select: { name: true } },
         employeeAssignments: {
           where: { isCurrent: true },
           select: {
@@ -118,6 +119,11 @@ export default async function WorkplaceDetailPage({ params }: PageProps) {
         <div className="flex items-start justify-between mt-2 gap-4">
           <div>
             <h1 className="text-3xl font-bold">{workplace.name}</h1>
+            {workplace.workSite && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {t('workplaces.form.fieldWorkSite')}: {workplace.workSite.name}
+              </p>
+            )}
             {workplace.department && (
               <p className="text-muted-foreground mt-1">
                 {workplace.department}

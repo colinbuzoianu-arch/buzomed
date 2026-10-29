@@ -12,6 +12,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { prisma } from '@/lib/prisma'
 import { parseRiskProfile } from '@/lib/workplaces/risk-profile'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import { DocumentsPanel } from './documents-panel'
 import { ExaminationActions } from './examination-actions'
 import { ExaminationStepper } from './examination-stepper'
@@ -65,6 +66,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           riskAssessmentSignedByCompany: true,
           riskAssessmentSignedAt: true,
           company: { select: { id: true, name: true, addressLine1: true, city: true } },
+          workSite: { select: { name: true } },
         },
       },
       examinationType: {
@@ -329,7 +331,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
                 href={`/companies/${examination.workplace.company.id}/workplaces/${examination.workplace.id}`}
                 className="hover:underline"
               >
-                {examination.workplace.name}
+                {formatWorkplaceLabel(examination.workplace)}
               </Link>
               {' — '}
               <Link

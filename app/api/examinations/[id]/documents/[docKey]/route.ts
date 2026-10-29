@@ -47,7 +47,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
           disabilityDegree: true,
         },
       },
-      workplace: { include: { company: true } },
+      workplace: { include: { company: true, workSite: { select: { name: true } } } },
       examinationType: { select: { nameRo: true, code: true } },
     },
   })

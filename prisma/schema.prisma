@@ -316,6 +316,7 @@ model Tenant {
   apiKeys             ApiKey[]
   webhookEndpoints    WebhookEndpoint[]
   importStagedFiles   ImportStagedFile[]
+  workSites           WorkSite[]
 
   @@map("tenants")
   @@index([slug])
@@ -404,6 +405,7 @@ model User {
   vaccinationsAdministered        Vaccination[]
   medicalEventsHandled            MedicalEvent[]
   workplacesCreated               Workplace[]
+  workSitesCreated                WorkSite[]
   employeesCreated                Employee[]
   documentsUploaded               Document[]                    @relation("DocumentUploader")
   documentsSigned                 Document[]                    @relation("DocumentSigner")
@@ -484,6 +486,7 @@ model Company {
 
   tenant              Tenant          @relation(fields: [tenantId], references: [id])
   workplaces          Workplace[]
+  workSites           WorkSite[]
   contacts            CompanyContact[]
   contracts           Contract[]
   invoices            Invoice[]
@@ -767,7 +770,15 @@ model Workplace {
   id                          String      @id @default(uuid()) @db.Uuid
   tenantId                    String      @map("tenant_id") @db.Uuid
   companyId                   String      @map("company_id") @db.Uuid
-  
+
+  // Optional "punct de lucru" (work site / territorial unit) this workplace
+  // belongs to — e.g. the Geoagiu branch's "Comercial" workplace. Null means
+  // the workplace is not tied to a site (every pre-existing workplace, which
+  // keeps behaving exactly as before). Workplace identity within a company is
+  // (workSiteId, normalized name): two "Comercial" workplaces at different
+  // sites are distinct rows. See lib/workplaces/format.formatWorkplaceLabel.
+  workSiteId                  String?     @map("work_site_id") @db.Uuid
+
   name                        String
   department                  String?
   description                 String?
@@ -795,6 +806,7 @@ model Workplace {
 
   tenant                      Tenant                          @relation(fields: [tenantId], references: [id])
   company                     Company                         @relation(fields: [companyId], references: [id])
+  workSite                    WorkSite?                       @relation(fields: [workSiteId], references: [id], onDelete: SetNull)
   createdBy                   User?                           @relation(fields: [createdByUserId], references: [id])
   importJob                   ImportJob?                      @relation(fields: [importJobId], references: [id], onDelete: SetNull)
   employeeAssignments         EmployeeWorkplaceAssignment[]
@@ -805,6 +817,56 @@ model Workplace {
   @@index([tenantId])
   @@index([tenantId, companyId, deletedAt])
   @@index([tenantId, deletedAt, isActive])
+  @@index([tenantId, importJobId])
+  @@index([workSiteId])
+}
+
+// ============================================================================
+// WORK SITES (Puncte de lucru)
+// ============================================================================
+
+// A WorkSite ("punct de lucru") is the employer's territorial unit — a branch,
+// sucursală or geographic site (Geoagiu, Brad, Hunedoara, P.L. Ilia). It is a
+// DIFFERENT concept from Workplace ("loc de muncă"), which is the activity /
+// risk unit (Comercial, Sector distributie apă, Dispecerat). The same activity
+// recurs at many sites, so a WorkSite groups the Workplaces that physically
+// sit there. On the fișă de aptitudine the two print together as
+// "{workplace} / {site}" (see lib/workplaces/format.ts).
+//
+// Uniqueness — one active site per (company, normalized name) — is enforced by
+// a partial unique index created in the migration (Prisma @@unique can't do
+// the case-insensitive, soft-delete-aware WHERE clause), mirroring the
+// existing workplaces_company_name_unique index.
+model WorkSite {
+  id                          String      @id @default(uuid()) @db.Uuid
+  tenantId                    String      @map("tenant_id") @db.Uuid
+  companyId                   String      @map("company_id") @db.Uuid
+
+  name                        String
+  addressLine1                String?     @map("address_line1")
+  city                        String?
+  county                      String?
+
+  isActive                    Boolean     @default(true) @map("is_active")
+
+  // Which bulk import auto-created this site (null = created manually), mirror
+  // of Workplace.importJobId so a cancelled import can find what it made.
+  importJobId                 String?     @map("import_job_id")
+
+  createdByUserId             String?     @map("created_by_user_id") @db.Uuid
+  createdAt                   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt                   DateTime?   @map("deleted_at") @db.Timestamptz
+
+  tenant                      Tenant      @relation(fields: [tenantId], references: [id])
+  company                     Company     @relation(fields: [companyId], references: [id])
+  createdBy                   User?       @relation(fields: [createdByUserId], references: [id])
+  importJob                   ImportJob?  @relation(fields: [importJobId], references: [id], onDelete: SetNull)
+  workplaces                  Workplace[]
+
+  @@map("work_sites")
+  @@index([tenantId])
+  @@index([tenantId, companyId, deletedAt])
   @@index([tenantId, importJobId])
 }
 
@@ -1531,6 +1593,7 @@ model ImportJob {
 
   employees            Employee[]
   workplaces           Workplace[]
+  workSites            WorkSite[]
   recalls              Recall[]
 
   @@index([tenantId, createdAt])

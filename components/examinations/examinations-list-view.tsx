@@ -10,6 +10,7 @@ import {
   readExamListFilters,
 } from '@/lib/examinations/list-filters'
 import { prisma } from '@/lib/prisma'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import {
   ExaminationsFilterBar,
   type FilterBarLabels,
@@ -53,6 +54,7 @@ export default async function ExaminationsListView(props: {
             id: true,
             name: true,
             company: { select: { id: true, name: true } },
+            workSite: { select: { name: true } },
           },
         },
         examinationType: { select: { nameRo: true, nameEn: true, code: true } },
@@ -206,7 +208,7 @@ export default async function ExaminationsListView(props: {
                   </span>
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  {e.workplace.company.name} • {e.workplace.name} •{' '}
+                  {e.workplace.company.name} • {formatWorkplaceLabel(e.workplace)} •{' '}
                   {props.locale === 'en'
                     ? (e.examinationType.nameEn ?? e.examinationType.nameRo)
                     : e.examinationType.nameRo}

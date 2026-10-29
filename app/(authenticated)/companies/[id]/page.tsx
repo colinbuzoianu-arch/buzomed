@@ -7,8 +7,11 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import { CompanyDeleteButton } from './company-delete-button'
 import { CompanyContactsSection } from './contacts/company-contacts-section'
+import { WorkSitesSection } from './work-sites-section'
+import { DeactivateEmptyWorkplacesButton } from './deactivate-empty-workplaces-button'
 import { InvoiceStatusBadge } from '@/components/ui/invoice-status-badge'
 import { formatDate } from '@/lib/format-date'
 
@@ -53,6 +56,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           department: true,
           isActive: true,
           examinationIntervalMonths: true,
+          workSite: { select: { name: true } },
           _count: {
             select: {
               employeeAssignments: {
@@ -60,6 +64,19 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               },
             },
           },
+        },
+      },
+      workSites: {
+        where: { deletedAt: null },
+        orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          addressLine1: true,
+          city: true,
+          county: true,
+          isActive: true,
+          _count: { select: { workplaces: { where: { deletedAt: null } } } },
         },
       },
       contracts: {
@@ -261,9 +278,25 @@ export default async function CompanyDetailPage({ params }: PageProps) {
         canWrite={caps.canWriteAdministrative}
       />
 
+      {/* Puncte de lucru (work sites) — interactive section managed client-side. */}
+      <WorkSitesSection
+        companyId={company.id}
+        canWrite={caps.canWriteAdministrative}
+        initialSites={company.workSites.map((s) => ({
+          id: s.id,
+          name: s.name,
+          addressLine1: s.addressLine1,
+          city: s.city,
+          county: s.county,
+          isActive: s.isActive,
+          workplaceCount: s._count.workplaces,
+        }))}
+        locale={locale}
+      />
+
       {/* Workplaces — inline section. */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">
             {t('workplaces.sectionTitle')}{' '}
             <span className="text-sm font-normal text-muted-foreground">
@@ -271,11 +304,14 @@ export default async function CompanyDetailPage({ params }: PageProps) {
             </span>
           </h2>
           {caps.canWriteAdministrative && (
-            <Button asChild size="sm">
-              <Link href={`/companies/${company.id}/workplaces/new`}>
-                + {t('workplaces.newButton')}
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <DeactivateEmptyWorkplacesButton companyId={company.id} locale={locale} />
+              <Button asChild size="sm">
+                <Link href={`/companies/${company.id}/workplaces/new`}>
+                  + {t('workplaces.newButton')}
+                </Link>
+              </Button>
+            </div>
           )}
         </div>
         {company.workplaces.length === 0 ? (
@@ -296,7 +332,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
               >
                 <div>
                   <div className="text-sm font-medium flex items-center gap-2">
-                    {w.name}
+                    {formatWorkplaceLabel(w)}
                     {!w.isActive && (
                       <span className="text-xs text-muted-foreground font-normal">
                         ({t('common.inactive')})

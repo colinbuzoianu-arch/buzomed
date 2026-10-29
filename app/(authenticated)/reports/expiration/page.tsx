@@ -6,6 +6,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { RecallStatusBadge } from '@/components/ui/recall-status-badge'
 import { formatDate } from '@/lib/format-date'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import {
   EXPIRATION_GROUP_BYS,
   parseExpirationGroupBy,
@@ -87,6 +88,7 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
             name: true,
             department: true,
             company: { select: { id: true, name: true } },
+            workSite: { select: { name: true } },
           },
         },
       },
@@ -318,7 +320,7 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
                         </Link>
                       </td>
                       <td className="px-4 py-2 text-muted-foreground">
-                        {row.workplace.name}
+                        {formatWorkplaceLabel(row.workplace)}
                         {row.workplace.department && (
                           <span className="text-xs"> — {row.workplace.department}</span>
                         )}
@@ -399,7 +401,7 @@ export default async function ExpirationPage({ searchParams }: PageProps) {
                         {row.workplace.company.name}
                       </Link>
                       {' · '}
-                      {row.workplace.name}
+                      {formatWorkplaceLabel(row.workplace)}
                       {row.workplace.department && ` — ${row.workplace.department}`}
                     </div>
                     <div className={isOverdue ? 'text-destructive font-medium' : ''}>

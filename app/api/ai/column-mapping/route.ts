@@ -14,6 +14,7 @@ const VALID_COLUMN_KEYS = [
   'department',
   'jobTitle',
   'workplaceName',
+  'workSiteName',
   'companyName',
   'cui',
   'companyAddress',
@@ -74,7 +75,7 @@ Respond ONLY with valid JSON. No markdown, no explanation, no other text.`
 
 Headers: ${JSON.stringify(headers)}
 
-Valid field names: firstName, lastName, cnp, companyEmployeeId, email, jobTitle, workplaceName, department, companyName, cui, companyAddress, hireDate, fitnessValidUntil, fitnessValidUntilDay, fitnessValidUntilMonth, fitnessValidUntilYear, notes
+Valid field names: firstName, lastName, cnp, companyEmployeeId, email, jobTitle, workplaceName, workSiteName, department, companyName, cui, companyAddress, hireDate, fitnessValidUntil, fitnessValidUntilDay, fitnessValidUntilMonth, fitnessValidUntilYear, notes
 
 Field meanings:
 - firstName: given name, prenume, first name, vorname, nome
@@ -83,7 +84,8 @@ Field meanings:
 - companyEmployeeId: employee ID, badge, matricola, marca, payroll ID, cod angajat
 - email: email address, e-mail, adresa email
 - jobTitle: role, functie, ocupatie, pozitie, beruf
-- workplaceName: the specific work location / loc de muncă / punct de lucru / locatie / work site
+- workplaceName: the activity / risk work unit — loc de muncă, LOCATIE, sector (e.g. Comercial, Dispecerat, Sector distributie apa). NOT the town and NOT the territorial branch.
+- workSiteName: the employer's territorial unit / branch — punct de lucru, sucursala, filiala, locatie teritoriala, sectie teritoriala, oras (e.g. Geoagiu, Brad, Hunedoara). This is the physical site, distinct from workplaceName above.
 - department: organizational unit, departament, sectie, birou, abteilung, reparto
 - companyName: employer / company name / nume companie / firma / angajator
 - cui: company fiscal code / CUI / cod fiscal / cif / VAT id

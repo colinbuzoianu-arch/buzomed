@@ -6,6 +6,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { getHorizonRange, type Horizon, VALID_HORIZONS } from '@/lib/examinations/horizon'
 import { formatDate } from '@/lib/format-date'
 import { prisma } from '@/lib/prisma'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import { parseRiskProfile, RISK_PROFILE_SCHEMA } from '@/lib/workplaces/risk-profile'
 
 const EXAMINATIONS_PATH = '/examinations'
@@ -122,6 +123,7 @@ export default async function ScadenteView(props: {
             department: true,
             riskProfile: true,
             company: { select: { id: true, name: true } },
+            workSite: { select: { name: true } },
           },
         },
         examinationType: { select: { nameRo: true, nameEn: true } },
@@ -346,7 +348,7 @@ export default async function ScadenteView(props: {
             recalls={visibleRecalls.map((r) => ({
               id: r.id,
               employeeName: `${r.employee.lastName} ${r.employee.firstName}`,
-              workplaceName: r.workplace.name,
+              workplaceName: formatWorkplaceLabel(r.workplace),
               examTypeName:
                 props.locale === 'en'
                   ? (r.examinationType.nameEn ?? r.examinationType.nameRo)
@@ -459,7 +461,7 @@ export default async function ScadenteView(props: {
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {r.workplace.name}
+                        {formatWorkplaceLabel(r.workplace)}
                         {r.workplace.department && (
                           <span className="text-xs"> — {r.workplace.department}</span>
                         )}
@@ -581,7 +583,7 @@ export default async function ScadenteView(props: {
                         {r.workplace.company.name}
                       </Link>
                       {' · '}
-                      {r.workplace.name}
+                      {formatWorkplaceLabel(r.workplace)}
                       {r.workplace.department && ` — ${r.workplace.department}`}
                     </div>
                     <div>

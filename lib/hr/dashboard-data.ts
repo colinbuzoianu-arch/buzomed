@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import type { HrEmployeeRow, HrVerdict } from './dashboard-aggregate'
 import type { HrScope } from './scope'
 
@@ -45,7 +46,9 @@ export async function loadHrDashboardRows(
       companyId: true,
       workplaceAssignments: {
         where: { isCurrent: true },
-        select: { workplace: { select: { id: true, name: true } } },
+        select: {
+          workplace: { select: { id: true, name: true, workSite: { select: { name: true } } } },
+        },
         take: 1,
       },
     },
@@ -154,7 +157,7 @@ export async function loadHrDashboardRows(
       jobTitle: emp.jobTitle,
       companyId: emp.companyId,
       workplaceId: workplace?.id ?? null,
-      workplaceName: workplace?.name ?? null,
+      workplaceName: workplace ? formatWorkplaceLabel(workplace) : null,
       // Verdict is known only from a signed Buzomed examination. Imported /
       // record-less employees stay "necunoscut".
       verdict: exam ? exam.verdict : null,

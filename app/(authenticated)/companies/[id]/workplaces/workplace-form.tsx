@@ -22,6 +22,7 @@ import { CaenHazardSuggestionCard } from '@/components/ai/CaenHazardSuggestionCa
 
 export interface WorkplaceFormValues {
   name: string
+  workSiteId: string
   department: string
   description: string
   examinationIntervalMonths: string
@@ -34,6 +35,7 @@ export interface WorkplaceFormValues {
 
 export const emptyWorkplaceFormValues: WorkplaceFormValues = {
   name: '',
+  workSiteId: '',
   department: '',
   description: '',
   examinationIntervalMonths: '12',
@@ -54,6 +56,12 @@ export interface WorkplaceFormLabels {
   sectionStatus: string
   fieldName: string
   fieldNamePlaceholder: string
+  fieldWorkSite: string
+  fieldWorkSiteHelp: string
+  fieldWorkSiteNone: string
+  copyRiskLabel: string
+  copyRiskPlaceholder: string
+  copyRiskApplied: string
   fieldDepartment: string
   fieldDescription: string
   fieldExaminationInterval: string
@@ -86,12 +94,26 @@ interface ExaminationType {
   nameEn: string | null
 }
 
+interface WorkSiteOption {
+  id: string
+  name: string
+}
+
+/** A workplace whose risk profile can be copied into a new workplace (§4). */
+interface CopyableWorkplace {
+  id: string
+  label: string
+  riskProfile: RiskProfile
+}
+
 interface Props {
   companyId: string
   workplaceId?: string
   initialValues?: WorkplaceFormValues
   labels: WorkplaceFormLabels
   examinationTypes: ExaminationType[]
+  workSites?: WorkSiteOption[]
+  copyableWorkplaces?: CopyableWorkplace[]
   locale?: string
   companyCaenCode?: string | null
 }
@@ -102,6 +124,8 @@ export function WorkplaceForm({
   initialValues,
   labels,
   examinationTypes,
+  workSites = [],
+  copyableWorkplaces = [],
   locale = 'ro',
   companyCaenCode,
 }: Props) {
@@ -165,6 +189,15 @@ export function WorkplaceForm({
         riskProfile: { ...prev.riskProfile, [category]: cat },
       }
     })
+  }
+
+  // §4: copy an existing workplace's risk profile into this new one, so the
+  // doctor doesn't re-enter the same hazards for "Comercial" at seven sites.
+  function copyRiskFrom(sourceId: string) {
+    const src = copyableWorkplaces.find((w) => w.id === sourceId)
+    if (!src) return
+    setForm((prev) => ({ ...prev, riskProfile: structuredClone(src.riskProfile) }))
+    setSuggestionsApplied(true)
   }
 
   function toggleExamType(id: string) {
@@ -243,6 +276,9 @@ export function WorkplaceForm({
 
     const payload: Record<string, unknown> = {
       name: form.name.trim(),
+      // Empty string → null (detach from any site). On create the server
+      // ignores a null; on edit it explicitly clears the link.
+      workSiteId: form.workSiteId || null,
       examinationIntervalMonths: intervalNum,
       riskAssessmentSignedByCompany: form.riskAssessmentSignedByCompany,
       isActive: form.isActive,
@@ -323,6 +359,23 @@ export function WorkplaceForm({
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="workSiteId">{labels.fieldWorkSite}</Label>
+            <select
+              id="workSiteId"
+              value={form.workSiteId}
+              onChange={(e) => update('workSiteId', e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+            >
+              <option value="">{labels.fieldWorkSiteNone}</option>
+              {workSites.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">{labels.fieldWorkSiteHelp}</p>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="department">{labels.fieldDepartment}</Label>
             <Input
               id="department"
@@ -366,6 +419,32 @@ export function WorkplaceForm({
             {labels.sectionHazardProfileHelp}
           </p>
         </div>
+
+        {/* §4: copy the whole hazard profile from a sibling workplace (create
+            only — on edit the profile already exists). */}
+        {!isEdit && copyableWorkplaces.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-4 py-3">
+            <label htmlFor="copyRiskFrom" className="text-sm font-medium">
+              {labels.copyRiskLabel}
+            </label>
+            <select
+              id="copyRiskFrom"
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) copyRiskFrom(e.target.value)
+                e.target.value = ''
+              }}
+              className="flex h-9 min-w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm"
+            >
+              <option value="">{labels.copyRiskPlaceholder}</option>
+              {copyableWorkplaces.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* AI-powered suggestion card — shows when API key is configured */}
         {showAiCard && companyCaenCode && (

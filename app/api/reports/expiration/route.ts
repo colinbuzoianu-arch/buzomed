@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
 import { renderCsv, sanitizeFilename } from '@/lib/reports/csv'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 
 export async function GET(request: NextRequest) {
   const auth = await getApiUser()
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
           name: true,
           department: true,
           company: { select: { name: true } },
+          workSite: { select: { name: true } },
         },
       },
     },
@@ -78,7 +80,7 @@ export async function GET(request: NextRequest) {
     return [
       `${row.employee.lastName} ${row.employee.firstName}`,
       row.workplace.company.name,
-      row.workplace.name,
+      formatWorkplaceLabel(row.workplace),
       row.workplace.department ?? '',
       due.toISOString().slice(0, 10),
       String(daysLeft),

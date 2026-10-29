@@ -29,7 +29,7 @@ export default async function EditWorkplacePage({ params }: PageProps) {
   if (!caps.canWriteAdministrative) redirect('/companies')
 
   const { id, wid } = await params
-  const [workplace, examinationTypes] = await Promise.all([
+  const [workplace, examinationTypes, workSites] = await Promise.all([
     prisma.workplace.findFirst({
       where: {
         id: wid,
@@ -39,12 +39,18 @@ export default async function EditWorkplacePage({ params }: PageProps) {
       },
       include: {
         company: { select: { id: true, name: true, caenCode: true } },
+        workSite: { select: { id: true, name: true } },
       },
     }),
     prisma.examinationType.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { nameRo: 'asc' }],
       select: { id: true, nameRo: true, nameEn: true },
+    }),
+    prisma.workSite.findMany({
+      where: { companyId: id, tenantId: user.tenantId, deletedAt: null, isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
     }),
   ])
   if (!workplace) notFound()
@@ -54,8 +60,17 @@ export default async function EditWorkplacePage({ params }: PageProps) {
     ? (storedIds as string[])
     : []
 
+  // The select lists active sites; make sure the currently-linked site stays
+  // selectable even if it has since been deactivated, so editing an unrelated
+  // field never silently detaches it.
+  const siteOptions = [...workSites]
+  if (workplace.workSite && !siteOptions.some((s) => s.id === workplace.workSite!.id)) {
+    siteOptions.push({ id: workplace.workSite.id, name: workplace.workSite.name })
+  }
+
   const initialValues: WorkplaceFormValues = {
     name: workplace.name,
+    workSiteId: workplace.workSiteId ?? '',
     department: workplace.department ?? '',
     description: workplace.description ?? '',
     examinationIntervalMonths: String(workplace.examinationIntervalMonths),
@@ -83,6 +98,7 @@ export default async function EditWorkplacePage({ params }: PageProps) {
         initialValues={initialValues}
         labels={labels}
         examinationTypes={examinationTypes}
+        workSites={siteOptions}
         locale={locale}
         companyCaenCode={workplace.company.caenCode}
       />

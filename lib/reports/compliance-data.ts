@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import { monthBucketsForRange } from './date-ranges'
 import type { DateRangeKey } from './date-ranges'
 
@@ -189,7 +190,9 @@ export async function computeComplianceData(params: {
             where: { isCurrent: true },
             take: 1,
             select: {
-              workplace: { select: { id: true, name: true } },
+              workplace: {
+                select: { id: true, name: true, workSite: { select: { name: true } } },
+              },
             },
           },
         },
@@ -230,7 +233,7 @@ export async function computeComplianceData(params: {
       }),
       prisma.workplace.findMany({
         where: { companyId, tenantId, isActive: true, deletedAt: null },
-        select: { id: true, name: true },
+        select: { id: true, name: true, workSite: { select: { name: true } } },
         orderBy: { name: 'asc' },
       }),
       prisma.recall.findMany({
@@ -344,7 +347,7 @@ export async function computeComplianceData(params: {
     const total = wpEmps.length
     return {
       workplaceId: wp.id,
-      workplaceName: wp.name,
+      workplaceName: formatWorkplaceLabel(wp),
       totalEmployees: total,
       validFisa,
       expired,
@@ -366,7 +369,7 @@ export async function computeComplianceData(params: {
         firstName: emp.firstName,
         jobTitle: emp.jobTitle,
         workplaceId: wp?.id ?? null,
-        workplaceName: wp?.name ?? null,
+        workplaceName: wp ? formatWorkplaceLabel(wp) : null,
         lastExamDate: latestExam?.signedAt?.toISOString() ?? null,
         lastVerdict: latestExam?.verdict ?? null,
         nextDueDate: latestExam?.nextExaminationDueDate?.toISOString() ?? null,

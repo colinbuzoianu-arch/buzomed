@@ -20,6 +20,7 @@ import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { prisma } from '@/lib/prisma'
 import { parseRiskProfile, RISK_PROFILE_SCHEMA } from '@/lib/workplaces/risk-profile'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import { EmployeeAssignmentManager } from './assignment-manager'
 import { CnpReveal } from './cnp-reveal'
 import { EmployeeActions } from './employee-actions'
@@ -86,6 +87,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
             companyId: true,
             riskProfile: true,
             company: { select: { id: true, name: true } },
+            workSite: { select: { name: true } },
           },
         },
       },
@@ -98,7 +100,13 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
         isActive: true,
       },
       orderBy: [{ name: 'asc' }],
-      select: { id: true, name: true, department: true, company: { select: { name: true } } },
+      select: {
+        id: true,
+        name: true,
+        department: true,
+        company: { select: { name: true } },
+        workSite: { select: { name: true } },
+      },
     }),
     prisma.examination.findMany({
       where: { employeeId: id, tenantId: user.tenantId, deletedAt: null },
@@ -295,7 +303,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
                     href={`/companies/${currentAssignment.workplace.companyId}/workplaces/${currentAssignment.workplace.id}`}
                     className="hover:underline"
                   >
-                    {currentAssignment.workplace.name}
+                    {formatWorkplaceLabel(currentAssignment.workplace)}
                   </Link>
                 </span>
               )}
@@ -572,7 +580,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
                   <EmployeeAssignmentManager
                     employeeId={employee.id}
                     currentAssignmentId={currentAssignment?.id ?? null}
-                    workplaces={workplaceOptions.map((w) => ({ id: w.id, name: w.name, department: w.department, companyName: w.company.name }))}
+                    workplaces={workplaceOptions.map((w) => ({ id: w.id, name: formatWorkplaceLabel(w), department: w.department, companyName: w.company.name }))}
                     labels={{
                       assignButton: t('employees.assignments.assignButton'),
                       reassignButton: t('employees.assignments.reassignButton'),
@@ -611,7 +619,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
                       href={`/companies/${currentAssignment.workplace.companyId}/workplaces/${currentAssignment.workplace.id}`}
                       className="hover:underline"
                     >
-                      {currentAssignment.workplace.name}
+                      {formatWorkplaceLabel(currentAssignment.workplace)}
                     </Link>
                     {currentAssignment.workplace.department && (
                       <span className="text-muted-foreground font-normal"> — {currentAssignment.workplace.department}</span>
@@ -639,7 +647,7 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
                           <div>
                             <div className="text-sm font-medium">
                               <Link href={`/companies/${a.workplace.companyId}/workplaces/${a.workplace.id}`} className="hover:underline">
-                                {a.workplace.name}
+                                {formatWorkplaceLabel(a.workplace)}
                               </Link>
                               {a.workplace.department && <span className="text-muted-foreground font-normal"> — {a.workplace.department}</span>}
                             </div>

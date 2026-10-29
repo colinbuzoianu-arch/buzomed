@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
 import { canReadTenantData } from '@/lib/permissions/tenant-data'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 
 const MAX_LIMIT = 100
 
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
             department: true,
             isActive: true,
             company: { select: { name: true } },
+            workSite: { select: { name: true } },
           },
         },
       },
@@ -96,6 +98,7 @@ type EmployeeRow = {
       department: string | null
       isActive: boolean
       company: { name: string }
+      workSite: { name: string } | null
     }
   }>
 }
@@ -109,7 +112,7 @@ function toResult(e: EmployeeRow) {
     lastName: e.lastName,
     jobTitle: e.jobTitle,
     companyName: activeWorkplace?.company.name ?? e.company?.name ?? '',
-    workplaceName: activeWorkplace?.name ?? '',
+    workplaceName: activeWorkplace ? formatWorkplaceLabel(activeWorkplace) : '',
     workplaceId: activeWorkplace?.id ?? null,
     workplaceDepartment: activeWorkplace?.department ?? null,
     companyEmployeeId: e.companyEmployeeId,

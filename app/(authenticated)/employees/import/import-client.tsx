@@ -144,6 +144,8 @@ function colKeyLabel(key: ColumnKey, labels: Record<string, string>): string {
       return 'Adresă companie'
     case 'workplaceName':
       return labels.colWorkplace ?? 'Loc de muncă'
+    case 'workSiteName':
+      return labels.colWorkSite ?? 'Punct de lucru'
     case 'hireDate':
       return labels.colHireDate ?? 'Data angajării'
     case 'fitnessValidUntil':
@@ -203,6 +205,7 @@ function reapplyMapping(originalRows: RawRow[], newMapping: ColumnMapping): RawR
       cui: get('cui'),
       companyAddress: get('companyAddress'),
       workplaceName: get('workplaceName'),
+      workSiteName: get('workSiteName'),
       hireDate: get('hireDate'),
       fitnessValidUntil:
         get('fitnessValidUntil') ??
@@ -401,6 +404,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
           companyEmployeeId: r.companyEmployeeId,
           department: r.department,
           workplaceName: r.workplaceName,
+          workSiteName: r.workSiteName,
           cnp: r.cnp,
         })),
       }),
@@ -631,6 +635,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
               cui: r.cui ?? null,
               companyAddress: r.companyAddress ?? null,
               workplaceName: r.workplaceName ?? null,
+              workSiteName: r.workSiteName ?? null,
             })),
           }),
         })

@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import { NewExaminationForm } from './new-examination-form'
 
 interface PageProps {
@@ -54,6 +55,7 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
         name: true,
         department: true,
         company: { select: { name: true } },
+        workSite: { select: { name: true } },
       },
     }),
   ])
@@ -94,6 +96,7 @@ export default async function NewExaminationPage({ searchParams }: PageProps) {
             name: wp.name,
             department: wp.department,
             companyName: wp.company.name,
+            label: formatWorkplaceLabel(wp),
           }))}
           examinationTypes={examinationTypes.map((tp) => ({
             id: tp.id,

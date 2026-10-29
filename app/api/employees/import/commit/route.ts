@@ -73,6 +73,9 @@ interface ImportRow {
   cui: string | null
   companyAddress: string | null
   workplaceName: string | null
+  // Punct de lucru (territorial site). Resolved to a WorkSite under the
+  // company; the workplace is then found/created within that site.
+  workSiteName: string | null
 }
 
 interface RowOutcome {
@@ -209,6 +212,10 @@ export async function POST(request: NextRequest) {
       workplaceName:
         typeof r.workplaceName === 'string' && r.workplaceName.trim()
           ? r.workplaceName.trim()
+          : null,
+      workSiteName:
+        typeof r.workSiteName === 'string' && r.workSiteName.trim()
+          ? r.workSiteName.trim()
           : null,
     })
   }
@@ -353,7 +360,8 @@ export async function POST(request: NextRequest) {
     skipped = 0,
     failed = 0
   let companiesCreated = 0,
-    workplacesCreated = 0
+    workplacesCreated = 0,
+    workSitesCreated = 0
   let rowsWithoutCompany = 0,
     rowsWithoutWorkplace = 0
   let cnpSaved = 0,
@@ -363,37 +371,96 @@ export async function POST(request: NextRequest) {
   let anyRowHadWorkplaceName = false
   const newCompanyList: Array<{ id: string; name: string; cui: string }> = []
   const newWorkplaceNames: string[] = []
+  const newWorkSiteNames: string[] = []
   const results: RowOutcome[] = []
 
   // Per-import caches
   const companiesCache = new Map<string, string>() // normalizedCui → companyId
   const companiesByName = new Map<string, string | null>() // lowerName → companyId (null = not found)
   const workplaceIndexByCompany = new Map<string, Map<string, { id: string; name: string }>>()
+  const workSiteIndexByCompany = new Map<string, Map<string, { id: string; name: string }>>()
+
+  // Workplace identity is now (workSiteId, normalized name): the SAME activity
+  // name ("Comercial") is a distinct workplace at each site. The lookup key
+  // namespaces the name under its site (empty string = site-less, which is
+  // exactly how every pre-existing workplace is matched).
+  function wpIndexKey(workSiteId: string | null, label: string): string {
+    return `${workSiteId ?? ''}|${workplaceKey(label)}`
+  }
 
   async function getWorkplaceIndex(companyId: string) {
     const cached = workplaceIndexByCompany.get(companyId)
     if (cached) return cached
     const wps = await prisma.workplace.findMany({
       where: { companyId, tenantId, deletedAt: null },
-      select: { id: true, name: true, department: true },
+      select: { id: true, name: true, department: true, workSiteId: true },
     })
     const idx = new Map<string, { id: string; name: string }>()
     for (const w of wps) {
-      idx.set(workplaceKey(w.name), { id: w.id, name: w.name })
-      if (w.department) idx.set(workplaceKey(w.department), { id: w.id, name: w.name })
+      idx.set(wpIndexKey(w.workSiteId, w.name), { id: w.id, name: w.name })
+      if (w.department) idx.set(wpIndexKey(w.workSiteId, w.department), { id: w.id, name: w.name })
     }
     workplaceIndexByCompany.set(companyId, idx)
     return idx
   }
 
-  // Find-or-create a workplace under a company (import spec §5.1 / §5.2).
+  async function getWorkSiteIndex(companyId: string) {
+    const cached = workSiteIndexByCompany.get(companyId)
+    if (cached) return cached
+    const sites = await prisma.workSite.findMany({
+      where: { companyId, tenantId, deletedAt: null },
+      select: { id: true, name: true },
+    })
+    const idx = new Map<string, { id: string; name: string }>()
+    for (const s of sites) idx.set(workplaceKey(s.name), { id: s.id, name: s.name })
+    workSiteIndexByCompany.set(companyId, idx)
+    return idx
+  }
+
+  // Find-or-create a WorkSite (punct de lucru) under a company. Same normalize
+  // + P2002-race handling as workplaces.
+  async function resolveWorkSite(
+    companyId: string,
+    label: string
+  ): Promise<{ id: string; created: boolean }> {
+    const idx = await getWorkSiteIndex(companyId)
+    const key = workplaceKey(label)
+    const found = idx.get(key)
+    if (found) return { id: found.id, created: false }
+
+    const name = normalizeWorkplaceValue(label)
+    let site: { id: string }
+    try {
+      site = await prisma.workSite.create({
+        data: { companyId, tenantId, name, isActive: true, importJobId, createdByUserId: userId },
+        select: { id: true },
+      })
+      workSitesCreated++
+      newWorkSiteNames.push(name)
+    } catch (createErr) {
+      if ((createErr as { code?: string }).code !== 'P2002') throw createErr
+      const winner = await prisma.workSite.findFirst({
+        where: { companyId, tenantId, deletedAt: null, name: { equals: name, mode: 'insensitive' } },
+        select: { id: true },
+      })
+      if (!winner) throw createErr
+      site = winner
+    }
+    idx.set(key, { id: site.id, name })
+    return { id: site.id, created: true }
+  }
+
+  // Find-or-create a workplace under a company + (optional) site
+  // (import spec §5.1 / §5.2). Two workplaces with the same name under
+  // different sites are distinct rows.
   async function resolveWorkplace(
     companyId: string,
+    workSiteId: string | null,
     label: string,
     departmentForNew: string | null
   ): Promise<{ id: string; created: boolean }> {
     const idx = await getWorkplaceIndex(companyId)
-    const key = workplaceKey(label)
+    const key = wpIndexKey(workSiteId, label)
     const found = idx.get(key)
     if (found) return { id: found.id, created: false }
 
@@ -409,6 +476,7 @@ export async function POST(request: NextRequest) {
         data: {
           companyId,
           tenantId,
+          workSiteId,
           name,
           department: dept,
           isActive: true,
@@ -425,6 +493,7 @@ export async function POST(request: NextRequest) {
           companyId,
           tenantId,
           deletedAt: null,
+          workSiteId: workSiteId ?? null,
           name: { equals: name, mode: 'insensitive' },
         },
         select: { id: true },
@@ -519,7 +588,16 @@ export async function POST(request: NextRequest) {
 
       if (!resolvedCompanyId) rowsWithoutCompany++
 
-      // ── 2. Resolve workplace (unified find-or-create) ───────────────
+      // ── 2. Resolve work site (punct de lucru), then workplace ───────
+      // The punct de lucru column, when present, becomes/finds a WorkSite
+      // under the company; the workplace is then found/created within it, so
+      // the same activity name at two sites yields two distinct workplaces.
+      let resolvedWorkSiteId: string | null = null
+      if (row.workSiteName && resolvedCompanyId) {
+        const ws = await resolveWorkSite(resolvedCompanyId, row.workSiteName)
+        resolvedWorkSiteId = ws.id
+      }
+
       let resolvedWorkplaceId: string | null = null
       // A workplace column wins; otherwise a department value stands in for
       // the workplace. The department text is carried onto a freshly created
@@ -528,7 +606,12 @@ export async function POST(request: NextRequest) {
       const departmentForNew = row.department
 
       if (wpLabel && resolvedCompanyId) {
-        const wp = await resolveWorkplace(resolvedCompanyId, wpLabel, departmentForNew)
+        const wp = await resolveWorkplace(
+          resolvedCompanyId,
+          resolvedWorkSiteId,
+          wpLabel,
+          departmentForNew
+        )
         resolvedWorkplaceId = wp.id
       }
       if (!resolvedWorkplaceId) rowsWithoutWorkplace++
@@ -982,6 +1065,7 @@ export async function POST(request: NextRequest) {
       failed,
       companiesCreated,
       workplacesCreated,
+      workSitesCreated,
       rowsWithoutCompany,
       rowsWithoutWorkplace,
       cnpSaved,
@@ -993,5 +1077,6 @@ export async function POST(request: NextRequest) {
     company: fallbackCompany ? { id: fallbackCompany.id, name: fallbackCompany.name } : null,
     companiesCreated: newCompanyList,
     workplacesCreated: newWorkplaceNames,
+    workSitesCreated: newWorkSiteNames,
   })
 }

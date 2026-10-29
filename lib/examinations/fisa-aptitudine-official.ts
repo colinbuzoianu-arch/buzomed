@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { fillExaminationPdf } from '@/lib/examinations/pdf-fill'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 
 /**
  * The OFFICIAL fișa de aptitudine — the government AcroForm template
@@ -31,7 +32,7 @@ export const FISA_OFFICIAL_INCLUDE = {
       jobTitle: true,
     },
   },
-  workplace: { include: { company: true } },
+  workplace: { include: { company: true, workSite: { select: { name: true } } } },
   examinationType: { select: { nameRo: true, code: true } },
 } satisfies Prisma.ExaminationInclude
 
@@ -83,7 +84,9 @@ export function buildFisaAptitudineFields(
     fields[`prenume${suffix}`] = examination.employee.firstName
     fields[`cnp${suffix}`] = cnpValue
     fields[`ocupatia${suffix}`] = examination.employee.jobTitle ?? ''
-    fields[`post${suffix}`] = examination.workplace.name
+    // "Post și loc de muncă" = workplace + site ("Comercial / Geoagiu"), or
+    // just the workplace name when it has no site (every pre-existing fișă).
+    fields[`post${suffix}`] = formatWorkplaceLabel(examination.workplace)
     fields[`data${suffix}`] = examDate
     fields[`data_urm${suffix}`] = nextDueDate
     fields[`recomandari${suffix}`] =

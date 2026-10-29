@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import type { HrScope } from './scope'
 
 /**
@@ -39,7 +40,9 @@ export const FISE_LIST_SELECT = {
   createdAt: true,
   revokedAt: true,
   employee: { select: { firstName: true, lastName: true, jobTitle: true } },
-  workplace: { select: { id: true, name: true, companyId: true } },
+  workplace: {
+    select: { id: true, name: true, companyId: true, workSite: { select: { name: true } } },
+  },
   examinationType: { select: { code: true, nameRo: true } },
   supersededBy: { select: { examinationNumber: true } },
 } satisfies Prisma.ExaminationSelect
@@ -149,10 +152,12 @@ export function toFiseListRow(exam: ExaminationForFiseList): FiseListRow {
     examinationNumber: exam.examinationNumber,
     companyId: exam.workplace.companyId,
     workplaceId: exam.workplace.id,
+    // Combined "{workplace} / {site}" label so HR sees the same text the fișă
+    // prints (just the name when there is no site).
     lastName: exam.employee.lastName,
     firstName: exam.employee.firstName,
     jobTitle: exam.employee.jobTitle,
-    workplaceName: exam.workplace.name,
+    workplaceName: formatWorkplaceLabel(exam.workplace),
     examTypeCode: exam.examinationType.code,
     examTypeName: exam.examinationType.nameRo,
     verdict: exam.verdict,

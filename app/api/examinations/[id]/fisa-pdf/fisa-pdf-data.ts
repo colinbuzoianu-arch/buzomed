@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import type { FisaPdfProps } from './fisa-pdf-document'
 
 /**
@@ -42,7 +43,7 @@ export const FISA_PDF_INCLUDE = {
     },
   },
   workplace: {
-    include: { company: true },
+    include: { company: true, workSite: { select: { name: true } } },
   },
   examinationType: {
     select: { nameRo: true, code: true },
@@ -85,6 +86,23 @@ export const FISA_PDF_INCLUDE = {
 export type ExaminationForFisaPdf = Prisma.ExaminationGetPayload<{
   include: typeof FISA_PDF_INCLUDE
 }>
+
+/**
+ * The "Departament" row value for the fișă, or null to hide the row. We hide
+ * it when the department merely repeats the work site (comparing on trimmed,
+ * case-insensitive text) — the site already shows in the "Loc de muncă" row,
+ * so printing it again as a department is noise (spec §5).
+ */
+function departmentForFisa(workplace: {
+  department: string | null
+  workSite?: { name: string | null } | null
+}): string | null {
+  const dept = workplace.department?.trim()
+  if (!dept) return null
+  const site = workplace.workSite?.name?.trim()
+  if (site && dept.toLowerCase() === site.toLowerCase()) return null
+  return dept
+}
 
 /** Long-form Romanian date, as the official form uses. */
 export function formatDateRo(date: Date): string {
@@ -149,11 +167,14 @@ export function buildFisaPdfData(
       : '—',
     workerGender: examination.employee.gender ?? '—',
 
-    // Company / workplace
+    // Company / workplace. "Loc de muncă" prints the combined
+    // "{workplace} / {site}" label (just the name when there's no site, so
+    // pre-existing fișe are unchanged). The separate "Departament" row is
+    // suppressed when it would merely duplicate the site (spec §5).
     companyName: examination.workplace.company.name,
     companyCui: examination.workplace.company.cui ?? '—',
-    workplaceName: examination.workplace.name,
-    workplaceDepartment: examination.workplace.department ?? null,
+    workplaceName: formatWorkplaceLabel(examination.workplace),
+    workplaceDepartment: departmentForFisa(examination.workplace),
 
     // Exam type
     examinationTypeName: examination.examinationType.nameRo,

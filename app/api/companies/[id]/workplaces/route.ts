@@ -134,6 +134,21 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     )
   }
 
+  // A supplied punct de lucru must belong to THIS company (and tenant). This
+  // is the cross-tenant/cross-company guard for the site link.
+  if (data.workSiteId) {
+    const site = await prisma.workSite.findFirst({
+      where: { id: data.workSiteId, companyId, tenantId: auth.user.tenantId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!site) {
+      return NextResponse.json(
+        { error: 'validation_failed', issues: ['workSiteId does not belong to this company'] },
+        { status: 400 }
+      )
+    }
+  }
+
   let workplace: Awaited<ReturnType<typeof prisma.workplace.create>>
   try {
     workplace = await prisma.workplace.create({
@@ -149,6 +164,7 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
           data.riskAssessmentSignedByCompany ?? false,
         riskAssessmentSignedAt: data.riskAssessmentSignedAt,
         isActive: data.isActive ?? true,
+        ...(data.workSiteId !== undefined ? { workSiteId: data.workSiteId } : {}),
         ...(data.riskProfile !== undefined ? { riskProfile: data.riskProfile as Prisma.InputJsonValue } : {}),
         ...(data.requiredExaminationTypeIds !== undefined
           ? { requiredExaminationTypeIds: data.requiredExaminationTypeIds }
@@ -176,6 +192,9 @@ export interface ParsedWorkplaceInput {
   riskAssessmentSignedByCompany?: boolean
   riskAssessmentSignedAt?: Date
   isActive?: boolean
+  // undefined = leave unchanged; null = detach from any site; string = site id
+  // (ownership is validated against the company by the route handler).
+  workSiteId?: string | null
   riskProfile?: Record<string, unknown>
   requiredExaminationTypeIds?: string[]
 }
@@ -226,6 +245,18 @@ export function parseWorkplaceInput(
       issues.push('isActive must be a boolean')
     } else {
       result.isActive = body.isActive
+    }
+  }
+
+  // Punct de lucru link. Empty string / null detaches; a non-empty string is a
+  // candidate site id whose ownership the route handler verifies.
+  if (body.workSiteId !== undefined) {
+    if (body.workSiteId === null || body.workSiteId === '') {
+      result.workSiteId = null
+    } else if (typeof body.workSiteId !== 'string') {
+      issues.push('workSiteId must be a string or null')
+    } else {
+      result.workSiteId = body.workSiteId
     }
   }
 

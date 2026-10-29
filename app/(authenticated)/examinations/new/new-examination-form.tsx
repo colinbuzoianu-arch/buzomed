@@ -20,6 +20,8 @@ interface WorkplaceOption {
   name: string
   department: string | null
   companyName: string
+  /** Pre-formatted "{workplace} / {site}" label (no company prefix). */
+  label: string
 }
 
 interface ExaminationTypeOption {
@@ -224,7 +226,7 @@ export function NewExaminationForm({
                   <option value="">{labels.workplaceNone}</option>
                   {workplaces.map((wp) => (
                     <option key={wp.id} value={wp.id}>
-                      {wp.companyName} / {wp.name}
+                      {wp.companyName} / {wp.label}
                       {wp.department ? ` (${wp.department})` : ''}
                     </option>
                   ))}

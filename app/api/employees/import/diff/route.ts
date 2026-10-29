@@ -13,6 +13,7 @@ import { canWriteAdministrative } from '@/lib/permissions/tenant-data'
 import { prisma } from '@/lib/prisma'
 import { logSystemError } from '@/lib/system-log/error-log'
 import { asObject } from '@/lib/validation'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 
 /**
  * Roster diff endpoint.
@@ -47,6 +48,7 @@ interface InputRow {
   companyEmployeeId: string | null
   department: string | null
   workplaceName: string | null
+  workSiteName: string | null
   cnp: string | null
 }
 
@@ -81,7 +83,17 @@ export async function POST(request: NextRequest) {
         id: true,
         workplaces: {
           where: { deletedAt: null, isActive: true },
-          select: { id: true, name: true, department: true },
+          select: {
+            id: true,
+            name: true,
+            department: true,
+            workSiteId: true,
+            workSite: { select: { name: true } },
+          },
+        },
+        workSites: {
+          where: { deletedAt: null, isActive: true },
+          select: { id: true, name: true },
         },
       },
     })
@@ -89,29 +101,67 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'company_not_found' }, { status: 404 })
     }
 
-    // Workplace resolver — the SAME find-or-create logic the commit route uses
-    // (lib/employees/import-normalize.workplaceKey for lookup, and
-    // normalizeWorkplaceValue for the name a missing workplace would be
-    // created with). A label that matches no existing workplace resolves to
-    // the name it WOULD be created as, so an employee moving onto a brand-new
-    // workplace is correctly counted as "moved", not "unchanged".
+    // Workplace/site resolver — the SAME find-or-create logic the commit route
+    // uses. Workplace identity is (workSiteId, normalized name), so the lookup
+    // key namespaces the name under its site. A punct-de-lucru value resolves
+    // to an existing WorkSite or, failing that, signals a site the commit
+    // would create (in which case the workplace is necessarily new → "moved").
+    const siteIndex = new Map<string, { id: string; name: string }>()
+    for (const s of company.workSites) siteIndex.set(workplaceKey(s.name), { id: s.id, name: s.name })
+
+    const wpKey = (workSiteId: string | null, label: string) =>
+      `${workSiteId ?? ''}|${workplaceKey(label)}`
+
     const workplaceIndex = new Map<string, { id: string; name: string }>()
     for (const w of company.workplaces) {
-      workplaceIndex.set(workplaceKey(w.name), { id: w.id, name: w.name })
-      if (w.department) workplaceIndex.set(workplaceKey(w.department), { id: w.id, name: w.name })
+      workplaceIndex.set(wpKey(w.workSiteId, w.name), { id: w.id, name: w.name })
+      if (w.department) workplaceIndex.set(wpKey(w.workSiteId, w.department), { id: w.id, name: w.name })
     }
-    // Resolve a row's workplace exactly like commit: workplaceName wins,
-    // otherwise the department value stands in for it.
+
+    // A comparison key stable across existing + would-be-created workplaces.
+    // `label` is the combined "{workplace} / {site}" display text.
+    interface ResolvedTarget {
+      compareKey: string
+      label: string
+    }
     function resolveWorkplace(
       workplaceName: string | null,
-      department: string | null
-    ): { id: string | null; name: string } | null {
-      const label = workplaceName ?? department
-      if (!label) return null
-      const found = workplaceIndex.get(workplaceKey(label))
-      if (found) return { id: found.id, name: found.name }
-      // Not found — this is a workplace the commit would create.
-      return { id: null, name: normalizeWorkplaceValue(label) }
+      department: string | null,
+      workSiteName: string | null
+    ): ResolvedTarget | null {
+      const wpLabel = workplaceName ?? department
+      if (!wpLabel) return null
+
+      // Resolve the site first (like commit). An unknown site name means the
+      // commit would create it, so the workplace under it is necessarily new:
+      // use a sentinel compareKey that can never equal an existing one.
+      let siteId: string | null = null
+      let siteName: string | null = null
+      let siteIsNew = false
+      if (workSiteName) {
+        const foundSite = siteIndex.get(workplaceKey(workSiteName))
+        if (foundSite) {
+          siteId = foundSite.id
+          siteName = foundSite.name
+        } else {
+          siteIsNew = true
+          siteName = normalizeWorkplaceValue(workSiteName)
+        }
+      }
+
+      const name = normalizeWorkplaceValue(wpLabel)
+      const label = formatWorkplaceLabel({
+        name,
+        workSite: siteName ? { name: siteName } : null,
+      })
+      if (siteIsNew) {
+        // Brand-new site ⇒ brand-new workplace; unique, never matches current.
+        return { compareKey: `\u0000new-site\u0000${workplaceKey(workSiteName ?? '')}|${workplaceKey(name)}`, label }
+      }
+      const found = workplaceIndex.get(wpKey(siteId, wpLabel))
+      if (found) return { compareKey: `id:${found.id}`, label }
+      // Workplace the commit would create under an existing/absent site.
+      return { compareKey: wpKey(siteId, name), label }
     }
 
     // Load current active employees at this company via their current assignments
@@ -133,7 +183,14 @@ export async function POST(request: NextRequest) {
             cnpHash: true,
           },
         },
-        workplace: { select: { id: true, name: true } },
+        workplace: {
+          select: {
+            id: true,
+            name: true,
+            workSiteId: true,
+            workSite: { select: { name: true } },
+          },
+        },
       },
     })
 
@@ -168,6 +225,8 @@ export async function POST(request: NextRequest) {
         department: typeof obj.department === 'string' ? obj.department.trim() || null : null,
         workplaceName:
           typeof obj.workplaceName === 'string' ? obj.workplaceName.trim() || null : null,
+        workSiteName:
+          typeof obj.workSiteName === 'string' ? obj.workSiteName.trim() || null : null,
         cnp: cnpRaw || null,
       }
     })
@@ -222,33 +281,30 @@ export async function POST(request: NextRequest) {
         match = currentByEmail.get(row.email) ?? null
       }
 
-      const target = resolveWorkplace(row.workplaceName, row.department)
+      const target = resolveWorkplace(row.workplaceName, row.department, row.workSiteName)
 
       if (!match) {
         newEmployees.push({
           rowNumber: row.rowNumber,
           firstName: row.firstName,
           lastName: row.lastName,
-          toWorkplace: target?.name ?? null,
+          toWorkplace: target?.label ?? null,
         })
       } else {
         matchedIds.add(match.employee.id)
         const currentWp = match.workplace
-        // Same workplace when the resolved target is the current one — by id
-        // for existing workplaces, else by normalized name (a to-be-created
-        // workplace that happens to normalize to the current one's name).
-        const sameWorkplace =
-          target != null &&
-          (target.id != null
-            ? target.id === currentWp.id
-            : workplaceKey(target.name) === workplaceKey(currentWp.name))
+        // Same workplace when the resolved target's compareKey equals the
+        // current assignment's — both namespaced by (site, name), so moving
+        // the same activity to a different site counts as a move.
+        const currentKey = `id:${currentWp.id}`
+        const sameWorkplace = target != null && target.compareKey === currentKey
         if (target && !sameWorkplace) {
           movedEmployees.push({
             rowNumber: row.rowNumber,
             firstName: match.employee.firstName,
             lastName: match.employee.lastName,
-            fromWorkplace: currentWp.name,
-            toWorkplace: target.name,
+            fromWorkplace: formatWorkplaceLabel(currentWp),
+            toWorkplace: target.label,
           })
         } else {
           unchanged++
@@ -262,7 +318,7 @@ export async function POST(request: NextRequest) {
         id: a.employee.id,
         firstName: a.employee.firstName,
         lastName: a.employee.lastName,
-        workplace: a.workplace.name,
+        workplace: formatWorkplaceLabel(a.workplace),
       }))
 
     return NextResponse.json({

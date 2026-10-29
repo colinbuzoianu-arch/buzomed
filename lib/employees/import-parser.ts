@@ -68,6 +68,7 @@ export type ColumnKey =
   | 'cui'
   | 'companyAddress'
   | 'workplaceName'
+  | 'workSiteName'
   | 'hireDate'
   | 'fitnessValidUntil'
   // Split fitness-expiry date (some HR exports, e.g. APAPROD, put it in
@@ -92,6 +93,7 @@ export const ASSIGNABLE_COLUMN_KEYS: ColumnKey[] = [
   'cui',
   'companyAddress',
   'workplaceName',
+  'workSiteName',
   'hireDate',
   'fitnessValidUntil',
   'fitnessValidUntilDay',
@@ -116,6 +118,7 @@ export interface RawRow {
   cui: string | null
   companyAddress: string | null
   workplaceName: string | null
+  workSiteName: string | null
   hireDate: string | null
   fitnessValidUntil: string | null
   notes: string | null
@@ -251,21 +254,40 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
   // means the work location (loc de muncă), not the town. `sector` is safe
   // to add (it does not collide with department's `sectie`/`sectia`); we do
   // NOT add `sectie` here because that alias already belongs to department.
+  //
+  // IMPORTANT: "punct de lucru" / "work site" moved OUT of here into
+  // `workSiteName` below. A LOCATIE/loc de muncă column is the activity/risk
+  // unit (Workplace); a punct de lucru column is the territorial site
+  // (WorkSite). They are distinct columns now — an export may carry both.
   workplaceName: [
     'loc_de_munca',
     'loc de munca',
     'locul de munca',
     'loc munca',
-    'punct de lucru',
-    'punct lucru',
-    'work location',
-    'work site',
     'locatie munca',
     'locatie',
     'locatia',
     'location',
     'sector',
     'workplace',
+  ],
+  // Punct de lucru = the employer's territorial unit (branch / sucursală),
+  // kept separate from the loc de muncă above. `oras`/town is deliberately
+  // NOT an exact alias here (it belongs to `city`); the AI mapping hint still
+  // offers it as a candidate for ambiguous headers.
+  workSiteName: [
+    'punct de lucru',
+    'punct lucru',
+    'punct_de_lucru',
+    'punct de lucru/locatie',
+    'sucursala',
+    'sucursale',
+    'filiala',
+    'locatie teritoriala',
+    'sectie teritoriala',
+    'unitate teritoriala',
+    'work site',
+    'worksite',
   ],
   hireDate: [
     'data angajarii',
@@ -476,6 +498,7 @@ function recordToRawRow(
     cui: extract(mapping, record, 'cui'),
     companyAddress: extract(mapping, record, 'companyAddress'),
     workplaceName: extract(mapping, record, 'workplaceName'),
+    workSiteName: extract(mapping, record, 'workSiteName'),
     hireDate: extract(mapping, record, 'hireDate'),
     // Single column if present, else assembled from the ZIUA/LUNA/ANUL EXP.
     // split columns (spec §3, APAPROD layout).

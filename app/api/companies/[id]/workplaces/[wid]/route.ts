@@ -96,6 +96,20 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     )
   }
 
+  // A newly-linked punct de lucru must belong to THIS company (null detaches).
+  if (data.workSiteId) {
+    const site = await prisma.workSite.findFirst({
+      where: { id: data.workSiteId, companyId, tenantId: auth.user.tenantId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!site) {
+      return NextResponse.json(
+        { error: 'validation_failed', issues: ['workSiteId does not belong to this company'] },
+        { status: 400 }
+      )
+    }
+  }
+
   const clearableStringFields = ['department', 'description'] as const
 
   const updateData: Record<string, unknown> = {}
@@ -115,6 +129,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     updateData.riskAssessmentSignedAt = null
   }
   if (data.isActive !== undefined) updateData.isActive = data.isActive
+  // workSiteId: explicit null detaches, a string re-links (validated above).
+  if (data.workSiteId !== undefined) updateData.workSiteId = data.workSiteId
   if (data.riskProfile !== undefined) updateData.riskProfile = data.riskProfile
   if (data.requiredExaminationTypeIds !== undefined) {
     updateData.requiredExaminationTypeIds = data.requiredExaminationTypeIds

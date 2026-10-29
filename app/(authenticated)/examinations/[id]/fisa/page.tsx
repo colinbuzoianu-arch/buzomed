@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
+import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import { FisaArchiveButton } from './fisa-archive-button'
 import './fisa.css'
 import { formatDate } from '@/lib/format-date'
@@ -59,6 +60,7 @@ export default async function FisaPage({ params }: PageProps) {
           name: true,
           department: true,
           company: { select: { name: true, cui: true } },
+          workSite: { select: { name: true } },
         },
       },
       examinationType: {
@@ -253,7 +255,7 @@ export default async function FisaPage({ params }: PageProps) {
           <div className="fisa-row">
             <span className="fisa-label">{t('examinations.fisa.workplace')}:</span>
             <span className="fisa-value">
-              {examination.workplace.name}
+              {formatWorkplaceLabel(examination.workplace)}
               {examination.workplace.department
                 ? ` — ${examination.workplace.department}`
                 : ''}
