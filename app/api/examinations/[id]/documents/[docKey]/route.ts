@@ -9,6 +9,7 @@ import { fillExaminationPdf } from '@/lib/examinations/pdf-fill'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
 import { buildClinicalSheetFields } from '@/lib/examinations/clinical-exam'
 import { buildDosarFields } from '@/lib/examinations/dosar-medical'
+import { buildFisaAptitudineFields } from '@/lib/examinations/fisa-aptitudine-official'
 
 interface RouteContext {
   params: Promise<{ id: string; docKey: string }>
@@ -122,42 +123,9 @@ export async function GET(_req: NextRequest, ctx: RouteContext) {
   let fields: Record<string, string | boolean> = {}
 
   if (docKey === 'fisa_aptitudine') {
-    const TYPE_CHECKBOX: Record<string, string> = {
-      angajare: 'tip_Angaja',
-      control_periodic: 'tip_Examen',
-      adaptare: 'tip_Adapta',
-      reluare_munca: 'tip_Reluar',
-      supraveghere_speciala: 'tip_Suprav',
-    }
-    const typeCheckField =
-      TYPE_CHECKBOX[examination.examinationType.code] ?? 'tip_Altele'
-
-    const companyAddr = [
-      examination.workplace.company.addressLine1,
-      examination.workplace.company.city,
-    ].filter(Boolean).join(', ')
-
-    for (const suffix of ['_A', '_B']) {
-      fields[`societate${suffix}`] = examination.workplace.company.name
-      fields[`adresa${suffix}`] = companyAddr
-      fields[`nume${suffix}`] = examination.employee.lastName
-      fields[`prenume${suffix}`] = examination.employee.firstName
-      fields[`cnp${suffix}`] = cnpValue
-      fields[`ocupatia${suffix}`] = examination.employee.jobTitle ?? ''
-      fields[`post${suffix}`] = examination.workplace.name
-      fields[`data${suffix}`] = examDate
-      fields[`data_urm${suffix}`] = nextDueDate
-      fields[`recomandari${suffix}`] =
-        examination.verdictConditions ?? examination.recommendations ?? ''
-      fields[`apt${suffix}`] = verdict === 'apt'
-      fields[`apt_cond${suffix}`] = verdict === 'apt_conditionat'
-      fields[`inapt_temp${suffix}`] = verdict === 'inapt_temporar'
-      fields[`inapt${suffix}`] = verdict === 'inapt'
-      for (const cb of ['tip_Angaja', 'tip_Examen', 'tip_Adapta', 'tip_Reluar', 'tip_Suprav', 'tip_Altele']) {
-        fields[`${cb}${suffix}`] = false
-      }
-      fields[`${typeCheckField}${suffix}`] = true
-    }
+    // Shared with the HR-portal download so both serve the identical official
+    // form. examDate/nextDueDate/verdict are recomputed inside the builder.
+    fields = buildFisaAptitudineFields(examination, cnpValue)
   } else if (docKey === 'examen_angajare') {
     fields = {
       nume_angajat: `${examination.employee.lastName} ${examination.employee.firstName}`,

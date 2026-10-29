@@ -145,19 +145,22 @@ export function FiseClient({ rows, companies, newSince, locale, labels, initialS
       return next
     })
 
-  async function downloadOne(id: string) {
+  async function downloadOne(id: string, lastName: string, firstName: string, number: string) {
     setBusy(true)
     setError(null)
     try {
+      // The endpoint streams the official PDF directly (not a signed URL).
       const res = await fetch(`/api/hr/fise/${id}/pdf`)
       if (!res.ok) throw new Error('failed')
-      const { url } = await res.json()
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.rel = 'noopener'
+      a.download = `${lastName}_${firstName}_${number.replace('/', '-')}.pdf`
       document.body.appendChild(a)
       a.click()
       a.remove()
+      URL.revokeObjectURL(url)
     } catch {
       setError(labels.downloadError)
     } finally {
@@ -366,7 +369,7 @@ export function FiseClient({ rows, companies, newSince, locale, labels, initialS
                         <td className="px-4 py-3 text-right">
                           <button
                             type="button"
-                            onClick={() => downloadOne(r.id)}
+                            onClick={() => downloadOne(r.id, r.lastName, r.firstName, r.examinationNumber)}
                             disabled={busy}
                             className="text-primary hover:underline disabled:opacity-40 text-sm"
                           >

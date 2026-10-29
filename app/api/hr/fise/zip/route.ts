@@ -3,28 +3,27 @@ import { Readable } from 'node:stream'
 import yazl from 'yazl'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
-import { createServiceClient } from '@/lib/supabase/admin'
 import { resolveEmployeeCnp } from '@/lib/employees/resolve-cnp'
 import { getRequestMeta } from '@/lib/audit/log'
 import { resolveHrScope } from '@/lib/hr/scope'
-import { ensureArchivedFisa } from '@/lib/fisa/ensure-archived'
 import { buildFiseWhere, fiseFileName, type FiseFilters } from '@/lib/hr/fise'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
-import { FISA_PDF_INCLUDE } from '@/app/api/examinations/[id]/fisa-pdf/fisa-pdf-data'
+import {
+  FISA_OFFICIAL_INCLUDE,
+  renderOfficialFisaAptitudine,
+} from '@/lib/examinations/fisa-aptitudine-official'
 import { asObject } from '@/lib/validation'
 
 /** Hard cap per ZIP so one request can't try to build thousands of PDFs. */
 const MAX_PER_ZIP = 500
-const BUCKET = 'documents'
 
 /**
  * POST /api/hr/fise/zip
  *
- * Bulk-downloads several signed fișe as one streamed ZIP. Accepts either an
- * explicit `examinationIds` list, or `all: true` + the same filters as the
- * list (to zip "toate din filtru"). Either way the server re-resolves which
- * examinations are in the HR user's scope — client-supplied ids are never
- * trusted. The ZIP is streamed, not buffered in memory.
+ * Bulk-downloads several OFFICIAL fișe de aptitudine as one streamed ZIP.
+ * Accepts either an explicit `examinationIds` list, or `all: true` + the same
+ * filters as the list. Either way the server re-resolves which examinations
+ * are in the HR user's scope — client-supplied ids are never trusted.
  */
 export async function POST(req: NextRequest) {
   const auth = await getApiUser()
@@ -64,7 +63,7 @@ export async function POST(req: NextRequest) {
 
   const examinations = await prisma.examination.findMany({
     where,
-    include: FISA_PDF_INCLUDE,
+    include: FISA_OFFICIAL_INCLUDE,
     orderBy: [{ examinedAt: 'desc' }, { completedAt: 'desc' }],
     take: MAX_PER_ZIP,
   })
@@ -73,29 +72,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 })
   }
 
-  const supabase = createServiceClient()
   const zip = new yazl.ZipFile()
-
-  // Collect bytes for each fișă (freshly rendered, or downloaded from storage
-  // if already archived) and add them to the stream. Done before we hand the
-  // web stream to the Response so an error surfaces as a clean 500.
   const auditEntries: Array<{ id: string; summary: string; number: string }> = []
   const usedNames = new Set<string>()
+
   for (const exam of examinations) {
     const cnp = resolveEmployeeCnp(exam.employee, true)
-    let bytes: Uint8Array | null = null
+    let bytes: Uint8Array
     try {
-      const archived = await ensureArchivedFisa(exam, {
-        tenantId: scope.tenantId,
-        actorUserId: auth.user.id,
-        cnpValue: cnp.value,
-      })
-      bytes = archived.buffer
-      if (!bytes) {
-        const dl = await supabase.storage.from(BUCKET).download(archived.storagePath)
-        if (dl.error || !dl.data) throw new Error(dl.error?.message ?? 'download_failed')
-        bytes = new Uint8Array(await dl.data.arrayBuffer())
-      }
+      bytes = await renderOfficialFisaAptitudine(exam, cnp.value)
     } catch (err) {
       console.error('[hr/fise/zip] skipping fișă that failed to render', exam.id, err)
       continue
@@ -107,7 +92,6 @@ export async function POST(req: NextRequest) {
       examinationNumber: exam.examinationNumber,
       examDate: resolveExaminationDate(exam).toISOString(),
     })
-    // Guard against duplicate names within the archive.
     if (usedNames.has(name)) name = name.replace(/\.pdf$/, `_${exam.id.slice(0, 6)}.pdf`)
     usedNames.add(name)
 
@@ -132,7 +116,7 @@ export async function POST(req: NextRequest) {
     data: auditEntries.map((e) => ({
       tenantId: scope.tenantId,
       userId: auth.user.id,
-      action: 'read',
+      action: 'read' as const,
       entityType: 'examination',
       entityId: e.id,
       entitySummary: e.summary,

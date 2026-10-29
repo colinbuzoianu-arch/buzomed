@@ -1,24 +1,21 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
-import { createServiceClient } from '@/lib/supabase/admin'
 import { resolveEmployeeCnp } from '@/lib/employees/resolve-cnp'
 import { writeAuditLog, getRequestMeta } from '@/lib/audit/log'
 import { resolveHrScope } from '@/lib/hr/scope'
-import { ensureArchivedFisa } from '@/lib/fisa/ensure-archived'
 import { fiseFileName } from '@/lib/hr/fise'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
-import { FISA_PDF_INCLUDE } from '@/app/api/examinations/[id]/fisa-pdf/fisa-pdf-data'
-
-const BUCKET = 'documents'
-const SIGNED_URL_TTL_SECONDS = 60
+import {
+  FISA_OFFICIAL_INCLUDE,
+  renderOfficialFisaAptitudine,
+} from '@/lib/examinations/fisa-aptitudine-official'
 
 /**
  * GET /api/hr/fise/[examinationId]/pdf
  *
- * Returns a short-lived signed URL to the official fișa de aptitudine PDF for
- * an HR user. The fișă is generated/archived once via the shared helper, so
- * HR downloads the same official copy the cabinet produced.
+ * Streams the OFFICIAL fișa de aptitudine (the government AcroForm template,
+ * the same PDF the cabinet prints at the end of an examination) for an HR user.
  *
  * The CNP IS included: by HG 355/2007 art. 17 the employer legally receives a
  * copy of the fișă, which carries the worker's CNP. The access is audited; the
@@ -50,7 +47,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ examination
         company: { id: { in: scope.companyIds }, publishFiseToHrPortal: true, deletedAt: null },
       },
     },
-    include: FISA_PDF_INCLUDE,
+    include: FISA_OFFICIAL_INCLUDE,
   })
 
   // Collapse "not yours / unsigned / unpublished" into a single 404 — don't
@@ -65,34 +62,20 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ examination
     console.error('[hr/fise/pdf] CNP decryption failed', { examinationId })
   }
 
-  let archived: Awaited<ReturnType<typeof ensureArchivedFisa>>
+  let buffer: Uint8Array
   try {
-    archived = await ensureArchivedFisa(examination, {
-      tenantId: scope.tenantId,
-      actorUserId: auth.user.id,
-      cnpValue: cnp.value,
-    })
+    buffer = await renderOfficialFisaAptitudine(examination, cnp.value)
   } catch (err) {
-    console.error('[hr/fise/pdf] archive failed', err)
+    console.error('[hr/fise/pdf] pdf fill failed', err)
     return NextResponse.json({ error: 'pdf_failed' }, { status: 500 })
   }
 
-  const downloadName = fiseFileName({
+  const filename = fiseFileName({
     lastName: examination.employee.lastName,
     firstName: examination.employee.firstName,
     examinationNumber: examination.examinationNumber,
     examDate: resolveExaminationDate(examination).toISOString(),
   })
-
-  const supabase = createServiceClient()
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(archived.storagePath, SIGNED_URL_TTL_SECONDS, { download: downloadName })
-
-  if (error || !data?.signedUrl) {
-    console.error('[hr/fise/pdf] signed URL creation failed', error)
-    return NextResponse.json({ error: 'signed_url_failed' }, { status: 502 })
-  }
 
   // Audit the HR download. The cabinet examination page reads these entries to
   // show "Descărcată de HR". CNP value is never logged.
@@ -109,5 +92,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ examination
     userAgent,
   })
 
-  return NextResponse.json({ url: data.signedUrl, filename: downloadName, expiresInSeconds: SIGNED_URL_TTL_SECONDS })
+  return new NextResponse(buffer as unknown as BodyInit, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'no-store',
+    },
+  })
 }
