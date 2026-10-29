@@ -24,6 +24,15 @@ export async function getLocale(): Promise<Locale> {
 }
 
 /**
+ * Returns the full message tree for a locale. Used by server components that
+ * need to hand a whole namespace to a client component as a prop (client
+ * components can't call the server-side translator).
+ */
+export function getDictionary(locale: Locale) {
+  return messages[locale]
+}
+
+/**
  * Translation function. Use like t('login.title').
  */
 export function getTranslator(locale: Locale) {

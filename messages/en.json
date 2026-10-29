@@ -2003,5 +2003,79 @@
     "colType": "Type",
     "colVerdict": "Verdict",
     "colSigned": "Certificate"
+  },
+  "hrDashboard": {
+    "title": "OSH dashboard",
+    "subtitle": "Medical examination status · operational data only, no medical information",
+    "lastUpdated": "Updated",
+    "allCompanies": "All companies",
+    "allWorkplaces": "All workplaces",
+    "noWorkplace": "No workplace",
+    "selectCompanyForExport": "Select a company to export",
+    "activeFilter": "Active filter",
+    "clearFilter": "Clear filter",
+    "emptyCompany": "This company has no active employees.",
+    "emptyFiltered": "No employee matches the selected filters.",
+    "tableCount": "{shown} of {total} employees",
+    "seeList": "see list",
+    "seeAll": "see all",
+    "seeLess": "see fewer",
+    "status": {
+      "valid": "Valid",
+      "expiringSoon": "Expiring soon",
+      "expired": "Expired",
+      "noExamination": "No examination"
+    },
+    "verdict": {
+      "apt": "Fit",
+      "apt_conditionat": "Fit with conditions",
+      "inapt_temporar": "Temporarily unfit",
+      "inapt": "Unfit",
+      "necunoscut": "Unknown (examined before Buzomed)"
+    },
+    "compliance": {
+      "title": "Compliance",
+      "center": "% compliant",
+      "valid": "Valid",
+      "expiringSoon": "Expiring in 30 days",
+      "expired": "Expired",
+      "noExamination": "No examination"
+    },
+    "avize": {
+      "title": "Medical verdicts",
+      "center": "valid verdicts"
+    },
+    "programari": {
+      "title": "Scheduling (60 days)",
+      "center": "due within 60 days",
+      "programat": "Appointment set",
+      "neprogramat": "Not scheduled"
+    },
+    "months": {
+      "title": "Due dates — next 6 months",
+      "valueLabel": "Employees",
+      "expired": "Already expired"
+    },
+    "workplace": {
+      "title": "Compliance by workplace",
+      "valueLabel": "Employees"
+    },
+    "alerts": {
+      "title": "Alerts",
+      "expired": "Employees with an expired certificate",
+      "inaptTemporar": "Temporarily unfit",
+      "inaptTemporarEndingSoon": "of which {count} end within 14 days",
+      "noRecord": "Active employees with no examination or recall",
+      "expiring7NoSchedule": "Certificates expiring in 7 days with no appointment",
+      "none": "No alerts. Everything is in order."
+    },
+    "table": {
+      "employee": "Employee",
+      "company": "Company",
+      "jobWorkplace": "Job / Workplace",
+      "verdict": "Verdict",
+      "dueDate": "Due date",
+      "status": "Status"
+    }
   }
 }

@@ -2003,5 +2003,79 @@
     "colType": "Tip",
     "colVerdict": "Verdict",
     "colSigned": "Fisa"
+  },
+  "hrDashboard": {
+    "title": "Panou SSM",
+    "subtitle": "Status examene medicale · doar date operaționale, fără informații medicale",
+    "lastUpdated": "Actualizat",
+    "allCompanies": "Toate companiile",
+    "allWorkplaces": "Toate locurile de muncă",
+    "noWorkplace": "Fără loc de muncă",
+    "selectCompanyForExport": "Selectați o companie pentru export",
+    "activeFilter": "Filtru activ",
+    "clearFilter": "Șterge filtrul",
+    "emptyCompany": "Această companie nu are angajați activi.",
+    "emptyFiltered": "Niciun angajat nu corespunde filtrelor selectate.",
+    "tableCount": "{shown} din {total} angajați",
+    "seeList": "vezi lista",
+    "seeAll": "vezi toate",
+    "seeLess": "vezi mai puține",
+    "status": {
+      "valid": "Valabil",
+      "expiringSoon": "Expiră curând",
+      "expired": "Expirat",
+      "noExamination": "Fără examen"
+    },
+    "verdict": {
+      "apt": "Apt",
+      "apt_conditionat": "Apt condiționat",
+      "inapt_temporar": "Inapt temporar",
+      "inapt": "Inapt",
+      "necunoscut": "Necunoscut (examinat înainte de Buzomed)"
+    },
+    "compliance": {
+      "title": "Conformitate",
+      "center": "% conformi",
+      "valid": "Valabil",
+      "expiringSoon": "Expiră în 30 zile",
+      "expired": "Expirat",
+      "noExamination": "Fără examen"
+    },
+    "avize": {
+      "title": "Avize medicale",
+      "center": "avize valide"
+    },
+    "programari": {
+      "title": "Programări (60 zile)",
+      "center": "scadenți în 60 zile",
+      "programat": "Control programat",
+      "neprogramat": "Neprogramat"
+    },
+    "months": {
+      "title": "Scadențe — următoarele 6 luni",
+      "valueLabel": "Angajați",
+      "expired": "Deja expirați"
+    },
+    "workplace": {
+      "title": "Conformitate pe loc de muncă",
+      "valueLabel": "Angajați"
+    },
+    "alerts": {
+      "title": "Alerte",
+      "expired": "Angajați cu fișa expirată",
+      "inaptTemporar": "Inapt temporar",
+      "inaptTemporarEndingSoon": "din care {count} se încheie în 14 zile",
+      "noRecord": "Angajați activi fără niciun examen sau recall",
+      "expiring7NoSchedule": "Fișe care expiră în 7 zile fără programare",
+      "none": "Nicio alertă. Totul este în regulă."
+    },
+    "table": {
+      "employee": "Angajat",
+      "company": "Companie",
+      "jobWorkplace": "Funcție / Loc de muncă",
+      "verdict": "Verdict",
+      "dueDate": "Scadență",
+      "status": "Status"
+    }
   }
 }

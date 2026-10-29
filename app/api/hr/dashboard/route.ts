@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getApiUser } from '@/lib/auth'
+import { resolveHrScope } from '@/lib/hr/scope'
+import { loadHrDashboardRows } from '@/lib/hr/dashboard-data'
+import { aggregateHrDashboard } from '@/lib/hr/dashboard-aggregate'
 
+/**
+ * Legacy summary endpoint. Kept for backwards compatibility but now shares the
+ * tenant scoping (resolveHrScope) and the corrected status resolution
+ * (loadHrDashboardRows) with the dashboard page and the /stats route, so its
+ * numbers can no longer drift from — or reintroduce the old bugs that the page
+ * once had (imported employees miscounted, revoked/unsigned fișe counted).
+ */
 export async function GET() {
   const auth = await getApiUser()
   if (!auth.user) {
@@ -14,136 +23,38 @@ export async function GET() {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  const userId = auth.user.id
-
-  // Load companies this HR user is assigned to
-  const assignments = await prisma.companyHrAssignment.findMany({
-    where: { userId },
-    select: { companyId: true, tenantId: true },
-  })
-
-  if (assignments.length === 0) {
+  const scope = await resolveHrScope(auth.user.id)
+  if (!scope.ok) {
+    if (scope.error === 'multi_tenant') {
+      return NextResponse.json({ error: 'multi_tenant_hr_not_supported' }, { status: 500 })
+    }
     return NextResponse.json({ employees: [], summary: emptySummary() })
   }
 
-  // Fail loudly if assignments span multiple tenants — silent data-drop is worse than an error.
-  const tenantIds = new Set(assignments.map((a) => a.tenantId))
-  if (tenantIds.size > 1) {
-    console.error('[hr/dashboard] multi-tenant HR user detected', { userId, tenantIds: [...tenantIds] })
-    return NextResponse.json({ error: 'multi_tenant_hr_not_supported' }, { status: 500 })
-  }
+  const rows = await loadHrDashboardRows(scope)
+  const stats = aggregateHrDashboard(rows, { companyId: 'all', workplaceId: 'all' }, Date.now())
 
-  const companyIds = assignments.map((a) => a.companyId)
-  const tenantId = assignments[0].tenantId
+  const employees = stats.rows.map((r) => ({
+    id: r.id,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    jobTitle: r.jobTitle,
+    companyId: r.companyId,
+    workplace: r.workplaceName ? { id: r.workplaceId, name: r.workplaceName } : null,
+    verdict: r.verdictKnown ? r.verdict : null,
+    nextExaminationDueDate: r.dueDate,
+    status: r.status,
+  }))
 
-  // Load employees — no sensitive fields
-  const employees = await prisma.employee.findMany({
-    where: {
-      tenantId,
-      companyId: { in: companyIds },
-      isActive: true,
-      deletedAt: null,
+  return NextResponse.json({
+    employees,
+    summary: {
+      total: stats.summary.total,
+      apt: stats.avize.find((s) => s.key === 'apt')?.value ?? 0,
+      expiringSoon: stats.summary.expiringSoon,
+      missing: stats.summary.noExamination + stats.summary.expired,
     },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      jobTitle: true,
-      companyId: true,
-      workplaceAssignments: {
-        where: { isCurrent: true },
-        select: {
-          workplace: { select: { id: true, name: true } },
-        },
-        take: 1,
-      },
-    },
-    orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
   })
-
-  if (employees.length === 0) {
-    return NextResponse.json({ employees: [], summary: emptySummary() })
-  }
-
-  const employeeIds = employees.map((e) => e.id)
-
-  // Load latest completed examination per employee
-  const examinations = await prisma.examination.findMany({
-    where: {
-      tenantId,
-      employeeId: { in: employeeIds },
-      status: 'completed',
-      deletedAt: null,
-    },
-    select: {
-      employeeId: true,
-      verdict: true,
-      nextExaminationDueDate: true,
-      completedAt: true,
-    },
-    orderBy: { completedAt: 'desc' },
-  })
-
-  // Keep only the latest exam per employee
-  const latestExamByEmployee = new Map<
-    string,
-    { verdict: string | null; nextExaminationDueDate: Date | null; completedAt: Date | null }
-  >()
-  for (const exam of examinations) {
-    if (!latestExamByEmployee.has(exam.employeeId)) {
-      latestExamByEmployee.set(exam.employeeId, {
-        verdict: exam.verdict,
-        nextExaminationDueDate: exam.nextExaminationDueDate,
-        completedAt: exam.completedAt,
-      })
-    }
-  }
-
-  const now = new Date()
-  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-
-  type EmployeeStatus = 'valid' | 'expiringSoon' | 'expired' | 'noExamination'
-
-  const result = employees.map((emp) => {
-    const exam = latestExamByEmployee.get(emp.id)
-    let status: EmployeeStatus = 'noExamination'
-
-    if (exam) {
-      const due = exam.nextExaminationDueDate
-      if (!due) {
-        status = 'noExamination'
-      } else if (due < now) {
-        status = 'expired'
-      } else if (due <= thirtyDaysFromNow) {
-        status = 'expiringSoon'
-      } else {
-        status = 'valid'
-      }
-    }
-
-    return {
-      id: emp.id,
-      firstName: emp.firstName,
-      lastName: emp.lastName,
-      jobTitle: emp.jobTitle,
-      companyId: emp.companyId,
-      workplace: emp.workplaceAssignments[0]?.workplace ?? null,
-      verdict: exam?.verdict ?? null,
-      nextExaminationDueDate: exam?.nextExaminationDueDate?.toISOString() ?? null,
-      status,
-    }
-  })
-
-  const summary = {
-    total: result.length,
-    apt: result.filter((e) => e.verdict === 'apt').length,
-    expiringSoon: result.filter((e) => e.status === 'expiringSoon').length,
-    missing: result.filter(
-      (e) => e.status === 'noExamination' || e.status === 'expired'
-    ).length,
-  }
-
-  return NextResponse.json({ employees: result, summary })
 }
 
 function emptySummary() {

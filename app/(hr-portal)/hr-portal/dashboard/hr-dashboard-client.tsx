@@ -1,20 +1,61 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { HrExportButton } from '@/components/hr-export/HrExportButton'
+import { ChartThemeStyle } from '@/components/reports/charts/chart-theme'
+import {
+  aggregateHrDashboard,
+  matchesTableFilter,
+  type AvizeKey,
+  type HrDashboardResult,
+  type HrEmployeeRow,
+  type HrStatus,
+  type HrTableFilter,
+} from '@/lib/hr/dashboard-aggregate'
+import { HrDonut, HrMonthBars, HrWorkplaceBars, type Slice } from './dashboard-charts'
 
-type Status = 'valid' | 'expiringSoon' | 'expired' | 'noExamination'
-
-interface EmployeeRow {
-  id: string
-  firstName: string
-  lastName: string
-  jobTitle: string
-  companyId: string
-  workplace: string
-  verdict: string | null
-  nextExaminationDueDate: string | null
-  status: Status
+// Shape of the messages.hrDashboard namespace, handed down from the server
+// (client components can't call the server-side translator).
+export interface HrDashboardLabels {
+  title: string
+  subtitle: string
+  lastUpdated: string
+  allCompanies: string
+  allWorkplaces: string
+  noWorkplace: string
+  selectCompanyForExport: string
+  activeFilter: string
+  clearFilter: string
+  emptyCompany: string
+  emptyFiltered: string
+  tableCount: string
+  seeList: string
+  seeAll: string
+  seeLess: string
+  status: Record<HrStatus, string>
+  verdict: Record<AvizeKey, string>
+  compliance: { title: string; center: string } & Record<HrStatus, string>
+  avize: { title: string; center: string }
+  programari: { title: string; center: string; programat: string; neprogramat: string }
+  months: { title: string; valueLabel: string; expired: string }
+  workplace: { title: string; valueLabel: string }
+  alerts: {
+    title: string
+    expired: string
+    inaptTemporar: string
+    inaptTemporarEndingSoon: string
+    noRecord: string
+    expiring7NoSchedule: string
+    none: string
+  }
+  table: {
+    employee: string
+    company: string
+    jobWorkplace: string
+    verdict: string
+    dueDate: string
+    status: string
+  }
 }
 
 interface Company {
@@ -23,177 +64,180 @@ interface Company {
   city: string | null
 }
 
-interface Summary {
-  total: number
-  apt: number
-  expiringSoon: number
-  missing: number
-}
-
 interface Props {
-  rows: EmployeeRow[]
-  summary: Summary
+  rows: HrEmployeeRow[]
   companies: Company[]
+  initialStats: HrDashboardResult
+  nowMs: number
+  locale: string
+  labels: HrDashboardLabels
 }
 
-const VERDICT_LABELS: Record<string, string> = {
-  apt: 'Apt',
-  apt_conditionat: 'Apt condiționat',
-  inapt_temporar: 'Inapt temporar',
-  inapt: 'Inapt',
+const STATUS_COLOR: Record<HrStatus, string> = {
+  valid: 'var(--chart-apt)',
+  expiringSoon: 'var(--chart-aptc)',
+  expired: 'var(--chart-inapt)',
+  noExamination: 'var(--chart-neutral)',
 }
 
-function StatusBadge({ status, verdict }: { status: Status; verdict: string | null }) {
-  if (status === 'noExamination') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-        Lipsă examinare
-      </span>
-    )
-  }
-  if (status === 'expired') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
-        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-        Expirat
-      </span>
-    )
-  }
-  if (status === 'expiringSoon') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-        Expiră curând
-      </span>
-    )
-  }
-  // valid
-  if (verdict === 'apt') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-        Apt
-      </span>
-    )
-  }
-  if (verdict === 'apt_conditionat') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700">
-        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-        Apt condiționat
-      </span>
-    )
-  }
-  if (verdict === 'inapt_temporar' || verdict === 'inapt') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
-        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-        {VERDICT_LABELS[verdict] ?? verdict}
-      </span>
-    )
-  }
-  return <span className="text-muted-foreground text-xs">—</span>
+// apt condiționat uses the categorical blue here (per the dashboard spec),
+// distinct from its orange in the cabinet verdict charts.
+const AVIZE_COLOR: Record<AvizeKey, string> = {
+  apt: 'var(--chart-apt)',
+  apt_conditionat: 'var(--chart-cat-1)',
+  inapt_temporar: 'var(--chart-aptc)',
+  inapt: 'var(--chart-inapt)',
+  necunoscut: 'var(--chart-neutral)',
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('ro-RO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+const TOP_WORKPLACES = 10
+
+function sameFilter(a: HrTableFilter, b: HrTableFilter): boolean {
+  if (a.type !== b.type) return false
+  if ('value' in a && 'value' in b) return a.value === b.value
+  return true
 }
 
-export function HrDashboardClient({ rows, summary, companies }: Props) {
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<Status | 'all'>('all')
+export function HrDashboardClient({ rows, companies, initialStats, nowMs, locale, labels }: Props) {
+  const [companyId, setCompanyId] = useState<string>('all')
+  const [workplaceId, setWorkplaceId] = useState<string>('all')
+  const [tableFilter, setTableFilter] = useState<HrTableFilter>({ type: 'none' })
+  const [showAllWorkplaces, setShowAllWorkplaces] = useState(false)
 
-  const companyMap = useMemo(
-    () => Object.fromEntries(companies.map((c) => [c.id, c.name])),
-    [companies]
+  const intlLocale = locale === 'ro' ? 'ro-RO' : 'en-GB'
+
+  const stats = useMemo(() => {
+    if (companyId === 'all' && workplaceId === 'all') return initialStats
+    return aggregateHrDashboard(rows, { companyId, workplaceId }, nowMs)
+  }, [rows, companyId, workplaceId, nowMs, initialStats])
+
+  // Workplace options for the header filter: distinct workplaces within the
+  // currently-selected company.
+  const workplaceOptions = useMemo(() => {
+    const map = new Map<string, string>()
+    let hasNone = false
+    for (const r of rows) {
+      if (companyId !== 'all' && r.companyId !== companyId) continue
+      if (r.workplaceId) map.set(r.workplaceId, r.workplaceName ?? r.workplaceId)
+      else hasNone = true
+    }
+    const list = [...map.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, intlLocale))
+    if (hasNone) list.push({ id: '', name: labels.noWorkplace })
+    return list
+  }, [rows, companyId, intlLocale, labels.noWorkplace])
+
+  // Clicking the already-active filter clears it (toggle).
+  const toggleFilter = (next: HrTableFilter) =>
+    setTableFilter((prev) => (sameFilter(prev, next) ? { type: 'none' } : next))
+
+  const clearAll = () => {
+    setTableFilter({ type: 'none' })
+  }
+
+  const tableRows = useMemo(
+    () => stats.rows.filter((r) => matchesTableFilter(r, tableFilter, nowMs)),
+    [stats.rows, tableFilter, nowMs]
   )
 
-  const filtered = useMemo(
-    () =>
-      rows.filter((r) => {
-        if (selectedCompanyId !== 'all' && r.companyId !== selectedCompanyId) {
-          return false
-        }
-        if (statusFilter !== 'all' && r.status !== statusFilter) {
-          return false
-        }
-        return true
-      }),
-    [rows, selectedCompanyId, statusFilter]
-  )
-
-  // For export: use the selected company, or the only company if "all" with one assigned
   const exportCompanyId =
-    selectedCompanyId !== 'all'
-      ? selectedCompanyId
-      : companies.length === 1
-        ? companies[0].id
-        : null
+    companyId !== 'all' ? companyId : companies.length === 1 ? companies[0].id : null
+
+  const fmtDate = (iso: string | null) =>
+    iso
+      ? new Date(iso).toLocaleDateString(intlLocale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '—'
+
+  const monthLabel = (key: string, year: number, month: number) => {
+    if (key === 'expired') return labels.months.expired
+    const name = new Date(Date.UTC(year, month, 1)).toLocaleDateString(intlLocale, { month: 'short' })
+    return month === 0 ? `${name} ${year}` : name
+  }
+
+  // ---- Donut datasets -------------------------------------------------------
+  const complianceData: Slice[] = stats.compliance.map((s) => ({
+    key: s.key,
+    label: labels.compliance[s.key],
+    value: s.value,
+    color: STATUS_COLOR[s.key],
+  }))
+
+  const avizeData: Slice[] = stats.avize
+    .filter((s) => s.value > 0 || s.key !== 'necunoscut')
+    .map((s) => ({ key: s.key, label: labels.verdict[s.key], value: s.value, color: AVIZE_COLOR[s.key] }))
+  const avizeTotal = stats.avize.reduce((sum, s) => sum + s.value, 0)
+
+  const programariData: Slice[] = stats.programari.slices.map((s) => ({
+    key: s.key,
+    label: labels.programari[s.key],
+    value: s.value,
+    color: s.key === 'programat' ? 'var(--chart-apt)' : 'var(--chart-aptc)',
+  }))
+
+  const monthData = stats.byMonth.map((b) => ({
+    key: b.key,
+    label: monthLabel(b.key, b.year, b.month),
+    value: b.value,
+    color: b.tone === 'overdue' ? 'var(--chart-inapt)' : 'var(--chart-neutral)',
+  }))
+
+  const workplaceRows = (showAllWorkplaces ? stats.byWorkplace : stats.byWorkplace.slice(0, TOP_WORKPLACES)).map(
+    (w) => ({
+      workplaceId: w.workplaceId,
+      label: w.workplaceName || labels.noWorkplace,
+      valid: w.valid,
+      expiringSoon: w.expiringSoon,
+      expired: w.expired,
+      noExamination: w.noExamination,
+      total: w.total,
+    })
+  )
+
+  const activeOf = (type: HrTableFilter['type']): string | null =>
+    tableFilter.type === type && 'value' in tableFilter ? String(tableFilter.value) : null
+
+  const hasEmployees = rows.length > 0
+  const scopedTotal = stats.summary.total
+
+  const activeFilterLabel = describeFilter(tableFilter, labels, monthData)
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <ChartThemeStyle />
+
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Situație angajați</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Status examene medicale · doar date operaționale, fără informații medicale
+          <h1 className="text-2xl font-bold">{labels.title}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{labels.subtitle}</p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          {exportCompanyId ? (
+            <HrExportButton companyId={exportCompanyId} apiBase="hr-portal" />
+          ) : (
+            <p className="text-xs text-muted-foreground">{labels.selectCompanyForExport}</p>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            {labels.lastUpdated}:{' '}
+            {new Date(nowMs).toLocaleString(intlLocale, { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
-        {exportCompanyId ? (
-          <HrExportButton companyId={exportCompanyId} apiBase="hr-portal" />
-        ) : (
-          <p className="text-xs text-muted-foreground self-center">
-            Selectați o companie pentru export
-          </p>
-        )}
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SummaryCard
-          label="Total angajați"
-          value={summary.total}
-          onClick={() => setStatusFilter('all')}
-          active={statusFilter === 'all'}
-        />
-        <SummaryCard
-          label="Apți"
-          value={summary.apt}
-          colorClass="text-green-700"
-          onClick={() => setStatusFilter('valid')}
-          active={statusFilter === 'valid'}
-        />
-        <SummaryCard
-          label="Expiră în 30 zile"
-          value={summary.expiringSoon}
-          colorClass="text-amber-600"
-          onClick={() => setStatusFilter('expiringSoon')}
-          active={statusFilter === 'expiringSoon'}
-        />
-        <SummaryCard
-          label="Lipsă / expirat"
-          value={summary.missing}
-          colorClass="text-red-600"
-          onClick={() => setStatusFilter('expired')}
-          active={statusFilter === 'expired' || statusFilter === 'noExamination'}
-        />
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         {companies.length > 1 && (
           <select
-            value={selectedCompanyId}
-            onChange={(e) => setSelectedCompanyId(e.target.value)}
+            value={companyId}
+            onChange={(e) => {
+              setCompanyId(e.target.value)
+              setWorkplaceId('all')
+              clearAll()
+            }}
             className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="all">Toate companiile</option>
+            <option value="all">{labels.allCompanies}</option>
             {companies.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -202,132 +246,338 @@ export function HrDashboardClient({ rows, summary, companies }: Props) {
           </select>
         )}
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as Status | 'all')}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="all">Toate statusurile</option>
-          <option value="valid">Apt / Valid</option>
-          <option value="expiringSoon">Expiră curând</option>
-          <option value="expired">Expirat</option>
-          <option value="noExamination">Lipsă examinare</option>
-        </select>
-
-        {(statusFilter !== 'all' || selectedCompanyId !== 'all') && (
-          <button
-            onClick={() => {
-              setStatusFilter('all')
-              setSelectedCompanyId('all')
+        {workplaceOptions.length > 1 && (
+          <select
+            value={workplaceId}
+            onChange={(e) => {
+              setWorkplaceId(e.target.value)
+              clearAll()
             }}
-            className="h-9 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground border border-input hover:bg-accent transition-colors"
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            Resetează filtrele
-          </button>
+            <option value="all">{labels.allWorkplaces}</option>
+            {workplaceOptions.map((w) => (
+              <option key={w.id || '__none__'} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
         )}
       </div>
 
-      {/* Table */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground border rounded-lg">
-          <p>Niciun angajat nu corespunde filtrelor selectate.</p>
+      {!hasEmployees ? (
+        <div className="text-center py-16 text-muted-foreground border rounded-lg">
+          <p>{labels.emptyCompany}</p>
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-[hsl(var(--surface-muted))]/60 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Angajat
-                  </th>
-                  {companies.length > 1 && (
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Companie
-                    </th>
-                  )}
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Funcție / Loc de muncă
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Verdict
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Scadență
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filtered.map((row) => (
-                  <tr key={row.id} className="bg-white hover:bg-[hsl(var(--surface-muted))]/30 transition-colors">
-                    <td className="px-4 py-3 font-medium">
-                      {row.lastName} {row.firstName}
-                    </td>
-                    {companies.length > 1 && (
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {companyMap[row.companyId] ?? '—'}
-                      </td>
-                    )}
-                    <td className="px-4 py-3 text-muted-foreground">
-                      <div>{row.jobTitle || '—'}</div>
-                      {row.workplace && (
-                        <div className="text-xs text-muted-foreground/70">
-                          {row.workplace}
-                        </div>
+        <>
+          {/* Row 1: three donuts */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <HrDonut
+              title={labels.compliance.title}
+              data={complianceData}
+              centerValue={`${stats.summary.conformPct}%`}
+              centerLabel={labels.compliance.center}
+              onSliceClick={(key) => toggleFilter({ type: 'status', value: key as HrStatus })}
+              activeKey={activeOf('status')}
+            />
+            <HrDonut
+              title={labels.avize.title}
+              data={avizeData}
+              centerValue={avizeTotal}
+              centerLabel={labels.avize.center}
+              onSliceClick={(key) => toggleFilter({ type: 'avize', value: key as AvizeKey })}
+              activeKey={activeOf('avize')}
+            />
+            <HrDonut
+              title={labels.programari.title}
+              data={programariData}
+              centerValue={stats.programari.total}
+              centerLabel={labels.programari.center}
+              onSliceClick={(key) =>
+                toggleFilter({ type: 'programare', value: key as 'programat' | 'neprogramat' })
+              }
+              activeKey={activeOf('programare')}
+            />
+          </div>
+
+          {/* Row 2: month bars + workplace bars */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <HrMonthBars
+              title={labels.months.title}
+              data={monthData}
+              valueLabel={labels.months.valueLabel}
+              onBarClick={(key) => toggleFilter({ type: 'month', value: key })}
+              activeKey={activeOf('month')}
+            />
+            <div className="space-y-2">
+              <HrWorkplaceBars
+                title={labels.workplace.title}
+                data={workplaceRows}
+                legend={{
+                  valid: labels.compliance.valid,
+                  expiringSoon: labels.compliance.expiringSoon,
+                  expired: labels.compliance.expired,
+                  noExamination: labels.compliance.noExamination,
+                }}
+                onRowClick={(id) => toggleFilter({ type: 'workplace', value: id })}
+                activeId={activeOf('workplace')}
+              />
+              {stats.byWorkplace.length > TOP_WORKPLACES && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllWorkplaces((v) => !v)}
+                  className="text-xs text-primary hover:underline px-1"
+                >
+                  {showAllWorkplaces ? labels.seeLess : labels.seeAll}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Row 3: alerts */}
+          <AlertsPanel labels={labels} alerts={stats.alerts} activeFilter={tableFilter} onFilter={toggleFilter} />
+
+          {/* Active filter chip */}
+          {tableFilter.type !== 'none' && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border bg-primary/5 border-primary/40 px-3 py-1">
+                <span className="text-muted-foreground">{labels.activeFilter}:</span>
+                <span className="font-medium">{activeFilterLabel}</span>
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label={labels.clearFilter}
+                >
+                  ✕
+                </button>
+              </span>
+              <button type="button" onClick={clearAll} className="text-muted-foreground hover:text-foreground">
+                {labels.clearFilter}
+              </button>
+            </div>
+          )}
+
+          {/* Row 4: table */}
+          {tableRows.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground border rounded-lg">
+              <p>{labels.emptyFiltered}</p>
+            </div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-[hsl(var(--surface-muted))]/60 border-b">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">{labels.table.employee}</th>
+                      {companies.length > 1 && (
+                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">{labels.table.company}</th>
                       )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.verdict
-                        ? (VERDICT_LABELS[row.verdict] ?? row.verdict)
-                        : <span className="text-muted-foreground">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground tabular-nums">
-                      {formatDate(row.nextExaminationDueDate)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={row.status} verdict={row.verdict} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="px-4 py-2 border-t text-xs text-muted-foreground bg-[hsl(var(--surface-muted))]/30">
-            {filtered.length} din {rows.length} angajați
-          </div>
-        </div>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">{labels.table.jobWorkplace}</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">{labels.table.verdict}</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">{labels.table.dueDate}</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">{labels.table.status}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {tableRows.map((row) => (
+                      <tr key={row.id} className="bg-white hover:bg-[hsl(var(--surface-muted))]/30 transition-colors">
+                        <td className="px-4 py-3 font-medium">
+                          {row.lastName} {row.firstName}
+                        </td>
+                        {companies.length > 1 && (
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {companies.find((c) => c.id === row.companyId)?.name ?? '—'}
+                          </td>
+                        )}
+                        <td className="px-4 py-3 text-muted-foreground">
+                          <div>{row.jobTitle || '—'}</div>
+                          {row.workplaceName && (
+                            <div className="text-xs text-muted-foreground/70">{row.workplaceName}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">{verdictLabel(row, labels)}</td>
+                        <td className="px-4 py-3 text-muted-foreground tabular-nums">{fmtDate(row.dueDate)}</td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={row.status} label={labels.status[row.status]} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-4 py-2 border-t text-xs text-muted-foreground bg-[hsl(var(--surface-muted))]/30">
+                {labels.tableCount
+                  .replace('{shown}', String(tableRows.length))
+                  .replace('{total}', String(scopedTotal))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
 }
 
-function SummaryCard({
-  label,
-  value,
-  colorClass,
-  onClick,
-  active,
-}: {
-  label: string
-  value: number
-  colorClass?: string
-  onClick: () => void
-  active: boolean
-}) {
+function verdictLabel(row: HrEmployeeRow, labels: HrDashboardLabels) {
+  if (row.verdictKnown && row.verdict) return labels.verdict[row.verdict]
+  if (row.source === 'recall') return <span className="text-muted-foreground">{labels.verdict.necunoscut}</span>
+  return <span className="text-muted-foreground">—</span>
+}
+
+const STATUS_BADGE: Record<HrStatus, string> = {
+  valid: 'bg-green-50 text-green-700',
+  expiringSoon: 'bg-amber-50 text-amber-700',
+  expired: 'bg-red-50 text-red-700',
+  noExamination: 'bg-slate-100 text-slate-600',
+}
+const STATUS_DOT: Record<HrStatus, string> = {
+  valid: 'bg-green-500',
+  expiringSoon: 'bg-amber-500',
+  expired: 'bg-red-500',
+  noExamination: 'bg-slate-400',
+}
+
+function StatusBadge({ status, label }: { status: HrStatus; label: string }) {
   return (
-    <button
-      onClick={onClick}
-      className={`rounded-lg border p-4 text-left transition-all hover:shadow-sm ${
-        active ? 'border-primary bg-primary/5 shadow-sm' : 'bg-white hover:bg-[hsl(var(--surface-muted))]/40'
-      }`}
-    >
-      <div className={`text-2xl font-bold ${colorClass ?? 'text-foreground'}`}>
-        {value}
-      </div>
-      <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
-    </button>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_BADGE[status]}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[status]}`} />
+      {label}
+    </span>
   )
+}
+
+function AlertsPanel({
+  labels,
+  alerts,
+  activeFilter,
+  onFilter,
+}: {
+  labels: HrDashboardLabels
+  alerts: HrDashboardResult['alerts']
+  activeFilter: HrTableFilter
+  onFilter: (f: HrTableFilter) => void
+}) {
+  const items: Array<{
+    key: string
+    show: boolean
+    border: string
+    label: string
+    count: number
+    filter: HrTableFilter
+    extra?: React.ReactNode
+  }> = [
+    {
+      key: 'expired',
+      show: alerts.expired > 0,
+      border: 'border-l-red-500',
+      label: labels.alerts.expired,
+      count: alerts.expired,
+      filter: { type: 'status', value: 'expired' },
+    },
+    {
+      key: 'inaptTemporar',
+      show: alerts.inaptTemporar > 0,
+      border: 'border-l-amber-500',
+      label: labels.alerts.inaptTemporar,
+      count: alerts.inaptTemporar,
+      filter: { type: 'inaptTemporar' },
+      extra:
+        alerts.inaptTemporarEndingSoon > 0 ? (
+          <button
+            type="button"
+            onClick={() => onFilter({ type: 'inaptTemporarEndingSoon' })}
+            className="text-xs text-amber-700 hover:underline"
+          >
+            {labels.alerts.inaptTemporarEndingSoon.replace('{count}', String(alerts.inaptTemporarEndingSoon))}
+          </button>
+        ) : null,
+    },
+    {
+      key: 'noRecord',
+      show: alerts.noRecord > 0,
+      border: 'border-l-slate-400',
+      label: labels.alerts.noRecord,
+      count: alerts.noRecord,
+      filter: { type: 'noRecord' },
+    },
+    {
+      key: 'expiring7NoSchedule',
+      show: alerts.expiring7NoSchedule > 0,
+      border: 'border-l-orange-500',
+      label: labels.alerts.expiring7NoSchedule,
+      count: alerts.expiring7NoSchedule,
+      filter: { type: 'expiring7NoSchedule' },
+    },
+  ]
+
+  const visible = items.filter((i) => i.show)
+
+  return (
+    <div className="rounded-lg border p-4 bg-white">
+      <h3 className="text-sm font-semibold mb-3">{labels.alerts.title}</h3>
+      {visible.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{labels.alerts.none}</p>
+      ) : (
+        <ul className="space-y-2">
+          {visible.map((item) => {
+            const active = sameFilter(activeFilter, item.filter)
+            return (
+              <li
+                key={item.key}
+                className={`border-l-4 ${item.border} pl-3 py-1.5 rounded-r bg-[hsl(var(--surface-muted))]/30 ${
+                  active ? 'ring-1 ring-primary/40' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="tabular-nums font-semibold">{item.count}</span>
+                    <span className="text-sm truncate">{item.label}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onFilter(item.filter)}
+                    className="text-xs text-primary hover:underline shrink-0"
+                  >
+                    {labels.seeList}
+                  </button>
+                </div>
+                {item.extra && <div className="mt-0.5">{item.extra}</div>}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function describeFilter(
+  filter: HrTableFilter,
+  labels: HrDashboardLabels,
+  monthData: Array<{ key: string; label: string }>
+): string {
+  switch (filter.type) {
+    case 'status':
+      return labels.status[filter.value]
+    case 'avize':
+      return labels.verdict[filter.value]
+    case 'programare':
+      return labels.programari[filter.value]
+    case 'month':
+      return monthData.find((m) => m.key === filter.value)?.label ?? labels.months.title
+    case 'workplace':
+      return labels.workplace.title
+    case 'expiring7NoSchedule':
+      return labels.alerts.expiring7NoSchedule
+    case 'inaptTemporar':
+      return labels.alerts.inaptTemporar
+    case 'inaptTemporarEndingSoon':
+      return labels.alerts.inaptTemporarEndingSoon.replace('{count}', '')
+    case 'noRecord':
+      return labels.alerts.noRecord
+    default:
+      return ''
+  }
 }
