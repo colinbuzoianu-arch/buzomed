@@ -158,6 +158,7 @@ export async function POST(request: NextRequest) {
         contractEndDate: data.contractEndDate,
         notes: data.notes,
         isActive: data.isActive ?? true,
+        publishFiseToHrPortal: data.publishFiseToHrPortal ?? true,
         intermediaryId: data.intermediaryId,
       },
     })
@@ -203,6 +204,7 @@ export interface ParsedCompanyInput {
   notes?: string
   recallNotificationEmail?: string
   isActive?: boolean
+  publishFiseToHrPortal?: boolean
   intermediaryId?: string
 }
 
@@ -290,6 +292,14 @@ export function parseCompanyInput(
       issues.push('isActive must be a boolean')
     } else {
       result.isActive = body.isActive
+    }
+  }
+
+  if (body.publishFiseToHrPortal !== undefined) {
+    if (typeof body.publishFiseToHrPortal !== 'boolean') {
+      issues.push('publishFiseToHrPortal must be a boolean')
+    } else {
+      result.publishFiseToHrPortal = body.publishFiseToHrPortal
     }
   }
 

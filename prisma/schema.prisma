@@ -380,6 +380,10 @@ model User {
   isActive            Boolean                  @default(true) @map("is_active")
   lastLoginAt         DateTime?                @map("last_login_at") @db.Timestamptz
 
+  // When a company_hr user last opened the HR portal "Fișe" page. Drives the
+  // "fișe noi de la ultima vizită" badge (count of fișe signed after this).
+  lastSeenFiseAt      DateTime?                @map("last_seen_fise_at") @db.Timestamptz
+
   // GDPR consent recorded at invite acceptance
   termsAcceptedAt     DateTime?                @map("terms_accepted_at") @db.Timestamptz
   termsVersion        String?                  @map("terms_version")
@@ -466,6 +470,9 @@ model Company {
   
   notes                       String?
   recallNotificationEmail     String?  @map("recall_notification_email")
+  // When off, this company's signed fișe are hidden from the HR portal.
+  // Default on: by law (HG 355/2007 art. 17) the employer receives a copy.
+  publishFiseToHrPortal       Boolean  @default(true) @map("publish_fise_to_hr_portal")
   isActive            Boolean     @default(true) @map("is_active")
   createdFromImport   Boolean     @default(false) @map("created_from_import")
 

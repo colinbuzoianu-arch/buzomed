@@ -71,6 +71,7 @@ export default async function EditCompanyPage({ params }: PageProps) {
     notes: company.notes ?? '',
     recallNotificationEmail: company.recallNotificationEmail ?? '',
     isActive: company.isActive,
+    publishFiseToHrPortal: company.publishFiseToHrPortal,
     intermediaryId: company.intermediaryId ?? '',
   }
 

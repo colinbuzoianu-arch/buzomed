@@ -162,6 +162,24 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
       })
     : []
 
+  // HR-portal downloads of this fișă (for the "Descărcată de HR" line). The
+  // audit entries are written by the HR download routes with changes.hrDownload.
+  const hrDownloads = isSigned
+    ? await prisma.auditLogEntry.findMany({
+        where: {
+          tenantId: user.tenantId,
+          entityType: 'examination',
+          entityId: examination.id,
+          action: 'read',
+          changes: { path: ['hrDownload'], equals: true },
+        },
+        orderBy: { occurredAt: 'desc' },
+        take: 10,
+        select: { occurredAt: true, user: { select: { firstName: true, lastName: true } } },
+      })
+    : []
+  const latestHrDownload = hrDownloads[0]
+
   const examSections = getSectionsForExamType(examination.examinationType.code)
   const prefillEnabled =
     !isLocked &&
@@ -353,6 +371,16 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
                 <span className="text-muted-foreground">
                   {t('examinations.signedOn')}:{' '}
                   {formatDate(examination.signedAt, 'datetime', locale === 'ro' ? 'ro' : 'en')}
+                </span>
+              )}
+              {latestHrDownload && (
+                <span className="text-muted-foreground">
+                  {t('examinations.hrDownloadedBy')}:{' '}
+                  {latestHrDownload.user
+                    ? `${latestHrDownload.user.lastName} ${latestHrDownload.user.firstName}`
+                    : '—'}
+                  , {formatDate(latestHrDownload.occurredAt, 'datetime', locale === 'ro' ? 'ro' : 'en')}
+                  {hrDownloads.length > 1 && ` (+${hrDownloads.length - 1})`}
                 </span>
               )}
             </div>

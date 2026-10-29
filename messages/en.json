@@ -446,6 +446,8 @@
       "fieldContractEnd": "Contract end",
       "fieldNotes": "Notes",
       "fieldIsActive": "Company is active",
+      "fieldPublishFise": "Publish certificates to the HR portal",
+      "fieldPublishFiseHint": "The employer can download signed fitness certificates from the HR portal. On by default.",
       "required": "required",
       "submitCreate": "Create company",
       "submitUpdate": "Save changes",
@@ -1082,6 +1084,7 @@
     "signedBadge": "Signed",
     "scheduledFor": "Scheduled for",
     "signedOn": "Signed on",
+    "hrDownloadedBy": "Downloaded by HR",
     "viewFisa": "View certificate",
     "newPage": {
       "title": "Schedule a new examination",
@@ -2075,7 +2078,52 @@
       "jobWorkplace": "Job / Workplace",
       "verdict": "Verdict",
       "dueDate": "Due date",
-      "status": "Status"
+      "status": "Status",
+      "fisa": "Certificate"
     }
+  },
+  "hrFise": {
+    "navLabel": "Certificates",
+    "title": "Fitness certificates",
+    "subtitle": "Signed certificates for your employees · the employer's legal copy",
+    "newBadge": "{count} new certificates since your last visit",
+    "search": "Search by name…",
+    "allCompanies": "All companies",
+    "allWorkplaces": "All workplaces",
+    "allVerdicts": "All verdicts",
+    "allTypes": "All types",
+    "from": "From",
+    "to": "To",
+    "reset": "Clear filters",
+    "verdict": {
+      "apt": "Fit",
+      "apt_conditionat": "Fit with conditions",
+      "inapt_temporar": "Temporarily unfit",
+      "inapt": "Unfit"
+    },
+    "table": {
+      "employee": "Employee",
+      "job": "Occupation / Role",
+      "workplace": "Workplace",
+      "type": "Exam type",
+      "verdict": "Verdict",
+      "examDate": "Exam date",
+      "dueDate": "Due date",
+      "number": "Certificate no.",
+      "actions": "Actions"
+    },
+    "revoked": "Withdrawn",
+    "revokedOn": "Withdrawn on {date}",
+    "replacedBy": "Replaced by no. {number}",
+    "download": "Download",
+    "downloadSelected": "Download selected ({count})",
+    "downloadAll": "Download all in filter ({count})",
+    "selectAll": "Select all",
+    "tableCount": "{shown} of {total} certificates",
+    "empty": "No certificate matches the filters.",
+    "emptyAll": "No signed certificates for your companies yet.",
+    "tooManyForZip": "Too many for a single ZIP (max {max}). Narrow the filter.",
+    "downloading": "Preparing download…",
+    "downloadError": "Download failed. Please try again."
   }
 }

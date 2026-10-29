@@ -141,6 +141,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
   if (data.contractEndDate !== undefined)
     updateData.contractEndDate = data.contractEndDate
   if (data.isActive !== undefined) updateData.isActive = data.isActive
+  if (data.publishFiseToHrPortal !== undefined)
+    updateData.publishFiseToHrPortal = data.publishFiseToHrPortal
 
   for (const field of clearableStringFields) {
     if (!(field in body)) continue

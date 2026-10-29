@@ -40,6 +40,7 @@ export interface CompanyFormValues {
   notes: string
   recallNotificationEmail: string
   isActive: boolean
+  publishFiseToHrPortal: boolean
   intermediaryId: string
 }
 
@@ -65,6 +66,7 @@ export const emptyCompanyFormValues: CompanyFormValues = {
   notes: '',
   recallNotificationEmail: '',
   isActive: true,
+  publishFiseToHrPortal: true,
   intermediaryId: '',
 }
 
@@ -95,6 +97,8 @@ export interface CompanyFormLabels {
   fieldContractEnd: string
   fieldNotes: string
   fieldIsActive: string
+  fieldPublishFise: string
+  fieldPublishFiseHint: string
   fieldRecallNotificationEmail: string
   fieldRecallNotificationEmailHint: string
   required: string
@@ -164,6 +168,7 @@ export function CompanyForm({ companyId, initialValues, labels, intermediaries =
     const payload: Record<string, unknown> = {
       name: form.name.trim(),
       isActive: form.isActive,
+      publishFiseToHrPortal: form.publishFiseToHrPortal,
     }
     const stringFields: Array<keyof CompanyFormValues> = [
       'cui',
@@ -522,6 +527,18 @@ export function CompanyForm({ companyId, initialValues, labels, intermediaries =
             onChange={(e) => update('isActive', e.target.checked)}
           />
           <span className="text-sm">{labels.fieldIsActive}</span>
+        </label>
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={form.publishFiseToHrPortal}
+            onChange={(e) => update('publishFiseToHrPortal', e.target.checked)}
+            className="mt-0.5"
+          />
+          <span className="text-sm">
+            {labels.fieldPublishFise}
+            <span className="block text-xs text-muted-foreground">{labels.fieldPublishFiseHint}</span>
+          </span>
         </label>
       </section>
 

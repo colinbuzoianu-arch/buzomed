@@ -6,6 +6,8 @@ import { requireUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { LogoutButton } from '@/components/logout-button'
 import { BuzomedLogo } from '@/components/buzomed-logo'
+import { getDictionary, getLocale } from '@/lib/i18n'
+import { HrPortalNav } from './hr-portal-nav'
 
 export default async function HrPortalLayout({
   children,
@@ -36,6 +38,16 @@ export default async function HrPortalLayout({
 
   const userDisplayName = `${user.firstName} ${user.lastName}`
 
+  const locale = await getLocale()
+  const dict = getDictionary(locale) as {
+    hrDashboard: { title: string }
+    hrFise: { navLabel: string }
+  }
+  const navItems = [
+    { href: '/hr-portal/dashboard', label: dict.hrDashboard.title },
+    { href: '/hr-portal/fise', label: dict.hrFise.navLabel },
+  ]
+
   return (
     <div className="min-h-screen flex flex-col bg-[hsl(var(--surface-muted))]/30">
       <header className="sticky top-0 z-40 border-b bg-white shadow-sm">
@@ -50,6 +62,8 @@ export default async function HrPortalLayout({
               )}
             </div>
           </div>
+
+          <HrPortalNav items={navItems} />
 
           <div className="flex items-center gap-3">
             <span className="hidden md:block text-sm text-muted-foreground">

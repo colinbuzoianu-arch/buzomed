@@ -55,6 +55,7 @@ export interface HrDashboardLabels {
     verdict: string
     dueDate: string
     status: string
+    fisa: string
   }
 }
 
@@ -378,6 +379,7 @@ export function HrDashboardClient({ rows, companies, initialStats, nowMs, locale
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">{labels.table.verdict}</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">{labels.table.dueDate}</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">{labels.table.status}</th>
+                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">{labels.table.fisa}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -401,6 +403,14 @@ export function HrDashboardClient({ rows, companies, initialStats, nowMs, locale
                         <td className="px-4 py-3 text-muted-foreground tabular-nums">{fmtDate(row.dueDate)}</td>
                         <td className="px-4 py-3">
                           <StatusBadge status={row.status} label={labels.status[row.status]} />
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <a
+                            href={`/hr-portal/fise?q=${encodeURIComponent(`${row.lastName} ${row.firstName}`)}`}
+                            className="text-primary hover:underline text-sm"
+                          >
+                            {labels.table.fisa}
+                          </a>
                         </td>
                       </tr>
                     ))}

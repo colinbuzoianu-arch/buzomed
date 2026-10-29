@@ -1,15 +1,10 @@
-import { renderToBuffer } from '@react-pdf/renderer'
-import { randomUUID } from 'crypto'
 import { type NextRequest, NextResponse } from 'next/server'
-import { createElement } from 'react'
 import { getApiUser } from '@/lib/auth'
-import { buildStoragePath } from '@/lib/documents/upload-rules'
 import { canViewSensitivePii, canWriteTenantData } from '@/lib/permissions/tenant-data'
 import { resolveEmployeeCnp } from '@/lib/employees/resolve-cnp'
 import { prisma } from '@/lib/prisma'
-import { createServiceClient } from '@/lib/supabase/admin'
-import { buildFisaPdfData, FISA_PDF_INCLUDE } from '../fisa-pdf/fisa-pdf-data'
-import { FisaPdfDocument } from '../fisa-pdf/fisa-pdf-document'
+import { ensureArchivedFisa } from '@/lib/fisa/ensure-archived'
+import { FISA_PDF_INCLUDE } from '../fisa-pdf/fisa-pdf-data'
 
 /**
  * POST /api/examinations/[id]/archive-fisa
@@ -23,6 +18,9 @@ import { FisaPdfDocument } from '../fisa-pdf/fisa-pdf-document'
  *
  * Requires: examination must already be signed (signedAt IS NOT NULL).
  * Auth: any user with write access in the tenant.
+ *
+ * The render/upload/Document.create itself lives in lib/fisa/ensure-archived
+ * so the HR-portal download paths produce the exact same official copy.
  */
 
 interface RouteContext {
@@ -41,23 +39,6 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
   const { id: examinationId } = await ctx.params
   const tenantId = auth.user.tenantId
 
-  // Idempotency — return existing if already archived for this examination
-  const existing = await prisma.document.findFirst({
-    where: {
-      tenantId,
-      entityType: 'examination',
-      entityId: examinationId,
-      documentType: 'fisa_aptitudine',
-      isGenerated: true,
-      deletedAt: null,
-    },
-    select: { id: true, storagePath: true },
-  })
-  if (existing) {
-    return NextResponse.json({ document: existing, alreadyExisted: true })
-  }
-
-  // Load examination with all data needed for PDF rendering
   const examination = await prisma.examination.findFirst({
     where: { id: examinationId, tenantId, deletedAt: null },
     include: FISA_PDF_INCLUDE,
@@ -73,9 +54,8 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
     )
   }
 
-  // Same payload builder the streaming fisa-pdf route uses, so the archived
-  // copy can never disagree with what the browser shows. CNP resolved here
-  // (gated on PII permission) since the pure builder can't see the actor.
+  // CNP resolved here (gated on PII permission) since the pure builder can't
+  // see the actor. Same gate as the streaming fisa-pdf route.
   const cnp = resolveEmployeeCnp(
     examination.employee,
     canViewSensitivePii(auth.user, tenantId)
@@ -86,64 +66,21 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
       employeeId: examination.employee.id,
     })
   }
-  const data = buildFisaPdfData(examination, cnp.value)
 
-  // Generate PDF
-  let buffer: Uint8Array
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    buffer = await renderToBuffer(createElement(FisaPdfDocument, data) as any)
-  } catch (err) {
-    console.error('[archive-fisa] pdf render failed', err)
-    return NextResponse.json({ error: 'pdf_render_failed', message: String(err) }, { status: 500 })
-  }
-
-  // Upload to Supabase Storage
-  const uniqueId = randomUUID()
-  const safeNumber = examination.examinationNumber.replace('/', '-')
-  const filename = `fisa_aptitudine_${safeNumber}.pdf`
-  const storagePath = buildStoragePath({
-    tenantId,
-    entityType: 'examination',
-    entityId: examinationId,
-    uniqueId,
-    filename,
-  })
-
-  const supabase = createServiceClient()
-  const { error: uploadError } = await supabase.storage
-    .from('documents')
-    .upload(storagePath, buffer, {
-      contentType: 'application/pdf',
-      upsert: false,
+    const result = await ensureArchivedFisa(examination, {
+      tenantId,
+      actorUserId: auth.user.id,
+      cnpValue: cnp.value,
     })
-
-  if (uploadError) {
-    console.error('[archive-fisa] storage upload failed', uploadError)
-    return NextResponse.json(
-      { error: 'storage_upload_failed', message: uploadError.message },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      document: { id: result.documentId, storagePath: result.storagePath },
+      alreadyExisted: !result.created,
+    })
+  } catch (err) {
+    const message = String(err)
+    const status = message.includes('storage_upload_failed') ? 500 : 500
+    console.error('[archive-fisa] failed', err)
+    return NextResponse.json({ error: 'archive_failed', message }, { status })
   }
-
-  // Create Document record
-  const doc = await prisma.document.create({
-    data: {
-      tenant: { connect: { id: tenantId } },
-      entityType: 'examination',
-      entityId: examinationId,
-      documentType: 'fisa_aptitudine',
-      filename,
-      storagePath,
-      mimeType: 'application/pdf',
-      fileSizeBytes: BigInt(buffer.byteLength),
-      isGenerated: true,
-      isOfficial: true,
-      issuedAt: examination.signedAt,
-      signedBy: { connect: { id: auth.user.id } },
-    },
-    select: { id: true, storagePath: true },
-  })
-
-  return NextResponse.json({ document: doc, alreadyExisted: false })
 }

@@ -446,6 +446,8 @@
       "fieldContractEnd": "Sfârșit contract",
       "fieldNotes": "Note",
       "fieldIsActive": "Companie activă",
+      "fieldPublishFise": "Publică fișele în portalul HR",
+      "fieldPublishFiseHint": "Angajatorul poate descărca fișele de aptitudine semnate din portalul HR. Implicit activ.",
       "required": "obligatoriu",
       "submitCreate": "Creează compania",
       "submitUpdate": "Salvează modificările",
@@ -1082,6 +1084,7 @@
     "signedBadge": "Semnată",
     "scheduledFor": "Programată pentru",
     "signedOn": "Semnată la",
+    "hrDownloadedBy": "Descărcată de HR",
     "viewFisa": "Vizualizează fișa",
     "newPage": {
       "title": "Programează o examinare nouă",
@@ -2075,7 +2078,52 @@
       "jobWorkplace": "Funcție / Loc de muncă",
       "verdict": "Verdict",
       "dueDate": "Scadență",
-      "status": "Status"
+      "status": "Status",
+      "fisa": "Fișă"
     }
+  },
+  "hrFise": {
+    "navLabel": "Fișe",
+    "title": "Fișe de aptitudine",
+    "subtitle": "Fișele semnate pentru angajații dvs. · copia care revine angajatorului conform legii",
+    "newBadge": "{count} fișe noi de la ultima vizită",
+    "search": "Caută după nume…",
+    "allCompanies": "Toate companiile",
+    "allWorkplaces": "Toate locurile de muncă",
+    "allVerdicts": "Toate avizele",
+    "allTypes": "Toate tipurile",
+    "from": "De la",
+    "to": "Până la",
+    "reset": "Resetează filtrele",
+    "verdict": {
+      "apt": "Apt",
+      "apt_conditionat": "Apt condiționat",
+      "inapt_temporar": "Inapt temporar",
+      "inapt": "Inapt"
+    },
+    "table": {
+      "employee": "Angajat",
+      "job": "Ocupația / Funcția",
+      "workplace": "Loc de muncă",
+      "type": "Tip examen",
+      "verdict": "Aviz",
+      "examDate": "Data examen",
+      "dueDate": "Scadență",
+      "number": "Nr. fișă",
+      "actions": "Acțiuni"
+    },
+    "revoked": "Retrasă",
+    "revokedOn": "Retrasă la {date}",
+    "replacedBy": "Înlocuită de nr. {number}",
+    "download": "Descarcă",
+    "downloadSelected": "Descarcă selectate ({count})",
+    "downloadAll": "Descarcă toate din filtru ({count})",
+    "selectAll": "Selectează tot",
+    "tableCount": "{shown} din {total} fișe",
+    "empty": "Nicio fișă nu corespunde filtrelor.",
+    "emptyAll": "Nu există încă fișe semnate pentru companiile dvs.",
+    "tooManyForZip": "Prea multe pentru un singur ZIP (max {max}). Restrângeți filtrul.",
+    "downloading": "Se pregătește descărcarea…",
+    "downloadError": "Descărcarea nu a reușit. Încercați din nou."
   }
 }
