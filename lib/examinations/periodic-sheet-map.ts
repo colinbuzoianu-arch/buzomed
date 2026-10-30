@@ -206,6 +206,7 @@ export function shortWhere(where: string): string {
   if (where.startsWith('Concluzii')) return 'Concluzii'
   if (where.startsWith('Data următorului')) return 'Data urm.'
   if (where.startsWith('Dosar')) return 'Dosar'
+  if (where.startsWith('Fișa')) return 'Fișă'
   return where
 }
 
@@ -214,6 +215,18 @@ export const DOSAR_SHEET_REF: SheetRef = {
   printed: true,
   where: 'Dosar medical',
   hint: 'Apare pe Dosarul medical, nu pe fișa de examen.',
+}
+
+/**
+ * Sheet ref for a field that prints on the fișa de aptitudine — the free-text
+ * next to the verdict (`recomandari`). Used to flag the conditions/mentions
+ * field with a printer pill so the doctor sees it DOES print on the fișă (it
+ * just doesn't print on the periodic foaie).
+ */
+export const FISA_APTITUDINE_SHEET_REF: SheetRef = {
+  printed: true,
+  where: 'Fișa de aptitudine',
+  hint: 'Apare pe fișa de aptitudine, în câmpul din dreapta verdictului medical.',
 }
 
 /** True when a ref points at the Dosar medical sheet (angajare-only). */

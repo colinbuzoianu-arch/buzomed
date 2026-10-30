@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { ExamSectionConfig } from '@/lib/examinations/document-templates'
-import { getSheetRef } from '@/lib/examinations/periodic-sheet-map'
+import { FISA_APTITUDINE_SHEET_REF, getSheetRef } from '@/lib/examinations/periodic-sheet-map'
 import { Field, FormSection, FullWidth } from '../examination-field-components'
 import type { ExaminationFormValues, Labels } from '../examination-stepper'
 
@@ -298,6 +298,7 @@ export function VerdictStep({
                   onChange={(v) => updateTop('verdictConditions', v)}
                   multiline
                   disabled={ro}
+                  sheetRef={FISA_APTITUDINE_SHEET_REF}
                 />
               </FullWidth>
             )}
@@ -321,18 +322,15 @@ export function VerdictStep({
               values.verdict === 'inapt_temporar' ||
               values.verdict === 'inapt') && (
               <FullWidth>
-                <div className="space-y-1">
-                  <Field
-                    label={labels.fieldVerdictConditions}
-                    value={values.verdictConditions}
-                    onChange={(v) => updateTop('verdictConditions', v)}
-                    multiline
-                    disabled={ro}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {getSheetRef('verdictConditions')?.hint}
-                  </p>
-                </div>
+                <Field
+                  label={labels.fieldVerdictConditions}
+                  value={values.verdictConditions}
+                  onChange={(v) => updateTop('verdictConditions', v)}
+                  multiline
+                  disabled={ro}
+                  sheetRef={FISA_APTITUDINE_SHEET_REF}
+                  hint={FISA_APTITUDINE_SHEET_REF.hint}
+                />
               </FullWidth>
             )}
           {isPeriodic && values.verdict === 'inapt_temporar' && (
