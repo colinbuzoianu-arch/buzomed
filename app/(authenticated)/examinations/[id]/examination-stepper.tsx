@@ -63,6 +63,8 @@ export interface ExaminationFormValues {
   notes: string
   verdict: ExaminationVerdict | null
   verdictConditions: string
+  /** Employer requirements printed on the fișă. '' = not on the fișă. */
+  employerRequirementsOnFisa: string
   inaptTemporarUntil: string
   nextExaminationDueDate: string
   /**
@@ -211,6 +213,13 @@ export interface Labels {
   dosarCnpPresent: string
   dosarRutaTitle: string
   dosarRutaLegacy: string
+  // Employer requirements box (verdict step)
+  employerRequirementsTitle: string
+  employerRequirementsAdd: string
+  employerRequirementsHelp: string
+  employerRequirementsOnFisaLabel: string
+  employerRequirementsRemove: string
+  employerRequirementsPrintNote: string
 }
 
 interface Props {
@@ -222,6 +231,8 @@ interface Props {
   initialValues: ExaminationFormValues
   defaultIntervalMonths: number
   jobTitle?: string | null
+  /** Employer's requested conditions (snapshot) shown read-only in the verdict step. */
+  employerRequirements?: string | null
   employeeHasCnp?: boolean
   companyAddressPresent?: boolean
   employeeEditHref?: string
@@ -252,6 +263,7 @@ export function ExaminationStepper({
   initialValues,
   defaultIntervalMonths,
   jobTitle,
+  employerRequirements,
   employeeHasCnp = false,
   companyAddressPresent = false,
   employeeEditHref = '',
@@ -449,6 +461,9 @@ export function ExaminationStepper({
         notes: notesValue,
         verdict: values.verdict ?? null,
         verdictConditions: values.verdictConditions,
+        // Employer requirements the doctor chose to print on the fișă; empty
+        // string means "not on the fișă" → stored as null.
+        employerRequirementsOnFisa: values.employerRequirementsOnFisa || null,
         inaptTemporarUntil: values.inaptTemporarUntil || null,
         nextExaminationDueDate: values.nextExaminationDueDate || null,
         examinedAt: values.examinedAt || null,
@@ -773,6 +788,7 @@ export function ExaminationStepper({
             examinationTypeCode={examinationTypeCode}
             defaultIntervalMonths={defaultIntervalMonths}
             jobTitle={jobTitle}
+            employerRequirements={employerRequirements}
             preSignChecklist={preSignChecklist}
             documentsPanel={documentsPanel}
             documentsSection={documentsSection}

@@ -171,6 +171,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     'medicCurantPhone',
     'bloodType',
     'notes',
+    'employerRequirements',
   ] as const
 
   const updateData: Record<string, unknown> = {}
@@ -398,6 +399,13 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
 
   const [employee] = await prisma.$transaction(operations)
 
+  // Employer requirements are the employer's own (non-medical) request; a
+  // change to them is audited old → new so there's a trail of what the
+  // employer asked for and when it was edited (spec §7).
+  const employerReqChanged =
+    'employerRequirements' in updateData &&
+    (existing.employerRequirements ?? null) !== ((updateData.employerRequirements as string | null) ?? null)
+
   await writeAuditLog({
     tenantId: auth.user.tenantId,
     userId: auth.user.id,
@@ -405,7 +413,17 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
     entityType: 'employee',
     entityId: id,
     entitySummary: `${existing.lastName} ${existing.firstName}`,
-    changes: { fields: Object.keys(updateData) },
+    changes: {
+      fields: Object.keys(updateData),
+      ...(employerReqChanged
+        ? {
+            employerRequirements: {
+              old: existing.employerRequirements ?? null,
+              new: (updateData.employerRequirements as string | null) ?? null,
+            },
+          }
+        : {}),
+    },
   })
 
   void deliverEmployeeUpdatedWebhook(id, auth.user.tenantId)

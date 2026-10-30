@@ -63,6 +63,7 @@ interface ImportRow {
   notes: string | null
   hireDate: string | null
   fitnessValidUntil: string | null
+  employerRequirements: string | null
   skipIfDuplicate: boolean
   // When true, a row matched to an existing employee UPDATES that employee
   // in place (prompt-import-update.md) instead of being skipped. Takes
@@ -199,6 +200,10 @@ export async function POST(request: NextRequest) {
       fitnessValidUntil:
         typeof r.fitnessValidUntil === 'string' && r.fitnessValidUntil.trim()
           ? r.fitnessValidUntil.trim()
+          : null,
+      employerRequirements:
+        typeof r.employerRequirements === 'string' && r.employerRequirements.trim()
+          ? r.employerRequirements.trim().slice(0, 2000)
           : null,
       skipIfDuplicate: r.skipIfDuplicate !== false,
       updateExisting: r.updateExisting === true,
@@ -676,12 +681,15 @@ export async function POST(request: NextRequest) {
               phone: true,
               city: true,
               notes: true,
+              employerRequirements: true,
             },
           })
           // Vanished between pre-load and now (soft-deleted concurrently).
           if (!existing) return null
 
-          // Scalar fields — only non-empty, genuinely different values.
+          // Scalar fields — only non-empty, genuinely different values. An empty
+          // cell never erases (computeEmployeeFieldUpdates), employerRequirements
+          // included.
           const { data, changed, changes } = computeEmployeeFieldUpdates(
             {
               companyEmployeeId: existing.companyEmployeeId,
@@ -690,6 +698,7 @@ export async function POST(request: NextRequest) {
               phone: existing.phone,
               city: existing.city,
               notes: existing.notes,
+              employerRequirements: existing.employerRequirements,
             },
             {
               companyEmployeeId: row.companyEmployeeId,
@@ -698,6 +707,7 @@ export async function POST(request: NextRequest) {
               phone: row.phone,
               city: row.city,
               notes: row.notes,
+              employerRequirements: row.employerRequirements,
             }
           )
           const changedFields: string[] = [...changed]
@@ -890,6 +900,7 @@ export async function POST(request: NextRequest) {
             companyId: resolvedCompanyId,
             companyEmployeeId: row.companyEmployeeId,
             jobTitle: row.jobTitle,
+            employerRequirements: row.employerRequirements,
             city: row.city,
             email: row.email,
             notes: row.notes,

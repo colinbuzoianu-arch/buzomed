@@ -24,6 +24,7 @@ const VALID_COLUMN_KEYS = [
   'fitnessValidUntilMonth',
   'fitnessValidUntilYear',
   'notes',
+  'employerRequirements',
 ]
 
 // Detect headers that look like actual data rather than column names.
@@ -75,7 +76,7 @@ Respond ONLY with valid JSON. No markdown, no explanation, no other text.`
 
 Headers: ${JSON.stringify(headers)}
 
-Valid field names: firstName, lastName, cnp, companyEmployeeId, email, jobTitle, workplaceName, workSiteName, department, companyName, cui, companyAddress, hireDate, fitnessValidUntil, fitnessValidUntilDay, fitnessValidUntilMonth, fitnessValidUntilYear, notes
+Valid field names: firstName, lastName, cnp, companyEmployeeId, email, jobTitle, workplaceName, workSiteName, department, companyName, cui, companyAddress, hireDate, fitnessValidUntil, fitnessValidUntilDay, fitnessValidUntilMonth, fitnessValidUntilYear, notes, employerRequirements
 
 Field meanings:
 - firstName: given name, prenume, first name, vorname, nome
@@ -96,6 +97,7 @@ Field meanings:
 - fitnessValidUntilMonth: the MONTH part only of a split fitness-expiry date, "luna exp", "LUNA EXP."
 - fitnessValidUntilYear: the YEAR part only of a split fitness-expiry date, "anul exp", "ANUL EXP."
 - notes: free-text remarks, mentiuni, observatii, obs
+- employerRequirements: conditions the EMPLOYER asks the fitness certificate (aviz) to cover — specificatii, specificatii apt, cerinte angajator, mentiuni aviz, conditii (e.g. "muncă în ture de noapte", "conducere auto cat. B"). The employer's request, NOT medical data and NOT generic remarks.
 
 Return ONLY this JSON (no other text):
 {

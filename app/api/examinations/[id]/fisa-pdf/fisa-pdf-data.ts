@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
+import { composeFisaRecommendations } from '@/lib/examinations/compose-fisa-recommendations'
 import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 import type { FisaPdfProps } from './fisa-pdf-document'
 
@@ -181,7 +182,15 @@ export function buildFisaPdfData(
 
     // Clinical
     verdict: examination.verdict ?? null,
-    verdictConditions: examination.verdictConditions ?? null,
+    // The free-text printed under the verdict on this copy = employer
+    // requirements (if put on the fișă) composed with the conditions text this
+    // copy shows today (verdictConditions). Null when both are empty, so a
+    // pre-existing fișă with no conditions still renders nothing.
+    verdictConditions:
+      composeFisaRecommendations(
+        examination.employerRequirementsOnFisa,
+        examination.verdictConditions ?? ''
+      ) || null,
     nextExaminationDueDate: examination.nextExaminationDueDate
       ? formatDateRo(examination.nextExaminationDueDate)
       : '—',

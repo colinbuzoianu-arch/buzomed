@@ -294,6 +294,7 @@ export async function POST(request: NextRequest) {
         firstName: data.firstName!,
         lastName: data.lastName!,
         jobTitle: data.jobTitle,
+        employerRequirements: data.employerRequirements,
         companyId: data.companyId ?? null,
         idDocumentType: data.idDocumentType ?? 'other',
         idDocumentNumber: storedIdDocumentNumber,
@@ -397,6 +398,7 @@ export interface ParsedEmployeeInput {
   medicCurantPhone?: string
   bloodType?: string
   notes?: string
+  employerRequirements?: string
   isActive?: boolean
   archivedReason?: (typeof ARCHIVED_REASONS)[number]
   archive?: boolean // PATCH-only: explicit "archive now" flag
@@ -552,6 +554,13 @@ export function parseEmployeeInput(
   result.notes = optionalString('notes', body.notes, issues, {
     maxLength: 4000,
   })
+  // Employer's requested conditions for the aptitude certificate. Not medical.
+  result.employerRequirements = optionalString(
+    'employerRequirements',
+    body.employerRequirements,
+    issues,
+    { maxLength: 2000 }
+  )
 
   if (body.isActive !== undefined) {
     if (typeof body.isActive !== 'boolean') {

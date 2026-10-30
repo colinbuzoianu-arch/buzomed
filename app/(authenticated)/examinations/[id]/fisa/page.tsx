@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { formatWorkplaceLabel } from '@/lib/workplaces/format'
+import { composeFisaRecommendations } from '@/lib/examinations/compose-fisa-recommendations'
 import { FisaArchiveButton } from './fisa-archive-button'
 import './fisa.css'
 import { formatDate } from '@/lib/format-date'
@@ -303,12 +304,19 @@ export default async function FisaPage({ params }: PageProps) {
               )
             )}
           </div>
-          {examination.verdictConditions && (
-            <div className="fisa-conditions">
-              <strong>{t('examinations.fisa.conditions')}:</strong>{' '}
-              {examination.verdictConditions}
-            </div>
-          )}
+          {(() => {
+            // Same composition as the printed fișă: employer requirements the
+            // doctor put on the fișă, prepended to the conditions text.
+            const conditions = composeFisaRecommendations(
+              examination.employerRequirementsOnFisa,
+              examination.verdictConditions ?? ''
+            )
+            return conditions ? (
+              <div className="fisa-conditions">
+                <strong>{t('examinations.fisa.conditions')}:</strong> {conditions}
+              </div>
+            ) : null
+          })()}
           {examination.verdict === 'inapt_temporar' &&
             examination.inaptTemporarUntil && (
               <div className="fisa-conditions">

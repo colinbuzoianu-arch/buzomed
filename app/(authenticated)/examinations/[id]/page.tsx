@@ -44,6 +44,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           firstName: true,
           lastName: true,
           jobTitle: true,
+          employerRequirements: true,
           birthDate: true,
           gender: true,
           addressLine1: true,
@@ -520,6 +521,7 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           notes: examination.notes ?? '',
           verdict: examination.verdict,
           verdictConditions: examination.verdictConditions ?? '',
+          employerRequirementsOnFisa: examination.employerRequirementsOnFisa ?? '',
           inaptTemporarUntil: examination.inaptTemporarUntil
             ? examination.inaptTemporarUntil.toISOString().slice(0, 10)
             : '',
@@ -542,6 +544,9 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
         }}
         defaultIntervalMonths={examination.workplace.examinationIntervalMonths}
         jobTitle={examination.employee.jobTitle}
+        employerRequirements={
+          examination.employerRequirementsSnapshot ?? examination.employee.employerRequirements
+        }
         employeeHasCnp={
           !!(examination.employee.cnpEncrypted || examination.employee.idDocumentNumber)
         }
@@ -702,6 +707,12 @@ export default async function ExaminationDetailPage({ params }: PageProps) {
           dosarCnpPresent: t('examinations.form.dosarCnpPresent'),
           dosarRutaTitle: t('examinations.form.dosarRutaTitle'),
           dosarRutaLegacy: t('examinations.form.dosarRutaLegacy'),
+          employerRequirementsTitle: t('examinations.form.employerRequirementsTitle'),
+          employerRequirementsAdd: t('examinations.form.employerRequirementsAdd'),
+          employerRequirementsHelp: t('examinations.form.employerRequirementsHelp'),
+          employerRequirementsOnFisaLabel: t('examinations.form.employerRequirementsOnFisaLabel'),
+          employerRequirementsRemove: t('examinations.form.employerRequirementsRemove'),
+          employerRequirementsPrintNote: t('examinations.form.employerRequirementsPrintNote'),
         }}
         documentsPanel={
           <DocumentsPanel

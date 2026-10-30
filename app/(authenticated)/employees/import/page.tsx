@@ -144,6 +144,8 @@ export default async function ImportEmployeesPage() {
           workplaceUnassigned: t('employees.import.workplaceUnassigned'),
           colCnp: t('employees.import.colCnp'),
           colWorkplace: t('employees.import.colWorkplace'),
+          colWorkSite: t('employees.import.colWorkSite'),
+          colEmployerRequirements: t('employees.import.colEmployerRequirements'),
           colJobTitle: t('employees.import.colJobTitle'),
           colCity: t('employees.import.colCity'),
           colHireDate: t('employees.import.colHireDate'),

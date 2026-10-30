@@ -216,6 +216,8 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
         [t('employees.form.fieldLastName'), employee.lastName],
         [t('employees.form.fieldFirstName'), employee.firstName],
         [t('employees.form.fieldJobTitle'), employee.jobTitle],
+        // Employer's requested conditions — operational, not medical.
+        [t('employees.form.fieldEmployerRequirements'), employee.employerRequirements],
         [t('employees.form.fieldIdDocumentType'), idDocumentTypeLabel[employee.idDocumentType] ?? employee.idDocumentType],
         [employee.idDocumentType === 'cnp' ? t('employees.form.fieldCnp') : t('employees.form.fieldIdDocumentNumber'), null],
         [t('employees.form.fieldCompanyEmployeeId'), employee.companyEmployeeId],

@@ -322,6 +322,10 @@ export async function POST(request: NextRequest) {
         requestSource: requestSource ?? null,
         referringDocumentNumber: referringDocumentNumber ?? null,
         notes: notes ?? null,
+        // Snapshot the employer's requested conditions as they stand now, so
+        // the exam shows what was asked at exam time even if the employee's
+        // requirements change later (spec §5). Not medical; not auto-printed.
+        employerRequirementsSnapshot: employee.employerRequirements ?? null,
       }),
       (created) => created
     )

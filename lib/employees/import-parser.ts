@@ -78,6 +78,7 @@ export type ColumnKey =
   | 'fitnessValidUntilMonth'
   | 'fitnessValidUntilYear'
   | 'notes'
+  | 'employerRequirements'
 
 /** Every column the mapping UI / AI is allowed to assign a header to. */
 export const ASSIGNABLE_COLUMN_KEYS: ColumnKey[] = [
@@ -100,6 +101,7 @@ export const ASSIGNABLE_COLUMN_KEYS: ColumnKey[] = [
   'fitnessValidUntilMonth',
   'fitnessValidUntilYear',
   'notes',
+  'employerRequirements',
 ]
 
 export interface RawRow {
@@ -122,6 +124,7 @@ export interface RawRow {
   hireDate: string | null
   fitnessValidUntil: string | null
   notes: string | null
+  employerRequirements: string | null
   raw: Record<string, string> // for debugging / displaying unmapped values
 }
 
@@ -314,6 +317,21 @@ const HEADER_ALIASES: Record<ColumnKey, string[]> = {
   fitnessValidUntilMonth: ['luna exp', 'luna expirarii', 'luna expirare', 'expiry month'],
   fitnessValidUntilYear: ['anul exp', 'an exp', 'anul expirarii', 'an expirare', 'expiry year'],
   notes: ['mentiuni', 'observatii', 'obs', 'note', 'notes', 'remarks'],
+  // Employer's requested conditions for the aptitude certificate. Distinct
+  // from `notes` — these are what the employer asks the aviz to cover. Exact
+  // matches win, so "mentiuni aviz" lands here, not in notes' "mentiuni".
+  employerRequirements: [
+    'cerinte angajator',
+    'cerinte',
+    'cerinte aviz',
+    'specificatii',
+    'specificatii apt',
+    'specificatii aptitudine',
+    'mentiuni aviz',
+    'conditii',
+    'conditii aviz',
+    'conditii aptitudine',
+  ],
 }
 
 function detectColumn(header: string): ColumnKey | null {
@@ -510,6 +528,7 @@ function recordToRawRow(
         extract(mapping, record, 'fitnessValidUntilYear')
       ),
     notes: extract(mapping, record, 'notes'),
+    employerRequirements: extract(mapping, record, 'employerRequirements'),
     raw: record,
   }
 }

@@ -39,6 +39,9 @@ export const FISE_LIST_SELECT = {
   completedAt: true,
   createdAt: true,
   revokedAt: true,
+  // The employer's own request for this certificate (not medical). HR may see
+  // it; it is never placed in a medical summary.
+  employerRequirementsSnapshot: true,
   employee: { select: { firstName: true, lastName: true, jobTitle: true } },
   workplace: {
     select: { id: true, name: true, companyId: true, workSite: { select: { name: true } } },
@@ -143,6 +146,8 @@ export interface FiseListRow {
   isRevoked: boolean
   revokedAt: string | null
   replacementNumber: string | null
+  /** Employer's requested conditions at exam time (employer's own data). */
+  employerRequirements: string | null
 }
 
 /** Maps a queried examination to the medical-data-free list row. */
@@ -166,6 +171,7 @@ export function toFiseListRow(exam: ExaminationForFiseList): FiseListRow {
     isRevoked: exam.revokedAt != null,
     revokedAt: exam.revokedAt ? exam.revokedAt.toISOString() : null,
     replacementNumber: exam.supersededBy?.examinationNumber ?? null,
+    employerRequirements: exam.employerRequirementsSnapshot ?? null,
   }
 }
 

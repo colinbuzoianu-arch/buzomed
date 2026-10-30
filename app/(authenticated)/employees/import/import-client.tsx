@@ -146,6 +146,8 @@ function colKeyLabel(key: ColumnKey, labels: Record<string, string>): string {
       return labels.colWorkplace ?? 'Loc de muncă'
     case 'workSiteName':
       return labels.colWorkSite ?? 'Punct de lucru'
+    case 'employerRequirements':
+      return labels.colEmployerRequirements ?? 'Cerințe angajator'
     case 'hireDate':
       return labels.colHireDate ?? 'Data angajării'
     case 'fitnessValidUntil':
@@ -215,6 +217,7 @@ function reapplyMapping(originalRows: RawRow[], newMapping: ColumnMapping): RawR
           get('fitnessValidUntilYear')
         ),
       notes: get('notes'),
+      employerRequirements: get('employerRequirements'),
     }
   })
 }
@@ -629,6 +632,7 @@ export function ImportClient({ companies, locale, labels }: Props) {
               notes: r.notes,
               hireDate: r.hireDate,
               fitnessValidUntil: r.fitnessValidUntil,
+              employerRequirements: r.employerRequirements ?? null,
               skipIfDuplicate: skipDuplicates,
               updateExisting,
               companyName: r.companyName ?? null,
@@ -1457,6 +1461,7 @@ function PreviewTable({
 }) {
   const multiSheet = rows.some((r) => r.sheetName)
   const anyCnp = rows.some((r) => r.cnp)
+  const anyEmployerReq = rows.some((r) => r.employerRequirements)
   return (
     <div className="border rounded-lg overflow-x-auto -mx-4 sm:mx-0">
       <table className="w-full text-sm min-w-[700px]">
@@ -1478,6 +1483,11 @@ function PreviewTable({
               </>
             ) : (
               <th className="text-left px-3 py-2">{labels.colWorkplace ?? 'Loc de muncă'}</th>
+            )}
+            {anyEmployerReq && (
+              <th className="text-left px-3 py-2">
+                {labels.colEmployerRequirements ?? 'Cerințe angajator'}
+              </th>
             )}
           </tr>
         </thead>
@@ -1559,6 +1569,11 @@ function PreviewTable({
                         ({labels.workplaceWillCreateTag ?? 'nou'})
                       </span>
                     )}
+                  </td>
+                )}
+                {anyEmployerReq && (
+                  <td className="px-3 py-2 text-muted-foreground max-w-[180px] truncate">
+                    {r.employerRequirements ?? '—'}
                   </td>
                 )}
               </tr>

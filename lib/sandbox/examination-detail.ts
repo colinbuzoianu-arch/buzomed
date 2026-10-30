@@ -149,6 +149,7 @@ export function deriveExamDetail(data: SandboxData, id: string): SandboxExamDeta
     notes: exam.notes,
     verdict: exam.verdict,
     verdictConditions: exam.verdictConditions ?? '',
+    employerRequirementsOnFisa: '',
     inaptTemporarUntil: toDateInput(exam.inaptTemporarUntil),
     nextExaminationDueDate: toDateInput(exam.nextExaminationDueDate),
     examinedAt: exam.examinedAt
@@ -347,5 +348,11 @@ export function buildStepperLabels(examinationTypeCode: string): Labels {
     dosarCnpPresent: t('examinations.form.dosarCnpPresent'),
     dosarRutaTitle: t('examinations.form.dosarRutaTitle'),
     dosarRutaLegacy: t('examinations.form.dosarRutaLegacy'),
+    employerRequirementsTitle: t('examinations.form.employerRequirementsTitle'),
+    employerRequirementsAdd: t('examinations.form.employerRequirementsAdd'),
+    employerRequirementsHelp: t('examinations.form.employerRequirementsHelp'),
+    employerRequirementsOnFisaLabel: t('examinations.form.employerRequirementsOnFisaLabel'),
+    employerRequirementsRemove: t('examinations.form.employerRequirementsRemove'),
+    employerRequirementsPrintNote: t('examinations.form.employerRequirementsPrintNote'),
   }
 }

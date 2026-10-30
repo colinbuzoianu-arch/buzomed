@@ -77,6 +77,7 @@ export default async function EditEmployeePage({ params }: PageProps) {
     firstName: employee.firstName,
     lastName: employee.lastName,
     jobTitle: employee.jobTitle ?? '',
+    employerRequirements: employee.employerRequirements ?? '',
     idDocumentType: employee.idDocumentType,
     idDocumentNumber: prefilledIdDocumentNumber,
     companyEmployeeId: employee.companyEmployeeId ?? '',

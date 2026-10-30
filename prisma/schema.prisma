@@ -889,6 +889,13 @@ model Employee {
   jobTitle                    String?               @map("job_title")
   companyId                   String?               @map("company_id") @db.Uuid
 
+  // Conditions the EMPLOYER asks the fitness certificate to cover, e.g.
+  // "muncă în ture de noapte", "conducere auto cat. B". This is the
+  // employer's request, NOT medical data and NOT a verdict — the doctor
+  // sees it during the exam but nothing is ever pre-filled from it. HR may
+  // see it (it is their own data); never place it in a medical summary.
+  employerRequirements        String?               @map("employer_requirements")
+
   // Personal data
   lastName                    String                @map("last_name")
   firstName                   String                @map("first_name")
@@ -1053,6 +1060,20 @@ model Examination {
   status                      ExaminationStatus         @default(scheduled)
   requestSource               ExaminationRequestSource? @map("request_source")
   referringDocumentNumber     String?                   @map("referring_document_number")
+
+  // Snapshot of the employee's employerRequirements at exam time, so the
+  // record always shows what the employer requested when the exam was done,
+  // even if the employee's requirements change later. Not medical data; the
+  // doctor copies it onto the fișă manually (never auto-filled).
+  employerRequirementsSnapshot String?                  @map("employer_requirements_snapshot")
+
+  // The employer-requirements text the doctor chose to PRINT on the fișă
+  // (null = not on the fișă). Kept separate from recommendations /
+  // verdictConditions: the printed free-text is composed at render time as
+  // "{employerRequirementsOnFisa}. {verdictConditions ?? recommendations}"
+  // (see lib/examinations/compose-fisa-recommendations.ts). Null on every
+  // pre-existing exam, so those fișe print exactly as before.
+  employerRequirementsOnFisa  String?                   @map("employer_requirements_on_fisa")
   
   // Clinical data
   anamnesis                   Json                      @default("{}") // structured Q&A

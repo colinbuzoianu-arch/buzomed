@@ -33,6 +33,7 @@ export interface FiseLabels {
   revoked: string
   revokedOn: string
   replacedBy: string
+  employerRequirements: string
   download: string
   downloadSelected: string
   downloadAll: string
@@ -345,6 +346,11 @@ export function FiseClient({ rows, companies, newSince, locale, labels, initialS
                         <td className="px-4 py-3 font-medium">
                           {r.lastName} {r.firstName}
                           <div className="text-xs text-muted-foreground/70">{r.workplaceName}</div>
+                          {r.employerRequirements && (
+                            <div className="text-xs text-muted-foreground/70 italic">
+                              {labels.employerRequirements}: {r.employerRequirements}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{r.jobTitle || '—'}</td>
                         <td className="px-4 py-3 text-muted-foreground">{r.examTypeName}</td>

@@ -22,6 +22,9 @@ export const UPDATABLE_EMPLOYEE_FIELDS = [
   'phone',
   'city',
   'notes',
+  // Employer's requested conditions for the aptitude certificate. Not medical;
+  // the empty-cell-never-erases rule applies here too.
+  'employerRequirements',
 ] as const
 
 export type UpdatableEmployeeField = (typeof UPDATABLE_EMPLOYEE_FIELDS)[number]

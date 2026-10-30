@@ -2,12 +2,83 @@
 
 import type { ReactNode } from 'react'
 import { NonPrintingGroup, SheetMarker } from '@/components/examinations/sheet-marker'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { ExamSectionConfig } from '@/lib/examinations/document-templates'
 import { getSheetRef } from '@/lib/examinations/periodic-sheet-map'
 import { Field, FormSection, FullWidth } from '../examination-field-components'
 import type { ExaminationFormValues, Labels } from '../examination-stepper'
+
+/**
+ * Employer-requirements panel. Neutral styling on purpose — it is NOT a
+ * verdict, NOT medical, and must not look like a warning or a suggested
+ * decision. The employer's request is read-only; the doctor explicitly chooses
+ * whether it goes on the fișă via "Adaugă în fișă". What goes on the fișă is
+ * stored SEPARATELY (employerRequirementsOnFisa) — the doctor's recommendations
+ * / conditions text is never touched. Once on the fișă, the text is editable in
+ * its own box and can be taken off again with "Elimină de pe fișă". The printed
+ * free-text is composed from the two parts only at render time
+ * (lib/examinations/compose-fisa-recommendations.ts). Nothing is auto-inserted.
+ */
+function EmployerRequirementsBox({
+  requestText,
+  onFisaValue,
+  onAdd,
+  onChange,
+  onRemove,
+  disabled,
+  labels,
+}: {
+  /** Employer's request (snapshot), read-only. May be '' if none recorded. */
+  requestText: string
+  /** Current employerRequirementsOnFisa value ('' = not on the fișă). */
+  onFisaValue: string
+  onAdd: () => void
+  onChange: (next: string) => void
+  onRemove: () => void
+  disabled: boolean
+  labels: Labels
+}) {
+  const onFisa = onFisaValue.trim().length > 0
+  return (
+    <div className="rounded-md border border-input bg-muted/40 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium">{labels.employerRequirementsTitle}</span>
+        {requestText && !onFisa && (
+          <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={onAdd}>
+            {labels.employerRequirementsAdd}
+          </Button>
+        )}
+      </div>
+      {requestText && <p className="whitespace-pre-wrap text-sm text-foreground">{requestText}</p>}
+      {onFisa && (
+        <div className="space-y-1 rounded-md border border-dashed border-input bg-background p-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-xs">{labels.employerRequirementsOnFisaLabel}</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={disabled}
+              onClick={onRemove}
+            >
+              {labels.employerRequirementsRemove}
+            </Button>
+          </div>
+          <textarea
+            value={onFisaValue}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            className="flex min-h-[64px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+          <p className="text-xs text-muted-foreground">{labels.employerRequirementsPrintNote}</p>
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">{labels.employerRequirementsHelp}</p>
+    </div>
+  )
+}
 
 interface Props {
   values: ExaminationFormValues
@@ -21,6 +92,8 @@ interface Props {
   examinationTypeCode: string
   defaultIntervalMonths: number
   jobTitle?: string | null
+  /** Employer's requested conditions (snapshot). Empty/absent → no box shown. */
+  employerRequirements?: string | null
   preSignChecklist?: ReactNode
   documentsPanel?: ReactNode
   documentsSection?: ReactNode
@@ -36,6 +109,7 @@ export function VerdictStep({
   examinationTypeCode,
   defaultIntervalMonths,
   jobTitle,
+  employerRequirements,
   preSignChecklist,
   documentsPanel,
   documentsSection,
@@ -44,6 +118,21 @@ export function VerdictStep({
   const ro = locked
   const isPeriodic = sections.showClinicalSystemsExam
   const ref = (k: string) => (isPeriodic ? getSheetRef(k) : undefined)
+  const reqText = (employerRequirements ?? '').trim()
+  // Show the box when there's a recorded request OR something is already on the
+  // fișă (the request may have been cleared after it was added).
+  const showReqBox = reqText.length > 0 || values.employerRequirementsOnFisa.trim().length > 0
+  const reqBox = (
+    <EmployerRequirementsBox
+      requestText={reqText}
+      onFisaValue={values.employerRequirementsOnFisa}
+      onAdd={() => updateTop('employerRequirementsOnFisa', reqText)}
+      onChange={(v) => updateTop('employerRequirementsOnFisa', v)}
+      onRemove={() => updateTop('employerRequirementsOnFisa', '')}
+      disabled={ro}
+      labels={labels}
+    />
+  )
 
   return (
     <>
@@ -84,6 +173,7 @@ export function VerdictStep({
               </div>
             </div>
           </FullWidth>
+          {showReqBox && <FullWidth>{reqBox}</FullWidth>}
           <FullWidth>
             <Field
               label={labels.fieldRecommendations}
@@ -190,6 +280,11 @@ export function VerdictStep({
               </div>
             </div>
           </FullWidth>
+          {/* Employer's requested conditions — read-only; the doctor explicitly
+              puts them on the fișă (stored separately, composed at print time).
+              Shown regardless of the chosen verdict so the request is visible
+              before deciding; nothing is ever auto-inserted. */}
+          {showReqBox && <FullWidth>{reqBox}</FullWidth>}
           {/* Non-periodic: original layout, unchanged. */}
           {!isPeriodic &&
             (values.verdict === 'apt' ||

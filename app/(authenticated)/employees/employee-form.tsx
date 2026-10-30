@@ -29,6 +29,7 @@ export interface EmployeeFormValues {
   firstName: string
   lastName: string
   jobTitle: string
+  employerRequirements: string
   idDocumentType: IdDocumentType
   idDocumentNumber: string
   companyEmployeeId: string
@@ -57,6 +58,7 @@ export const emptyEmployeeFormValues: EmployeeFormValues = {
   firstName: '',
   lastName: '',
   jobTitle: '',
+  employerRequirements: '',
   idDocumentType: 'other',
   idDocumentNumber: '',
   companyEmployeeId: '',
@@ -132,6 +134,8 @@ export interface EmployeeFormLabels {
   fieldNotes: string
   fieldJobTitle: string
   fieldJobTitlePlaceholder: string
+  fieldEmployerRequirements: string
+  fieldEmployerRequirementsHelp: string
   fieldIsActive: string
   sectionAssignment: string
   fieldCompany: string
@@ -214,6 +218,7 @@ export function EmployeeForm({
     }
     const stringFields: Array<keyof EmployeeFormValues> = [
       'jobTitle',
+      'employerRequirements',
       'idDocumentNumber',
       'companyEmployeeId',
       'nationality',
@@ -366,6 +371,19 @@ export function EmployeeForm({
                 placeholder={labels.fieldJobTitlePlaceholder}
                 maxLength={200}
               />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="employerRequirements">{labels.fieldEmployerRequirements}</Label>
+              <textarea
+                id="employerRequirements"
+                value={form.employerRequirements}
+                onChange={(e) => update('employerRequirements', e.target.value)}
+                maxLength={2000}
+                className="flex min-h-[72px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                {labels.fieldEmployerRequirementsHelp}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="cityAssign">{labels.fieldCity}</Label>

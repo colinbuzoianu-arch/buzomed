@@ -51,6 +51,9 @@ const TOP_LEVEL_STRING_FIELDS = [
   'clinicalFindings',
   'recommendations',
   'verdictConditions',
+  // Employer requirements printed on the fișă (null/'' clears it). Composed
+  // with verdictConditions/recommendations only at render time.
+  'employerRequirementsOnFisa',
   'referringDocumentNumber',
   'notes',
 ] as const

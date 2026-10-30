@@ -9,6 +9,7 @@ const EMPTY_EXISTING: ExistingEmployeeValues = {
   phone: null,
   city: null,
   notes: null,
+  employerRequirements: null,
 }
 
 test('non-empty, different values are written', () => {
@@ -38,6 +39,7 @@ test('identical values produce no change (idempotent re-import)', () => {
     phone: '0712345678',
     city: 'Deva',
     notes: 'tura noapte',
+    employerRequirements: null,
   }
   const { data, changed } = computeEmployeeFieldUpdates(existing, {
     companyEmployeeId: '12345',
@@ -59,6 +61,7 @@ test('only differing fields are included; filling a blank field counts as a chan
     phone: null,
     city: 'Deva',
     notes: null,
+    employerRequirements: null,
   }
   const { data, changed } = computeEmployeeFieldUpdates(existing, {
     companyEmployeeId: '111', // same → skipped
@@ -77,4 +80,22 @@ test('surrounding whitespace is ignored when comparing', () => {
   )
   assert.deepEqual(data, {})
   assert.deepEqual(changed, [])
+})
+
+test('employerRequirements updates in place, but an empty cell never erases it', () => {
+  // A non-empty value is written.
+  const set = computeEmployeeFieldUpdates(
+    { ...EMPTY_EXISTING, employerRequirements: null },
+    { employerRequirements: 'MUNCA IN TURE DE NOAPTE' }
+  )
+  assert.equal(set.data.employerRequirements, 'MUNCA IN TURE DE NOAPTE')
+  assert.deepEqual(set.changed, ['employerRequirements'])
+
+  // A blank cell leaves the stored value untouched (hard rule).
+  const existing = { ...EMPTY_EXISTING, employerRequirements: 'CU ATRIBUTII COND. AUTO CAT B' }
+  for (const blank of [null, undefined, '', '   ']) {
+    const { data, changed } = computeEmployeeFieldUpdates(existing, { employerRequirements: blank })
+    assert.deepEqual(data, {})
+    assert.deepEqual(changed, [])
+  }
 })

@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { fillExaminationPdf } from '@/lib/examinations/pdf-fill'
 import { resolveExaminationDate } from '@/lib/examinations/examined-at'
+import { composeFisaRecommendations } from '@/lib/examinations/compose-fisa-recommendations'
 import { formatWorkplaceLabel } from '@/lib/workplaces/format'
 
 /**
@@ -89,8 +90,12 @@ export function buildFisaAptitudineFields(
     fields[`post${suffix}`] = formatWorkplaceLabel(examination.workplace)
     fields[`data${suffix}`] = examDate
     fields[`data_urm${suffix}`] = nextDueDate
-    fields[`recomandari${suffix}`] =
+    // Printed free-text = employer requirements (if the doctor put them on the
+    // fișă) composed with the existing text (verdictConditions ?? recommendations).
+    fields[`recomandari${suffix}`] = composeFisaRecommendations(
+      examination.employerRequirementsOnFisa,
       examination.verdictConditions ?? examination.recommendations ?? ''
+    )
     fields[`apt${suffix}`] = verdict === 'apt'
     fields[`apt_cond${suffix}`] = verdict === 'apt_conditionat'
     fields[`inapt_temp${suffix}`] = verdict === 'inapt_temporar'

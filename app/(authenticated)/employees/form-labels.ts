@@ -59,6 +59,8 @@ export function buildEmployeeFormLabels(t: Translator): EmployeeFormLabels {
     fieldNotes: t('employees.form.fieldNotes'),
     fieldJobTitle: t('employees.form.fieldJobTitle'),
     fieldJobTitlePlaceholder: t('employees.form.fieldJobTitlePlaceholder'),
+    fieldEmployerRequirements: t('employees.form.fieldEmployerRequirements'),
+    fieldEmployerRequirementsHelp: t('employees.form.fieldEmployerRequirementsHelp'),
     fieldIsActive: t('employees.form.fieldIsActive'),
     sectionAssignment: t('employees.form.sectionAssignment'),
     fieldCompany: t('employees.form.fieldCompany'),
