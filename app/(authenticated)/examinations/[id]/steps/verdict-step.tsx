@@ -310,41 +310,44 @@ export function VerdictStep({
               disabled={ro}
             />
           )}
-          {/* Periodic: conditions + inapt-until don't print on this sheet
-              (conditions prints only on the fișă de aptitudine) — grouped. */}
+          {/* Periodic: the conditions / mentions field PRINTS on the fișă de
+              aptitudine (câmpul din dreapta verdictului), so it is NOT marked
+              as non-printing. Only `inapt temporar până la` is dosar-only and
+              stays flagged as such. (It does not print on the periodic sheet —
+              the sheetMarker/hint says exactly that.) */}
           {isPeriodic &&
             (values.verdict === 'apt' ||
               values.verdict === 'apt_conditionat' ||
               values.verdict === 'inapt_temporar' ||
               values.verdict === 'inapt') && (
               <FullWidth>
-                <NonPrintingGroup active heading={labels.sheetNonPrinting}>
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-1">
-                      <Field
-                        label={labels.fieldVerdictConditions}
-                        value={values.verdictConditions}
-                        onChange={(v) => updateTop('verdictConditions', v)}
-                        multiline
-                        disabled={ro}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {getSheetRef('verdictConditions')?.hint}
-                      </p>
-                    </div>
-                    {values.verdict === 'inapt_temporar' && (
-                      <Field
-                        label={labels.fieldInaptTemporarUntil}
-                        value={values.inaptTemporarUntil}
-                        onChange={(v) => updateTop('inaptTemporarUntil', v)}
-                        type="date"
-                        disabled={ro}
-                      />
-                    )}
-                  </div>
-                </NonPrintingGroup>
+                <div className="space-y-1">
+                  <Field
+                    label={labels.fieldVerdictConditions}
+                    value={values.verdictConditions}
+                    onChange={(v) => updateTop('verdictConditions', v)}
+                    multiline
+                    disabled={ro}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {getSheetRef('verdictConditions')?.hint}
+                  </p>
+                </div>
               </FullWidth>
             )}
+          {isPeriodic && values.verdict === 'inapt_temporar' && (
+            <FullWidth>
+              <NonPrintingGroup active heading={labels.sheetNonPrinting}>
+                <Field
+                  label={labels.fieldInaptTemporarUntil}
+                  value={values.inaptTemporarUntil}
+                  onChange={(v) => updateTop('inaptTemporarUntil', v)}
+                  type="date"
+                  disabled={ro}
+                />
+              </NonPrintingGroup>
+            </FullWidth>
+          )}
           {(values.verdict === 'apt' || values.verdict === 'apt_conditionat') && (
             <div className="md:col-span-2 space-y-2">
               {isPeriodic ? (

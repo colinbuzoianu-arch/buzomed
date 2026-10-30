@@ -160,7 +160,7 @@ export const PERIODIC_FIELD_REFS: Record<string, SheetRef> = {
   },
   verdictConditions: {
     printed: false,
-    hint: 'Apare doar pe fișa de aptitudine, nu pe foaia periodică.',
+    hint: 'Apare pe fișa de aptitudine, în câmpul din dreapta verdictului — nu pe foaia periodică.',
   },
   examinedAt: {
     printed: true,
