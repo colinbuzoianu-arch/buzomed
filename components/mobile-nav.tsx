@@ -18,8 +18,10 @@ interface Props {
 }
 
 /**
- * Mobile-only hamburger menu. The toggle button is hidden on screens
- * ≥ md (768px); the desktop nav lives in the layout component itself.
+ * Mobile/tablet hamburger menu. The toggle button is hidden on screens
+ * ≥ lg (1024px); the desktop nav lives in the layout component itself.
+ * Below lg (phones and iPad portrait at 768px) the dense horizontal
+ * header does not fit, so the whole menu collapses into this drawer.
  *
  * Pattern: slide-down sheet anchored to the top, full-width, with a
  * tap-outside-to-dismiss overlay. Simpler than a true side drawer and
@@ -69,14 +71,14 @@ export function MobileNav({ items, userName, closeLabel, logoutLabel, accountHre
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-muted"
+        className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-muted"
         aria-label="Open menu"
       >
         <Menu className="w-5 h-5" />
       </button>
 
       {open && (
-        <div className="md:hidden fixed inset-0 z-50">
+        <div className="lg:hidden fixed inset-0 z-50">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
           {/* Panel */}

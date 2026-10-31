@@ -1,28 +1,30 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { loadGA } from './ga-loader'
+import { setAnalyticsConsent } from './ga-loader'
 
 export function CookieNotice() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
+    // Only surface the banner when the visitor hasn't chosen yet. A prior
+    // 'granted' choice is already re-applied by GaLoader's inline snippet,
+    // so there's nothing to do here for returning visitors.
     const consent = localStorage.getItem('cookie-consent')
-    if (consent === 'granted') {
-      loadGA()
-    } else if (!consent) {
+    if (!consent) {
       setVisible(true)
     }
   }, [])
 
   function accept() {
     localStorage.setItem('cookie-consent', 'granted')
-    loadGA()
+    setAnalyticsConsent(true)
     setVisible(false)
   }
 
   function deny() {
     localStorage.setItem('cookie-consent', 'denied')
+    setAnalyticsConsent(false)
     setVisible(false)
   }
 
@@ -32,8 +34,8 @@ export function CookieNotice() {
     <div className="fixed bottom-4 left-4 z-50 max-w-sm rounded-xl border bg-card shadow-lg p-4 space-y-3">
       <p className="text-[13px] text-foreground leading-relaxed">
         Buzomed folosește cookie-uri tehnice strict necesare pentru funcționarea platformei.
-        Folosim și Google Analytics pentru măsurarea anonimă a traficului pe paginile publice,
-        doar cu acordul dumneavoastră.
+        Pe paginile publice folosim Google Analytics: cu acordul dumneavoastră, pentru statistici
+        detaliate cu cookie-uri; dacă refuzați, doar măsurare anonimă agregată, fără cookie-uri.
       </p>
       <div className="flex flex-col gap-2">
         <button

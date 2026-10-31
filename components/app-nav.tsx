@@ -47,7 +47,7 @@ function linkClass(active: boolean): string {
 export function AppNav({ items }: { items: NavEntry[] }) {
   const pathname = usePathname()
   return (
-    <nav className="hidden md:flex items-center gap-0.5 text-sm">
+    <nav className="hidden lg:flex items-center gap-0.5 text-sm">
       {items.map((entry) => {
         if (entry.type === 'link') {
           const active = isActiveHref(pathname, entry.href)

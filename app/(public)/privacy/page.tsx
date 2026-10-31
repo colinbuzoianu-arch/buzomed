@@ -360,9 +360,14 @@ export default function PrivacyPage() {
         <P><strong>(2) Cookie-uri analitice GA4 — numai cu consimțământ explicit</strong></P>
         <P>
           Site-ul public buzomed.com utilizează Google Analytics (GA4) pentru măsurarea anonimă a
-          traficului. Aceste cookie-uri sunt activate <strong>exclusiv după acordarea consimțământului
-          dumneavoastră explicit</strong> prin bannerul de cookie-uri afișat la prima vizită.
-          Nu sunt utilizate pentru identificare personală sau publicitate.
+          traficului. Cookie-urile analitice de mai jos sunt activate <strong>exclusiv după acordarea
+          consimțământului dumneavoastră explicit</strong> prin bannerul de cookie-uri afișat la prima
+          vizită. Nu sunt utilizate pentru identificare personală sau publicitate.
+        </P>
+        <P>
+          Dacă refuzați, nu se setează niciun cookie analitic pe dispozitivul dumneavoastră. Prin modul
+          de consimțământ Google (Consent Mode v2) colectăm doar măsurători <strong>anonime și agregate</strong>,
+          fără cookie-uri și fără identificarea dumneavoastră, pentru statistici generale de trafic.
         </P>
 
         <div style={{ overflowX: 'auto', marginBottom: 16 }}>
@@ -401,8 +406,9 @@ export default function PrivacyPage() {
         <P>
           Cookie-urile analitice sunt terțe (setate de Google LLC). Consimțământul poate fi retras
           oricând prin ștergerea cookie-urilor din setările browserului sau prin selectarea opțiunii
-          &ldquo;Continuă fără analytics&rdquo; din bannerul de cookie-uri. Refuzul cookie-urilor analitice
-          nu afectează accesul la platformă sau la orice funcționalitate a acesteia.
+          &ldquo;Continuă fără analytics&rdquo; din bannerul de cookie-uri. Refuzul dezactivează cookie-urile
+          analitice (rămânând doar măsurarea anonimă agregată descrisă mai sus) și nu afectează accesul la
+          platformă sau la orice funcționalitate a acesteia.
         </P>
 
         <H2>16. Legislație aplicabilă</H2>

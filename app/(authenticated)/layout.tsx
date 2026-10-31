@@ -150,7 +150,7 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
               href="/settings/security"
               title={t('nav.accountSecurity')}
               aria-label={t('nav.accountSecurity')}
-              className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="hidden lg:inline-flex items-center justify-center w-8 h-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <ShieldCheck className="w-4 h-4" />
             </Link>
@@ -159,7 +159,7 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
               {initials}
             </div>
 
-            <div className="hidden md:block">
+            <div className="hidden lg:block">
               <LogoutButton label={t('common.logout')} />
             </div>
 
