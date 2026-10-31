@@ -43,7 +43,7 @@ export function SandboxNav({
 }) {
   const pathname = usePathname()
   return (
-    <nav className="hidden lg:flex items-center gap-0.5 text-sm">
+    <nav className="hidden xl:flex items-center gap-0.5 text-sm">
       {enabled.map((item) => (
         <Link key={item.href} href={item.href} className={linkClass(isActive(pathname, item.href))}>
           {item.label}
@@ -96,14 +96,14 @@ export function SandboxMobileNav({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-muted"
+        className="xl:hidden inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-muted"
         aria-label="Deschide meniul"
       >
         <Menu className="w-5 h-5" />
       </button>
 
       {open && (
-        <div className="lg:hidden fixed inset-0 z-50">
+        <div className="xl:hidden fixed inset-0 z-50">
           <button
             type="button"
             aria-label="Închide"

@@ -48,10 +48,12 @@ export default function SandboxLayout({ children }: { children: React.ReactNode 
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <span className="hidden lg:block text-xs text-muted-foreground truncate max-w-[220px]">
+              {/* Username reserves ~220px; only show it at 2xl so the 11-item
+                  nav has room in the xl tier (container caps at 1280px there). */}
+              <span className="hidden 2xl:block text-xs text-muted-foreground truncate max-w-[220px]">
                 {userDisplayName}
               </span>
-              <div className="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold select-none">
+              <div className="hidden xl:flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold select-none">
                 MD
               </div>
               <SandboxMobileNav enabled={enabled} disabled={disabled} userName={userDisplayName} />
