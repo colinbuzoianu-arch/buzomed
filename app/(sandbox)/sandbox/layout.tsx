@@ -43,7 +43,7 @@ export default function SandboxLayout({ children }: { children: React.ReactNode 
               <BuzomedLogo variant="icon" size="md" />
             </div>
 
-            <div className="flex-1 flex justify-center min-w-0">
+            <div className="flex-1 min-w-0">
               <SandboxNav enabled={enabled} disabled={disabled} />
             </div>
 

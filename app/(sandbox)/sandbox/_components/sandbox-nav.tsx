@@ -27,7 +27,7 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 function linkClass(active: boolean): string {
-  return `px-3 py-1.5 rounded-md transition-colors ${
+  return `shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md transition-colors ${
     active
       ? 'bg-primary/10 text-primary font-medium'
       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -43,19 +43,19 @@ export function SandboxNav({
 }) {
   const pathname = usePathname()
   return (
-    <nav className="hidden xl:flex items-center gap-0.5 text-sm">
+    <nav className="hidden md:flex flex-nowrap items-center gap-0.5 text-sm overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {enabled.map((item) => (
         <Link key={item.href} href={item.href} className={linkClass(isActive(pathname, item.href))}>
           {item.label}
         </Link>
       ))}
-      <span className="mx-1 w-px h-5 bg-border" />
+      <span className="shrink-0 mx-1 w-px h-5 bg-border" />
       {disabled.map((item) => (
         <span
           key={item.label}
           title={DISABLED_TOOLTIP}
           aria-disabled="true"
-          className="px-3 py-1.5 rounded-md text-muted-foreground/45 cursor-not-allowed inline-flex items-center gap-1 select-none"
+          className="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-muted-foreground/45 cursor-not-allowed inline-flex items-center gap-1 select-none"
         >
           {item.label}
           <Lock className="h-3 w-3" />
@@ -96,14 +96,14 @@ export function SandboxMobileNav({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="xl:hidden inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-muted"
+        className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-muted"
         aria-label="Deschide meniul"
       >
         <Menu className="w-5 h-5" />
       </button>
 
       {open && (
-        <div className="xl:hidden fixed inset-0 z-50">
+        <div className="md:hidden fixed inset-0 z-50">
           <button
             type="button"
             aria-label="Închide"
