@@ -13,11 +13,15 @@ import type { SheetRef } from '@/lib/examinations/periodic-sheet-map'
  */
 
 export function getStr(o: Record<string, unknown>, k: string): string {
+  // Defensive: callers pass JSONB buckets that are normally coerced to {} on
+  // load, but an old/odd row (or a null bucket) must never crash the render.
+  if (o == null || typeof o !== 'object') return ''
   const v = o[k]
   return typeof v === 'string' ? v : v == null ? '' : String(v)
 }
 
 export function getNum(o: Record<string, unknown>, k: string): string {
+  if (o == null || typeof o !== 'object') return ''
   const v = o[k]
   if (v === null || v === undefined || v === '') return ''
   return String(v)
@@ -379,7 +383,11 @@ export function DiagnosesField({
   disabled?: boolean
 }) {
   // Stored as array of strings — entered as a textarea with one per line.
-  const [text, setText] = useState(value.join('\n'))
+  // Defensive: a pre-array-format exam row could hold a string or null here;
+  // normalise before join so a legacy value never throws `value.join is not a
+  // function` while rendering the step.
+  const safeValue = Array.isArray(value) ? value : []
+  const [text, setText] = useState(safeValue.join('\n'))
   function commit() {
     const lines = text
       .split('\n')
@@ -388,7 +396,7 @@ export function DiagnosesField({
     onChange(lines)
   }
   useEffect(() => {
-    setText(value.join('\n'))
+    setText(Array.isArray(value) ? value.join('\n') : '')
   }, [value])
   return (
     <div className="space-y-2">

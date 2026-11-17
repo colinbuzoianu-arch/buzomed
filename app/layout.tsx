@@ -62,6 +62,9 @@ export const metadata: Metadata = {
   verification: process.env.GOOGLE_SITE_VERIFICATION
     ? { google: process.env.GOOGLE_SITE_VERIFICATION }
     : undefined,
+  // Emits <meta name="google" content="notranslate"> — pairs with the
+  // translate="no" on <html> to keep Google Translate from mutating the DOM.
+  other: { google: 'notranslate' },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -92,7 +95,13 @@ export default async function RootLayout({
   const locale = await getLocale()
 
   return (
-    <html lang={locale} className={`${manrope.variable} ${fraunces.variable}`}>
+    // translate="no" (+ the <meta name="google" content="notranslate"> emitted
+    // via metadata.other below) tells Google Translate and similar tools not to
+    // rewrite the DOM. The app is Romanian-only, and translation extensions
+    // swap text nodes out from under React, which corrupts reconciliation and
+    // throws client-side "removeChild/insertBefore" errors — a prime suspect
+    // for the default error screen some users hit with no server-side trace.
+    <html lang={locale} translate="no" className={`${manrope.variable} ${fraunces.variable}`}>
       <body className="font-sans antialiased">
         {children}
         <Toaster position="bottom-right" richColors />

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AppNav, type NavEntry, type NavLink } from '@/components/app-nav'
 import { BuzomedLogo } from '@/components/buzomed-logo'
+import { ClientErrorReporter } from '@/components/client-error-reporter'
 import { IrisPanel } from '@/components/iris/iris-panel'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { LogoutButton } from '@/components/logout-button'
@@ -101,6 +102,9 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Global browser-exception reporter (window error / unhandledrejection).
+          Installs once; renders nothing. See components/client-error-reporter. */}
+      <ClientErrorReporter />
       <header className="sticky top-0 z-40 border-b bg-gradient-to-b from-background to-background/98 backdrop-blur-sm">
         <div className="container mx-auto px-4 h-14 flex items-center gap-4">
           <div className="flex items-center shrink-0">

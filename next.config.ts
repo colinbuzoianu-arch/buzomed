@@ -16,6 +16,18 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // Expose a build-stamped deployment identifier to the browser so client-side
+  // error reports (lib/client-errors/report.ts → /api/client-errors) can be
+  // tied to a specific deploy. Vercel's VERCEL_DEPLOYMENT_ID / VERCEL_GIT_COMMIT_SHA
+  // are server-only system vars; mapping one here inlines its build-time value
+  // as a public var, so no manual Vercel dashboard variable is needed (and the
+  // value is always the current deploy, never a stale typed-in id). Falls back
+  // to the commit SHA (always set at build), then '' for local dev.
+  env: {
+    NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID:
+      process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "",
+  },
+
   // Don't advertise the framework in response headers.
   poweredByHeader: false,
 

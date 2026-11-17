@@ -139,6 +139,7 @@ interface PageProps {
     errTenant?: string
     errRoute?: string
     errType?: string
+    errCategory?: string
     errPage?: string
     auditAction?: string
     auditEntity?: string
@@ -192,6 +193,15 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
     ...(params.errType
       ? { errorType: { contains: params.errType, mode: 'insensitive' as const } }
       : {}),
+    // Category filter. Client-side errors are tagged method='CLIENT' by
+    // /api/client-errors (lib/system-log/client-error.ts); everything else is
+    // a server-side error. Lets a super_admin isolate the browser crashes we
+    // previously couldn't see.
+    ...(params.errCategory === 'client'
+      ? { method: 'CLIENT' }
+      : params.errCategory === 'server'
+        ? { method: { not: 'CLIENT' } }
+        : {}),
   }
 
   // Audit section filters
@@ -449,6 +459,21 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
             value={params.errType}
             placeholder="TypeError…"
           />
+          <div className="flex flex-col gap-1">
+            <label htmlFor="errCategory" className="text-xs text-muted-foreground">
+              Categorie
+            </label>
+            <select
+              id="errCategory"
+              name="errCategory"
+              defaultValue={params.errCategory ?? ''}
+              className="rounded border border-input bg-background px-2 py-1 text-xs"
+            >
+              <option value="">Toate</option>
+              <option value="client">Client (browser)</option>
+              <option value="server">Server</option>
+            </select>
+          </div>
           <input type="hidden" name="errPage" value="1" />
           <button
             type="submit"
