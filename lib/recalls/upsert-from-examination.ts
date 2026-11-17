@@ -43,16 +43,28 @@ export async function upsertRecallFromExamination(
   client: PrismaClient | Prisma.TransactionClient,
   input: UpsertRecallInput
 ): Promise<string | null> {
-  // Supersede any IMPORTED fitness-certificate recall for this
-  // employee+workplace. Those recalls come from an external fișă entered at
-  // bulk import (createdFromExaminationId = null, see the employee import
-  // commit route). A real examination signed in Buzomed fulfils them, so we
-  // close them here — pointing at this examination — instead of leaving a
-  // second active recall alongside the one this examination creates below.
-  // This runs regardless of verdict: even an `inapt` result retires the
-  // external document's schedule. Idempotent — already-terminal recalls are
-  // excluded, so re-runs (backfill, re-sign) are safe.
-  await supersedeImportedRecalls(client, input)
+  // Supersede any PRIOR open recall for this employee+workplace. There
+  // should only ever be one active recall per (employee, workplace): a
+  // freshly signed examination is the latest word on that worker's next
+  // periodic control, so every earlier recall it fulfils is closed here —
+  // pointed at this examination — instead of being left alongside the one
+  // this examination creates below.
+  //
+  // This covers BOTH:
+  //   - imported recalls (createdFromExaminationId = null) from an external
+  //     fișă entered at bulk import, and
+  //   - recalls derived from a PREVIOUS examination signed in Buzomed.
+  //
+  // The second case is the fix for the production bug where an overdue
+  // control never disappeared from the dashboard: when a periodic exam was
+  // created directly (via /examinations/new) rather than scheduled from the
+  // scadențe list, the previous examination's recall was never closed and
+  // stayed `overdue` forever even though the worker had been re-examined.
+  //
+  // Runs regardless of verdict: even an `inapt` result retires the prior
+  // schedule (the worker WAS examined). Idempotent and re-run safe — see
+  // supersedePriorRecalls for the dueDate guard that protects newer recalls.
+  await supersedePriorRecalls(client, input)
 
   // No recall for inapt/inapt_temporar/no-verdict cases.
   if (!input.verdict || input.verdict === 'inapt' || input.verdict === 'inapt_temporar') {
@@ -105,27 +117,62 @@ export async function upsertRecallFromExamination(
 }
 
 /**
- * Mark any open imported recall (external fișă, createdFromExaminationId
- * null) for this employee+workplace as completed, fulfilled by the given
- * examination. See the call site in upsertRecallFromExamination for the
- * rationale. Terminal recalls (completed/cancelled) are left untouched.
+ * Mark the open recalls that this examination fulfils as completed,
+ * pointing them at the given examination. Called from
+ * upsertRecallFromExamination; see that call site for the rationale.
+ *
+ * Two kinds of prior recall are closed for this employee+workplace:
+ *
+ *   1. Imported recalls (createdFromExaminationId = null) — external fișă
+ *      expiry dates entered at bulk import. ALL non-terminal ones are
+ *      closed, regardless of their dueDate: a real examination always
+ *      retires the external document's schedule (existing behavior).
+ *
+ *   2. Recalls derived from a PREVIOUS examination — but only those whose
+ *      dueDate is strictly earlier than the schedule this examination
+ *      establishes (`cutoff`, below). This dueDate guard is what keeps the
+ *      operation safe to re-run and backfill-order-independent: a recall
+ *      belonging to a NEWER examination always has a later dueDate, so an
+ *      older examination's supersede never closes it. The recall this
+ *      examination itself creates (same createdFromExaminationId) is also
+ *      excluded explicitly as belt-and-suspenders — on a normal live sign
+ *      it doesn't exist yet (this runs before the create below), but on a
+ *      re-sign / backfill it might.
+ *
+ * `cutoff`:
+ *   - apt / apt_conditionat: the new nextExaminationDueDate (a future date).
+ *     Any earlier recall for the slot — overdue OR merely pending-and-due —
+ *     is superseded, so no duplicates accumulate.
+ *   - inapt / inapt_temporar / no due date: `now`, so only genuinely
+ *     overdue prior recalls (dueDate < today) are retired; a not-yet-due
+ *     recall for the slot is left for the cabinet to act on.
+ *
+ * Terminal recalls (completed/cancelled) are always left untouched.
  */
-async function supersedeImportedRecalls(
+async function supersedePriorRecalls(
   client: PrismaClient | Prisma.TransactionClient,
   input: UpsertRecallInput
 ): Promise<void> {
-  const imported = await client.recall.findMany({
+  const cutoff = input.nextExaminationDueDate ?? new Date()
+
+  // Fetch the candidates coarsely (all non-terminal recalls for the slot —
+  // at most a handful) and decide row-by-row with the pure predicate below.
+  // Keeping the decision in plain JS rather than a subtle Prisma OR/`not`
+  // filter makes it unit-testable and removes the nullable-column `not`
+  // footgun (a top-level `{ not: id }` would also drop null-source rows).
+  const candidates = await client.recall.findMany({
     where: {
       tenantId: input.tenantId,
       employeeId: input.employeeId,
       workplaceId: input.workplaceId,
-      createdFromExaminationId: null,
       status: { notIn: ['completed', 'cancelled'] },
       deletedAt: null,
     },
-    select: { id: true },
+    select: { id: true, createdFromExaminationId: true, dueDate: true },
   })
-  for (const recall of imported) {
+
+  for (const recall of candidates) {
+    if (!isSupersededByExamination(recall, input.examinationId, cutoff)) continue
     await client.recall.update({
       where: { id: recall.id },
       data: {
@@ -134,6 +181,31 @@ async function supersedeImportedRecalls(
       },
     })
   }
+}
+
+/**
+ * Decide whether `recall` (a non-terminal recall already known to be for the
+ * same employee+workplace as the signing examination) is fulfilled — and so
+ * should be closed — by the examination identified by `examinationId`, whose
+ * new schedule starts at `cutoff`.
+ *
+ * Pure and exported so the supersede rules are locked down by unit tests
+ * without a database. The rules:
+ *   - The examination never supersedes the recall it itself produced.
+ *   - An imported recall (null source) is always superseded.
+ *   - A recall from a different, earlier examination is superseded only when
+ *     its dueDate is strictly before `cutoff` — so a NEWER examination's
+ *     recall (later dueDate) is never closed by an older one, which keeps the
+ *     operation safe to re-run and independent of backfill order.
+ */
+export function isSupersededByExamination(
+  recall: { createdFromExaminationId: string | null; dueDate: Date },
+  examinationId: string,
+  cutoff: Date
+): boolean {
+  if (recall.createdFromExaminationId === examinationId) return false
+  if (recall.createdFromExaminationId === null) return true
+  return recall.dueDate.getTime() < cutoff.getTime()
 }
 
 /**
