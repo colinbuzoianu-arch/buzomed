@@ -58,8 +58,14 @@ export function InvestigationRecommender({ examinationId }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ examinationId }),
     })
-      .then((res) => res.json())
-      .then((data: InvestigationSuggestionsResult) => setResult(data))
+      // Only treat a successful, well-shaped body as a result. A non-OK
+      // response (429 rate limit, 401/403, 500) returns a JSON error object
+      // like { error: 'rate_limit_exceeded' } with no `recommendations`, which
+      // must NOT become `result` — otherwise the render below crashes on
+      // `result.recommendations.length`. This was the production crash on the
+      // examination clinical step when the shared AI quota was exhausted.
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: InvestigationSuggestionsResult | null) => setResult(data))
       .catch(() => setResult(null))
       .finally(() => {
         setLoading(false)
@@ -72,7 +78,13 @@ export function InvestigationRecommender({ examinationId }: Props) {
     return skeletonVisible ? <SkeletonCard /> : null
   }
 
-  if (!result || result.recommendations.length === 0) return null
+  // Defensive: `recommendations` must be a non-empty array. Guarding only
+  // `!result` is not enough — a malformed/error body (or a future API shape
+  // change) could leave `recommendations` undefined, and `.length` on it would
+  // throw and blank the whole page via the error boundary.
+  if (!result || !Array.isArray(result.recommendations) || result.recommendations.length === 0) {
+    return null
+  }
 
   const mandatory = result.recommendations.filter((r) => r.priority === 'obligatorie')
   const recommended = result.recommendations.filter((r) => r.priority !== 'obligatorie')

@@ -1,16 +1,26 @@
 /**
  * Per-user in-memory rate limit for AI endpoints.
  *
- * All AI routes share the same bucket — 20 calls per user per hour
+ * All AI routes share the same bucket — LIMIT calls per user per hour
  * across every AI endpoint combined. This caps Anthropic API spend
  * per user regardless of which endpoint they hit.
+ *
+ * LIMIT raised 20 → 150: the old cap was hit during legitimate intensive
+ * clinical work (a cabinet opening many examinations in a row fires
+ * investigation-suggestions + anamnesis prefill per exam), which both
+ * denied the doctor the AI help and — before the guard in
+ * InvestigationRecommender — crashed the examination page on the 429 body.
+ * 150/hour comfortably covers an exam-a-minute session with a couple of AI
+ * calls each (investigation-suggestions is also cached per examination, so
+ * re-opening the same exam costs nothing), while still bounding a runaway
+ * loop, which is the reason this limit exists at all.
  *
  * Replace with a Redis-backed implementation when adding Redis.
  */
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
-const LIMIT = 20
+const LIMIT = 150
 const WINDOW_MS = 60 * 60 * 1000 // 1 hour
 
 /**
