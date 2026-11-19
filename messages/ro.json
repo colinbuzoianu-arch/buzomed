@@ -677,7 +677,10 @@
       "fieldCompanyEmployeeIdSubtext": "(opțional)",
       "fieldWorkplace": "Loc de muncă",
       "workplaceNone": "— Fără loc de muncă —",
-      "workplaceSelectCompanyFirst": "Selectați mai întâi compania"
+      "workplaceSelectCompanyFirst": "Selectați mai întâi compania",
+      "fieldPreviousNames": "Nume anterior",
+      "duplicateCnpMessage": "Există deja un angajat cu acest CNP: {name}. Dacă și-a schimbat numele, deschideți fișa existentă și editați-o — nu creați un angajat nou.",
+      "openEmployee": "Deschide angajatul"
     },
     "assignments": {
       "sectionTitle": "Alocări la locul de muncă",

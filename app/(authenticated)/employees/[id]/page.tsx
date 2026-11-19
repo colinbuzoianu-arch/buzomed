@@ -215,6 +215,9 @@ export default async function EmployeeDetailPage({ params, searchParams }: PageP
       rows: [
         [t('employees.form.fieldLastName'), employee.lastName],
         [t('employees.form.fieldFirstName'), employee.firstName],
+        ...(Array.isArray(employee.previousLastNames) && employee.previousLastNames.length
+          ? [[t('employees.form.fieldPreviousNames'), employee.previousLastNames.join(', ')]]
+          : []),
         [t('employees.form.fieldJobTitle'), employee.jobTitle],
         // Employer's requested conditions — operational, not medical.
         [t('employees.form.fieldEmployerRequirements'), employee.employerRequirements],
