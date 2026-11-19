@@ -52,6 +52,38 @@ function foldedColumn(col: Prisma.Sql): Prisma.Sql {
   return Prisma.sql`translate(lower(${col}), ${FOLD_FROM}, ${FOLD_TO})`
 }
 
+/**
+ * Diacritics-insensitive, partial, tenant-scoped text match over the same
+ * employee columns the ⌘K palette searches — plus the employee's company
+ * name and former surnames. Returns the matching employee IDs (no cap), for
+ * the Employees list page to AND into its own Prisma query so it keeps its
+ * filters, sorting, pagination and counts while gaining folded/partial search.
+ *
+ * Kept here, next to the ⌘K employee search, so the two stay in sync: both
+ * fold with the shared FOLD_FROM/FOLD_TO and both match former surnames.
+ */
+export async function searchEmployeeIds(tenantId: string, rawQuery: string): Promise<string[]> {
+  const q = rawQuery.trim()
+  if (q.length < MIN_QUERY_LEN) return []
+  const like = `%${normalizeTerm(q)}%`
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT e.id
+    FROM employees e
+    LEFT JOIN companies c ON c.id = e.company_id AND c.deleted_at IS NULL
+    WHERE e.tenant_id = ${tenantId}::uuid
+      AND e.deleted_at IS NULL
+      AND (
+        ${foldedColumn(Prisma.sql`e.last_name || ' ' || e.first_name`)} LIKE ${like}
+        OR ${foldedColumn(Prisma.sql`e.first_name || ' ' || e.last_name`)} LIKE ${like}
+        OR ${foldedColumn(Prisma.sql`coalesce(e.company_employee_id, '')`)} LIKE ${like}
+        OR ${foldedColumn(Prisma.sql`coalesce(e.job_title, '')`)} LIKE ${like}
+        OR ${foldedColumn(Prisma.sql`array_to_string(e.previous_last_names, ' ')`)} LIKE ${like}
+        OR ${foldedColumn(Prisma.sql`coalesce(c.name, '')`)} LIKE ${like}
+      )
+  `
+  return rows.map((r) => r.id)
+}
+
 type EmployeeRow = {
   id: string
   first_name: string
@@ -107,6 +139,9 @@ async function searchEmployees(tenantId: string, q: string): Promise<SearchResul
           OR ${foldedColumn(Prisma.sql`first_name || ' ' || last_name`)} LIKE ${like}
           OR ${foldedColumn(Prisma.sql`coalesce(company_employee_id, '')`)} LIKE ${like}
           OR ${foldedColumn(Prisma.sql`coalesce(job_title, '')`)} LIKE ${like}
+          -- Former surnames, so someone can be found by a name they no
+          -- longer use (e.g. the old "Ilina" after she became "Tat").
+          OR ${foldedColumn(Prisma.sql`array_to_string(previous_last_names, ' ')`)} LIKE ${like}
         )
       ORDER BY (archived_at IS NOT NULL), last_name, first_name
       LIMIT ${MAX_PER_GROUP}

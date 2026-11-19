@@ -12,6 +12,7 @@ import { requireUser } from '@/lib/auth'
 import { getLocale, getTranslator } from '@/lib/i18n'
 import { tenantDataCapabilities } from '@/lib/permissions/tenant-data'
 import { prisma } from '@/lib/prisma'
+import { searchEmployeeIds } from '@/lib/search/query'
 import { EmployeeSearchInput } from './employee-search-input'
 import { EmployeesBulkTable } from './employees-bulk-table'
 import { EmployeesHeaderActions } from './employees-header-actions'
@@ -174,31 +175,19 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
         ? missingDataWhere
         : {}
 
+  // Resolve the text query to a set of matching employee IDs (folded/partial,
+  // includes former surnames). null when there's no active query.
+  const nameMatchIds = q.length >= 2 ? await searchEmployeeIds(user.tenantId, q) : null
+
   const employeeWhere: Prisma.EmployeeWhereInput = {
     tenantId: user.tenantId,
     deletedAt: null,
     ...(showArchived ? { archivedAt: { not: null } } : { archivedAt: null }),
-    ...(q.length >= 2
-      ? {
-          OR: [
-            { firstName: { contains: q, mode: 'insensitive' } },
-            { lastName: { contains: q, mode: 'insensitive' } },
-            { jobTitle: { contains: q, mode: 'insensitive' } },
-            { company: { name: { contains: q, mode: 'insensitive' } } },
-            // Also match a former surname the person no longer uses, so staff
-            // can find someone by their old name. Postgres scalar-array
-            // filters can't do case-insensitive partial matching, so we match
-            // the whole old surname across the common casings (stored names
-            // here are typically upper-case).
-            { previousLastNames: { hasSome: Array.from(new Set([
-              q,
-              q.toUpperCase(),
-              q.toLowerCase(),
-              q.charAt(0).toUpperCase() + q.slice(1).toLowerCase(),
-            ])) } },
-          ],
-        }
-      : {}),
+    // Text search is delegated to searchEmployeeIds (folded + partial, matches
+    // name, matricolă, job title, company name AND former surnames) and ANDed
+    // in as an id list, so this query keeps its filters/sort/pagination while
+    // search stays diacritics-insensitive and consistent with the ⌘K palette.
+    ...(nameMatchIds ? { id: { in: nameMatchIds } } : {}),
     ...(wpFilter === 'no_workplace'
       ? { workplaceAssignments: { none: { isCurrent: true } } }
       : wpFilter
