@@ -677,7 +677,10 @@
       "fieldCompanyEmployeeIdSubtext": "(optional)",
       "fieldWorkplace": "Workplace",
       "workplaceNone": "— No workplace —",
-      "workplaceSelectCompanyFirst": "Select a company first"
+      "workplaceSelectCompanyFirst": "Select a company first",
+      "fieldPreviousNames": "Previous name",
+      "duplicateCnpMessage": "An employee with this CNP already exists: {name}. If their name changed, open the existing record and edit it — don't create a new employee.",
+      "openEmployee": "Open employee"
     },
     "assignments": {
       "sectionTitle": "Workplace assignments",

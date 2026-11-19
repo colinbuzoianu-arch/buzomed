@@ -177,7 +177,24 @@ export async function PATCH(request: NextRequest, ctx: RouteContext) {
   const updateData: Record<string, unknown> = {}
 
   if (data.firstName !== undefined) updateData.firstName = data.firstName
-  if (data.lastName !== undefined) updateData.lastName = data.lastName
+  if (data.lastName !== undefined) {
+    updateData.lastName = data.lastName
+    // When the surname actually changes, remember the old one. This is what
+    // lets staff later find the person by a name they no longer use (e.g.
+    // "Ilina" after she became "Tat") instead of mistakenly creating a
+    // duplicate. Case-insensitive de-dup so re-saving the same change twice
+    // doesn't pile up repeats; the old name is only recorded if it was a real,
+    // non-empty surname.
+    const oldLastName = existing.lastName?.trim()
+    if (oldLastName && oldLastName.toLowerCase() !== data.lastName.trim().toLowerCase()) {
+      const prev = Array.isArray(existing.previousLastNames)
+        ? existing.previousLastNames
+        : []
+      if (!prev.some((n) => n.toLowerCase() === oldLastName.toLowerCase())) {
+        updateData.previousLastNames = [...prev, oldLastName]
+      }
+    }
+  }
   if (data.idDocumentType !== undefined)
     updateData.idDocumentType = data.idDocumentType
   if (data.birthDate !== undefined) updateData.birthDate = data.birthDate

@@ -899,6 +899,12 @@ model Employee {
   // Personal data
   lastName                    String                @map("last_name")
   firstName                   String                @map("first_name")
+
+  // Former surnames, captured automatically whenever `lastName` changes
+  // (marriage, divorce, legal name change). Purpose: let staff find a person
+  // by a name they no longer use, and keep older documents easy to connect
+  // to the right employee. Appended in order, newest last; never auto-cleared.
+  previousLastNames           String[]              @default([]) @map("previous_last_names")
   birthDate                   DateTime?             @map("birth_date") @db.Date
   gender                      String?               // 'M' | 'F' | other
   nationality                 String                @default("RO")

@@ -185,6 +185,17 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
             { lastName: { contains: q, mode: 'insensitive' } },
             { jobTitle: { contains: q, mode: 'insensitive' } },
             { company: { name: { contains: q, mode: 'insensitive' } } },
+            // Also match a former surname the person no longer uses, so staff
+            // can find someone by their old name. Postgres scalar-array
+            // filters can't do case-insensitive partial matching, so we match
+            // the whole old surname across the common casings (stored names
+            // here are typically upper-case).
+            { previousLastNames: { hasSome: Array.from(new Set([
+              q,
+              q.toUpperCase(),
+              q.toLowerCase(),
+              q.charAt(0).toUpperCase() + q.slice(1).toLowerCase(),
+            ])) } },
           ],
         }
       : {}),

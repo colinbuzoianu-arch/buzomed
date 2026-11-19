@@ -151,6 +151,11 @@ export interface EmployeeFormLabels {
   submitting: string
   cancel: string
   errorMessage: string
+  // Shown when the entered CNP already belongs to another employee in this
+  // cabinet. `{name}` is replaced with that employee's name so the user knows
+  // who it is and can open the existing record instead of creating a double.
+  duplicateCnpMessage: string
+  openEmployee: string
 }
 
 interface WorkplaceOption {
@@ -187,6 +192,15 @@ export function EmployeeForm({
   )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // When the server rejects a CNP because it already belongs to someone in
+  // this cabinet, it returns that employee so we can name them and offer a
+  // direct link to open their record (the right move when a person's name
+  // changed — edit the existing fișă instead of creating a duplicate).
+  const [duplicate, setDuplicate] = useState<{
+    id: string
+    firstName: string
+    lastName: string
+  } | null>(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(currentCompanyId ?? '')
   const [selectedWorkplaceId, setSelectedWorkplaceId] = useState<string>('')
 
@@ -199,6 +213,7 @@ export function EmployeeForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setDuplicate(null)
     setSubmitting(true)
 
     const payload: Record<string, unknown> = {
@@ -280,6 +295,24 @@ export function EmployeeForm({
       const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
+        // Duplicate CNP: name the existing employee and offer a link to open
+        // them, rather than showing a raw English server message.
+        if (data.error === 'duplicate_cnp' && data.duplicateEmployee?.id) {
+          const dup = data.duplicateEmployee as {
+            id: string
+            firstName: string
+            lastName: string
+          }
+          setDuplicate(dup)
+          setError(
+            labels.duplicateCnpMessage.replace(
+              '{name}',
+              `${dup.lastName} ${dup.firstName}`.trim()
+            )
+          )
+          setSubmitting(false)
+          return
+        }
         const issues = (data.issues as string[] | undefined)?.join('; ')
         setError(issues || data.message || data.error || labels.errorMessage)
         setSubmitting(false)
@@ -686,8 +719,13 @@ export function EmployeeForm({
       </section>
 
       {error && (
-        <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
-          {error}
+        <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3 space-y-3">
+          <p>{error}</p>
+          {duplicate && (
+            <Button type="button" variant="outline" size="sm" asChild>
+              <Link href={`/employees/${duplicate.id}`}>{labels.openEmployee}</Link>
+            </Button>
+          )}
         </div>
       )}
 

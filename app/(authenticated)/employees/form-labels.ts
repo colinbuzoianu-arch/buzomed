@@ -76,5 +76,7 @@ export function buildEmployeeFormLabels(t: Translator): EmployeeFormLabels {
     submitting: t('employees.form.submitting'),
     cancel: t('common.cancel'),
     errorMessage: t('employees.form.errorMessage'),
+    duplicateCnpMessage: t('employees.form.duplicateCnpMessage'),
+    openEmployee: t('employees.form.openEmployee'),
   }
 }
